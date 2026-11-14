@@ -4143,7 +4143,8 @@ function stdPartDialog(hasBody) {
             row('Mutter auf der Gegenseite', sel(ns, v.nut || '', w => { v.nut = w; draw(); })),
             ...(v.nut ? [row('Scheibe unter der Mutter', sel(ws, v.nutWasher || '', w => (v.nutWasher = w)))] : []),
             ...(onFace && !v.nut ? [row('Ohne Mutter', sel([['', 'Durchgangsbohrung durch alle Teile'], ['tap', 'Gewindebohrung im untersten Teil']], v.tap || '', w => { v.tap = w; draw(); }))] : []),
-            ...(onFace ? (v.nut ? [row('Größe und Länge', sel([['', 'Wie oben gewählt'], ['len', 'Länge passend zur Klemmdicke']], v.fit ? 'len' : '', w => (v.fit = w)))] : [])
+            ...(onFace ? (v.nut ? [row('Größe und Länge', sel([['', 'Wie oben gewählt'], ['len', 'Länge passend zur Klemmdicke']], v.fit ? 'len' : '', w => (v.fit = w)))]
+              : v.tap === 'tap' ? [row('Größe und Länge', sel([['', 'Wie oben gewählt'], ['len', 'Länge passend zur Einschraubtiefe']], v.fit ? 'len' : '', w => (v.fit = w)))] : [])
               : [row('Größe und Länge', sel([['', 'Wie oben gewählt'], ...(v.nut ? [['len', 'Länge passend zur Klemmdicke']] : []), ['all', v.nut ? 'Größe passend zur Bohrung, Länge passend zur Klemmdicke' : 'Größe passend zur Bohrung']], v.fit === 'len' && !v.nut ? '' : v.fit || '', w => (v.fit = w)))]),
           ];
         })() : []),
@@ -4153,7 +4154,7 @@ function stdPartDialog(hasBody) {
           : fam.seat === 'on' ? 'Bei „Bohrungen“ liegt das Teil auf der Fläche an dem Ende der Bohrung, das näher am Klickpunkt liegt. Mehrere Bohrungen nacheinander anklicken, dann „Fertig“.'
             : 'Bei „Bohrungen“ sitzt das Teil bündig in dem Ende der Bohrung, das näher am Klickpunkt liegt. Mehrere Bohrungen nacheinander anklicken, dann „Fertig“.'),
         ...(onFace ? [h('p', { class: 'hint' }, 'Fläche anklicken: an jedem Klickpunkt entsteht die Durchgangsbohrung für die Schraube (ISO 273, Reihe mittel) durch alle Teile, die dort aufeinanderliegen – für Senkschrauben mit 90°-Senkung, für Zylinderschrauben auf Wunsch mit Senkbohrung (DIN 974-1, Reihe 1) so tief wie der Kopf. Die Schraube sitzt gleich darin. Bohrung und Schraube lassen sich danach im Verlauf ändern.')] : []),
-        ...(onFace && !v.nut && v.tap === 'tap' ? [h('p', { class: 'hint' }, 'Gewindebohrung im untersten Teil: die Durchgangsbohrung endet, wo das unterste Teil beginnt; dort entsteht das Kernloch mit Gewinde – drei Gewindegänge tiefer, als die Schraube reicht, oder durch das ganze Teil. Liegt nur ein Teil unter dem Punkt, bekommt es das Gewinde von der Fläche an.')] : []),
+        ...(onFace && !v.nut && v.tap === 'tap' ? [h('p', { class: 'hint' }, 'Gewindebohrung im untersten Teil: die Durchgangsbohrung endet, wo das unterste Teil beginnt; dort entsteht das Kernloch mit Gewinde – drei Gewindegänge tiefer, als die Schraube reicht, oder durch das ganze Teil. Liegt nur ein Teil unter dem Punkt, bekommt es das Gewinde von der Fläche an. „Länge passend zur Einschraubtiefe“ nimmt die nächste Länge der Reihe, mit der die Schraube etwa so tief im Gewinde sitzt, wie ihr Gewinde dick ist (Richtwert für Stahl) – aber nie länger, als das Teil dick ist.')] : []),
         ...(stdJoint(v) ? [h('p', { class: 'hint' }, 'Verschraubung: Scheiben und Mutter kommen mit der Schraube in einem Zug an jede angeklickte Bohrung. Die Klemmdicke ist die Länge der Bohrung – durch mehrere Teile hindurch, wenn ihre Bohrungen fluchten und aneinanderstoßen. Mit Mutter wird die kürzeste Vorzugslänge vorgeschlagen, bei der die Schraube zwei Gewindegänge aus der Mutter ragt.')] : []),
         h('p', { class: 'hint' }, 'Nennmaße der Normen ohne Toleranzen. Ein gekennzeichnetes Gewinde bleibt ein glatter Zylinder, die Zeichnung zeigt es als Gewinde; ausmodelliert wird der Gewindegang wirklich geschnitten.'));
     };
@@ -4225,7 +4226,7 @@ function placeBoltFace(e, meshes) {
   let clamp = 0;
   for (let go = true; go;) { const ex = Math.min(...outs.filter(t => t > clamp + 1e-3)); if (!Number.isFinite(ex)) break; clamp = ex; go = ins.some(t => Math.abs(t - ex) < 0.05); }
   if (!(clamp > 0.05)) return status('Unter diesem Punkt liegt kein Material.');
-  let hole, st, tapF = null, grip = 0;
+  let hole, st, tapF = null, grip = 0, tapLen = 0;
   const sets = [], size = v.size, sunk = stdSinks(v) && v.sink !== false, opt = { ...v, headWasher: sunk ? '' : v.headWasher };
   // without a nut the screw can go into a thread in the part lying lowest: the clearance hole ends where that
   // part begins (one part alone gets the thread from its face on)
@@ -4238,15 +4239,22 @@ function placeBoltFace(e, meshes) {
     hole = boltHole(v.fam, size, sunk);
     if (tap && !split) hole = { ...hole, kind: 'simple', seat: 0 };
     if (through && hole.seat > through - 0.5) throw new Error(`Das Teil ist für die Senkung zu dünn (Senktiefe ${f2(hole.seat)} mm, Dicke ${f2(through)} mm).`);
+    st = boltStack(v.fam, size, clamp - hole.seat, opt);
     if (tap) {
-      const reach = v.len - (split - hole.seat), room = clamp - split;
-      if (!(reach >= 1)) throw new Error(`Die Schraube reicht nicht bis in das unterste Teil (Länge ${f2(v.len)} mm, darüber ${f2(split - hole.seat)} mm).`);
+      // (what the screw has to bridge before the thread begins; the length that fits: the thread diameter deep
+      // into the thread, the next length of the series – but no longer than the part is thick)
+      const over = split - hole.seat + st.hw, room = clamp - split;
+      if (v.fit) {
+        tapLen = STD_LENGTHS.find(q => q >= over + tap[1] - 1e-9) ?? Math.ceil(over + tap[1]);
+        if (tapLen - over > room + 1e-9) tapLen = [...STD_LENGTHS].reverse().find(q => q <= over + room + 1e-9 && q >= over + 1) ?? tapLen;
+      }
+      const sl = tapLen || v.len, reach = sl - over;
+      if (!(reach >= 1)) throw new Error(`Die Schraube reicht nicht bis in das unterste Teil (Länge ${f2(sl)} mm, darüber ${f2(over)} mm).`);
       const deep = reach + 3 * tap[2], blind = deep < room - 1;
       grip = Math.min(reach, room);
       tapF = { depth: blind ? deep : room, tip: blind && deep + tap[3] / 2 < room - 0.5 };
     }
-    st = boltStack(v.fam, size, clamp - hole.seat, opt);
-    const len = v.nut && v.fit ? st.len : v.len, top = p.clone().addScaledVector(n, -hole.seat), other = p.clone().addScaledVector(n, -clamp);
+    const len = v.nut && v.fit ? st.len : tapLen || v.len, top = p.clone().addScaledVector(n, -hole.seat), other = p.clone().addScaledVector(n, -clamp);
     if (st.hw) sets.push(stdPartFeats({ fam: opt.headWasher, size }, top, n));
     sets.push(stdPartFeats({ fam: v.fam, size, len, thread: v.thread }, top.clone().addScaledVector(n, st.hw), n));
     if (st.nw) sets.push(stdPartFeats({ fam: v.nutWasher, size }, other, dir));
@@ -4265,11 +4273,11 @@ function placeBoltFace(e, meshes) {
   const all = [...hf, ...sets.flatMap(s => s.feats)], err = Object.keys(getModel().errors).find(id => all.some(f => f.id === id));
   let what = !through ? '' : hole.kind === 'cbore' ? `Bohrung Ø ${f2(hole.dia)} mm mit Senkung Ø ${f2(hole.cbDia)} × ${f2(hole.cbDepth)} mm` : hole.kind === 'csink' ? `Bohrung Ø ${f2(hole.dia)} mm mit Senkung 90° Ø ${f2(hole.csDia)} mm` : `Bohrung Ø ${f2(hole.dia)} mm`;
   if (tapF) what = (what ? what + ', ' : '') + (grip < tap[1] - 1e-6 ? `Gewindebohrung ${tap[0]} – Einschraubtiefe nur ${f2(grip)} mm` : `Gewindebohrung ${tap[0]}, Einschraubtiefe ${f2(grip)} mm`);
-  if (err) status(`${names}: ${getModel().errors[err]}`);
-  else if (v.nut && st.used < st.need - 1e-6) status(`Verschraubung: ${names} – ${what}; die Schraube ist für die Klemmdicke ${f2(clamp - hole.seat)} mm zu kurz (nötig: ${f2(st.need)} mm)`);
-  else status(`${names} – ${what}, Dicke ${f2(clamp)} mm`);
+  const msg = err ? `${names}: ${getModel().errors[err]}` : v.nut && st.used < st.need - 1e-6 ? `Verschraubung: ${names} – ${what}; die Schraube ist für die Klemmdicke ${f2(clamp - hole.seat)} mm zu kurz (nötig: ${f2(st.need)} mm)` : `${names} – ${what}, Dicke ${f2(clamp)} mm`;
   select('feature', screw.first);
   if (!err) { v.n++; state.pick = { mode: 'boltFace' }; stdBanner(); renderAll(); }
+  // (last: selecting and redrawing write to the status line themselves)
+  status(msg);
 }
 // screw, washers and nut on one hole: the clamped length is the bore – through every part whose bore lines up
 function placeJoint(v, c, click) {

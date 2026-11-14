@@ -693,6 +693,70 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
   // (a ball is no ring)
   const ball = turn(Array.from({ length: 13 }, (_, i) => [5 * Math.sin((Math.PI * i) / 12), -5 * Math.cos((Math.PI * i) / 12)]), 32);
   ok('Netz → Körper: eine Kugel wird kein Ring', !M.findRound(ball).tori.length, `${M.findRound(ball).tori.length}`);
+  // a block 40 × 30 × 8, its four upper edges rounded with 2: the fillets meet on a mitre at every corner
+  {
+    const KM = 12, prof = [[0, 0], [0, 6], ...Array.from({ length: KM }, (_, i) => { const q = ((i + 1) / KM) * (Math.PI / 2); return [2 - 2 * Math.cos(q), 6 + 2 * Math.sin(q)]; })];
+    const ring = ([dIn, z]) => [[-20 + dIn, -15 + dIn, z], [20 - dIn, -15 + dIn, z], [20 - dIn, 15 - dIn, z], [-20 + dIn, 15 - dIn, z]];
+    const rs = prof.map(ring), tr = [];
+    for (let k = 0; k + 1 < rs.length; k++) for (let i = 0; i < 4; i++) { const j = (i + 1) % 4; tr.push(rs[k][i], rs[k][j], rs[k + 1][j], rs[k][i], rs[k + 1][j], rs[k + 1][i]); }
+    const top = rs[rs.length - 1], bot = rs[0];
+    tr.push(top[0], top[1], top[2], top[0], top[2], top[3], bot[0], bot[2], bot[1], bot[0], bot[3], bot[2]);
+    const mm = M.weld(new Float32Array(tr.flat())), cy = M.findCylinders(mm), want = (2 * 2 / 2) * KM * (Math.PI / 2 / KM - Math.sin(Math.PI / 2 / KM));
+    ok('Netz → Körper: Verrundungen, die sich auf Gehrung treffen, sind Zylinderstücke mit schrägen Enden', M.stats(mm).closed && cy.length === 4 && cy.every(c => c.full === false && !c.hole && near(c.r, 2, 1e-3) && near(c.sweep, Math.PI / 2, 1e-3) && c.ends && c.ends.length === 2 && c.tan && c.tan[0] && c.tan[1] && c.ends.every(e => near(Math.abs(e.n[0] * c.d[0] + e.n[1] * c.d[1] + e.n[2] * c.d[2]), Math.SQRT1_2, 1e-3))) && cy.filter(c => near(c.h, 40, 1e-3)).length === 2 && cy.filter(c => near(c.h, 30, 1e-3)).length === 2 && cy.every(c => c.slv > want * (c.h - 4) && c.slv < want * c.h),
+      `${cy.length} ${cy.map(c => [c.r.toFixed(3), c.h.toFixed(2), !!c.ends, c.slv && c.slv.toFixed(4)].join('/')).join(' ')}`);
+  }
+  // a bar 40 long with one rounded edge (radius 2) whose arc has 12 corners at one end and 9 at the other: the
+  // facets of the fillet are triangles in a zigzag, none of their long edges runs along the axis
+  {
+    const arc = n => Array.from({ length: n + 1 }, (_, i) => { const q = (i / n) * (Math.PI / 2); return [8 + 2 * Math.cos(q), 6 + 2 * Math.sin(q)]; });
+    const A = arc(12).map(p => [0, ...p]), B = arc(9).map(p => [40, ...p]), flat = [[0, 8], [0, 0], [10, 0]], tr = [];
+    // the fillet: always the next corner by angle
+    for (let i = 0, k = 0; i < 12 || k < 9;) { if (k === 9 || (i < 12 && (i + 1) / 12 <= (k + 1) / 9)) { tr.push(A[i], B[k], A[i + 1]); i++; } else { tr.push(A[i], B[k], B[k + 1]); k++; } }
+    // the three flat sides and the two ends
+    const ringA = [...A, ...flat.map(p => [0, ...p])], ringB = [...B, ...flat.map(p => [40, ...p])];
+    for (let i = 12; i < ringA.length; i++) { const j = (i + 1) % ringA.length, a = ringA[i], b = ringA[j], c = ringB[i === 12 ? 9 : i - 3], e = ringB[j === 0 ? 0 : j - 3]; tr.push(a, c, b, b, c, e); }
+    for (let i = 1; i + 1 < ringA.length; i++) tr.push(ringA[0], ringA[i], ringA[i + 1]);
+    for (let i = 1; i + 1 < ringB.length; i++) tr.push(ringB[0], ringB[i + 1], ringB[i]);
+    // (all of them were written facing inwards)
+    const mz = M.weld(new Float32Array(tr.flatMap((p, i) => (i % 3 === 1 ? tr[i + 1] : i % 3 === 2 ? tr[i - 1] : p)))), cz = M.findCylinders(mz), c = cz[0];
+    ok('Netz → Körper: Verrundung mit ungleich geteilten Enden (Dreiecke im Zickzack) wird ein Zylinderstück', M.stats(mz).closed && cz.length === 1 && c.full === false && !c.hole && near(c.r, 2, 1e-3) && near(c.h, 40, 1e-3) && near(c.sweep, Math.PI / 2, 1e-3) && near(Math.abs(c.d[0]), 1, 1e-6) && !!c.ends && !!c.tan && !!c.tan[0] && !!c.tan[1] && c.slv > 0,
+      `${M.stats(mz).closed} ${cz.length} ${c && [c.r.toFixed(3), c.h.toFixed(2), c.sweep.toFixed(4), !!c.ends, c.tan && c.tan.map(t => !!t), c.slv && c.slv.toFixed(4)].join('/')}`);
+  }
+  // turned parts as a CAD export meshes them: every ring with its own division, so there are no even strips
+  {
+    const turnN = prof => {
+      const tr = [], P = (r, z, a) => [r * Math.cos(a), r * Math.sin(a), z];
+      for (let k = 0; k < prof.length; k++) {
+        const [ra, za, na] = prof[k], [rb, zb, nb] = prof[(k + 1) % prof.length];
+        if (na === 1 && nb === 1) continue;
+        let i = 0, j = 0;
+        while (i < na || j < nb) {
+          const ai = (2 * Math.PI * i) / na, bj = (2 * Math.PI * j) / nb, an = na > 1 && i < na ? (2 * Math.PI * (i + 1)) / na : Infinity, bn = nb > 1 && j < nb ? (2 * Math.PI * (j + 1)) / nb : Infinity;
+          if (an <= bn) { tr.push(P(ra, za, ai), P(ra, za, an), P(rb, zb, bj)); i++; } else { tr.push(P(ra, za, ai), P(rb, zb, bn), P(rb, zb, bj)); j++; }
+          if (na === 1) i = na; if (nb === 1) j = nb;
+        }
+      }
+      const m = M.weld(new Float32Array(tr.flat()));
+      if (volOf(m) < 0) { const I = m.idx; for (let t = 0; t < I.length; t += 3) { const x = I[t + 1]; I[t + 1] = I[t + 2]; I[t + 2] = x; } }
+      return m;
+    };
+    // a cylinder Ø 40 that runs out through a fillet of 2 into a cone of 45°
+    const zt = 4 - 2 * Math.tan(Math.PI / 8), KT = 8, tor = Array.from({ length: KT + 1 }, (_, i) => { const q = (Math.PI / 4) * (i / KT); return [18 + 2 * Math.cos(q), zt + 2 * Math.sin(q), 115]; });
+    const zc = tor[KT][1], rc = tor[KT][0], cone = [1, 2, 3].map(i => [rc + ((12 - rc) * i) / 4, zc + ((12 - zc) * i) / 4, 70]);
+    const mt = turnN([[0, 0, 1], [20, 0, 100], ...tor, ...cone, [12, 12, 77], [0, 12, 1]]), ft = M.findRound(mt), cyR = ft.cylinders.filter(c => c.ring), co = ft.cones[0], to = ft.tori[0];
+    ok('Netz → Körper: Zylinder, Verrundung und Kegel aus einem Guss werden einzeln erkannt, auch ohne gleichmäßige Streifen', M.stats(mt).closed && cyR.length === 1 && near(cyR[0].r, 20, 2e-3) && near(cyR[0].h, zt, 2e-3) && !cyR[0].hole && ft.cones.length === 1 && near(co.r0, 12, 2e-3) && near(co.r1, rc, 2e-3) && !co.hole && ft.tori.length === 1 && near(to.R, 18, 2e-3) && near(to.r, 2, 2e-3) && near(to.s0, 0, 2e-3) && near(to.s1, Math.PI / 4, 2e-3),
+      `${ft.cylinders.length} ${ft.cones.map(c => c.r0.toFixed(2) + '..' + c.r1.toFixed(2)).join(' ')} ${ft.tori.map(t => t.R.toFixed(2) + '/' + t.r.toFixed(2)).join(' ')}`);
+    const sr = M.standIn(mt, ft.tori, ft.spheres, [...ft.cones, ...cyR]), ss = M.stats(sr.m), gr = sr.rings || [];
+    // (what the grooves take away is what the true faces have to bring back, beyond the slivers)
+    const lost = volOf(mt) + (sr.tori[0] ? sr.tori[0].vol - to.vol : 0) - volOf(sr.m), back = gr.reduce((q, x) => q + x.vol - (x.src.vol != null ? x.src.vol : x.src.slv), 0);
+    ok('Netz → Körper: für solche Zylinder und Kegel steht eine flache Nut mit ebenen Wänden ein (geschlossen, Rauminhalt stimmt)', ss.closed && gr.length === 2 && gr.every(x => x.kin > 0.9 && x.kin < 0.97 && x.vol > 0) && sr.tori.length === 1 && sr.tori[0].corner && sr.tori[0].cor && sr.tori[0].cor.length === 1 && near(sr.tori[0].cor[0][0], 20, 2e-3) && lost > 0 && near(lost, back, 0.02 * back + 0.05),
+      `${ss.closed} ${gr.length} ${lost.toFixed(3)} ${back.toFixed(3)}`);
+    // a hollow the same way: the groove fills the countersink up, the true cone takes it out again
+    const mh = turnN([[0, 0, 1], [20, 0, 100], [20, 12, 100], [12, 12, 77], [6, 6, 60], [6, 4, 60], [0, 4, 1]]), fh = M.findRound(mh), hc = fh.cones[0];
+    const sh = M.standIn(mh, fh.tori, fh.spheres, fh.cones), gh = (sh.rings || [])[0];
+    ok('Netz → Körper: Senkung mit ungleich geteilten Ringen – ein Kegel als Hohlform, die Nut füllt ihn auf', fh.cones.length === 1 && hc.hole && near(hc.r0, 6, 2e-3) && near(hc.r1, 12, 2e-3) && fh.cylinders.some(c => c.hole && near(c.r, 6, 2e-3) && near(c.h, 2, 2e-3)) && M.stats(sh.m).closed && !!gh && gh.src === hc && near(volOf(sh.m) - volOf(mh), gh.vol - hc.vol, 1e-3) && volOf(sh.m) > volOf(mh),
+      `${fh.cones.length} ${(sh.rings || []).length} ${(volOf(sh.m) - volOf(mh)).toFixed(3)} ${gh ? (gh.vol - hc.vol).toFixed(3) : ''}`);
+  }
 }
 
 // ---- the hole a screw brings along ----

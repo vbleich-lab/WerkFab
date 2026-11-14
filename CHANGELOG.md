@@ -1,5 +1,20 @@
 # Änderungen
 
+## v1.0.0-rc.12 – 2026-11-14
+
+### Normteile
+- **Länge passend zur Einschraubtiefe**: bei „Schraube auf Fläche“ mit Gewindebohrung im untersten Teil schlägt das Programm auf Wunsch die Länge vor – die nächste Länge der Reihe, mit der die Schraube etwa einen Gewindedurchmesser tief im Gewinde sitzt (Richtwert für Stahl), nie länger, als das Teil dick ist. Kopf, Senkung und Scheibe unter dem Kopf sind eingerechnet.
+
+### Netz → Körper
+- **Verrundungen auf Gehrung**: rundum verrundete Kanten eines Quaders (und alle Verrundungen, die schräg aneinander enden) werden echte Zylinderflächen – der Quader mit vier verrundeten Kanten hat danach genau die Flächen des Originals.
+- **Auslauf ohne Stufe**: eine erkannte Verrundung beginnt genau an der Kante der Nachbarfläche; die haarfeinen Reststreifen daneben entfallen. Zwei Verrundungen an der gerundeten Platte, die vorher facettiert blieben, werden jetzt erkannt.
+- **Kegel und Zylinder mit ungleich geteilten Ringen** (so liefern Netze Dreh- und Senkformen meist): eine flache Nut steht für die Facetten ein, die wahre Fläche kommt in einem Schritt darauf – Sekunden statt Minuten.
+- **Kegel und Ring im selben Stück**: die Verrundung zwischen Kegel und ebener Fläche oder Zylinder wird als Ringfläche erkannt, ebenso ein Halbrund, das in einen Kegel übergeht – auch mit Knick.
+- **Verrundungen mit ungleich geteilten Enden**: wo das Netz eine Verrundung an beiden Enden verschieden teilt (Dreiecke im Zickzack – häufig zwischen zwei Gehrungen), wird sie jetzt ebenfalls ein Zylinderstück. Platte mit Langloch und rundum verrundeten Kanten: 16 statt 122 Ebenen; rundum verrundete flache Platte: 18 statt 42.
+- Verrundungen laufen auch in Flächen ohne Stufe aus, in die mehrere Verrundungen münden (Deckfläche mit Innen- und Außenkanten).
+- **Ring mit Knick in einen Kegel**: die Ersatzzone wird im Ganzen ausgeschnitten und das exakte Ringstück eingesetzt – statt rund 170 Restflächen bleiben zwei winzige, und es geht doppelt so schnell.
+- Grenze: an Gehrungsecken ungleich geteilter Verrundungen bleiben einzelne Splitter unter 0,001 mm²; Rauminhalt und Hauptflächen stimmen.
+
 ## v1.0.0-rc.11 – 2026-11-14
 
 ### Normteile

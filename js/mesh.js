@@ -1123,15 +1123,15 @@ export function findCylinders(m, minFacets = 8, info = null) {
     RN[g] += uy * vz - uz * vy; RN[g + 1] += uz * vx - ux * vz; RN[g + 2] += ux * vy - uy * vx;
   }
   for (let t = 0; t < nT; t++) if (reg[t] === t) { const l = Math.hypot(RN[t * 3], RN[t * 3 + 1], RN[t * 3 + 2]) || 1; RN[t * 3] /= l; RN[t * 3 + 1] /= l; RN[t * 3 + 2] /= l; }
-  const classes = new Map();
+  const classes = new Map(), sharp = new Set(), softAll = [];
   for (const [t, s, a, b] of pairs) {
     const g = reg[t] * 3, q = reg[s] * 3;
     if (g === q) continue;
     const c = RN[g] * RN[q] + RN[g + 1] * RN[q + 1] + RN[g + 2] * RN[q + 2];
     // (flatter than a soft edge, yet not one plane: fine facets of a round face – they hold it together when
     // cones and spheres are looked for)
-    if (c > cmax) { if (info) info.flatish.push([reg[t], reg[s]]); continue; }
-    if (c < cmin) continue;
+    if (c > cmax) { softAll.push([reg[t], reg[s], a, b]); if (info) info.flatish.push([reg[t], reg[s]]); continue; }
+    if (c < cmin) { sharp.add(reg[t]); sharp.add(reg[s]); continue; }
     let dx = P[b * 3] - P[a * 3], dy = P[b * 3 + 1] - P[a * 3 + 1], dz = P[b * 3 + 2] - P[a * 3 + 2];
     const l = Math.hypot(dx, dy, dz);
     if (l < 1e-9) continue;
@@ -1141,6 +1141,7 @@ export function findCylinders(m, minFacets = 8, info = null) {
     let cl = classes.get(key);
     if (!cl) classes.set(key, (cl = { d: [dx, dy, dz], soft: [] }));
     cl.soft.push([reg[t], reg[s], a, b]);
+    softAll.push([reg[t], reg[s], a, b]);
     if (info) info.softList.push([reg[t], reg[s]]);
   }
   // (directions that fell into two neighbouring cells of the rounding belong together)
@@ -1156,7 +1157,18 @@ export function findCylinders(m, minFacets = 8, info = null) {
   let regTris = null;
   if (info) { info.soft = info.softList; info.trisOf = () => trisOf(); }
   const trisOf = () => { if (!regTris) { regTris = new Map(); for (let t = 0; t < nT; t++) { const r = regTris.get(reg[t]); if (r) r.push(t); else regTris.set(reg[t], [t]); } } return regTris; };
-  const out = [];
+  const out = [], taken = new Set();
+  const circle = pts => {
+    const mx = pts.reduce((a, p) => a + p.x, 0) / pts.length, my = pts.reduce((a, p) => a + p.y, 0) / pts.length;
+    let sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0, sz = 0;
+    for (const p of pts) { const x = p.x - mx, y = p.y - my, z = x * x + y * y; sxx += x * x; syy += y * y; sxy += x * y; sxz += x * z; syz += y * z; sz += z; }
+    const det = sxx * syy - sxy * sxy;
+    if (Math.abs(det) < 1e-12) return null;
+    const cx = (sxz * syy - syz * sxy) / (2 * det), cy = (syz * sxx - sxz * sxy) / (2 * det), r = Math.sqrt(cx * cx + cy * cy + sz / pts.length);
+    if (!(r > 1e-3)) return null;
+    const tol = Math.max(2e-3, 1e-3 * r);
+    return pts.every(p => Math.abs(Math.hypot(p.x - mx - cx, p.y - my - cy) - r) <= tol) ? { x: mx + cx, y: my + cy, r } : null;
+  };
   for (const cl of list) {
     if (cl.soft.length < 3) continue;
     const d = cl.d;
@@ -1171,7 +1183,7 @@ export function findCylinders(m, minFacets = 8, info = null) {
       const x = X(a), y = Y(a), key = `${Math.round(x * 500)},${Math.round(y * 500)}`;
       let ln = lines.get(key);
       if (!ln) lines.set(key, (ln = { x, y, strips: [] }));
-      for (const r of [ra, rb]) { let s = regLines.get(r); if (!s) regLines.set(r, (s = new Set())); s.add(ln); }
+      for (const r of [ra, rb]) { let s = regLines.get(r); if (!s) regLines.set(r, (s = new Set())); s.add(ln); (ln.regs ||= new Set()).add(r); }
     }
     if (lines.size < 3) continue;
     for (const [r, s] of regLines) {
@@ -1206,18 +1218,7 @@ export function findCylinders(m, minFacets = 8, info = null) {
       c.closed = true;
       chains.push(c);
     }
-    const circle = pts => {
-      const mx = pts.reduce((a, p) => a + p.x, 0) / pts.length, my = pts.reduce((a, p) => a + p.y, 0) / pts.length;
-      let sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0, sz = 0;
-      for (const p of pts) { const x = p.x - mx, y = p.y - my, z = x * x + y * y; sxx += x * x; syy += y * y; sxy += x * y; sxz += x * z; syz += y * z; sz += z; }
-      const det = sxx * syy - sxy * sxy;
-      if (Math.abs(det) < 1e-12) return null;
-      const cx = (sxz * syy - syz * sxy) / (2 * det), cy = (syz * sxx - sxz * sxy) / (2 * det), r = Math.sqrt(cx * cx + cy * cy + sz / pts.length);
-      if (!(r > 1e-3)) return null;
-      const tol = Math.max(2e-3, 1e-3 * r);
-      return pts.every(p => Math.abs(Math.hypot(p.x - mx - cx, p.y - my - cy) - r) <= tol) ? { x: mx + cx, y: my + cy, r } : null;
-    };
-    const emit = (pts, strips, full) => {
+    const emit = (pts, strips, full, before = null, after = null) => {
       const C = circle(full ? pts.slice(0, -1) : pts);
       if (!C) return false;
       // the strips: all between the same two planes across the axis, all turned the same way
@@ -1233,7 +1234,38 @@ export function findCylinders(m, minFacets = 8, info = null) {
         if (side && Math.sign(s) !== side) return false;
         side = Math.sign(s) || side;
       }
-      if (h1 - h0 < 1e-3 || !side || spans.some(s => s[0] - h0 > 2e-3 || h1 - s[1] > 2e-3)) return false;
+      if (h1 - h0 < 1e-3 || !side) return false;
+      // a fillet that meets the next one on a mitre, a pipe cut askew: the strips end in a plane that does not
+      // lie across the axis – { lo, hi: [a, b, c] } with the height a·x + b·y + c over the point (x, y) from the
+      // centre of the circle
+      let mit = null;
+      if (spans.some(s => s[0] - h0 > 2e-3 || h1 - s[1] > 2e-3)) {
+        // (the rows of facets of a torus look the same, but they run on smoothly into the next row: on a mitre
+        // the strips end in a sharp edge – all but the outermost, which may run out flat)
+        const mid = strips.length > 3 ? strips.slice(1, -1) : strips;
+        if (mid.filter(st => sharp.has(st.r)).length * 2 < mid.length) return false;
+        const rows = [];
+        for (const st of strips) {
+          const e = [Infinity, -Infinity, Infinity, -Infinity];
+          for (const t of T.get(st.r)) for (let k = 0; k < 3; k++) {
+            const v = I[t * 3 + k], x = X(v), y = Y(v), hh = H(v), o = Math.hypot(x - st.p.x, y - st.p.y) < Math.hypot(x - st.q.x, y - st.q.y) ? 0 : 2;
+            if (hh < e[o]) e[o] = hh; if (hh > e[o + 1]) e[o + 1] = hh;
+          }
+          if (!e.every(Number.isFinite)) return false;
+          rows.push([st.p.x - C.x, st.p.y - C.y, e[0], e[1]], [st.q.x - C.x, st.q.y - C.y, e[2], e[3]]);
+        }
+        const fit = k => {
+          const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], b = [0, 0, 0];
+          for (const r of rows) { const q = [r[0], r[1], 1]; for (let i = 0; i < 3; i++) { b[i] += q[i] * r[2 + k]; for (let j = 0; j < 3; j++) A[i][j] += q[i] * q[j]; } }
+          const p = solveN(A, b);
+          return p && rows.every(r => Math.abs(p[0] * r[0] + p[1] * r[1] + p[2] - r[2 + k]) <= 3e-3) ? p : null;
+        };
+        const lo = fit(0), hi = fit(1);
+        // (no steeper than 60° to the plane across, and the two never meet within the circle)
+        if (!lo || !hi || Math.hypot(lo[0], lo[1]) > 1.75 || Math.hypot(hi[0], hi[1]) > 1.75 || rows.some(r => r[3] - r[2] < 1e-3)) return false;
+        if (hi[2] - lo[2] - C.r * Math.hypot(hi[0] - lo[0], hi[1] - lo[1]) < 1e-3) return false;
+        mit = { lo, hi };
+      }
       // angles: counter-clockwise from the first point, every chord a small step
       const ang = pts.map(p => Math.atan2(p.y - C.y, p.x - C.x));
       const steps = [];
@@ -1244,12 +1276,37 @@ export function findCylinders(m, minFacets = 8, info = null) {
       if (full ? Math.abs(sweep - 2 * Math.PI) > 1e-3 : sweep > 2 * Math.PI - 0.05 || sweep < 0.26) return false;
       // regular: the chords between the first and the last are equal (the outer two may be cut shorter)
       const inner = steps.slice(full ? 0 : 1, full ? undefined : -1).map(Math.abs), big = Math.max(...inner, 0);
-      if (inner.some(s => s < big * 0.97) || (!full && (Math.abs(steps[0]) > big * 1.03 || Math.abs(steps[steps.length - 1]) > big * 1.03))) return false;
+      // (along a mitre the corners lie where the mesh of the edge put them: there four strips on one circle are enough)
+      if (!(mit && !full && strips.length >= 4) && (inner.some(s => s < big * 0.97) || (!full && (Math.abs(steps[0]) > big * 1.03 || Math.abs(steps[steps.length - 1]) > big * 1.03)))) return false;
       const sl = steps.reduce((a, s) => a + (C.r * C.r / 2) * (Math.abs(s) - Math.sin(Math.abs(s))), 0);
+      let ends = null, slv;
+      if (mit) {
+        // the planes in space (their normals look away from the piece), and the volume between chords and circle
+        const pl = (p, sg) => { const l = Math.hypot(p[0], p[1], 1), n = [0, 1, 2].map(i => (sg * (d[i] - p[0] * u[i] - p[1] * w[i])) / l); return { p: [0, 1, 2].map(i => u[i] * C.x + w[i] * C.y + d[i] * p[2]), n }; };
+        ends = [pl(mit.lo, -1), pl(mit.hi, 1)];
+        const len = (x, y) => (mit.hi[0] - mit.lo[0]) * x + (mit.hi[1] - mit.lo[1]) * y + mit.hi[2] - mit.lo[2];
+        slv = 0;
+        for (let i = 0; i < steps.length; i++) { const a = Math.abs(steps[i]), p = pts[i], q = pts[(i + 1) % pts.length]; slv += (C.r * C.r / 2) * (a - Math.sin(a)) * len((p.x + q.x) / 2 - C.x, (p.y + q.y) / 2 - C.y); }
+      }
       const a0 = sg > 0 ? ang[0] : ang[ang.length - 1];
+      // (does the flat face beside the arc touch the circle there? – a fillet runs out into it without a step)
+      const tg = (p, q) => { if (!q) return false; const cx = q.x - p.x, cy = q.y - p.y, l = Math.hypot(cx, cy); return l > 1e-3 && Math.abs((p.x - C.x) * cx + (p.y - C.y) * cy) < 5e-3 * l * C.r; };
+      // (the corner itself and the way along the flat face towards the arc, as the mesh has them)
+      const te = (p, q) => { const l = Math.hypot(p.x - q.x, p.y - q.y); return { p: [0, 1, 2].map(i => u[i] * p.x + w[i] * p.y + d[i] * h0), t: [0, 1, 2].map(i => (u[i] * (p.x - q.x) + w[i] * (p.y - q.y)) / l) }; };
+      // (a flat face that many arcs run out into is no chord of this chain: it is asked for its normal instead)
+      const tn = (p, st, q) => {
+        const o = p.regs && p.regs.size === 2 ? [...p.regs].find(r => r !== st.r) : null;
+        if (o == null) return null;
+        const rx = (p.x - C.x) / C.r, ry = (p.y - C.y) / C.r, g = o * 3, c = (RN[g] * u[0] + RN[g + 1] * u[1] + RN[g + 2] * u[2]) * rx + (RN[g] * w[0] + RN[g + 1] * w[1] + RN[g + 2] * w[2]) * ry;
+        if (Math.abs(c) < 1 - 1.25e-5) return null;
+        const f = -ry * (q.x - p.x) + rx * (q.y - p.y) > 0 ? 1 : -1;
+        return { p: [0, 1, 2].map(i => u[i] * p.x + w[i] * p.y + d[i] * h0), t: [0, 1, 2].map(i => f * (-u[i] * ry + w[i] * rx)) };
+      };
+      const L = pts.length - 1, tb = full ? null : tg(pts[0], before) ? te(pts[0], before) : tn(pts[0], strips[0], pts[1]), ta = full ? null : tg(pts[L], after) ? te(pts[L], after) : tn(pts[L], strips[strips.length - 1], pts[L - 1]), tan = sg > 0 ? [tb, ta] : [ta, tb];
       out.push({ c: [u[0] * C.x + w[0] * C.y + d[0] * h0, u[1] * C.x + w[1] * C.y + d[1] * h0, u[2] * C.x + w[2] * C.y + d[2] * h0], d: d.slice(), r: C.r, h: h1 - h0, hole: side < 0,
-        n: full ? strips.length : Math.max(3, Math.round((2 * Math.PI) / (big || Math.abs(steps[0])))), full, u, w, a0, sweep, sl, ...(info ? { regs: strips.map(st => st.r) } : {}) });
+        n: full ? strips.length : Math.max(3, Math.round((2 * Math.PI) / (big || Math.abs(steps[0])))), full, u, w, a0, sweep, sl, ...(tan[0] || tan[1] ? { tan } : {}), ...(ends ? { ends, slv } : {}), ...(info ? { regs: strips.map(st => st.r) } : {}) });
       if (info) for (const st of strips) info.used.add(st.r);
+      for (const st of strips) taken.add(st.r);
       return true;
     };
     for (const ch of chains) {
@@ -1271,9 +1328,96 @@ export function findCylinders(m, minFacets = 8, info = null) {
         if (!okC) { i++; continue; }
         while (j + 1 < pts.length && circle(pts.slice(i, j + 2))) j++;
         // (a chord cut short at the far end is kept, a long one – the flat face next to a fillet – never fits)
-        if (emit(pts.slice(i, j + 1), strips.slice(i, j), false)) i = j; else i++;
+        if (emit(pts.slice(i, j + 1), strips.slice(i, j), false, pts[i - 1], pts[j + 1])) i = j; else i++;
       }
     }
+  }
+  // a round face whose mesh has other corners at one end than at the other (a fillet between two mitres): its
+  // facets are triangles in a zigzag (or pairs of them where the corners happen to match), and their long edges do not run along the axis. It is found by its
+  // corners instead: all on one circle, in two planes
+  {
+    const T = trisOf(), single = r => T.get(r).length <= 2 && !taken.has(r);
+    const up = new Map(), fnd = x => { while (up.get(x) !== x) { up.set(x, up.get(up.get(x))); x = up.get(x); } return x; };
+    // (joined across their long edges only: at a mitre two such bands meet in a short one)
+    const eLen = (a, b) => Math.hypot(P[b * 3] - P[a * 3], P[b * 3 + 1] - P[a * 3 + 1], P[b * 3 + 2] - P[a * 3 + 2]), longest = r => Math.max(eLen(I[r * 3], I[r * 3 + 1]), eLen(I[r * 3 + 1], I[r * 3 + 2]), eLen(I[r * 3 + 2], I[r * 3]));
+    for (const [ra, rb, a, b] of softAll) if (single(ra) && single(rb) && eLen(a, b) > 0.5 * Math.max(longest(ra), longest(rb))) { if (!up.has(ra)) up.set(ra, ra); if (!up.has(rb)) up.set(rb, rb); up.set(fnd(ra), fnd(rb)); }
+    const comps = new Map();
+    for (const r of up.keys()) { const k = fnd(r); let l = comps.get(k); if (!l) comps.set(k, (l = [])); l.push(r); }
+    const band = (rs, depth) => {
+      if (rs.length < 4 || rs.length > 400 || rs.filter(r => sharp.has(r)).length * 2 < rs.length) return;
+      const inC = new Set(rs), rim = [], ts = rs.flatMap(r => T.get(r));
+      let bad = false;
+      // the edges on the rim of the band: the longest runs along the axis
+      for (const r of ts) for (let k = 0; k < 3; k++) {
+        const a = I[r * 3 + k], b = I[r * 3 + (k + 1) % 3], e = edges.get(edgeKey(a, b));
+        if (!e || e.length !== 4) { bad = true; continue; }
+        const o = reg[e[0] === r ? e[3] : e[0]];
+        if (!inC.has(o)) rim.push([a, b, o, Math.hypot(P[b * 3] - P[a * 3], P[b * 3 + 1] - P[a * 3 + 1], P[b * 3 + 2] - P[a * 3 + 2])]);
+      }
+      if (bad || rim.length < 4) return;
+      const long = rim.reduce((p, q) => (q[3] > p[3] ? q : p));
+      if (!(long[3] > 1e-3)) return;
+      const d = [0, 1, 2].map(i => (P[long[1] * 3 + i] - P[long[0] * 3 + i]) / long[3]);
+      const ux0 = Math.abs(d[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0], dd = ux0[0] * d[0] + ux0[1] * d[1] + ux0[2] * d[2];
+      let u = [ux0[0] - d[0] * dd, ux0[1] - d[1] * dd, ux0[2] - d[2] * dd];
+      const ul = Math.hypot(...u); u = u.map(x => x / ul);
+      const w = [d[1] * u[2] - d[2] * u[1], d[2] * u[0] - d[0] * u[2], d[0] * u[1] - d[1] * u[0]];
+      const X = v => P[v * 3] * u[0] + P[v * 3 + 1] * u[1] + P[v * 3 + 2] * u[2], Y = v => P[v * 3] * w[0] + P[v * 3 + 1] * w[1] + P[v * 3 + 2] * w[2], H = v => P[v * 3] * d[0] + P[v * 3 + 1] * d[1] + P[v * 3 + 2] * d[2];
+      const pts = [...new Set(ts.flatMap(r => [I[r * 3], I[r * 3 + 1], I[r * 3 + 2]]))].map(v => ({ v, x: X(v), y: Y(v), h: H(v) }));
+      const C = circle(pts);
+      if (!C) {
+        // (the flat face beside the band may have come along – two triangles, like a strip: by far the widest goes)
+        const wide = r => { const q = T.get(r).flatMap(t => [I[t * 3], I[t * 3 + 1], I[t * 3 + 2]]); let m = 0; for (const p of q) for (const o of q) m = Math.max(m, Math.hypot(X(p) - X(o), Y(p) - Y(o))); return m; };
+        const ws = rs.map(wide), top = ws.indexOf(Math.max(...ws)), med = [...ws].sort((p, q) => p - q)[ws.length >> 1];
+        if (depth < 2 && ws[top] > 3 * med) band(rs.filter((_, j) => j !== top), depth + 1);
+        return;
+      }
+      const h0 = Math.min(...pts.map(p => p.h)), h1 = Math.max(...pts.map(p => p.h)), hm = (h0 + h1) / 2;
+      // every facet reaches from one end to the other
+      if (ts.some(r => { const q = [0, 1, 2].map(k => H(I[r * 3 + k]) > hm); return q[0] === q[1] && q[1] === q[2]; })) return;
+      const fit = top => {
+        const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], b = [0, 0, 0], rows = pts.filter(p => p.h > hm === top);
+        if (rows.length < 3) return null;
+        for (const r of rows) { const q = [r.x - C.x, r.y - C.y, 1]; for (let i = 0; i < 3; i++) { b[i] += q[i] * r.h; for (let j = 0; j < 3; j++) A[i][j] += q[i] * q[j]; } }
+        const p = solveN(A, b);
+        return p && rows.every(r => Math.abs(p[0] * (r.x - C.x) + p[1] * (r.y - C.y) + p[2] - r.h) <= 3e-3) ? p : null;
+      };
+      const lo = fit(false), hi = fit(true);
+      if (!lo || !hi || Math.hypot(lo[0], lo[1]) > 1.75 || Math.hypot(hi[0], hi[1]) > 1.75 || hi[2] - lo[2] - C.r * Math.hypot(hi[0] - lo[0], hi[1] - lo[1]) < 1e-3) return;
+      let side = 0;
+      for (const r of ts) {
+        const gx = (X(I[r * 3]) + X(I[r * 3 + 1]) + X(I[r * 3 + 2])) / 3 - C.x, gy = (Y(I[r * 3]) + Y(I[r * 3 + 1]) + Y(I[r * 3 + 2])) / 3 - C.y;
+        const sd = Math.sign((N[r * 3] * u[0] + N[r * 3 + 1] * u[1] + N[r * 3 + 2] * u[2]) * gx + (N[r * 3] * w[0] + N[r * 3 + 1] * w[1] + N[r * 3 + 2] * w[2]) * gy);
+        if (!sd || (side && sd !== side)) { bad = true; break; }
+        side = sd;
+      }
+      if (bad) return;
+      // the corners seen along the axis, in the order of their angles (counted from the middle of the arc)
+      const am = Math.atan2(pts.reduce((q, p) => q + p.y, 0) / pts.length - C.y, pts.reduce((q, p) => q + p.x, 0) / pts.length - C.x);
+      for (const p of pts) { let a = Math.atan2(p.y - C.y, p.x - C.x) - am; while (a > Math.PI) a -= 2 * Math.PI; while (a <= -Math.PI) a += 2 * Math.PI; p.a = a; }
+      const order = l => { const seen = new Map(); for (const p of l) { const k = Math.round(p.a * C.r * 500); if (!seen.has(k)) seen.set(k, p); } return [...seen.values()].sort((p, q) => p.a - q.a); };
+      const ring = order(pts), stepsOf = l => l.slice(1).map((p, i) => p.a - l[i].a), steps = stepsOf(ring), sweep = ring[ring.length - 1].a - ring[0].a;
+      if (ring.length < 4 || steps.some(x => x > 0.56) || sweep < 0.26 || sweep > Math.PI + 0.1) return;
+      const seg = l => stepsOf(order(l)).reduce((q, a) => q + (C.r * C.r / 2) * (a - Math.sin(a)), 0);
+      const sl = (seg(pts.filter(p => p.h > hm)) + seg(pts.filter(p => p.h <= hm))) / 2, mid = am + (ring[0].a + ring[ring.length - 1].a) / 2;
+      const slv = sl * ((hi[0] - lo[0]) * C.r * Math.cos(mid) + (hi[1] - lo[1]) * C.r * Math.sin(mid) + hi[2] - lo[2]);
+      const pl = (p, sg) => { const l = Math.hypot(p[0], p[1], 1), n = [0, 1, 2].map(i => (sg * (d[i] - p[0] * u[i] - p[1] * w[i])) / l); return { p: [0, 1, 2].map(i => u[i] * C.x + w[i] * C.y + d[i] * p[2]), n }; };
+      // (does the flat face beside the arc touch the circle there?)
+      const tanAt = (p, fwd) => {
+        const rx = (p.x - C.x) / C.r, ry = (p.y - C.y) / C.r;
+        const e = rim.find(q => q[3] > 0.5 * long[3] && Math.hypot(X(q[0]) - p.x, Y(q[0]) - p.y) < 2e-3 && Math.hypot(X(q[1]) - p.x, Y(q[1]) - p.y) < 2e-3);
+        if (!e) return null;
+        const g = e[2] * 3, c = (RN[g] * u[0] + RN[g + 1] * u[1] + RN[g + 2] * u[2]) * rx + (RN[g] * w[0] + RN[g + 1] * w[1] + RN[g + 2] * w[2]) * ry;
+        if (Math.abs(c) < 1 - 1.25e-5) return null;
+        const tx = fwd ? -ry : ry, ty = fwd ? rx : -rx;
+        return { p: [0, 1, 2].map(i => u[i] * p.x + w[i] * p.y + d[i] * h0), t: [0, 1, 2].map(i => u[i] * tx + w[i] * ty) };
+      };
+      const tan = [tanAt(ring[0], true), tanAt(ring[ring.length - 1], false)], big = Math.max(...steps);
+      out.push({ c: [0, 1, 2].map(i => u[i] * C.x + w[i] * C.y + d[i] * h0), d, r: C.r, h: h1 - h0, hole: side < 0, n: Math.max(3, Math.round((2 * Math.PI) / big)), full: false, u, w, a0: am + ring[0].a, sweep, sl,
+        ...(tan[0] || tan[1] ? { tan } : {}), ends: [pl(lo, -1), pl(hi, 1)], slv, ...(info ? { regs: rs } : {}) });
+      for (const r of rs) { taken.add(r); if (info) info.used.add(r); }
+    };
+    for (const rs of comps.values()) band(rs, 0);
   }
   return out.sort((a, b) => b.r - a.r);
 }
@@ -1406,7 +1550,9 @@ export function findRound(m, minFacets = 8, veto = null) {
   const comps = new Map();
   for (const r of par.keys()) { const g = find(r); let c = comps.get(g); if (!c) comps.set(g, (c = [])); c.push(r); }
   const T = trisOf();
-  for (let regs of comps.values()) {
+  const queue = [...comps.values()], qMax = 4 * queue.length + 16, takenT = new Set();
+  for (let qi = 0; qi < queue.length; qi++) {
+    let regs = queue[qi];
     if (regs.length < minSeg) continue;
     const tris = regs.flatMap(r => T.get(r)), vs = [...new Set(tris.flatMap(t => [I[t * 3], I[t * 3 + 1], I[t * 3 + 2]]))];
     const V = v => [P[v * 3], P[v * 3 + 1], P[v * 3 + 2]];
@@ -1491,10 +1637,12 @@ export function findRound(m, minFacets = 8, veto = null) {
     // ---- a cone between two rings of corners ----
     // (how a CAD export triangulates a cone: the corners lie on its two circles, the triangles run from one to
     // the other in any division – no strips of one width, so the planes above say nothing)
-    const ringCone = (rs, ns) => {
-      const tris = rs.flatMap(r => T.get(r));
+    const ringCone = (rs, ns, skip = null) => {
+      // (triangles a torus has taken – single ones out of a region it shares – are not counted again)
+      const tris = takenT.size ? rs.flatMap(r => T.get(r)).filter(t => !takenT.has(t)) : rs.flatMap(r => T.get(r));
       if (tris.length < 2 * minSeg) return null;
-      const pts = [...new Set(tris.flatMap(t => [I[t * 3], I[t * 3 + 1], I[t * 3 + 2]]))].map(V);
+      let pts = [...new Set(tris.flatMap(t => [I[t * 3], I[t * 3 + 1], I[t * 3 + 2]]))].map(V);
+      if (skip) pts = pts.filter(p => !skip.some(q => q[0] === p[0] && q[1] === p[1] && q[2] === p[2]));
       const mean = [0, 1, 2].map(k => ns.reduce((a, n) => a + n[k], 0) / ns.length), C = [0, 0, 0, 0, 0, 0];
       for (const n of ns) { const x = n[0] - mean[0], y = n[1] - mean[1], z = n[2] - mean[2]; C[0] += x * x; C[1] += x * y; C[2] += x * z; C[3] += y * y; C[4] += y * z; C[5] += z * z; }
       const a0 = eig3(C).vec[0], dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
@@ -1538,18 +1686,31 @@ export function findRound(m, minFacets = 8, veto = null) {
         if (!(rr > 1e-3) || xy.some(([x, y]) => Math.abs(Math.hypot(x - cx, y - cy) - rr) > Math.max(2e-3, 2e-4 * rr))) return null;
         return { c: [g[0] + e1[0] * cx + e2[0] * cy, g[1] + e1[1] * cx + e2[1] * cy, g[2] + e1[2] * cx + e2[2] * cy], r: rr, ps };
       };
+      // (one or two corners beside the first or the last ring, away from the axis – a mesher leaves them at its
+      // seam: they are no tip of the cone, and no ring)
+      if ((!skip || skip.length < 8) && rings.length > 2) {
+        const stray = [];
+        for (const k of [0, rings.length - 1]) {
+          if (rings[k].length >= 3) continue;
+          const g = gs0[k ? k - 1 : 1];
+          for (const p of rings[k]) { const q = [p[0] - g[0], p[1] - g[1], p[2] - g[2]], t = dot(q, a); if (Math.hypot(q[0] - a[0] * t, q[1] - a[1] * t, q[2] - a[2] * t) > 1e-2) stray.push(p); }
+        }
+        if (stray.length) return ringCone(rs, ns, [...(skip || []), ...stray]);
+      }
       const cs = rings.map((ps, k) => circle(ps, gs0[k]));
       if (cs.some(c => !c)) return null;
       const cA = cs[0], cB = cs[cs.length - 1];
       const dv = [cB.c[0] - cA.c[0], cB.c[1] - cA.c[1], cB.c[2] - cA.c[2]], h = dot(dv, a);
-      if (!(h > 1e-3) || Math.abs(cA.r - cB.r) < Math.max(1e-3, 1e-3 * h)) return null;
+      if (!(h > 1e-3)) return null;
+      // (the same radius at both ends: a cylinder whose rings the mesher divided differently – no strips either)
+      const isCyl = Math.abs(cA.r - cB.r) < Math.max(1e-3, 1e-3 * h);
       // all centres on the axis, the radius growing evenly along it
       for (const c of cs) {
         const q = [c.c[0] - cA.c[0], c.c[1] - cA.c[1], c.c[2] - cA.c[2]], tq = dot(q, a);
         if (Math.hypot(q[0] - a[0] * tq, q[1] - a[1] * tq, q[2] - a[2] * tq) > Math.max(3e-3, 1e-3 * h) || Math.abs(c.r - (cA.r + ((cB.r - cA.r) * tq) / h)) > Math.max(3e-3, 3e-4 * Math.max(cA.r, cB.r))) return null;
       }
-      const wideB = cB.r > cA.r, d = wideB ? a : a.map(x => -x), small = wideB ? cA : cB, big = wideB ? cB : cA, kk = (big.r - small.r) / h;
-      const apex = small.c.map((x, i) => x - d[i] * (small.r / kk)), t0 = small.r / kk, t1 = big.r / kk, A = cA.ps, B = cB.ps;
+      const wideB = isCyl || cB.r > cA.r, d = wideB ? a : a.map(x => -x), small = wideB ? cA : cB, big = wideB ? cB : cA, kk = (big.r - small.r) / h;
+      const apex = isCyl ? small.c : small.c.map((x, i) => x - d[i] * (small.r / kk)), t0 = isCyl ? 0 : small.r / kk, t1 = isCyl ? h : big.r / kk, A = cA.ps, B = cB.ps;
       const tOf = p => dot([p[0] - apex[0], p[1] - apex[1], p[2] - apex[2]], d);
       // how far round, and the widest step between two corners
       const ux = (v => { const l = Math.hypot(...v); return v.map(x => x / l); })((wideB ? B : A)[0].map((x, i) => x - big.c[i])), w = [d[1] * ux[2] - d[2] * ux[1], d[2] * ux[0] - d[0] * ux[2], d[0] * ux[1] - d[1] * ux[0]];
@@ -1583,8 +1744,14 @@ export function findRound(m, minFacets = 8, veto = null) {
       const lune = gw.reduce((q, g, i) => q + (seg && i === wi ? 0 : g - Math.sin(g)), 0);
       const vol = ((seg ? seg.sweep : 2 * Math.PI) / 2) * (h / 3) * (small.r * small.r + small.r * big.r) - Math.sign(side) * star + (h / 3) * 0.5 * big.r * big.r * lune;
       if (!(vol > 0)) return null;
-      return { apex, d, t0, t1, r0: small.r, r1: big.r, hole: side < 0, n: Math.max(minFacets, Math.floor((2 * Math.PI) / step + 1e-3)), vol, ...(seg || {}) };
+      const fOf = c => (c.r > 0.05 ? gapsOf(angs(c.ps, c.c)).reduce((q, g) => q + g - Math.sin(g), 0) / (2 * Math.PI) : 0);
+      if (isCyl) return seg ? null : { cyl: { c: cA.c, d, r: cs.reduce((s, c) => s + c.r, 0) / cs.length, h, hole: side < 0, n: Math.max(minFacets, Math.floor((2 * Math.PI) / step + 1e-3)), full: true, u: ux, w, a0: 0, sweep: 2 * Math.PI, sl: 0, slv: vol, ring: true, ti: tris, fA: fOf(cA), fB: fOf(cB) } };
+      return { apex, d, t0, t1, r0: small.r, r1: big.r, hole: side < 0, n: Math.max(minFacets, Math.floor((2 * Math.PI) / step + 1e-3)), vol, ti: tris, ...(seg ? seg : { f0: fOf(small), f1: fOf(big) }) };
     };
+    const take = rc => { if (rc.cyl) cylinders.push(rc.cyl); else cones.push(rc); };
+    // (the whole piece first: a cone with wide strips in the middle and small triangles at its rims)
+    { const rc = ringCone(regs, nrm); if (rc) { take(rc); continue; } }
+    let pending = [];
     {
       // without the large flat faces that run on from it (the chamfer between two rounded corners), piece by piece
       const keep = regs.map((_, i) => i).filter(i => area[bigIdx[i]] <= 20 * amed), at = new Map(keep.map(i => [regs[i], i])), pr = new Map(keep.map(i => [i, i]));
@@ -1593,8 +1760,12 @@ export function findRound(m, minFacets = 8, veto = null) {
       const groups = new Map();
       for (const i of keep) { const g = fd(i); let l = groups.get(g); if (!l) groups.set(g, (l = [])); l.push(i); }
       const found = [];
-      for (const l of groups.values()) { if (l.length < minSeg) continue; const rc = ringCone(l.map(i => regs[i]), l.map(i => nrm[i])); if (rc) found.push(rc); }
-      if (found.length) { cones.push(...found); continue; }
+      let all = true;
+      for (const l of groups.values()) { if (l.length < minSeg) continue; const rc = ringCone(l.map(i => regs[i]), l.map(i => nrm[i])); if (rc) found.push(rc); else all = false; }
+      if (found.length && all) { found.forEach(take); continue; }
+      // (some pieces are no cones: a torus may be among them – it is looked for first, and what it leaves is
+      // looked at again as a whole)
+      pending = found;
     }
     // (after the rings: where both fit, the rings take in the irregular band at the rim as well)
     const co = cone(regs, nrm);
@@ -1685,7 +1856,8 @@ export function findRound(m, minFacets = 8, veto = null) {
           if (ord[ord.length - 1][0] - ord[0][0] < 1e-2) return null;
           const rings = [[ord[0]]];
           for (let i = 1; i < ord.length; i++) { if (ord[i][0] - ord[i - 1][0] > 2e-3) rings.push([]); rings[rings.length - 1].push(ord[i]); }
-          if (rings.length < 4 || rings.length > 80 || rings.some(r => r.length < 3)) return null;
+          for (let i = rings.length - 1; i >= 0; i--) if (rings[i].length < 3) rings.splice(i, 1);
+          if (rings.length < 4 || rings.length > 80) return null;
           const ux0 = Math.abs(a[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0], dd = dot(ux0, a), e1 = (v => { const l = Math.hypot(...v); return v.map(x => x / l); })([ux0[0] - a[0] * dd, ux0[1] - a[1] * dd, ux0[2] - a[2] * dd]);
           const e2 = [a[1] * e1[2] - a[2] * e1[1], a[2] * e1[0] - a[0] * e1[2], a[0] * e1[1] - a[1] * e1[0]];
           const xyOf = p => { const q = [p[0] - g0[0], p[1] - g0[1], p[2] - g0[2]]; return [dot(q, e1), dot(q, e2)]; };
@@ -1820,9 +1992,22 @@ export function findRound(m, minFacets = 8, veto = null) {
           } }
         }
         tori.push(...found);
+        // what is left of the piece – the cone or the cylinder the fillet runs out into – comes back, part by part
+        if (queue.length < qMax) {
+          const own = new Set(found.flatMap(to => to.ti)), rest = allRegs.filter(r => T.get(r).some(x => !own.has(x)));
+          for (const x of own) takenT.add(x);
+          if (rest.length >= minSeg && rest.length < allRegs.length) {
+            const inR = new Set(rest), up = new Map(rest.map(r => [r, r])), fr = x => { while (up.get(x) !== x) { up.set(x, up.get(up.get(x))); x = up.get(x); } return x; };
+            for (const [p, q] of soft) if (inR.has(p) && inR.has(q)) { const a = fr(p), b = fr(q); if (a !== b) up.set(b, a); }
+            const parts = new Map();
+            for (const r of rest) { const g = fr(r); let l = parts.get(g); if (!l) parts.set(g, (l = [])); l.push(r); }
+            for (const l of parts.values()) if (l.length >= minSeg) queue.push(l);
+          }
+        }
         continue;
       }
     }
+    if (pending.length) { pending.forEach(take); continue; }
     {
       // several parts of cones in one piece – the chamfer round a plate with rounded corners: the flat chamfers
       // between them touch the cones (and pass through their apexes), so the strips are told apart by their
@@ -1863,13 +2048,18 @@ export function findRound(m, minFacets = 8, veto = null) {
  * are replaced by a few large ones inside the true face (a kernel needs minutes to cut a round face against
  * thousands of facets that touch it; against a handful it is done at once). The rims stay as they are, so the
  * mesh stays closed. tori, spheres: from findRound (with their triangles, ti).
- * Returns { m, tori: [{ src, din, dout, vol }], spheres: [{ src, h0, vol }] } – what was replaced, how far the
+ * rings: cones and cylinders found ring by ring (with their triangles, ti) – between rings that a mesher divided
+ * differently the triangles lie almost, but not quite, in one plane with their neighbours, which a kernel takes
+ * for one face: a shallow groove with flat walls and a floor of 24 even strips takes their place.
+ * Returns { m, tori: [{ src, din, dout, vol }], spheres: [{ src, h0, vol }], rings: [{ src, kin, vol }] } –
+ * kin: how far inside the true face its tool has to begin (as a part of the radius).
+ * What was replaced, how far the
  * new facets lie inside (din) and outside (dout) the tube, the volume between them and the true face; for a
  * sphere the height of the flat lid above the centre, along src.ax.
  */
-export function standIn(m, tori = [], spheres = []) {
+export function standIn(m, tori = [], spheres = [], rings = []) {
   const P = m.pos, I = m.idx, nT = I.length / 3;
-  const pos = Array.from(P), gone = new Uint8Array(nT), extra = [], outT = [], outS = [];
+  const pos = Array.from(P), gone = new Uint8Array(nT), extra = [], outT = [], outS = [], outR = [];
   const V = v => [pos[v * 3], pos[v * 3 + 1], pos[v * 3 + 2]];
   const addV = p => { pos.push(p[0], p[1], p[2]); return pos.length / 3 - 1; };
   const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
@@ -1937,12 +2127,13 @@ export function standIn(m, tori = [], spheres = []) {
     // rings in between: the tube in steps of 45° at most, round the axis as coarse as 12 % of the tube allows
     const nb = Math.max(1, Math.ceil((t.s1 - t.s0) / (Math.PI / 4) - 1e-6)), rings = [A], sel0 = [0], selE = [0], v0 = pos.length;
     let bad = false;
-    const cvs0 = [], cvsE = [];
+    const cvs0 = [], cvsE = [], cor = [];
     if (nC) {
       if (part && (Math.abs(A[0].ang) > 1e-3 || Math.abs(A[A.length - 1].ang - sweep) > 1e-3)) continue;
       const hh = span / (2 * nC), rhoA = t.R + t.r * Math.cos(t.s0), rx = t.r / Math.cos(hh);
       for (let k = 0; k < nC; k++) {
         const sk = t.s0 + hh * (2 * k + 1), fx = (t.R + rx * Math.cos(sk)) / rhoA, tx = rx * Math.sin(sk);
+        cor.push([t.R + rx * Math.cos(sk), tx]);
         const ring = A.map(q => { const p = V(q.v); return { v: addV([0, 1, 2].map(i => c[i] + d[i] * tx + (p[i] - c[i] - d[i] * q.tt) * fx)), ang: q.ang }; });
         rings.push(ring); cvs0.push(ring[0].v); cvsE.push(ring[ring.length - 1].v);
       }
@@ -2019,7 +2210,7 @@ export function standIn(m, tori = [], spheres = []) {
     if (nC && !(vG > 0)) { pos.length = v0; continue; }
     for (const x of t.ti) gone[x] = 1;
     extra.push(...fresh);
-    if (nC) { outT.push({ src: t, corner: true, din: 0, dout: sMax - t.r, vol: vG }); continue; }
+    if (nC) { outT.push({ src: t, corner: true, din: 0, dout: sMax - t.r, vol: vG, cor }); continue; }
     if (corner) {
       // between the corner and the torus: what a quarter circle leaves of its square, turned around – and the
       // slivers between the cylinder and the ring of corners on it
@@ -2056,11 +2247,65 @@ export function standIn(m, tori = [], spheres = []) {
     lids.push({ ax, mid, rb });
     outS.push({ src: s, ax, h0, vol: s.vol + (s.hole ? -1 : 1) * dV });
   }
-  if (!outT.length && !outS.length) return { m, tori: [], spheres: [] };
+  for (const s of rings) {
+    if (!s.ti || (s.sweep && s.sweep < 2 * Math.PI - 1e-6) || s.ti.length < 24 || s.ti.some(x => gone[x])) continue;
+    const o = s.apex || s.c, d = s.d, tA = s.apex ? s.t0 : 0, tB = s.apex ? s.t1 : s.h, rA = s.apex ? s.r0 : s.r, rB = s.apex ? s.r1 : s.r;
+    if (!(rA > 0.05) || !(rB > 0.05) || !(tB - tA > 0.05)) continue;
+    const rim = rimOf(s.ti);
+    if (!rim || rim.loops.length !== 2) continue;
+    const ux = Math.abs(d[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0], dd = dot(ux, d), uv = [ux[0] - d[0] * dd, ux[1] - d[1] * dd, ux[2] - d[2] * dd], ul = Math.hypot(...uv), e1 = uv.map(x => x / ul);
+    const e2 = [d[1] * e1[2] - d[2] * e1[1], d[2] * e1[0] - d[0] * e1[2], d[0] * e1[1] - d[1] * e1[0]];
+    const co = v => { const p = V(v), q = [p[0] - o[0], p[1] - o[1], p[2] - o[2]], tt = dot(q, d), rad = [q[0] - d[0] * tt, q[1] - d[1] * tt, q[2] - d[2] * tt]; return { v, tt, rho: Math.hypot(...rad), ang: Math.atan2(dot(rad, e2), dot(rad, e1)) }; };
+    const tol = Math.max(3e-3, 1e-3 * Math.max(rA, rB)), K = 24, step = (2 * Math.PI) / K, kq = 0.97;
+    const loops = rim.loops.map(l => l.map(co));
+    // the two rims: the rings at the ends (one or two corners beside them, as a mesher leaves at its seam, may
+    // be among them)
+    const endOf = l => { for (const [e, t, r] of [[0, tA, rA], [1, tB, rB]]) { const off = l.filter(q => Math.abs(q.tt - t) > tol || Math.abs(q.rho - r) > tol); if (off.length <= 2 && l.length - off.length >= 8 && off.every(q => Math.abs(q.tt - t) < 0.3 * (tB - tA) && Math.abs(q.rho - r) < 0.05 * r)) return e; } return -1; };
+    const en = loops.map(endOf);
+    if (!((en[0] === 0 && en[1] === 1) || (en[0] === 1 && en[1] === 0))) continue;
+    const LA = loops[en[0] === 0 ? 0 : 1], LB = loops[en[0] === 0 ? 1 : 0];
+    // nothing else of the mesh may lie where the groove goes (a thin wall, a bore close under the face)
+    {
+      const own = new Set(s.ti.flatMap(t => [I[t * 3], I[t * 3 + 1], I[t * 3 + 2]]));
+      let hit = false;
+      for (let v = 0; v < P.length / 3 && !hit; v++) { if (own.has(v)) continue; const q = co(v); if (q.tt < tA - tol || q.tt > tB + tol) continue; const r = rA + ((rB - rA) * (q.tt - tA)) / (tB - tA); if (q.rho > 0.9 * r - tol && q.rho < r - tol) hit = true; }
+      if (hit) continue;
+    }
+    const v0 = pos.length;
+    const ringQ = (t, r) => Array.from({ length: K }, (_, j) => addV([0, 1, 2].map(i => o[i] + d[i] * t + kq * r * (e1[i] * Math.cos(j * step) + e2[i] * Math.sin(j * step)))));
+    const QA = ringQ(tA, rA), QB = ringQ(tB, rB);
+    // the flat wall between a rim and the ring of 24: corner by corner, whichever comes next on the way round
+    const zip = (L, Q) => {
+      const n = L.length, prog = [0];
+      let tot = 0;
+      for (let i = 1; i <= n; i++) { let a = L[i % n].ang - L[i - 1].ang; while (a < -Math.PI) a += 2 * Math.PI; while (a > Math.PI) a -= 2 * Math.PI; tot += a; prog.push(a); }
+      const sg = Math.sign(tot);
+      if (Math.abs(Math.abs(tot) - 2 * Math.PI) > 1e-3) return null;
+      for (let i = 1; i <= n; i++) { if (sg * prog[i] < -1e-6) return null; prog[i] = prog[i - 1] + sg * prog[i]; }
+      const j0 = Math.round(L[0].ang / step), q0 = sg * (j0 * step - L[0].ang), qi = k => Q[(((j0 + sg * k) % K) + K) % K], out = [];
+      let i = 0, k = 0;
+      while (i < n || k < K) {
+        const nl = i < n ? prog[i + 1] : Infinity, nq = k < K ? q0 + (k + 1) * step : Infinity;
+        if (nl <= nq) { out.push([L[i].v, L[(i + 1) % n].v, qi(k)]); i++; } else { out.push([L[i % n].v, qi(k + 1), qi(k)]); k++; }
+      }
+      return { out, sg };
+    };
+    const zA = zip(LA, QA), zB = zip(LB, QB);
+    if (!zA || !zB || zA.sg === zB.sg) { pos.length = v0; continue; }
+    const fresh = [...zA.out, ...zB.out];
+    for (let c = 0; c < K; c++) { const n = (((c + zA.sg) % K) + K) % K; fresh.push([QA[c], QA[n], QB[c]], [QA[n], QB[n], QB[c]]); }
+    // (the groove takes away from a pin and fills up a hole: the true face brings back, or takes out, that much more)
+    const dV = star(trisOf(s.ti)) - star(fresh), base = s.vol != null ? s.vol : s.slv;
+    if (base == null || (dV > 0) === !!s.hole || !(Math.abs(dV) > 0)) { pos.length = v0; continue; }
+    for (const x of s.ti) gone[x] = 1;
+    extra.push(...fresh);
+    outR.push({ src: s, kin: kq * Math.cos(Math.PI / K) * 0.98, vol: base + Math.abs(dV) });
+  }
+  if (!outT.length && !outS.length && !outR.length) return { m, tori: [], spheres: [], rings: [] };
   const idx = [];
   for (let t = 0; t < nT; t++) if (!gone[t]) idx.push(I[t * 3], I[t * 3 + 1], I[t * 3 + 2]);
   for (const x of extra) idx.push(x[0], x[1], x[2]);
-  return { m: compact({ pos: new Float32Array(pos), idx: new Uint32Array(idx) }), tori: outT, spheres: outS };
+  return { m: compact({ pos: new Float32Array(pos), idx: new Uint32Array(idx) }), tori: outT, spheres: outS, rings: outR };
 }
 
 /** Does this piece of a cylinder lie on one of the tori (a row of facets along the tube looks like one)? */
