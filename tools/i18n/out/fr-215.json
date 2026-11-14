@@ -1,0 +1,19 @@
+{
+ "Übergang": "Transition",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Pièce de transition du rectangulaire au rond : corps et développé avec lignes de pliage à partir du rectangle, du diamètre, de la hauteur et de l'épaisseur de tôle",
+ "+ Kröpfung": "+ Décrochement",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Patte sur patte : un angle + poursuit le pliage dans le même sens (profilé en U, pli à 180°), − dans le sens opposé (décrochement en Z, profilé en chapeau). Ourlet : le bord de la patte est replié à 180° sur lui-même – ouvert avec un jeu d'une épaisseur de tôle, fermé écrasé à plat ; avec − 180°, il se trouve de l'autre côté. Le champ R est le rayon intérieur de ce pli uniquement (vide = comme pour la tôle). Pour un ourlet directement sur l'arête de la plaque, réglez la patte elle-même sur 180°. Décrochement : deux plis en sens inverse (− 45° et + 45°) – le bord se poursuit en parallèle, décalé ; le décalage résulte de la longueur de la partie oblique et des angles.",
+ "Übergang (eckig auf rund)": "Transition (rectangulaire vers rond)",
+ "Rechteck Länge (X)": "Longueur du rectangle (X)",
+ "Rechteck Breite (Y)": "Largeur du rectangle (Y)",
+ "Maße gemessen": "Cotes mesurées",
+ "Kantungen je Ecke": "Plis par coin",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "Le rectangle se trouve en bas, le cercle centré au-dessus. Chaque côté du rectangle rejoint un point du cercle sous forme de triangle plan, chaque coin sous forme de morceau de cône oblique vers un quart de celui-ci. Le développé est obtenu par triangulation sur la fibre moyenne de la tôle ; le joint se trouve au milieu du côté à −Y. En pointillés : les lignes de pliage de chaque coin vers le cercle – autant par coin que indiqué (1 à 24) ; plus de plis donnent une ouverture plus ronde. Avec une règle de tôlerie, c'est son épaisseur qui s'applique.",
+ "Übergang: {0}": "Transition : {0}",
+ "Übergangsstück": "Pièce de transition",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0} : flan {1} × {2} mm, surface {3} cm², {4} lignes de pliage, joint {5} mm.",
+ "{0} – unten": "{0} – bas",
+ "{0} – oben": "{0} – haut",
+ "Übergangsstück nicht möglich – Maße prüfen": "Pièce de transition impossible – vérifiez les cotes",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Le rectangle et le diamètre doivent être supérieurs au double de l'épaisseur de tôle"
+}

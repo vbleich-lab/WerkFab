@@ -281,7 +281,38 @@ function holeTool(sk, f) {
   }));
 }
 
+// A sheet metal transition piece (rectangle below, circle above; f.transition = { outer, inner: { w, d, r }, h,
+// ox, oy (circle off centre), gap (open seam in the middle of the side at −Y) }):
+// each side of the rectangle runs up to one point of the circle, each corner to a quarter of it. The two outlines
+// are drawn with as many edges as the other has – a hair of an arc for every corner and for every such point – so
+// the ruled surface between them is the flat triangles and the pieces of a cone.
+function transitionTool(tr) {
+  const ox = +tr.ox || 0, oy = +tr.oy || 0, gap = +tr.gap || 0;
+  const sec = ({ w, d, r }) => {
+    const W = w / 2, D = d / 2, e = Math.min(0.02, W / 10, D / 10), k = e * (1 - Math.SQRT1_2), dl = (0.5 * Math.PI) / 180, P = a => [ox + r * Math.cos(a), oy + r * Math.sin(a)];
+    const a = R.draw([-W + e, -D]).lineTo([W - e, -D]).threePointsArcTo([W, -D + e], [W - k, -D + k]).lineTo([W, D - e]).threePointsArcTo([W - e, D], [W - k, D - k])
+      .lineTo([-W + e, D]).threePointsArcTo([-W, D - e], [-W + k, D - k]).lineTo([-W, -D + e]).threePointsArcTo([-W + e, -D], [-W + k, -D + k]).close();
+    let b = R.draw(P(-Math.PI / 2 - dl));
+    for (let i = 0; i < 4; i++) { const s = -Math.PI / 2 + (i * Math.PI) / 2; b = b.threePointsArcTo(P(s + dl), P(s)).threePointsArcTo(P(s + Math.PI / 2 - dl), P(s + Math.PI / 4)); }
+    return a.sketchOnPlane('XY', 0).loftWith([b.close().sketchOnPlane('XY', +tr.h)], { ruled: true });
+  };
+  try {
+    let s = sec(tr.outer).cut(sec(tr.inner));
+    if (gap > 0) {
+      // the seam: a slab around the plane through the seam line and the Y direction, only as deep as the wall there
+      const t = tr.outer.r - tr.inner.r, M = [0, -tr.outer.d / 2, 0], Q = [ox, oy - tr.outer.r, +tr.h], sd = [Q[0] - M[0], Q[1] - M[1], Q[2] - M[2]];
+      const nl = Math.hypot(sd[2], sd[0]), n = [sd[2] / nl, 0, -sd[0] / nl], up = [-n[2], 0, n[0]];   // n = Y × seam, up = n × Y
+      const reach = Math.max(0, sd[1]) + 4 * t + 1, back = Math.max(0, -sd[1]) + 2 * t + 1, len = sd[0] * up[0] + sd[2] * up[2];
+      const slab = R.draw([-back, -1]).lineTo([reach, -1]).lineTo([reach, len + 1]).lineTo([-back, len + 1]).close()
+        .sketchOnPlane(new R.Plane([M[0] - n[0] * gap / 2, M[1], M[2] - n[2] * gap / 2], [0, 1, 0], n)).extrude(gap);
+      s = s.cut(slab);
+    }
+    return s;
+  } catch { fail('Übergangsstück nicht möglich – Maße prüfen'); }
+}
+
 function loftTool(f, sketches) {
+  if (f.transition) return transitionTool(f.transition);
   const secs = (f.sections || []).map(id => sketches[id]).filter(Boolean);
   if (secs.length < 2) fail('Mindestens zwei Skizzen als Querschnitte wählen');
   const key = s => JSON.stringify(sketchPlane(s));

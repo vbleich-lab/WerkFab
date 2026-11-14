@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('werkfabApp', {
   download: () => ipcRenderer.invoke('update:download'),
   install: () => ipcRenderer.invoke('update:install'),
   onState: fn => { ipcRenderer.on('update:state', (_e, s) => fn(s)); },
+  // full screen of the window (on: true / false, nothing = the other state); answers the state it is in then
+  fullscreen: on => ipcRenderer.invoke('win:fullscreen', on),
   // size of the whole interface (Einstellungen → Benutzeroberfläche)
   zoom: f => { try { webFrame.setZoomFactor(Math.max(0.5, Math.min(3, +f || 1))); } catch { /* keeps the size */ } },
 });

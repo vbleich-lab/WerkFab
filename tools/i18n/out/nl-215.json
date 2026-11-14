@@ -1,0 +1,19 @@
+{
+ "Übergang": "Overgang",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Overgangsstuk van rechthoekig naar rond: lichaam en uitslag met buiglijnen uit rechthoek, diameter, hoogte en plaatdikte",
+ "+ Kröpfung": "+ Kropping",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Flens op flens: een hoek + buigt in dezelfde richting verder (U-profiel, felsnaad met 180°), − in de tegenovergestelde richting (Z-trap, hoedprofiel). Zoom: de rand van de flens wordt 180° op zichzelf teruggevouwen – open met een spleet van één plaatdikte, gesloten plat dichtgedrukt; met − 180° ligt hij aan de andere kant. Het veld R is alleen de binnenradius van deze buiging (leeg = zoals bij de plaat). Voor een zoom direct aan de plaatrand stelt u de flens zelf in op 180°. Kropping: twee buigingen tegen elkaar in (− 45° en + 45°) – de rand loopt parallel verschoven verder; de verschuiving volgt uit de lengte van het schuine stuk en de hoeken.",
+ "Übergang (eckig auf rund)": "Overgang (rechthoekig naar rond)",
+ "Rechteck Länge (X)": "Lengte rechthoek (X)",
+ "Rechteck Breite (Y)": "Breedte rechthoek (Y)",
+ "Maße gemessen": "Maten gemeten",
+ "Kantungen je Ecke": "Buigingen per hoek",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "De rechthoek ligt onderaan, de cirkel gecentreerd erboven. Elke zijde van de rechthoek loopt als vlakke driehoek naar een punt van de cirkel, elke hoek als stuk van een scheve kegel naar een kwart ervan. De uitslag ontstaat met de driehoeksmethode op het midden van de plaat; de naad ligt in het midden van de zijde bij −Y. Gestippeld: de buiglijnen van elke hoek naar de cirkel – zoveel per hoek als opgegeven (1 tot 24); meer buigingen geven een ronder opening. Met een plaatregel geldt de dikte daarvan.",
+ "Übergang: {0}": "Overgang: {0}",
+ "Übergangsstück": "Overgangsstuk",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: zaagstuk {1} × {2} mm, oppervlak {3} cm², {4} buiglijnen, naad {5} mm.",
+ "{0} – unten": "{0} – onder",
+ "{0} – oben": "{0} – boven",
+ "Übergangsstück nicht möglich – Maße prüfen": "Overgangsstuk niet mogelijk – controleer de maten",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Rechthoek en diameter moeten groter zijn dan tweemaal de plaatdikte"
+}

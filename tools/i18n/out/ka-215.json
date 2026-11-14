@@ -1,0 +1,19 @@
+{
+ "Übergang": "გადასვლა",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "გარდამავალი ნაწილი კუთხოვნიდან მრგვალზე: სხეული და გაშლა ღუნვის ხაზებით მართკუთხედიდან, დიამეტრიდან, სიმაღლიდან და ფურცლის სისქიდან",
+ "+ Kröpfung": "+ საფეხურებრივი ღუნვა",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "ყური ყურზე: კუთხე + ღუნავს იმავე მიმართულებით (U-პროფილი, 180°-იანი ნაკეცი), − საპირისპირო მიმართულებით (Z-საფეხური, ქუდისებური პროფილი). მოკეცვა: ყურის კიდე 180°-ით უკან იკეცება საკუთარ თავზე – ღია ფურცლის ერთი სისქის ღრეჩოთი, დახურული ბრტყლად დაწნეხილი; − 180°-ით ის მეორე მხარეს ძევს. ველი R მხოლოდ ამ ღუნვის შიდა რადიუსია (ცარიელი = როგორც ფურცელზე). ფირფიტის კიდეზე უშუალოდ მოკეცვისთვის თვით ყური დააყენეთ 180°-ზე. საფეხურებრივი ღუნვა: ორი ღუნვა ერთმანეთის საპირისპიროდ (− 45° და + 45°) – კიდე პარალელურად გადაწეული გრძელდება; გადაწევა გამომდინარეობს დახრილი მონაკვეთის სიგრძიდან და კუთხეებიდან.",
+ "Übergang (eckig auf rund)": "გადასვლა (კუთხოვნიდან მრგვალზე)",
+ "Rechteck Länge (X)": "მართკუთხედის სიგრძე (X)",
+ "Rechteck Breite (Y)": "მართკუთხედის სიგანე (Y)",
+ "Maße gemessen": "ზომები გაზომილია",
+ "Kantungen je Ecke": "ღუნვები თითო კუთხეზე",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "მართკუთხედი ქვემოთაა, წრე მის ზემოთ ცენტრში. მართკუთხედის თითოეული გვერდი ბრტყელი სამკუთხედის სახით მიდის წრის ერთ წერტილამდე, თითოეული კუთხე – ირიბი კონუსის ნაწილის სახით მის მეოთხედამდე. გაშლა მიიღება სამკუთხედების მეთოდით ფურცლის შუაში; ნაკერი გვერდის შუაშია −Y-ზე. წყვეტილი ხაზებით: ღუნვის ხაზები თითოეული კუთხიდან წრემდე – თითო კუთხეზე იმდენი, რამდენიც მითითებულია (1-დან 24-მდე); მეტი ღუნვა უფრო მრგვალ ხვრელს იძლევა. ფურცლის წესთან ერთად მისი სისქე მოქმედებს.",
+ "Übergang: {0}": "გადასვლა: {0}",
+ "Übergangsstück": "გარდამავალი ნაწილი",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: ნამზადი {1} × {2} მმ, ფართობი {3} სმ², ღუნვის ხაზები: {4}, ნაკერი {5} მმ.",
+ "{0} – unten": "{0} – ქვემოთ",
+ "{0} – oben": "{0} – ზემოთ",
+ "Übergangsstück nicht möglich – Maße prüfen": "გარდამავალი ნაწილი შეუძლებელია – შეამოწმეთ ზომები",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "მართკუთხედი და დიამეტრი უნდა იყოს ფურცლის გაორმაგებულ სისქეზე დიდი"
+}

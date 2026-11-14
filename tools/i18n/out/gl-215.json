@@ -1,0 +1,19 @@
+{
+ "Übergang": "Transición",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Peza de transición de cadrado a redondo: corpo e desenvolvemento con liñas de dobra a partir de rectángulo, diámetro, altura e grosor da chapa",
+ "+ Kröpfung": "+ Dobra escalonada",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Aba sobre aba: ángulo + dobra cara ao mesmo lado (perfil en U, pestana de 180°), − en sentido contrario (chanzo en Z, perfil de sombreiro). Remate: o bordo da aba dóbrase 180° sobre si mesmo – aberto cunha fenda dun grosor de chapa, pechado premido ao plano; con − 180° queda no outro lado. O campo R é o raio interior só desta dobra (baleiro = como na chapa). Para un remate directamente no bordo da placa, axuste a propia aba a 180°. Dobra escalonada: dúas dobras en sentidos opostos (− 45° e + 45°) – o bordo continúa paralelo e desprazado; o desprazamento resulta da lonxitude do tramo oblicuo e dos ángulos.",
+ "Übergang (eckig auf rund)": "Transición (de cadrado a redondo)",
+ "Rechteck Länge (X)": "Lonxitude do rectángulo (X)",
+ "Rechteck Breite (Y)": "Largura do rectángulo (Y)",
+ "Maße gemessen": "Medidas tomadas",
+ "Kantungen je Ecke": "Dobras por esquina",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "O rectángulo está embaixo e o círculo centrado enriba del. Cada lado do rectángulo vai como un triángulo plano ata un punto do círculo, cada esquina como un anaco de cono oblicuo ata un cuarto del. O desenvolvemento obtense polo método dos triángulos na metade da chapa; a costura está no medio do lado en −Y. Con trazo descontinuo: as liñas de dobra de cada esquina ao círculo – tantas por esquina como se indique (1 a 24); máis dobras dan unha abertura máis redonda. Cunha regra de chapa vale o seu grosor.",
+ "Übergang: {0}": "Transición: {0}",
+ "Übergangsstück": "Peza de transición",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: corte {1} × {2} mm, área {3} cm², {4} liñas de dobra, costura {5} mm.",
+ "{0} – unten": "{0} – abaixo",
+ "{0} – oben": "{0} – arriba",
+ "Übergangsstück nicht möglich – Maße prüfen": "Peza de transición non posible – revise as medidas",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "O rectángulo e o diámetro deben ser maiores que o dobre do grosor da chapa"
+}

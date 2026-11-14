@@ -1,0 +1,19 @@
+{
+ "Übergang": "انتقال",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "قطعة انتقال من مستطيل إلى دائري: الجسم والتفريد مع خطوط الثني انطلاقاً من المستطيل والقطر والارتفاع وسماكة الصفيحة",
+ "+ Kröpfung": "+ إزاحة بثنيتين",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "شفة على شفة: الزاوية + تواصل الثني في الاتجاه نفسه (مقطع U، طية بزاوية 180°)، و− في الاتجاه المعاكس (درجة Z، مقطع قبعة). الحافة المطوية: يُطوى طرف الشفة بزاوية 180° على نفسه، مفتوحة بفاصل بسماكة صفيحة واحدة، أو مغلقة مضغوطة بشكل مسطح؛ وبـ − 180° تقع على الجهة الأخرى. الحقل R هو نصف القطر الداخلي لهذا الثني فقط (فارغ = كما للصفيحة). لعمل حافة مطوية مباشرة على حافة اللوح، اضبط الشفة نفسها على 180°. الإزاحة بثنيتين: ثنيتان متعاكستان (− 45° و + 45°)، فيستمر الطرف موازياً ومزاحاً؛ وتُحسب الإزاحة من طول الجزء المائل والزاويتين.",
+ "Übergang (eckig auf rund)": "انتقال (من مستطيل إلى دائري)",
+ "Rechteck Länge (X)": "طول المستطيل (X)",
+ "Rechteck Breite (Y)": "عرض المستطيل (Y)",
+ "Maße gemessen": "الأبعاد المقيسة",
+ "Kantungen je Ecke": "عدد الثنيات لكل زاوية",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "يقع المستطيل في الأسفل والدائرة فوقه في المنتصف. كل ضلع من المستطيل يمتد كمثلث مستوٍ إلى نقطة على الدائرة، وكل زاوية كجزء من مخروط مائل إلى ربع الدائرة. يُنشأ التفريد بطريقة التثليث على منتصف الصفيحة؛ ويقع الدرز في منتصف الضلع عند −Y. الخطوط المتقطعة: خطوط الثني من كل زاوية إلى الدائرة، بالعدد المحدد لكل زاوية (من 1 إلى 24)؛ وكلما زاد عدد الثنيات صارت الفتحة أكثر استدارة. عند استخدام قاعدة صفائح معدنية تسري سماكتها.",
+ "Übergang: {0}": "انتقال: {0}",
+ "Übergangsstück": "قطعة انتقال",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: القطعة المقصوصة {1} × {2} mm، المساحة {3} cm²، {4} خطوط ثني، الدرز {5} mm.",
+ "{0} – unten": "{0} – أسفل",
+ "{0} – oben": "{0} – أعلى",
+ "Übergangsstück nicht möglich – Maße prüfen": "قطعة الانتقال غير ممكنة، تحقق من الأبعاد",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "يجب أن يكون المستطيل والقطر أكبر من ضعف سماكة الصفيحة"
+}

@@ -1,0 +1,19 @@
+{
+ "Übergang": "Pāreja",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Pārejas posms no leņķveida uz apaļu: ķermenis un izklājums ar lieces līnijām pēc taisnstūra, diametra, augstuma un skārda biezuma",
+ "+ Kröpfung": "+ Pakāpveida liece",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Atloks uz atloka: leņķis + liec tālāk tajā pašā virzienā (U profils, vīle 180°), − pretējā virzienā (Z pakāpiens, cepures profils). Malas locījums: atloka mala tiek atlocīta par 180° uz sevi – atvērts ar spraugu viena skārda biezuma apmērā, aizvērts saspiests plakans; ar − 180° tas atrodas otrā pusē. Lauks R ir tikai šīs lieces iekšējais rādiuss (tukšs = kā skārdam). Malas locījumam tieši uz plātnes malas pašu atloku iestatiet uz 180°. Pakāpveida liece: divas lieces pretī viena otrai (− 45° un + 45°) – mala turpinās paralēli nobīdīta; nobīde izriet no slīpā posma garuma un leņķiem.",
+ "Übergang (eckig auf rund)": "Pāreja (no leņķveida uz apaļu)",
+ "Rechteck Länge (X)": "Taisnstūra garums (X)",
+ "Rechteck Breite (Y)": "Taisnstūra platums (Y)",
+ "Maße gemessen": "Izmēri izmērīti",
+ "Kantungen je Ecke": "Lieces uz stūri",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "Taisnstūris atrodas apakšā, aplis centrēts virs tā. Katra taisnstūra mala iet kā plakans trijstūris uz vienu apļa punktu, katrs stūris kā šķības konusa daļa uz tā ceturtdaļu. Izklājums veidojas ar trijstūru metodi skārda vidū; šuve atrodas malas vidū pie −Y. Raustītā līnijā: lieces līnijas no katra stūra uz apli – tik daudz uz stūri, cik norādīts (no 1 līdz 24); vairāk liecu dod apaļāku atveri. Ar skārda likumu ir spēkā tā biezums.",
+ "Übergang: {0}": "Pāreja: {0}",
+ "Übergangsstück": "Pārejas posms",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: sagatave {1} × {2} mm, laukums {3} cm², lieces līnijas: {4}, šuve {5} mm.",
+ "{0} – unten": "{0} – apakšā",
+ "{0} – oben": "{0} – augšā",
+ "Übergangsstück nicht möglich – Maße prüfen": "Pārejas posms nav iespējams – pārbaudiet izmērus",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Taisnstūrim un diametram jābūt lielākam par divkāršu skārda biezumu"
+}

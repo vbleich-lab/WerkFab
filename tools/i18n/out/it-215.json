@@ -1,0 +1,19 @@
+{
+ "Übergang": "Transizione",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Pezzo di transizione da rettangolare a tondo: corpo e sviluppo con linee di piega da rettangolo, diametro, altezza e spessore della lamiera",
+ "+ Kröpfung": "+ Sbalzo",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Linguetta su linguetta: un angolo + continua a piegare nella stessa direzione (profilo a U, piega a 180°), − nella direzione opposta (gradino a Z, profilo a cappello). Orlo: il bordo della linguetta viene ripiegato di 180° su se stesso – aperto con una fessura pari a uno spessore di lamiera, chiuso schiacciato piatto; con − 180° si trova sull'altro lato. Il campo R è il raggio interno solo di questa piega (vuoto = come per la lamiera). Per un orlo direttamente sullo spigolo della piastra impostare la linguetta stessa a 180°. Sbalzo: due pieghe contrapposte (− 45° e + 45°) – il bordo prosegue parallelo e spostato; lo spostamento risulta dalla lunghezza del tratto obliquo e dagli angoli.",
+ "Übergang (eckig auf rund)": "Transizione (da rettangolare a tondo)",
+ "Rechteck Länge (X)": "Lunghezza rettangolo (X)",
+ "Rechteck Breite (Y)": "Larghezza rettangolo (Y)",
+ "Maße gemessen": "Quote misurate",
+ "Kantungen je Ecke": "Pieghe per angolo",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "Il rettangolo si trova in basso, il cerchio centrato sopra di esso. Ogni lato del rettangolo raggiunge un punto del cerchio come triangolo piano, ogni angolo come tratto di un cono obliquo fino a un quarto del cerchio. Lo sviluppo si ottiene per triangolazione sulla mezzeria della lamiera; la giunzione si trova al centro del lato a −Y. Tratteggiate: le linee di piega da ogni angolo al cerchio, in numero per angolo come indicato (da 1 a 24); più pieghe danno un'apertura più tonda. Con una regola lamiera vale il suo spessore.",
+ "Übergang: {0}": "Transizione: {0}",
+ "Übergangsstück": "Pezzo di transizione",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: sviluppo grezzo {1} × {2} mm, superficie {3} cm², {4} linee di piega, giunzione {5} mm.",
+ "{0} – unten": "{0} – sotto",
+ "{0} – oben": "{0} – sopra",
+ "Übergangsstück nicht möglich – Maße prüfen": "Pezzo di transizione non possibile: controllare le quote",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Rettangolo e diametro devono essere maggiori del doppio dello spessore della lamiera"
+}

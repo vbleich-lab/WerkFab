@@ -60,6 +60,15 @@ try { updater = require('electron-updater').autoUpdater; } catch { /* portable b
 const canAutoUpdate = () => !!updater && app.isPackaged && process.platform !== 'darwin'
   && fs.existsSync(path.join(process.resourcesPath, 'app-update.yml')) && (process.platform !== 'linux' || !!process.env.APPIMAGE);
 
+// full screen of the window the page asks for (the button in the head bar, F11)
+ipcMain.handle('win:fullscreen', (e, on) => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  if (!w) return false;
+  const v = on == null ? !w.isFullScreen() : !!on;
+  w.setFullScreen(v);
+  return v;
+});
+
 function setupUpdates(win) {
   const send = (state, data = {}) => { if (!win.isDestroyed()) win.webContents.send('update:state', { state, ...data }); };
   ipcMain.handle('update:info', () => ({ version: app.getVersion(), auto: canAutoUpdate(), platform: process.platform }));

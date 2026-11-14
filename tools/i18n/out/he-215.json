@@ -1,0 +1,19 @@
+{
+ "Übergang": "מעבר",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "חלק מעבר ממלבני לעגול: גוף ופריסה עם קווי כיפוף לפי מלבן, קוטר, גובה ועובי הפח",
+ "+ Kröpfung": "+ הסטה בשני כיפופים",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "אוזן על אוזן: זווית + ממשיכה לכופף באותו כיוון (פרופיל U, קיפול ב-180°), − בכיוון ההפוך (מדרגת Z, פרופיל כובע). שוליים מקופלים: קצה האוזן מקופל ב-180° על עצמו, פתוח עם רווח בגודל עובי פח אחד, או סגור ולחוץ שטוח; עם − 180° הוא מונח בצד השני. השדה R הוא הרדיוס הפנימי של כיפוף זה בלבד (ריק = כמו בפח). לשוליים מקופלים ישירות בקצה הלוח יש להגדיר את האוזן עצמה ל-180°. הסטה בשני כיפופים: שני כיפופים הפוכים (− 45° ו-+ 45°), והקצה ממשיך במקביל כשהוא מוסט; ההסטה נקבעת לפי אורך הקטע המשופע והזוויות.",
+ "Übergang (eckig auf rund)": "מעבר (ממלבני לעגול)",
+ "Rechteck Länge (X)": "אורך המלבן (X)",
+ "Rechteck Breite (Y)": "רוחב המלבן (Y)",
+ "Maße gemessen": "מידות נמדדו",
+ "Kantungen je Ecke": "כיפופים לכל פינה",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "המלבן נמצא למטה והעיגול במרכז מעליו. כל צלע של המלבן עוברת כמשולש שטוח אל נקודה על העיגול, וכל פינה כקטע של חרוט משופע אל רבע ממנו. הפריסה נוצרת בשיטת המשולשים על אמצע הפח; התפר נמצא באמצע הצלע ב-−Y. קווים מקווקווים: קווי הכיפוף מכל פינה אל העיגול, במספר הנקוב לכל פינה (1 עד 24); ככל שיש יותר כיפופים הפתח עגול יותר. עם כלל פח חל העובי שלו.",
+ "Übergang: {0}": "מעבר: {0}",
+ "Übergangsstück": "חלק מעבר",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: חיתוך {1} × {2} mm, שטח {3} cm², {4} קווי כיפוף, תפר {5} mm.",
+ "{0} – unten": "{0} – תחתון",
+ "{0} – oben": "{0} – עליון",
+ "Übergangsstück nicht möglich – Maße prüfen": "חלק המעבר אינו אפשרי, יש לבדוק את המידות",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "המלבן והקוטר חייבים להיות גדולים מכפל עובי הפח"
+}

@@ -1,0 +1,19 @@
+{
+ "Übergang": "Prelaz",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Prelazni komad sa četvrtastog na okrugli: tijelo i razvijeni oblik s linijama savijanja iz pravougaonika, prečnika, visine i debljine lima",
+ "+ Kröpfung": "+ Stepenasto savijanje",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Zaklopka na zaklopci: ugao + savija dalje u istom smjeru (U-profil, preklop od 180°), − u suprotnom smjeru (Z-stepenica, profil šešira). Pregib: ivica zaklopke presavija se za 180° na samu sebe – otvoreni s razmakom od jedne debljine lima, zatvoreni spljošteno stisnut; s − 180° leži na drugoj strani. Polje R je unutrašnji radijus samo ovog savijanja (prazno = kao kod lima). Za pregib direktno na ivici ploče postavite samu zaklopku na 180°. Stepenasto savijanje: dva savijanja jedno prema drugom (− 45° i + 45°) – ivica se nastavlja paralelno pomaknuta; pomak proizlazi iz dužine kosog komada i uglova.",
+ "Übergang (eckig auf rund)": "Prelaz (četvrtasti na okrugli)",
+ "Rechteck Länge (X)": "Dužina pravougaonika (X)",
+ "Rechteck Breite (Y)": "Širina pravougaonika (Y)",
+ "Maße gemessen": "Mjere izmjerene",
+ "Kantungen je Ecke": "Savijanja po uglu",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "Pravougaonik leži dolje, krug je centralno iznad njega. Svaka strana pravougaonika vodi kao ravan trougao do jedne tačke kruga, svaki ugao kao dio kosog konusa do njegove četvrtine. Razvijeni oblik nastaje metodom trouglova na sredini lima; šav leži na sredini strane kod −Y. Isprekidano: linije savijanja od svakog ugla do kruga – onoliko po uglu koliko je zadano (1 do 24); više savijanja daje okrugliji otvor. Uz pravilo za lim vrijedi njegova debljina.",
+ "Übergang: {0}": "Prelaz: {0}",
+ "Übergangsstück": "Prelazni komad",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: krojenje {1} × {2} mm, površina {3} cm², linija savijanja: {4}, šav {5} mm.",
+ "{0} – unten": "{0} – dolje",
+ "{0} – oben": "{0} – gore",
+ "Übergangsstück nicht möglich – Maße prüfen": "Prelazni komad nije moguć – provjerite mjere",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Pravougaonik i prečnik moraju biti veći od dvostruke debljine lima"
+}

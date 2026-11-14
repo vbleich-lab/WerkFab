@@ -719,6 +719,21 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
     for (let i = 1; i + 1 < ringB.length; i++) tr.push(ringB[0], ringB[i + 1], ringB[i]);
     // (all of them were written facing inwards)
     const mz = M.weld(new Float32Array(tr.flatMap((p, i) => (i % 3 === 1 ? tr[i + 1] : i % 3 === 2 ? tr[i - 1] : p)))), cz = M.findCylinders(mz), c = cz[0];
+    // (its ends are flat end faces, no mitres: no chord stands in for it)
+    { const ch = M.chordIn(mz, cz); ok('Netz → Körper: Verrundung an ebenen Stirnflächen bekommt keine Sehnenfläche', ch.arcs.length === 0 && ch.m === mz); }
+    // a block 40 × 30 × 8 with its four upper edges rounded (radius 2): the fillets meet in mitres
+    {
+      const n = 8, prof = [[0, 0], [0, 6], ...Array.from({ length: n }, (_, i) => { const q = ((i + 1) / n) * (Math.PI / 2); return [2 - 2 * Math.cos(q), 6 + 2 * Math.sin(q)]; })];
+      const Cn = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sy]) => prof.map(([s, z]) => [sx * (20 - s), sy * (15 - s), z])), t2 = [], L = prof.length - 1;
+      for (let k = 0; k < 4; k++) for (let j = 0; j < L; j++) { const a = Cn[k][j], b = Cn[(k + 1) % 4][j], cc = Cn[(k + 1) % 4][j + 1], d = Cn[k][j + 1]; t2.push(a, b, cc, a, cc, d); }
+      t2.push(Cn[0][L], Cn[1][L], Cn[2][L], Cn[0][L], Cn[2][L], Cn[3][L], Cn[0][0], Cn[2][0], Cn[1][0], Cn[0][0], Cn[3][0], Cn[2][0]);
+      const mm = M.weld(new Float32Array(t2.flat())), cm = M.findCylinders(mm).filter(q => q.full === false), ch = M.chordIn(mm, cm);
+      const volOf = m => { let v = 0; const P = m.pos, I = m.idx; for (let t = 0; t < I.length; t += 3) { const a = I[t] * 3, b = I[t + 1] * 3, c = I[t + 2] * 3; v += P[a] * (P[b + 1] * P[c + 2] - P[b + 2] * P[c + 1]) - P[a + 1] * (P[b] * P[c + 2] - P[b + 2] * P[c]) + P[a + 2] * (P[b] * P[c + 1] - P[b + 1] * P[c]); } return v / 6; };
+      const sum = ch.arcs.reduce((q, a) => q + a.vol, 0);
+      ok('Netz → Körper: Verrundungen auf Gehrung – ebene Sehnenflächen stehen ein, das Netz bleibt geschlossen, ohne Deckel in den Gehrungen',
+        M.stats(mm).closed && cm.length === 4 && ch.arcs.length === 4 && M.stats(ch.m).closed && ch.m.idx.length / 3 === mm.idx.length / 3 - 4 * 2 * n + 4 * 2 && ch.arcs.every(a => near(a.kin, Math.SQRT1_2, 1e-3)) && near(volOf(mm) - volOf(ch.m), sum, 1e-3) && sum > 0,
+        `${cm.length} Bögen, ${ch.arcs.length} ersetzt, ${mm.idx.length / 3} → ${ch.m.idx.length / 3} Dreiecke, ${sum.toFixed(3)} mm³`);
+    }
     ok('Netz → Körper: Verrundung mit ungleich geteilten Enden (Dreiecke im Zickzack) wird ein Zylinderstück', M.stats(mz).closed && cz.length === 1 && c.full === false && !c.hole && near(c.r, 2, 1e-3) && near(c.h, 40, 1e-3) && near(c.sweep, Math.PI / 2, 1e-3) && near(Math.abs(c.d[0]), 1, 1e-6) && !!c.ends && !!c.tan && !!c.tan[0] && !!c.tan[1] && c.slv > 0,
       `${M.stats(mz).closed} ${cz.length} ${c && [c.r.toFixed(3), c.h.toFixed(2), c.sweep.toFixed(4), !!c.ends, c.tan && c.tan.map(t => !!t), c.slv && c.slv.toFixed(4)].join('/')}`);
   }
@@ -759,10 +774,94 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
   }
 }
 
+// ---- hem (a bend with its own radius) and rolled shells ----
+{
+  const { shellPattern, flangeChain, bendR, chainAt } = await import('../js/sheetmetal.js');
+  const poly = [[0, 0], [100, 0], [100, 60], [0, 60]], f = { thickness: 2, radius: 2, kfactor: 0.4 };
+  const ba = bendAllowance(90, 2, 2, 0.4), bh = bendAllowance(180, 1, 2, 0.4);
+  const hem = flatPattern(poly, { ...f, flanges: [{ edge: 0, on: true, h: 15, angle: 90, next: [{ h: 8, angle: 180, r: 1 }] }] });
+  ok('Saum: die Biegung mit eigenem Radius geht mit ihrer eigenen Zugabe in den Zuschnitt und in die Biegetabelle', near(hem.size[1], 60 + ba + 15 + bh + 8, 0.02) && hem.table.length === 2 && hem.table[0].radius === 2 && hem.table[1].radius === 1 && near(hem.table[1].allowance, bh, 1e-9),
+    `${hem.size[1].toFixed(3)} mm, R ${hem.table.map(q => q.radius).join(' / ')}`);
+  // open hem: the returning flange lies parallel to the first one, 2 r + t beside it (mid-surfaces)
+  const ch = flangeChain({ h: 15, angle: 90, next: [{ h: 8, angle: 180, r: 1 }] }), p0 = chainAt(2, 2, 0.4, ch, 0, 15), p1 = chainAt(2, 2, 0.4, ch, 1, 0);
+  ok('Saum: der zurückgelegte Rand liegt parallel im Abstand 2 × Radius + Blechdicke', near(Math.hypot(p1.pos[0] - p0.pos[0], p1.pos[1] - p0.pos[1]), 2 * 1 + 2, 1e-9) && near(p1.dir[0], -p0.dir[0], 1e-9) && near(p1.dir[1], -p0.dir[1], 1e-9), `${Math.hypot(p1.pos[0] - p0.pos[0], p1.pos[1] - p0.pos[1]).toFixed(4)}`);
+  ok('Saum: ohne eigenen Radius gilt der des Blechs; ganz geschlossen bleibt ein Hauch Radius', bendR(flangeChain({ h: 5, angle: 90 })[0], 2) === 2 && bendR({ angle: 180, r: 0 }, 2) === 0.02 && bendR({ angle: 90, r: 0 }, 2) === 0);
+  const notes = sheetChecks(poly, [], { ...f, flanges: [{ edge: 0, on: true, h: 15, angle: 90, next: [{ h: 4, angle: 180, r: 0 }] }] }, hem);
+  ok('Saum: Hinweis auf geschlossenen und auf zu kurzen Saum', notes.some(q => /geschlossener Saum/.test(q.text)) && notes.some(q => /kürzer als 4/.test(q.text)), String(notes.length));
+  // tube: developed length on the neutral fibre
+  const tube = shellPattern({ d1: 100, d2: 100, h: 50, t: 2, k: 0.5, gap: 0, dim: 'outer' });
+  ok('Rohrmantel: gestreckte Länge = π × Durchmesser der neutralen Faser', !tube.cone && near(tube.L, Math.PI * 98, 1e-9) && near(tube.size[0], tube.L) && tube.size[1] === 50 && near(tube.sweep, 360), tube.L.toFixed(3));
+  const tin = shellPattern({ d1: 96, d2: 96, h: 50, t: 2, k: 0.5, gap: 3, dim: 'inner' });
+  ok('Rohrmantel: Innenmaß und Nahtspalt', near(tin.L, Math.PI * 98 - 3, 1e-9) && near(tin.sweep, 360 - (3 / 49) * 180 / Math.PI, 1e-9) && near(tin.section[1][0], 50, 1e-9), `${tin.L.toFixed(3)}, ${tin.sweep.toFixed(3)}°`);
+  // cone: a ring piece – both arcs as long as the neutral circles, the slant between them
+  const co = shellPattern({ d1: 120, d2: 80, h: 100, t: 2, k: 0.5, gap: 0, dim: 'mid' }), ph = co.phi * Math.PI / 180, sl = Math.hypot(100, 20);
+  ok('Kegelmantel: Bögen so lang wie die neutralen Kreise, Mantellinie dazwischen', co.cone && near(co.R1 * ph, Math.PI * 120, 1e-6) && near(co.R2 * ph, Math.PI * 80, 1e-6) && near(co.slant, sl, 1e-6) && near(co.alpha, Math.atan(0.2) * 180 / Math.PI, 1e-9),
+    `R ${co.R1.toFixed(2)} / ${co.R2.toFixed(2)}, ${co.phi.toFixed(2)}°`);
+  const P = co.outline[0];
+  let ar = 0; for (let i = 0; i < P.length; i++) { const p = P[i], q = P[(i + 1) % P.length]; ar += p[0] * q[1] - q[0] * p[1]; }
+  ok('Kegelmantel: Umriss geschlossen, Fläche = Mantelfläche', near(Math.abs(ar) / 2, co.area, 0.002 * co.area) && near(co.area, Math.PI * (60 + 40) * sl, 1e-6) && Math.min(...P.map(p => p[0])) > -1e-9 && Math.min(...P.map(p => p[1])) > -1e-9, `${co.area.toFixed(1)} mm²`);
+  const up = shellPattern({ d1: 80, d2: 120, h: 100, t: 2, k: 0.5, gap: 0, dim: 'mid' });
+  ok('Kegelmantel: oben weiter als unten gibt denselben Zuschnitt', near(up.R1, co.R1, 1e-9) && near(up.phi, co.phi, 1e-9) && near(up.section[0][0], 40 - Math.hypot(100, 20) / 100, 1e-9));
+  let th = 0; for (const o of [{ d1: 3, d2: 3, h: 10, t: 2, k: 0.5 }, { d1: 50, d2: 50, h: 0, t: 2, k: 0.5 }, { d1: 50, d2: 50, h: 10, t: 2, k: 0.5, gap: 500 }]) try { shellPattern(o); } catch { th++; }
+  ok('Mantel: unmögliche Maße werden abgelehnt', th === 3, String(th));
+  // transition piece: seam edges equal, the round end as long as the circle, the rectangle's sides in true length
+  const { transitionPattern } = await import('../js/sheetmetal.js');
+  const tp = transitionPattern({ w: 100, d: 60, dia: 50, h: 80, t: 2, dim: 'outer', bends: 6 }), TP = tp.outline[0], dd = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+  let topL = 0; for (let i = 6; i < TP.length - 1; i++) topL += dd(TP[i], TP[i + 1]);
+  ok('Übergang eckig auf rund: Naht beidseits gleich lang, runder Rand = Kreisumfang der Blechmitte, Rechteckseiten in wahrer Länge',
+    near(dd(TP[0], TP[TP.length - 1]), dd(TP[5], TP[6]), 1e-9) && near(dd(TP[0], TP[TP.length - 1]), Math.hypot(29 - 24, 80), 1e-9) && near(topL, Math.PI * 48, 1e-6) && near(dd(TP[0], TP[1]), 49, 1e-9) && near(dd(TP[1], TP[2]), 58, 1e-9) && near(dd(TP[2], TP[3]), 98, 1e-9) && near(dd(TP[4], TP[5]), 49, 1e-9),
+    `Naht ${dd(TP[0], TP[TP.length - 1]).toFixed(3)}, Rand ${topL.toFixed(3)}`);
+  ok('Übergang: Kantlinien je Ecke, Maße für den Körper um die Blechdicke versetzt', tp.bends.length === 4 * 7 && transitionPattern({ w: 100, d: 60, dia: 50, h: 80, t: 2, bends: 1 }).bends.length === 8 && tp.outer.w === 100 && tp.inner.w === 96 && tp.outer.r === 25 && tp.inner.r === 23);
+  // nearly flat: the pattern is the square with the round hole
+  const fl = transitionPattern({ w: 100, d: 100, dia: 60, h: 0.001, t: 0.001, dim: 'mid', bends: 24 });
+  ok('Übergang: fast flach ist die Abwicklung das Rechteck mit dem Kreisloch', near(fl.area, 10000 - Math.PI * 900, 0.004 * 10000), fl.area.toFixed(1));
+  // off centre: the seam is the true length to the shifted circle, the round end keeps its length, both seam edges match
+  const ec = transitionPattern({ w: 100, d: 60, dia: 50, h: 80, t: 2, dim: 'mid', bends: 6, ox: 15, oy: -8 }), EP = ec.outline[0];
+  let ecL = 0; for (let i = 6; i < EP.length - 1; i++) ecL += dd(EP[i], EP[i + 1]);
+  ok('Übergang außermittig: Naht in wahrer Länge zum versetzten Kreis, runder Rand unverändert lang', near(ec.seam, Math.hypot(15, -30 + 8 + 25, 80), 1e-9) && near(dd(EP[0], EP[EP.length - 1]), ec.seam, 1e-9) && near(dd(EP[5], EP[6]), ec.seam, 1e-9) && near(ecL, Math.PI * 50, 1e-6) && ec.ox === 15 && ec.oy === -8, ec.seam.toFixed(3));
+  let th2 = 0; for (const o of [{ w: 3, d: 50, dia: 20, h: 10, t: 2 }, { w: 50, d: 50, dia: 20, h: 0, t: 2 }]) try { transitionPattern(o); } catch { th2++; }
+  ok('Übergang: unmögliche Maße werden abgelehnt', th2 === 2, String(th2));
+}
 // ---- the hole a screw brings along ----
 {
   const { boltHole, boltSizeFor } = await import('../js/stdparts.js');
   const a = boltHole('iso4762', 'M6', true), b = boltHole('iso4762', 'M6', false), c = boltHole('iso10642', 'M8', false), d = boltHole('iso4017', 'M10', true);
   let thrown = false; try { boltHole('iso4762', 'M99'); } catch { thrown = true; }
   ok('Normteile: Bohrung zur Schraube – Durchgangsloch ISO 273 mittel, Senkbohrung so tief wie der Kopf, 90°-Senkung für den Senkkopf', a.dia === 6.6 && a.kind === 'cbore' && a.cbDia === 11 && near(a.cbDepth, 6) && near(a.seat, 6) && b.kind === 'simple' && b.seat === 0 && b.dia === 6.6 && c.kind === 'csink' && c.dia === 9 && near(c.csDia, 17.92) && c.csAngle === 90 && c.seat === 0 && d.kind === 'simple' && d.dia === 11 && thrown && boltSizeFor(a.dia) === 'M6' && boltSizeFor(c.dia) === 'M8', JSON.stringify([a, b, c, d]));
+}
+
+// ---- tabs for a tab-and-slot joint, a body read back as sheet metal ----
+{
+  const { tabPlan, tabSlots } = await import('../js/sheetmetal.js');
+  const { unfoldFaces } = await import('../js/unfold.js');
+  const poly = [[0, 0], [100, 0], [100, 60], [0, 60]], f = { thickness: 2, radius: 2, kfactor: 0.42, flanges: [{ edge: 0, on: true, h: 20, angle: 90 }] };
+  const plain = flatPattern(poly, f), tabbed = { ...f, flanges: [{ ...f.flanges[0], tabs: { n: 3, w: 10, len: 2 } }] }, fp = flatPattern(poly, tabbed);
+  ok('Zungen: drei Zungen im Zuschnitt, er wächst um ihre Länge und ihre Fläche', fp.tabs === 3 && near(fp.size[1], plain.size[1] + 2, 0.02) && near(fp.area, plain.area + 3 * 10 * 2, 0.5) && !fp.overlap, `${fp.tabs} Zungen, ${fp.size[1].toFixed(3)} mm, +${(fp.area - plain.area).toFixed(2)} mm²`);
+  const sl = tabSlots(poly, 0, tabbed);
+  ok('Zungen: Schlitze stehen am Laschenende, gleichmäßig verteilt, die Zunge zeigt nach oben', sl.length === 3 && sl.every(q => near(q.c[2], 24) && near(q.dir[2], 1) && near(q.c[1], -3)) && near(sl[1].c[0], 50) && near(sl[2].c[0] - sl[1].c[0], 92 / 3), sl.map(q => q.c.map(v => v.toFixed(2)).join('/')).join('  '));
+  ok('Zungen: zu viele oder zu breite Zungen fallen weg', tabPlan({ tabs: { n: 12, w: 10, len: 2 } }, { L: 100 }, 4, 4) === null && flatPattern(poly, { ...f, flanges: [{ ...f.flanges[0], tabs: { n: 12, w: 10, len: 2 } }] }).tabs === 0);
+
+  // a prism over an outline as the faces of a body: caps, walls, the text of every edge on both faces it joins
+  const prism = (out, h, holes = []) => {
+    const key = (a, b) => [0, 1, 2].map(i => Math.round(((a[i] + b[i]) / 2) * 1000)).join(','), faces = [];
+    const cap = (z, n) => { const lp = p => p.map(q => [q[0], q[1], z]); return { plane: true, n, loops: [{ pts: lp(out) }, ...holes.map(q => ({ pts: lp(q.pts), circle: { c: [q.c[0], q.c[1], z], r: q.r } }))], keys: [...out.map((p, i) => key([...p, z], [...out[(i + 1) % out.length], z])), ...holes.map(q => `h${q.c}/${z}`)] }; };
+    faces.push(cap(0, [0, 0, -1]), cap(h, [0, 0, 1]));
+    out.forEach((p, i) => { const q = out[(i + 1) % out.length], L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      faces.push({ plane: true, n: [(q[1] - p[1]) / L, -(q[0] - p[0]) / L, 0], loops: [{ pts: [[...p, 0], [...q, 0], [...q, h], [...p, h]] }], keys: [key([...p, 0], [...q, 0]), key([...p, h], [...q, h]), key([...p, 0], [...p, h]), key([...q, 0], [...q, h])] }); });
+    for (const q of holes) faces.push({ plane: false, n: null, loops: [], keys: [`h${q.c}/0`, `h${q.c}/${h}`] });
+    return faces;
+  };
+  const L1 = unfoldFaces(prism([[0, 0], [50, 0], [50, 2], [2, 2], [2, 30], [0, 30]], 40), { k: 0.42 });
+  const ba0 = bendAllowance(90, 0, 2, 0.42), xs = L1.outline[0].map(p => p[0]), ys = L1.outline[0].map(p => p[1]);
+  const w1 = Math.max(...xs) - Math.min(...xs), h1 = Math.max(...ys) - Math.min(...ys);
+  ok('Körper → Blech: scharfkantiges L-Profil – Dicke, eine Biegung von 90° ohne Radius, gestreckte Länge', near(L1.t, 2) && L1.folds.length === 1 && near(Math.abs(L1.folds[0].angle), 90, 1e-6) && near(L1.r, 0) && near(Math.max(w1, h1), 48 + 28 + ba0, 0.01) && near(Math.min(w1, h1), 40, 0.01) && !L1.overlap && !L1.notes.length, `t ${L1.t}, ${L1.folds.length} Biegung ${L1.folds[0]?.angle.toFixed(2)}°, ${w1.toFixed(3)} × ${h1.toFixed(3)}`);
+  // a U-channel with sharp corners: two bends the same way round
+  const U1 = unfoldFaces(prism([[0, 0], [60, 0], [60, 25], [58, 25], [58, 2], [2, 2], [2, 25], [0, 25]], 30), { k: 0.4 });
+  ok('Körper → Blech: U-Profil – zwei Biegungen gleicher Richtung, Zuschnitt aus Steg und zwei Schenkeln', U1.folds.length === 2 && near(U1.folds[0].angle, U1.folds[1].angle, 1e-6) && near(U1.area, 30 * (56 + 2 * 23 + 2 * bendAllowance(90, 0, 2, 0.4)), 0.05) && U1.outline.length === 1, `${U1.folds.map(q => q.angle.toFixed(1)).join(' / ')}°, ${U1.area.toFixed(2)} mm²`);
+  // a flat plate with a bore: no bend, the bore stays a circle; lying flat it stays where it is
+  const circ = Array.from({ length: 64 }, (_, i) => [30 + 5 * Math.cos((i * Math.PI) / 32), 20 + 5 * Math.sin((i * Math.PI) / 32)]);
+  const F1 = unfoldFaces(prism([[0, 0], [80, 0], [80, 40], [0, 40]], 3, [{ pts: circ, c: [30, 20], r: 5 }]));
+  ok('Körper → Blech: ebene Platte mit Bohrung – keine Biegung, Bohrung bleibt ein Kreis, Lage bleibt', near(F1.t, 3) && !F1.folds.length && F1.holes.length === 1 && near(F1.holes[0].r, 5) && near(F1.holes[0].c[0], 30) && F1.aligned && near(F1.z0, 0) && near(F1.area, 3200 - Math.PI * 25, 0.01), `t ${F1.t}, ${F1.holes.length} Bohrung, ${F1.area.toFixed(2)} mm²`);
+  let msg = ''; try { unfoldFaces(prism([[0, 0], [30, 0], [30, 30], [0, 30]], 40)); } catch (e) { msg = e.message; }
+  ok('Körper → Blech: ein Klotz ist kein Blech', /zu dick/.test(msg), msg);
 }

@@ -1,0 +1,19 @@
+{
+ "Übergang": "Přechod",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Přechodový kus z hranatého na kulatý: těleso a rozvinutý tvar s ohybovými čárami z obdélníku, průměru, výšky a tloušťky plechu",
+ "+ Kröpfung": "+ Zalomení",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Příruba na přírubě: úhel + ohýbá dál stejným směrem (profil U, drážka 180°), − opačným směrem (stupeň Z, kloboukový profil). Lem: okraj příruby se přehne o 180° zpět na sebe – otevřený s mezerou o tloušťce plechu, zavřený přitlačený naplocho; s − 180° leží na druhé straně. Pole R je vnitřní poloměr pouze tohoto ohybu (prázdné = jako u plechu). Pro lem přímo na hraně desky nastavte samotnou přírubu na 180°. Zalomení: dva ohyby proti sobě (− 45° a + 45°) – okraj pokračuje rovnoběžně posunutý; posun vyplývá z délky šikmého kusu a z úhlů.",
+ "Übergang (eckig auf rund)": "Přechod (hranatý na kulatý)",
+ "Rechteck Länge (X)": "Délka obdélníku (X)",
+ "Rechteck Breite (Y)": "Šířka obdélníku (Y)",
+ "Maße gemessen": "Rozměry měřeny",
+ "Kantungen je Ecke": "Ohyby na roh",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "Obdélník leží dole, kruh uprostřed nad ním. Každá strana obdélníku vede jako rovinný trojúhelník k jednomu bodu kruhu, každý roh jako část šikmého kužele ke čtvrtině kruhu. Rozvinutý tvar vzniká trojúhelníkovou metodou na středu plechu; šev leží uprostřed strany při −Y. Čárkovaně: ohybové čáry od každého rohu ke kruhu – tolik na roh, kolik je zadáno (1 až 24); více ohybů dává kulatější otvor. U pravidla plechu platí jeho tloušťka.",
+ "Übergang: {0}": "Přechod: {0}",
+ "Übergangsstück": "Přechodový kus",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: polotovar {1} × {2} mm, plocha {3} cm², {4} ohybových čar, šev {5} mm.",
+ "{0} – unten": "{0} – dole",
+ "{0} – oben": "{0} – nahoře",
+ "Übergangsstück nicht möglich – Maße prüfen": "Přechodový kus není možný – zkontrolujte rozměry",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Obdélník a průměr musí být větší než dvojnásobek tloušťky plechu"
+}

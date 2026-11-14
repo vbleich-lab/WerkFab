@@ -1,0 +1,19 @@
+{
+ "Übergang": "Peralihan",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Bahagian peralihan daripada segi empat kepada bulat: jasad dan bentangan dengan garis lenturan daripada segi empat tepat, diameter, tinggi dan ketebalan kepingan",
+ "+ Kröpfung": "+ Anjakan",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Bebibir pada bebibir: sudut + melentur terus ke arah yang sama (profil U, lipatan 180°), − ke arah bertentangan (anjakan Z, profil topi). Lipatan tepi: tepi bebibir dilipat 180° ke atas dirinya sendiri – terbuka dengan celah setebal satu kepingan, tertutup ditekan rata; dengan − 180° ia terletak di sebelah lagi. Medan R ialah jejari dalam bagi lenturan ini sahaja (kosong = seperti pada kepingan). Untuk lipatan tepi terus pada tepi plat, tetapkan bebibir itu sendiri kepada 180°. Anjakan: dua lenturan bertentangan (− 45° dan + 45°) – tepi diteruskan selari dan teranjak; jarak anjakan ditentukan oleh panjang bahagian condong dan sudut.",
+ "Übergang (eckig auf rund)": "Peralihan (segi empat kepada bulat)",
+ "Rechteck Länge (X)": "Panjang segi empat tepat (X)",
+ "Rechteck Breite (Y)": "Lebar segi empat tepat (Y)",
+ "Maße gemessen": "Dimensi diukur",
+ "Kantungen je Ecke": "Lenturan setiap penjuru",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "Segi empat tepat terletak di bawah, bulatan di tengah di atasnya. Setiap sisi segi empat tepat menjadi segi tiga rata ke satu titik pada bulatan, setiap penjuru menjadi sebahagian kon condong ke satu perempat bulatan. Bentangan dihasilkan dengan kaedah segi tiga pada bahagian tengah kepingan; kelim terletak di tengah sisi pada −Y. Garis putus-putus: garis lenturan dari setiap penjuru ke bulatan – sebanyak yang dinyatakan bagi setiap penjuru (1 hingga 24); lebih banyak lenturan memberi bukaan yang lebih bulat. Dengan peraturan kepingan, ketebalannya terpakai.",
+ "Übergang: {0}": "Peralihan: {0}",
+ "Übergangsstück": "Bahagian peralihan",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: potongan {1} × {2} mm, luas {3} cm², {4} garis lenturan, kelim {5} mm.",
+ "{0} – unten": "{0} – bawah",
+ "{0} – oben": "{0} – atas",
+ "Übergangsstück nicht möglich – Maße prüfen": "Bahagian peralihan tidak mungkin – semak dimensi",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Segi empat tepat dan diameter mesti lebih besar daripada dua kali ketebalan kepingan"
+}

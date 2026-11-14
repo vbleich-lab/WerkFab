@@ -1,5 +1,29 @@
 # Änderungen
 
+## v1.0.0-rc.13 – 2026-11-14
+
+### Blech
+- **Laschen-Schlitz-Verbindung**: „+ Zungen“ an einer Lasche setzt Zungen an ihr freies Ende – Anzahl, Breite und Länge einstellbar, gleichmäßig verteilt, im Körper und in der Abwicklung. „Schlitze als Skizze“ legt die passenden Schlitze dort an, wo die Zungen stehen (je Ebene eine Skizze, ringsum um das einstellbare Spiel größer) – darin den Umriss des Gegenstücks zeichnen, die Schlitze werden Ausschnitte.
+- **Körper → Blech**: neuer Befehl im Reiter BLECH. Ein Körper gleicher Dicke – gezeichnet, extrudiert oder aus einer STEP-Datei – wird als Blech übernommen: Blechdicke, ebene Wände und die Biegungen dazwischen (Winkel und Innenradius, rund oder scharfkantig) werden aus seinen Flächen erkannt. Ergebnis ist ein änderbares Blech mit Biegelinien, die Abwicklung als Skizze oder als DXF; Bohrungen bleiben Kreise. Zur Kontrolle nennt die Meldung das Volumen des Blechs im Verhältnis zum Körper.
+- Biegelinien dürfen jetzt auch scharfkantig sein (Biegeradius 0).
+- **Saum**: an jeder Lasche gibt es „+ Saum offen“ (Spalt eine Blechdicke) und „+ Saum geschlossen“ (flach zugedrückt) – der Rand wird um 180° auf sich selbst zurückgelegt, mit − 180° auf die andere Seite. Abwicklung, Biegetabelle und Körper rechnen den Saum mit.
+- **Biegeradius je Biegung**: jede Lasche und jede Lasche an Lasche kann einen eigenen Innenradius bekommen (Feld R; leer = der des Blechs). Zugabe, Zuschnitt und Biegetabelle nehmen den Radius der jeweiligen Biegung.
+- **Eigene Blechregeln**: Blechdicke, Biegeradius und K-Faktor der eigenen Werkstatt lassen sich unter einem Namen speichern („Als Blechregel speichern“) und stehen danach – mit ★ – bei jedem Blech und im Mantel-Dialog in der Liste, auch in anderen Projekten auf dem Rechner. Löschen an derselben Stelle.
+- **Mantel (Rohr / Kegel)**: neuer Befehl im Reiter BLECH. Aus Durchmesser unten und oben (außen, innen oder Blechmitte gemessen), Höhe, Blechdicke, K-Faktor und Nahtspalt entstehen der gerollte Körper mit offener Naht und die Abwicklung – beim Rohr ein Rechteck in gestreckter Länge, beim Kegelstumpf ein Ringstück – als Skizze oder DXF. Die Meldung nennt Zuschnitt, Radien, Öffnungswinkel und Mantellinie.
+- **Übergang (eckig auf rund)**: neuer Befehl im Reiter BLECH. Aus Rechteck, Durchmesser, Höhe und Blechdicke entstehen der Körper – jede Seite ein ebenes Dreieck, jede Ecke ein Stück eines schiefen Kegels – und die Abwicklung im Dreiecksverfahren mit den Kantlinien von jeder Ecke zum Kreis (1 bis 24 Kantungen je Ecke), als Skizze oder DXF. Die Naht liegt in der Mitte einer Seite. Der Kreis darf außermittig sitzen (Versatz in X und Y, schiefes Übergangsstück), und mit einem Nahtspalt ist die Naht im Körper offen.
+- **Kröpfung**: „+ Kröpfung“ an einer Lasche setzt zwei Biegungen gegeneinander (− 45° / + 45°) – der Rand läuft parallel versetzt weiter.
+- Hinweise beim Prüfen: geschlossener Saum (zwei Hübe, Rissgefahr außen) und Saum kürzer als 4 × Blechdicke.
+
+### Netz → Körper
+- **Verrundungen auf Gehrung ohne Splitter**: für die Facetten solcher Verrundungen steht zuerst eine ebene Sehnenfläche ein, die wahre Zylinderfläche kommt in einem Schritt darauf – alle mit demselben Übermaß. Platte mit Langloch und rundum verrundeten Kanten: danach genau die Flächen des Originals – 10 Ebenen, 12 Zylinder, 4 Ringflächen (vorher 16 Ebenen und 18 Zylinderstücke) – in etwa 3 statt 18 Sekunden; Quader mit vier verrundeten Kanten in einer halben statt zwei Sekunden. Kommt die wahre Fläche nicht zustande, wird ohne Sehnenfläche wie bisher gerechnet.
+
+- Gehrungsebenen, die aus den Ecken des Netzes ermittelt werden, übernehmen dessen Rundungsrauschen nicht mehr (Neigungen von wenigen Millionsteln gelten als keine) – die mikrometergroßen Restflächen an solchen Ecken entfallen.
+
+### Bedienung
+- **Vollbild**: neue Schaltfläche in der Kopfleiste und die Taste F11 schalten das Programm auf den ganzen Bildschirm und zurück – im Desktop-Programm das Fenster, im Browser die Seite.
+- **Schärfere Symbole**: die Werkzeugsymbole werden 1 : 1 auf dem Pixelraster gezeichnet (24 statt 22 Pixel), mit dünneren Linien und spitzen Ecken, ohne weichen Schatten; die Flächen sind einfarbig mit dunkler Kante statt mit Verlauf. Die Schaltflächen der Kopfleiste (Rückgängig, Suche, Hell/Dunkel, Hilfe, Einstellungen) sind gezeichnete Symbole statt Schriftzeichen, die Beschriftung des Ansichtswürfels ist viermal so fein aufgelöst.
+- **Meldungen bleiben lesbar**: die Statuszeile bleibt je nach Länge des Textes 5 bis 20 Sekunden stehen – lange Meldungen mit Maßen verschwinden nicht mehr, bevor man sie gelesen hat.
+
 ## v1.0.0-rc.12 – 2026-11-14
 
 ### Normteile

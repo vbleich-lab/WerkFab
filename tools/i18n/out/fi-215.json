@@ -1,0 +1,19 @@
+{
+ "Übergang": "Siirtymä",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Siirtymäkappale suorakulmiosta pyöreään: kappale ja levityskuvio taivutusviivoineen suorakulmiosta, halkaisijasta, korkeudesta ja levyn paksuudesta",
+ "+ Kröpfung": "+ Porrastus",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Laippa laipan päällä: kulma + taivuttaa samaan suuntaan (U-profiili, 180° saumaus), − vastakkaiseen suuntaan (Z-porras, hattuprofiili). Taitto: laipan reuna taitetaan 180° takaisin itsensä päälle – avoimena yhden levynpaksuuden raolla, suljettuna litteäksi painettuna; kulmalla − 180° se on toisella puolella. Kenttä R on vain tämän taivutuksen sisäsäde (tyhjä = kuten levyllä). Taittoa varten suoraan levyn reunaan aseta laippa itse 180°:een. Porrastus: kaksi taivutusta vastakkain (− 45° ja + 45°) – reuna jatkuu yhdensuuntaisesti siirtyneenä; siirtymä määräytyy vinon osan pituudesta ja kulmista.",
+ "Übergang (eckig auf rund)": "Siirtymä (suorakulmiosta pyöreään)",
+ "Rechteck Länge (X)": "Suorakulmion pituus (X)",
+ "Rechteck Breite (Y)": "Suorakulmion leveys (Y)",
+ "Maße gemessen": "Mitat mitattu",
+ "Kantungen je Ecke": "Taivutuksia kulmaa kohti",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "Suorakulmio on alhaalla, ympyrä keskellä sen yläpuolella. Suorakulmion jokainen sivu kulkee tasaisena kolmiona ympyrän yhteen pisteeseen, jokainen kulma vinon kartion osana sen neljännekseen. Levityskuvio muodostetaan kolmiomenetelmällä levyn keskellä; sauma on sivun keskellä kohdassa −Y. Katkoviivalla: taivutusviivat jokaisesta kulmasta ympyrään – niin monta kulmaa kohti kuin on annettu (1–24); useampi taivutus antaa pyöreämmän aukon. Levysäännön kanssa sen paksuus on voimassa.",
+ "Übergang: {0}": "Siirtymä: {0}",
+ "Übergangsstück": "Siirtymäkappale",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: aihio {1} × {2} mm, ala {3} cm², {4} taivutusviivaa, sauma {5} mm.",
+ "{0} – unten": "{0} – alhaalla",
+ "{0} – oben": "{0} – ylhäällä",
+ "Übergangsstück nicht möglich – Maße prüfen": "Siirtymäkappale ei ole mahdollinen – tarkista mitat",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Suorakulmion ja halkaisijan on oltava suurempia kuin kaksinkertainen levyn paksuus"
+}

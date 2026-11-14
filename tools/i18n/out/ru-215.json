@@ -1,0 +1,19 @@
+{
+ "Übergang": "Переход",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Переходник с прямоугольного сечения на круглое: тело и развёртка с линиями гибов по прямоугольнику, диаметру, высоте и толщине листа",
+ "+ Kröpfung": "+ Отгиб-смещение",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Фланец на фланце: угол + продолжает гиб в том же направлении (U-профиль, фальц на 180°), − в обратном (Z-ступень, омега-профиль). Отбортовка: кромка фланца загибается на 180° на саму себя — открытая с зазором в одну толщину листа, закрытая плотно прижатая; при − 180° она ложится на другую сторону. Поле R — внутренний радиус только этого гиба (пусто = как для листа). Для отбортовки прямо на кромке пластины задайте для самого фланца 180°. Отгиб-смещение: два встречных гиба (− 45° и + 45°) — кромка идёт дальше параллельно со смещением; смещение определяется длиной наклонного участка и углами.",
+ "Übergang (eckig auf rund)": "Переход (с прямоугольного на круглое)",
+ "Rechteck Länge (X)": "Длина прямоугольника (X)",
+ "Rechteck Breite (Y)": "Ширина прямоугольника (Y)",
+ "Maße gemessen": "Размеры измерены",
+ "Kantungen je Ecke": "Гибов на угол",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "Прямоугольник лежит внизу, окружность — по центру над ним. Каждая сторона прямоугольника идёт плоским треугольником к точке окружности, каждый угол — участком косого конуса к четверти окружности. Развёртка строится методом триангуляции по середине листа; шов находится посередине стороны при −Y. Штриховые линии — линии гибов от каждого угла к окружности, столько на угол, сколько задано (от 1 до 24); чем больше гибов, тем круглее отверстие. При использовании правила листового металла действует его толщина.",
+ "Übergang: {0}": "Переход: {0}",
+ "Übergangsstück": "Переходник",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: заготовка {1} × {2} mm, площадь {3} cm², линий гибов {4}, шов {5} mm.",
+ "{0} – unten": "{0} – внизу",
+ "{0} – oben": "{0} – вверху",
+ "Übergangsstück nicht möglich – Maße prüfen": "Переходник невозможен — проверьте размеры",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Прямоугольник и диаметр должны быть больше удвоенной толщины листа"
+}

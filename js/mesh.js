@@ -1414,12 +1414,98 @@ export function findCylinders(m, minFacets = 8, info = null) {
       };
       const tan = [tanAt(ring[0], true), tanAt(ring[ring.length - 1], false)], big = Math.max(...steps);
       out.push({ c: [0, 1, 2].map(i => u[i] * C.x + w[i] * C.y + d[i] * h0), d, r: C.r, h: h1 - h0, hole: side < 0, n: Math.max(3, Math.round((2 * Math.PI) / big)), full: false, u, w, a0: am + ring[0].a, sweep, sl,
-        ...(tan[0] || tan[1] ? { tan } : {}), ends: [pl(lo, -1), pl(hi, 1)], slv, ...(info ? { regs: rs } : {}) });
+        ...(tan[0] || tan[1] ? { tan } : {}), ends: [pl(lo, -1), pl(hi, 1)], slv, zig: true, ...(info ? { regs: rs } : {}) });
       for (const r of rs) { taken.add(r); if (info) info.used.add(r); }
     };
     for (const rs of comps.values()) band(rs, 0);
   }
   return out.sort((a, b) => b.r - a.r);
+}
+
+/**
+ * Fillets whose facets run in a zigzag between two mitres (zig, from findCylinders): a kernel does not lay a round
+ * face over such facets reliably – the piece comes out with another oversize than its neighbours, and splinters
+ * stay on the mitres. Here a flat face from rim to rim (the chord) and a flat lid in each mitre plane take the
+ * place of the facets; the true piece is fused on in one step afterwards. Only where both ends are mitres: the
+ * facets beyond an end belong to another round face, not to a flat end face (that one would have to be cut open).
+ * Two such fillets meeting in a mitre share the lid: it is left out for both.
+ * Returns { m, arcs: [{ src, vol, kin }] } – vol: what lies between the chord and the facets, kin: how far from
+ * the axis the chord runs (as a part of the radius).
+ */
+export function chordIn(m, arcs) {
+  const P = m.pos, I = m.idx, nT = I.length / 3, out = [];
+  if (!arcs.length) return { m, arcs: out };
+  const gone = new Uint8Array(nT), extra = [], lids = new Map();
+  const key = (a, b) => a * 67108864 + b, E = new Map();
+  for (let t = 0; t < nT; t++) for (let k = 0; k < 3; k++) E.set(key(I[t * 3 + k], I[t * 3 + (k + 1) % 3]), t);
+  const V = v => [P[v * 3], P[v * 3 + 1], P[v * 3 + 2]];
+  const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2], sub = (p, q) => [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
+  const cross = (p, q) => [p[1] * q[2] - p[2] * q[1], p[2] * q[0] - p[0] * q[2], p[0] * q[1] - p[1] * q[0]];
+  const unit = p => { const l = Math.hypot(...p); return l > 1e-12 ? p.map(x => x / l) : null; };
+  const nrm = t => unit(cross(sub(V(I[t * 3 + 1]), V(I[t * 3])), sub(V(I[t * 3 + 2]), V(I[t * 3]))));
+  for (const c of arcs) {
+    if (c.hole || c.full !== false) continue;
+    const rel = v => { const q = sub(V(v), c.c), k = dot(q, c.d); return [q[0] - c.d[0] * k, q[1] - c.d[1] * k, q[2] - c.d[2] * k]; };
+    const tol = Math.max(3e-3, 2e-3 * c.r), onC = new Map(), on = v => { let x = onC.get(v); if (x == null) onC.set(v, (x = Math.abs(Math.hypot(...rel(v)) - c.r) < tol)); return x; };
+    // the facets of the band: all corners on the circle, the face looks away from the axis
+    const ts = [];
+    for (let t = 0; t < nT; t++) {
+      const a = I[t * 3], b = I[t * 3 + 1], d = I[t * 3 + 2];
+      if (gone[t] || !on(a) || !on(b) || !on(d)) continue;
+      const n = nrm(t), ra = rel(a), rb = rel(b), rd = rel(d), g = unit([ra[0] + rb[0] + rd[0], ra[1] + rb[1] + rd[1], ra[2] + rb[2] + rd[2]]);
+      if (n && g && dot(n, g) > 0.3) ts.push(t);
+    }
+    if (ts.length < 4) continue;
+    const inS = new Set(ts), next = new Map();
+    let bad = false;
+    for (const t of ts) for (let k = 0; k < 3; k++) {
+      const a = I[t * 3 + k], b = I[t * 3 + (k + 1) % 3], o = E.get(key(b, a));
+      if (o == null) bad = true; else if (!inS.has(o)) { if (next.has(a)) bad = true; next.set(a, { a, b, o }); }
+    }
+    if (bad || next.size < 4) continue;
+    // the rim, once round
+    const loop = [], start = next.keys().next().value;
+    let v = start;
+    do { const e = next.get(v); if (!e) break; loop.push(e); v = e.b; } while (v !== start && loop.length <= next.size);
+    if (v !== start || loop.length !== next.size) continue;
+    const along = e => { const q = sub(V(e.b), V(e.a)), l = Math.hypot(...q); return l > 1e-6 && Math.abs(dot(q, c.d)) / l > 0.9999; };
+    const fl = loop.map(along), n = loop.length, i0 = fl.findIndex((x, i) => x && !fl[(i + n - 1) % n]);
+    if (i0 < 0) continue;
+    const runs = [];
+    for (let k = 0; k < n; k++) { const i = (i0 + k) % n, last = runs[runs.length - 1]; if (last && last.rim === fl[i]) last.e.push(loop[i]); else runs.push({ rim: fl[i], e: [loop[i]] }); }
+    if (runs.length !== 4) continue;
+    const pts = r => [r.e[0].a, ...r.e.map(e => e.b)];
+    // both ends mitres: nothing beyond them lies in the plane of the end
+    const mitre = r => {
+      const p = pts(r).map(V), nn = [0, 0, 0];
+      for (let i = 0; i < p.length; i++) { const a = p[i], b = p[(i + 1) % p.length]; nn[0] += (a[1] - b[1]) * (a[2] + b[2]); nn[1] += (a[2] - b[2]) * (a[0] + b[0]); nn[2] += (a[0] - b[0]) * (a[1] + b[1]); }
+      const en = unit(nn);
+      return !!en && p.length >= 3 && r.e.every(e => { const q = nrm(e.o); return q && Math.abs(dot(q, en)) < 0.98; });
+    };
+    if (!mitre(runs[1]) || !mitre(runs[3])) continue;
+    const A = pts(runs[0]), B = pts(runs[2]), mine = [];
+    for (let i = 0; i + 1 < A.length; i++) mine.push({ t: [A[i], A[i + 1], B[0]] });
+    for (let i = 0; i + 1 < B.length; i++) mine.push({ t: [B[i], B[i + 1], A[0]] });
+    const lidsOf = [];
+    for (const r of [runs[1], runs[3]]) { const p = pts(r), l = []; for (let i = 1; i + 1 < p.length; i++) l.push({ t: [p[0], p[i], p[i + 1]] }); lidsOf.push([[...p].sort((x, y) => x - y).join(','), l]); }
+    // what lies between the facets and the new faces
+    const six = (a, b, d) => { const p = sub(V(a), c.c), q = sub(V(b), c.c), s = sub(V(d), c.c); return dot(p, cross(q, s)); };
+    let vol = 0;
+    for (const t of ts) vol += six(I[t * 3], I[t * 3 + 1], I[t * 3 + 2]);
+    for (const x of [...mine, ...lidsOf[0][1], ...lidsOf[1][1]]) vol -= six(...x.t);
+    vol /= 6;
+    if (!(vol > 0)) continue;
+    for (const t of ts) gone[t] = 1;
+    extra.push(...mine);
+    for (const [k, l] of lidsOf) { const o = lids.get(k); if (o) { for (const x of o) x.dead = true; } else { lids.set(k, l); extra.push(...l); } }
+    const ma = rel(A[0]), mb = rel(B[0]);
+    out.push({ src: c, vol, kin: Math.hypot((ma[0] + mb[0]) / 2, (ma[1] + mb[1]) / 2, (ma[2] + mb[2]) / 2) / c.r });
+  }
+  if (!out.length) return { m, arcs: out };
+  const idx = [];
+  for (let t = 0; t < nT; t++) if (!gone[t]) idx.push(I[t * 3], I[t * 3 + 1], I[t * 3 + 2]);
+  for (const x of extra) if (!x.dead) idx.push(...x.t);
+  return { m: compact({ pos: new Float32Array(P), idx: new Uint32Array(idx) }), arcs: out };
 }
 
 // smallest eigenvector of a symmetric 3 × 3 matrix [xx, xy, xz, yy, yz, zz] (Jacobi), with the eigenvalues sorted

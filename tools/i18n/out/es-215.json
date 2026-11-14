@@ -1,0 +1,19 @@
+{
+ "Übergang": "Transición",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Pieza de transición de rectangular a redonda: cuerpo y desarrollo con líneas de plegado a partir del rectángulo, el diámetro, la altura y el espesor de chapa",
+ "+ Kröpfung": "+ Desfase",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Pestaña sobre pestaña: un ángulo + sigue plegando en la misma dirección (perfil en U, pliegue de 180°), − en la dirección contraria (escalón en Z, perfil de sombrero). Dobladillo: el borde de la pestaña se pliega 180° sobre sí mismo; abierto con una separación de un espesor de chapa, cerrado aplastado a ras; con − 180° queda en el otro lado. El campo R es el radio interior solo de este pliegue (vacío = como en la chapa). Para un dobladillo directamente en el borde de la placa, ajuste la propia pestaña a 180°. Desfase: dos pliegues en sentido contrario (− 45° y + 45°); el borde continúa en paralelo, desplazado. El desplazamiento resulta de la longitud del tramo oblicuo y de los ángulos.",
+ "Übergang (eckig auf rund)": "Transición (de rectangular a redonda)",
+ "Rechteck Länge (X)": "Longitud del rectángulo (X)",
+ "Rechteck Breite (Y)": "Anchura del rectángulo (Y)",
+ "Maße gemessen": "Cotas medidas",
+ "Kantungen je Ecke": "Pliegues por esquina",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "El rectángulo está abajo y el círculo centrado encima. Cada lado del rectángulo llega a un punto del círculo como un triángulo plano, y cada esquina como un trozo de cono oblicuo hasta un cuarto del círculo. El desarrollo se obtiene por triangulación en la fibra media de la chapa; la costura queda en el centro del lado en −Y. Discontinuas: las líneas de plegado de cada esquina al círculo, tantas por esquina como se indique (1 a 24); más pliegues dan una abertura más redonda. Con una regla de chapa se aplica su espesor.",
+ "Übergang: {0}": "Transición: {0}",
+ "Übergangsstück": "Pieza de transición",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: pieza cortada {1} × {2} mm, superficie {3} cm², {4} líneas de plegado, costura {5} mm.",
+ "{0} – unten": "{0} – abajo",
+ "{0} – oben": "{0} – arriba",
+ "Übergangsstück nicht möglich – Maße prüfen": "Pieza de transición no posible: compruebe las cotas",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "El rectángulo y el diámetro deben ser mayores que el doble del espesor de chapa"
+}

@@ -1,0 +1,19 @@
+{
+ "Übergang": "트랜지션",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "사각에서 원형으로의 트랜지션 피스: 직사각형, 지름, 높이, 판 두께로 굽힘선이 있는 바디와 전개도를 만듭니다",
+ "+ Kröpfung": "+ 단 굽힘",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "플랜지 위에 플랜지: 각도 +는 같은 방향으로 계속 굽히고(U 프로파일, 180° 시임), −는 반대 방향으로 굽힙니다(Z 단차, 햇 프로파일). 헴: 플랜지의 가장자리를 180° 접어 자기 자신 위에 겹칩니다. 열린 헴은 판 두께만큼의 틈을 두고, 닫힌 헴은 평평하게 눌러 붙입니다. − 180°이면 반대쪽에 놓입니다. R 필드는 이 굽힘만의 안쪽 반경입니다(비어 있음 = 판금과 동일). 판 모서리에 바로 헴을 만들려면 플랜지 자체를 180°로 설정하십시오. 단 굽힘: 서로 반대 방향의 굽힘 두 개(− 45°와 + 45°)로, 가장자리가 평행하게 어긋난 채 이어집니다. 어긋남 양은 경사 부분의 길이와 각도로 정해집니다.",
+ "Übergang (eckig auf rund)": "트랜지션(사각에서 원형)",
+ "Rechteck Länge (X)": "직사각형 길이 (X)",
+ "Rechteck Breite (Y)": "직사각형 너비 (Y)",
+ "Maße gemessen": "치수 실측",
+ "Kantungen je Ecke": "모서리당 굽힘 수",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "직사각형은 아래에 있고, 원은 그 위 중앙에 있습니다. 직사각형의 각 변은 평평한 삼각형으로 원의 한 점까지, 각 모서리는 비스듬한 원뿔의 일부로 원의 4분의 1까지 이어집니다. 전개도는 판의 중심선에서 삼각형 분할법으로 구하며, 이음새는 −Y 쪽 변의 가운데에 있습니다. 점선은 각 모서리에서 원으로 향하는 굽힘선이며, 모서리당 지정한 개수(1~24)만큼 들어갑니다. 굽힘 수가 많을수록 개구부가 더 둥글어집니다. 판금 규칙을 사용하면 그 규칙의 판 두께가 적용됩니다.",
+ "Übergang: {0}": "트랜지션: {0}",
+ "Übergangsstück": "트랜지션 피스",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: 블랭크 {1} × {2} mm, 면적 {3} cm², 굽힘선 {4}개, 이음새 {5} mm.",
+ "{0} – unten": "{0} – 아래",
+ "{0} – oben": "{0} – 위",
+ "Übergangsstück nicht möglich – Maße prüfen": "트랜지션 피스를 만들 수 없습니다. 치수를 확인하십시오",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "직사각형과 지름은 판 두께의 두 배보다 커야 합니다"
+}

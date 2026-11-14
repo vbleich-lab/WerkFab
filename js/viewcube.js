@@ -18,8 +18,10 @@ const EDGE = 0.62; // outer band of each face = edge / corner region
 
 function faceTexture(label, dark) {
   const c = document.createElement('canvas');
-  c.width = c.height = 128;
+  // (drawn four times as large as it is laid out: the lettering stays sharp on the turned faces)
+  c.width = c.height = 512;
   const g = c.getContext('2d');
+  g.scale(4, 4);
   g.fillStyle = dark ? '#3a434d' : '#f4f6f8';
   g.fillRect(0, 0, 128, 128);
   // the edge / corner bands, slightly darker
@@ -36,6 +38,7 @@ function faceTexture(label, dark) {
   g.fillText(tr(label), 64, 66);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
   return t;
 }
 
@@ -46,7 +49,7 @@ export class ViewCube {
     this.vp = viewport;
     this.onPick = onPick;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio, 2), 3));
     this.renderer.setSize(canvas.clientWidth || 120, canvas.clientHeight || 120, false);
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);

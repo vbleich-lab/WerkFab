@@ -1,0 +1,19 @@
+{
+ "Übergang": "Перехід",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Перехідник із прямокутного на круглий: тіло та розгортка з лініями згину за прямокутником, діаметром, висотою і товщиною листа",
+ "+ Kröpfung": "+ Ступінчастий згин",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Лапка на лапці: кут + згинає далі в тому самому напрямку (U-профіль, фальц 180°), − у протилежному (Z-уступ, капелюшний профіль). Підгин: край лапки загинається на 180° на себе – відкритий із зазором в одну товщину листа, закритий притиснутий плоско; з − 180° він лежить з іншого боку. Поле R – внутрішній радіус лише цього згину (порожньо = як для листа). Для підгину безпосередньо на краю пластини встановіть саму лапку на 180°. Ступінчастий згин: два згини назустріч один одному (− 45° і + 45°) – край іде далі паралельно зі зсувом; зсув залежить від довжини похилої ділянки та кутів.",
+ "Übergang (eckig auf rund)": "Перехід (з прямокутного на круглий)",
+ "Rechteck Länge (X)": "Довжина прямокутника (X)",
+ "Rechteck Breite (Y)": "Ширина прямокутника (Y)",
+ "Maße gemessen": "Розміри виміряно",
+ "Kantungen je Ecke": "Згинів на кут",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "Прямокутник лежить унизу, коло – по центру над ним. Кожна сторона прямокутника йде плоским трикутником до точки кола, кожен кут – ділянкою косого конуса до його чверті. Розгортка будується методом трикутників по середині листа; шов лежить посередині сторони при −Y. Штрихами: лінії згину від кожного кута до кола – стільки на кут, скільки вказано (від 1 до 24); більше згинів дає кругліший отвір. З правилом листа діє його товщина.",
+ "Übergang: {0}": "Перехід: {0}",
+ "Übergangsstück": "Перехідник",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: заготовка {1} × {2} мм, площа {3} см², ліній згину: {4}, шов {5} мм.",
+ "{0} – unten": "{0} – внизу",
+ "{0} – oben": "{0} – вгорі",
+ "Übergangsstück nicht möglich – Maße prüfen": "Перехідник неможливий – перевірте розміри",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Прямокутник і діаметр мають бути більшими за подвійну товщину листа"
+}

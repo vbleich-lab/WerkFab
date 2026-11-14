@@ -33,7 +33,7 @@ export function sheetDims(f) {
   const t = +f.thickness, r = +f.radius;
   return { ...f, flanges: f.flanges.map(fl => {
     if (!fl.on) return fl;
-    const set = (mode === 'outer' ? r + t : r) * Math.tan((Math.min(150, Math.abs(+fl.angle || 90)) * DEG) / 2), h = (+fl.h || 0) - set;
+    const rb = bendR(flangeChain(fl)[0], r), set = (mode === 'outer' ? rb + t : rb) * Math.tan((Math.min(150, Math.abs(+fl.angle || 90)) * DEG) / 2), h = (+fl.h || 0) - set;
     if (h < -1e-9) throw new Error(`Kante ${fl.edge + 1}: das Laschenmaß ${+fl.h} mm ist kleiner als die Biegung (${Math.round(set * 100) / 100} mm)`);
     return { ...fl, h: Math.max(0, h) };
   }) };
@@ -144,8 +144,16 @@ const arcEdge = (a, s) => {
 // The bends of a flange: the flange itself and the flanges on its free edge (flange on flange), each
 // { angle, h }. Angles are signed in the cross-section: + turns up / on round like the first bend
 // (U-channel lip, hem), − turns the other way (Z step, hat).
+// A bend may carry its own inner radius r (a hem is bent much tighter than the rule of the sheet says).
 export function flangeChain(fl) {
-  return [{ angle: +fl.angle || 90, h: +fl.h || 0 }, ...(fl.next || []).map(q => ({ angle: +q.angle || 90, h: +q.h || 0 }))];
+  const one = q => ({ angle: +q.angle || 90, h: +q.h || 0, ...(q.r != null && q.r !== '' && +q.r >= 0 ? { r: +q.r } : {}) });
+  return [one(fl), ...(fl.next || []).map(one)];
+}
+// the inner radius of one bend of a chain: its own or the one of the sheet. (Folded right back on itself the two
+// faces would lie in each other: a hair of a radius is kept.)
+export function bendR(b, r) {
+  const x = b.r ?? r;
+  return Math.abs(b.angle) > 179 ? Math.max(x, 0.02) : x;
 }
 
 // Cross-section of a chain of bends in (u = outward, v = up) coordinates: the mid-surface runs from the plate's
@@ -157,7 +165,7 @@ function chainSection(t, r, chain) {
   const nl = d => [-d[1], d[0]];
   const add = (p, d) => { const n = nl(d); L.push([p[0] + n[0] * t / 2, p[1] + n[1] * t / 2]); Rt.push([p[0] - n[0] * t / 2, p[1] - n[1] * t / 2]); };
   for (const b of chain) {
-    const th = b.angle * DEG, sgn = Math.sign(th) || 1, rm = r + t / 2, n0 = nl(dir);
+    const th = b.angle * DEG, sgn = Math.sign(th) || 1, rm = bendR(b, r) + t / 2, n0 = nl(dir);
     const C = [pos[0] + n0[0] * sgn * rm, pos[1] + n0[1] * sgn * rm];
     const k = Math.max(4, Math.ceil(Math.abs(b.angle) / 6));
     const p0 = [pos[0] - C[0], pos[1] - C[1]], i0 = L.length - 1;
@@ -206,9 +214,9 @@ function chainMid(t, r, k, chain) {
   const out = [[0, 0]];
   const nl = v => [-v[1], v[0]];
   for (const b of chain) {
-    const th = b.angle * DEG, sgn = Math.sign(th) || 1, rm = r + t / 2, n0 = nl(dir);
+    const th = b.angle * DEG, sgn = Math.sign(th) || 1, rb = bendR(b, r), rm = rb + t / 2, n0 = nl(dir);
     const C = [pos[0] + n0[0] * sgn * rm, pos[1] + n0[1] * sgn * rm], p0 = [pos[0] - C[0], pos[1] - C[1]];
-    const n = Math.max(4, Math.ceil(Math.abs(b.angle) / 6)), ba = bendAllowance(Math.abs(b.angle), r, t, k);
+    const n = Math.max(4, Math.ceil(Math.abs(b.angle) / 6)), ba = bendAllowance(Math.abs(b.angle), rb, t, k);
     for (let i = 1; i <= n; i++) {
       const a = (th * i) / n, c = Math.cos(a), s = Math.sin(a);
       out.push([d + (ba * i) / n, C[0] + p0[0] * c - p0[1] * s]);
@@ -229,16 +237,26 @@ export function chainAt(t, r, k, chain, level, d) {
   let pos = [0, t / 2], dir = [1, 0], dev = 0;
   const nl = v => [-v[1], v[0]];
   for (let i = 0; i < chain.length; i++) {
-    const b = chain[i], th = b.angle * DEG, sgn = Math.sign(th) || 1, rm = r + t / 2, n0 = nl(dir);
+    const b = chain[i], th = b.angle * DEG, sgn = Math.sign(th) || 1, rb = bendR(b, r), rm = rb + t / 2, n0 = nl(dir);
     const C = [pos[0] + n0[0] * sgn * rm, pos[1] + n0[1] * sgn * rm], p0 = [pos[0] - C[0], pos[1] - C[1]], c = Math.cos(th), s = Math.sin(th);
     pos = [C[0] + p0[0] * c - p0[1] * s, C[1] + p0[0] * s + p0[1] * c];
     dir = [dir[0] * c - dir[1] * s, dir[0] * s + dir[1] * c];
-    dev += bendAllowance(Math.abs(b.angle), r, t, k);
+    dev += bendAllowance(Math.abs(b.angle), rb, t, k);
     if (i === level) return { pos: [pos[0] + dir[0] * d, pos[1] + dir[1] * d], dir, nrm: nl(dir), dev: dev + d, h: b.h };
     pos = [pos[0] + dir[0] * b.h, pos[1] + dir[1] * b.h];
     dev += b.h;
   }
   return null;
+}
+// Tabs for a tab-and-slot joint: fl.tabs = { n, w, len } – n tongues of the width w on the free end of the flange,
+// spread evenly along it, standing out by len (the thickness of the part they are put through). gA / gB: how far the
+// flange ends before the two ends of its edge. Returns their middles along the edge – nothing where they do not fit.
+export function tabPlan(fl, ed, gA, gB) {
+  const q = fl.tabs, n = Math.round(+q?.n || 0), w = +q?.w || 0, len = +q?.len || 0;
+  if (!(n > 0 && w > 0 && len > 0)) return null;
+  const L = ed.L - gA - gB;
+  if (n * w > L - 1e-6) return null;
+  return { w, len, at: Array.from({ length: n }, (_, i) => gA + (L * (i + 0.5)) / n) };
 }
 // Cut-outs in a flange: fl.holes = [{ lv (flange of the chain), s (centre along the edge, from its start), d (centre
 // from the end of the bend), kind: 'circle' | 'rect', dia, w (along the edge), h (along the flange) }]
@@ -441,7 +459,7 @@ export function sheetSolid(R, poly, z0, f, holes = []) {
   const edges = polyEdges(poly);
   const ends = flangeEnds(edges, f);
   const arcs = polyArcs(poly), firstBA = {}, firstAng = {};
-  for (const fl of f.flanges || []) if (fl.on && edges[fl.edge] && !arcs.has(fl.edge)) { firstAng[fl.edge] = flangeChain(fl)[0].angle; firstBA[fl.edge] = bendAllowance(Math.abs(firstAng[fl.edge]), r, t, k); }
+  for (const fl of f.flanges || []) if (fl.on && edges[fl.edge] && !arcs.has(fl.edge)) { const b0 = flangeChain(fl)[0]; firstAng[fl.edge] = b0.angle; firstBA[fl.edge] = bendAllowance(Math.abs(b0.angle), bendR(b0, r), t, k); }
   const reliefs = cornerReliefs(edges, ends, f, firstBA), joins = flangeJoins(poly, f, arcs);
   // cut-outs in a flange: a prism through the sheet where the flange lies after bending. pe = the edge there
   // (for a curved edge: its tangent at the cut-out), s = the cut-out's place along it, extra = how much deeper
@@ -549,9 +567,41 @@ export function sheetSolid(R, poly, z0, f, holes = []) {
       }
     }
     for (const q of flangeHoles(fl)) solid = cutHole(solid, fl, q, ed, +q.s || 0);
+    // tabs: the end of the flange runs on by their length, each as wide as stated
+    const tp = tabPlan(fl, ed, ...flangeGaps(fl, en, gap, 0, joins.get(fl.edge)));
+    if (tp) {
+      const ch = flangeChain(fl), at = chainAt(t, r, k, ch, ch.length - 1, ch[ch.length - 1].h);
+      const sq = [[-1e-3, -t / 2], [tp.len, -t / 2], [tp.len, t / 2], [-1e-3, t / 2]].map(([a, b]) => [at.pos[0] + at.dir[0] * a + at.nrm[0] * b, at.pos[1] + at.dir[1] * a + at.nrm[1] * b]);
+      for (const s of tp.at) {
+        const o = [ed.a[0] + ed.e[0] * (s + tp.w / 2), ed.a[1] + ed.e[1] * (s + tp.w / 2), z0];
+        solid = solid.fuse(polyDrawing(R, sq).sketchOnPlane(new R.Plane(o, [ed.n[0], ed.n[1], 0], [-ed.e[0], -ed.e[1], 0])).extrude(tp.w));
+      }
+    }
     shape = shape.fuse(solid);
   }
   return foldSolid(R, shape, poly, holes, z0, f);
+}
+
+/**
+ * Where the tabs of a sheet stand in space (for the slots of the part they are put through): per tab { c (the middle
+ * of its root, on the middle of the sheet), e (along the edge), nrm (across the sheet), dir (the way it points), w,
+ * len, t, edge }. Flanges on straight edges; nothing for a sheet with bends on lines (there the flanges turn with it).
+ */
+export function tabSlots(poly, z0, f) {
+  const t = +f.thickness, r = +f.radius, k = +f.kfactor, out = [];
+  if ((f.folds || []).length) return out;
+  const edges = polyEdges(poly), ends = flangeEnds(edges, f), arcs = polyArcs(poly), joins = flangeJoins(poly, f, arcs);
+  for (const fl of f.flanges || []) {
+    const ed = edges[fl.edge];
+    if (!fl.on || !ed || arcs.has(fl.edge)) continue;
+    const tp = tabPlan(fl, ed, ...flangeGaps(fl, endsOf(ends, fl), fl.relief ?? (r + t), 0, joins.get(fl.edge)));
+    if (!tp) continue;
+    const ch = flangeChain(fl), at = chainAt(t, r, k, ch, ch.length - 1, ch[ch.length - 1].h);
+    for (const s of tp.at) out.push({ edge: fl.edge, w: tp.w, len: tp.len, t,
+      c: [ed.a[0] + ed.e[0] * s + ed.n[0] * at.pos[0], ed.a[1] + ed.e[1] * s + ed.n[1] * at.pos[0], z0 + at.pos[1]],
+      e: [ed.e[0], ed.e[1], 0], nrm: [ed.n[0] * at.nrm[0], ed.n[1] * at.nrm[0], at.nrm[1]], dir: [ed.n[0] * at.dir[0], ed.n[1] * at.dir[0], at.dir[1]] });
+  }
+  return out;
 }
 
 const one = x => (x && x.solids && x.solids.length === 1 ? x.solids[0] : x);
@@ -697,7 +747,7 @@ function foldSolid(R, shape, poly, holes, z0, f) {
   foldFlangeCheck(poly, f, plan);
   const t = +f.thickness, r = +f.radius;
   let reach = 0;
-  for (const fl of f.flanges || []) if (fl.on) reach = Math.max(reach, flangeChain(fl).reduce((a, b) => a + Math.abs(b.h) + 2 * (r + t), 0));
+  for (const fl of f.flanges || []) if (fl.on) reach = Math.max(reach, flangeChain(fl).reduce((a, b) => a + Math.abs(b.h) + 2 * (bendR(b, r) + t), 0));
   const P = ensureCCW(poly), cx = P.reduce((a, p) => a + p[0], 0) / P.length, cy = P.reduce((a, p) => a + p[1], 0) / P.length, BIG = plan.BIG + 4 * reach;
   // one bend: the piece beyond it moves up to the start of the zone and turns about the axis of the bend
   const turn = (sh, { i, s }) => {
@@ -734,7 +784,8 @@ function foldSolid(R, shape, poly, holes, z0, f) {
     const NS = same ? 1 : 8;
     for (let j = 0; j < NS; j++) {
       const a0 = (th * j) / NS, a1 = (th * (j + 1)) / NS, am = (a0 + a1) / 2;
-      const dr = R.draw(pt(r, a0)).threePointsArcTo(pt(r, a1), pt(r, am)).lineTo(pt(r + t, a1)).threePointsArcTo(pt(r + t, a0), pt(r + t, am)).close();
+      // (a sharp bend has no inner face: the zone is a wedge around the inner edge)
+      const dr = (r > 1e-6 ? R.draw(pt(r, a0)).threePointsArcTo(pt(r, a1), pt(r, am)) : R.draw(pt(0, a0))).lineTo(pt(r + t, a1)).threePointsArcTo(pt(r + t, a0), pt(r + t, am)).close();
       for (const [lo, hi] of same ? s1 : spansAt((q.ba * (j + 0.5)) / NS)) {
         const pl = new R.Plane([os[0] + w[0] * lo, os[1] + w[1] * lo, z0], [m[0], m[1], 0], [w[0], w[1], 0]);
         parts.push(place(dr.sketchOnPlane(pl).extrude(hi - lo), ed.path));
@@ -944,7 +995,7 @@ export function flatPattern(poly, f, holes = []) {
   const ends = flangeEnds(edges, f);
   const rects = [], bends = [], table = [], reliefs = [], flHoles = [];
   const firstBA = {}, arcs = polyArcs(poly), joins = flangeJoins(poly, f, arcs);
-  let lapOk = 0;
+  let lapOk = 0, tabs = 0;
   for (const fl of f.flanges || []) {
     if (!fl.on) continue;
     const ed = edges[fl.edge];
@@ -957,8 +1008,8 @@ export function flatPattern(poly, f, holes = []) {
       if (sp.len <= 0.1) continue;
       let d = 0;
       chain.forEach((b, level) => {
-        const ba = bendAllowance(Math.abs(b.angle), r, t, k);
-        table.push({ edge: fl.edge, level, angle: b.angle, radius: r, allowance: ba, length: sp.len, flange: b.h, centre: arcPts(a, sp.th0, sp.th1, rho(d + ba / 2)), curved: true });
+        const rb = bendR(b, r), ba = bendAllowance(Math.abs(b.angle), rb, t, k);
+        table.push({ edge: fl.edge, level, angle: b.angle, radius: rb, allowance: ba, length: sp.len, flange: b.h, centre: arcPts(a, sp.th0, sp.th1, rho(d + ba / 2)), curved: true });
         bends.push(arcPts(a, sp.th0, sp.th1, rho(d)), arcPts(a, sp.th0, sp.th1, rho(d + ba)));
         d += ba + b.h;
       });
@@ -989,9 +1040,9 @@ export function flatPattern(poly, f, holes = []) {
     // developed along the edge normal: bend zone (allowance) + straight flange, bend after bend
     let d = 0;
     chain.forEach((b, level) => {
-      const ba = bendAllowance(Math.abs(b.angle), r, t, k);
+      const rb = bendR(b, r), ba = bendAllowance(Math.abs(b.angle), rb, t, k);
       if (!level) firstBA[fl.edge] = ba;
-      table.push({ edge: fl.edge, level, angle: b.angle, radius: r, allowance: ba, length: ed.L - gA - gB, flange: b.h, centre: off(d + ba / 2) });
+      table.push({ edge: fl.edge, level, angle: b.angle, radius: rb, allowance: ba, length: ed.L - gA - gB, flange: b.h, centre: off(d + ba / 2) });
       bends.push(off(d), off(d + ba));
       d += ba + b.h;
     });
@@ -1004,6 +1055,11 @@ export function flatPattern(poly, f, holes = []) {
       : [[P0[0] - ed.n[0] * 0.01, P0[1] - ed.n[1] * 0.01], [P0[0] + ed.n[0] * d, P0[1] + ed.n[1] * d]];
     const sa = side(en.a, A), sb = side(en.b, B);
     rects.push(ensureCCW([...sa.slice().reverse(), ...sb]));
+    const tp = tabPlan(fl, ed, gA, gB);
+    if (tp) for (const s of tp.at) {
+      rects.push(ensureCCW([[-tp.w / 2, d - 0.01], [tp.w / 2, d - 0.01], [tp.w / 2, d + tp.len], [-tp.w / 2, d + tp.len]].map(([x, y]) => [ed.a[0] + ed.e[0] * (s + x) + ed.n[0] * y, ed.a[1] + ed.e[1] * (s + x) + ed.n[1] * y])));
+      lapOk += tp.w * 0.02; tabs++;
+    }
     for (const q of flangeHoles(fl)) { const at = chainAt(t, r, k, chain, +q.lv || 0, +q.d || 0); if (at) flHoles.push(flatHole(ed, at, q)); }
   }
   // corner relief where the two bend zones of a closed corner cross (round / square, or none)
@@ -1056,7 +1112,7 @@ export function flatPattern(poly, f, holes = []) {
   const outline = out.map(p => p.map(q => [q.X / S, q.Y / S]));
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const p of outline) for (const [x, y] of p) { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); }
-  return { outline, bends, table, forms, slits, size: [maxX - minX, maxY - minY], area: outline.reduce((a, p) => a + polyArea(p), 0), cutLength: outline.reduce((a, p) => a + polyLen(p), 0) + slits.reduce((a, p) => a + Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]), 0), overlap };
+  return { outline, bends, table, forms, slits, tabs, size: [maxX - minX, maxY - minY], area: outline.reduce((a, p) => a + polyArea(p), 0), cutLength: outline.reduce((a, p) => a + polyLen(p), 0) + slits.reduce((a, p) => a + Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]), 0), overlap };
 }
 
 // distance of a point from the segment a–b
@@ -1108,6 +1164,8 @@ export function sheetChecks(poly, holes, f, fp) {
     flangeChain(fl).forEach((b, level) => {
       if (b.h > 1e-6 && b.h < 2 * t - 1e-9) out.push({ level: 'warn', text: `Kante ${fl.edge + 1}${level ? '.' + (level + 1) : ''}: Lasche ${n2(b.h)} mm ist kürzer als 2 × Blechdicke – auf der Abkantpresse kaum zu biegen.` });
       if (Math.abs(b.angle) > 180) out.push({ level: 'warn', text: `Kante ${fl.edge + 1}: Biegewinkel über 180° ist nicht herstellbar.` });
+      if (Math.abs(b.angle) > 179 && bendR(b, r) < 0.25 * t - 1e-9) out.push({ level: 'info', text: `Kante ${fl.edge + 1}${level ? '.' + (level + 1) : ''}: geschlossener Saum (Innenradius ${n2(bendR(b, r))} mm) – wird in zwei Hüben gebogen und zugedrückt; harte Werkstoffe reißen dabei an der Außenseite.` });
+      if (Math.abs(b.angle) > 179 && b.h > 1e-6 && b.h < 4 * t - 1e-9) out.push({ level: 'info', text: `Kante ${fl.edge + 1}${level ? '.' + (level + 1) : ''}: Saum ${n2(b.h)} mm ist kürzer als 4 × Blechdicke – er lässt sich schlecht zudrücken.` });
     });
     // a cut-out next to the bend is pulled out of shape
     const A = [ed.a[0] + ed.e[0] * gA, ed.a[1] + ed.e[1] * gA], B = [ed.b[0] - ed.e[0] * gB, ed.b[1] - ed.e[1] * gB];
@@ -1532,4 +1590,97 @@ export function cutProgram(loops, opts = {}) {
   out.push('G0 X0 Y0', 'M30');
   tr(last, [0, 0], 0);
   return { text: out.join('\n') + '\n', length, pierces, tabs, saved, minutes: length / feed + (mill ? 0 : (pierces * pierce) / 60) + rapid / 10000, paths: order, trace };
+}
+
+/**
+ * A rolled shell – a tube (d1 = d2) or the frustum of a cone – and its flat pattern. o: { d1 (bottom), d2 (top),
+ * h (height), t, k, gap (open seam, measured on the larger circle), dim: 'outer' | 'inner' | 'mid' (what the
+ * diameters are measured to, at the bottom and the top edge) }. The developed length is taken on the neutral
+ * fibre (inner face + k × t). Returns { section (the wall in (radius, height), for the revolve), sweep (degrees of
+ * the revolve), outline (the flat pattern, one closed polygon), size, area, cutLength, cone, alpha (half angle °),
+ * L (developed length on the larger circle), slant, R1, R2 (radii of the flat pattern; cone only) }.
+ */
+export function shellPattern(o) {
+  const t = +o.t, k = +o.k, h = +o.h, gap = Math.max(0, +o.gap || 0), dim = o.dim || 'outer';
+  if (!(t > 0)) throw new Error('Blechdicke muss größer als 0 sein');
+  if (!(h > 0)) throw new Error('Höhe muss größer als 0 sein');
+  if (!(k >= 0 && k <= 1)) throw new Error('K-Faktor muss zwischen 0 und 1 liegen');
+  const ra = +o.d1 / 2, rb = +o.d2 / 2;
+  if (!(ra > 0) || !(rb > 0)) throw new Error('Durchmesser müssen größer als 0 sein');
+  const al = Math.atan2(ra - rb, h), ca = Math.cos(al), tw = t / ca;      // tw: the wall measured horizontally
+  const inner = r => (dim === 'outer' ? r - tw : dim === 'mid' ? r - tw / 2 : r);
+  const i1 = inner(ra), i2 = inner(rb);
+  if (!(i1 > 1e-6) || !(i2 > 1e-6)) throw new Error('Der Durchmesser ist kleiner als die doppelte Wanddicke');
+  const n1 = i1 + k * tw, n2 = i2 + k * tw, big = Math.max(n1, n2);
+  if (gap >= 2 * Math.PI * big - 1e-6) throw new Error('Der Nahtspalt ist größer als der Umfang');
+  const sweep = 360 - (gap / big) / DEG;
+  const section = [[i1, 0], [i1 + tw, 0], [i2 + tw, h], [i2, h]];
+  const L = 2 * Math.PI * big - gap;
+  if (Math.abs(n1 - n2) < 1e-9) {
+    return { section, sweep, cone: false, alpha: 0, L, slant: h, outline: [[[0, 0], [L, 0], [L, h], [0, h]]], size: [L, h], area: L * h, cutLength: 2 * (L + h) };
+  }
+  // cone: a piece of a ring around the apex. The slant is the one of the wall, the radii those of the neutral fibre.
+  const sa = Math.abs(Math.sin(al)), R1 = big / sa, R2 = Math.min(n1, n2) / sa, phi = L / R1;
+  const n = Math.min(720, Math.max(12, Math.ceil(phi / (2 * Math.acos(Math.max(0, 1 - 0.005 / R1))))));
+  const pt = (R, a) => [R * Math.sin(a), -R * Math.cos(a)];
+  const out = [];
+  for (let i = 0; i <= n; i++) out.push(pt(R1, -phi / 2 + (phi * i) / n));
+  for (let i = n; i >= 0; i--) out.push(pt(R2, -phi / 2 + (phi * i) / n));
+  const xs = out.map(p => p[0]), ys = out.map(p => p[1]), x0 = Math.min(...xs), y0 = Math.min(...ys);
+  const outline = [out.map(([x, y]) => [x - x0, y - y0])];
+  return { section, sweep, cone: true, alpha: Math.abs(al) / DEG, L, slant: R1 - R2, R1, R2, phi: phi / DEG, outline, size: [Math.max(...xs) - x0, Math.max(...ys) - y0],
+    area: (phi / 2) * (R1 * R1 - R2 * R2), cutLength: phi * (R1 + R2) + 2 * (R1 - R2) };
+}
+
+/**
+ * A transition piece from a rectangle (below) to a circle (above): four flat triangles and four pieces of an
+ * oblique cone between them. o: { w, d (rectangle), dia, h, t, dim: 'outer' | 'inner' | 'mid', bends (press
+ * strokes per corner), ox, oy (the centre of the circle beside the centre of the rectangle) }. The flat pattern is found by triangulation on the middle of the sheet (the bends are
+ * many and slight), the seam lies in the middle of the side d-low (−Y). Returns { outline, bends (the lines the
+ * press brake follows, from every corner to the circle), size, area, cutLength, mid: { w, d, r } and
+ * outer / inner: { w, d, r } for the body }.
+ */
+export function transitionPattern(o) {
+  const t = +o.t, h = +o.h, dim = o.dim || 'outer', sh = dim === 'outer' ? -t : dim === 'inner' ? t : 0;
+  if (!(t > 0)) throw new Error('Blechdicke muss größer als 0 sein');
+  if (!(h > 0)) throw new Error('Höhe muss größer als 0 sein');
+  const W = +o.w + sh, D = +o.d + sh, r = (+o.dia + sh) / 2;
+  if (!(W - t > 1e-6) || !(D - t > 1e-6) || !(r - t / 2 > 1e-6)) throw new Error('Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein');
+  const nb = Math.max(1, Math.min(24, Math.round(+o.bends || 6))), n = nb * Math.ceil(24 / nb);
+  const C = [[W / 2, -D / 2], [W / 2, D / 2], [-W / 2, D / 2], [-W / 2, -D / 2]];
+  const ox = +o.ox || 0, oy = +o.oy || 0;
+  const Q = a => [ox + r * Math.cos(a), oy + r * Math.sin(a)];
+  const d3 = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], h);
+  // a point with the distances da from A and db from B, on the other side of the line A-B than opp
+  const place = (A, B, da, db, opp) => {
+    const L = Math.hypot(B[0] - A[0], B[1] - A[1]), x = (da * da - db * db + L * L) / (2 * L), y = Math.sqrt(Math.max(0, da * da - x * x));
+    const e = [(B[0] - A[0]) / L, (B[1] - A[1]) / L], nn = [-e[1], e[0]];
+    const sg = (opp[0] - A[0]) * nn[0] + (opp[1] - A[1]) * nn[1] > 0 ? -1 : 1;
+    return [A[0] + e[0] * x + nn[0] * y * sg, A[1] + e[1] * x + nn[1] * y * sg];
+  };
+  const arc = (r * Math.PI) / 2 / n, low = [], top = [], bends = [];
+  const M = [0, -D / 2];
+  let m = [0, 0], c = [W / 2, 0], q = place(m, c, Math.hypot(M[0] - Q(-Math.PI / 2)[0], M[1] - Q(-Math.PI / 2)[1], h), d3(C[0], Q(-Math.PI / 2)), [0, -1]);
+  low.push(m, c); top.push(q);
+  let prev = m;
+  for (let i = 0; i < 4; i++) {
+    const a0 = -Math.PI / 2 + (i * Math.PI) / 2;
+    bends.push([c, q]);
+    for (let k = 1; k <= n; k++) {
+      const nq = place(c, q, d3(C[i], Q(a0 + (k * Math.PI) / 2 / n)), arc, prev);
+      prev = q; q = nq; top.push(q);
+      if (k % (n / nb) === 0) bends.push([c, q]);
+    }
+    // the flat triangle to the next corner (the last one: half of it, to the seam)
+    const a1 = a0 + Math.PI / 2, last = i === 3;
+    const nc = last ? place(c, q, W / 2, Math.hypot(M[0] - Q(a1)[0], M[1] - Q(a1)[1], h), prev) : place(c, q, i % 2 ? W : D, d3(C[i + 1], Q(a1)), prev);
+    prev = c; c = nc; low.push(c);
+  }
+  const P = [...low, ...top.reverse()];
+  const xs = P.map(p => p[0]), ys = P.map(p => p[1]), x0 = Math.min(...xs), y0 = Math.min(...ys), mv = p => [p[0] - x0, p[1] - y0];
+  let area = 0, len = 0;
+  for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; area += a[0] * b[1] - b[0] * a[1]; len += Math.hypot(b[0] - a[0], b[1] - a[1]); }
+  return { outline: [P.map(mv)], bends: bends.map(l => l.map(mv)), size: [Math.max(...xs) - x0, Math.max(...ys) - y0], area: Math.abs(area) / 2, cutLength: len,
+    mid: { w: W, d: D, r }, outer: { w: W + t, d: D + t, r: r + t / 2 }, inner: { w: W - t, d: D - t, r: r - t / 2 }, ox, oy,
+    seam: Math.hypot(M[0] - Q(-Math.PI / 2)[0], M[1] - Q(-Math.PI / 2)[1], h) };
 }

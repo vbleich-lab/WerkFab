@@ -1,0 +1,5 @@
+{
+ "Kreis versetzt in X": "円のオフセット X",
+ "Kreis versetzt in Y": "円のオフセット Y",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke. Mit einem Versatz sitzt der Kreis außermittig (schiefes Übergangsstück). Der Nahtspalt öffnet die Naht im Körper (0 = geschlossen); die Abwicklung bleibt auf Stoß gerechnet.": "長方形が下にあり、円はその真上の中央にあります。長方形の各辺は平らな三角形として円の1点へ、各角は斜め円すいの一部としてその4分の1へつながります。展開図は板厚中心で三角形法により求めます。継ぎ目は −Y 側の辺の中央にあります。破線は各角から円へ向かう曲げ線で、角ごとに指定した本数（1〜24）が入ります。曲げ数が多いほど開口部は丸くなります。板金ルールを使う場合は、そのルールの板厚が適用されます。オフセットを指定すると円は中心から外れます（斜め異径継手）。継ぎ目の隙間はボディの継ぎ目を開きます（0 = 閉じる）。展開図は引き続き突き合わせで計算されます。"
+}

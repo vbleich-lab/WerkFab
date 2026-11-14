@@ -1,0 +1,19 @@
+{
+ "Übergang": "Przejście",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Przejściówka z prostokąta na okrąg: bryła i rozwinięcie z liniami gięcia na podstawie prostokąta, średnicy, wysokości i grubości blachy",
+ "+ Kröpfung": "+ Odsadzenie",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Kołnierz na kołnierzu: kąt + zagina dalej w tym samym kierunku (profil U, felc 180°), − w przeciwnym kierunku (stopień Z, profil kapeluszowy). Podwinięcie: krawędź kołnierza jest zawinięta o 180° na samą siebie – otwarte ze szczeliną równą grubości blachy, zamknięte dociśnięte na płasko; przy − 180° leży po drugiej stronie. Pole R to promień wewnętrzny tylko tego zagięcia (puste = jak dla blachy). Aby wykonać podwinięcie bezpośrednio na krawędzi płyty, ustaw sam kołnierz na 180°. Odsadzenie: dwa zagięcia w przeciwne strony (− 45° i + 45°) – krawędź biegnie dalej równolegle, przesunięta; przesunięcie wynika z długości skośnego odcinka i kątów.",
+ "Übergang (eckig auf rund)": "Przejście (z prostokąta na okrąg)",
+ "Rechteck Länge (X)": "Długość prostokąta (X)",
+ "Rechteck Breite (Y)": "Szerokość prostokąta (Y)",
+ "Maße gemessen": "Wymiary zmierzone",
+ "Kantungen je Ecke": "Zagięcia na narożnik",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "Prostokąt leży na dole, okrąg wyśrodkowany nad nim. Każdy bok prostokąta biegnie jako płaski trójkąt do punktu okręgu, każdy narożnik jako fragment skośnego stożka do jednej czwartej okręgu. Rozwinięcie powstaje metodą triangulacji na środku blachy; szew leży pośrodku boku przy −Y. Linią przerywaną: linie gięcia od każdego narożnika do okręgu – tyle na narożnik, ile podano (od 1 do 24); więcej zagięć daje bardziej okrągły otwór. Przy regule blachy obowiązuje jej grubość.",
+ "Übergang: {0}": "Przejście: {0}",
+ "Übergangsstück": "Przejściówka",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: wykrój {1} × {2} mm, pole {3} cm², {4} linii gięcia, szew {5} mm.",
+ "{0} – unten": "{0} – dół",
+ "{0} – oben": "{0} – góra",
+ "Übergangsstück nicht möglich – Maße prüfen": "Przejściówka niemożliwa – sprawdź wymiary",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Prostokąt i średnica muszą być większe niż dwukrotność grubości blachy"
+}

@@ -33,7 +33,8 @@ import { getBlob, putBlob, loadBlobs, withBlobs, takeBlobs, igesToStep, stepToIg
 import { makeDrawing, SHEETS, VIEWS as DRAW_VIEWS } from './drawing.js';
 import { bodyMatrix, hasAssembly, transformShape, JOINT_TYPES, JOINT_DOF, jointValues } from './assembly.js';
 import { STD_FAMILIES, STD_LENGTHS, stdFamily, stdPartName, stdPartSteps, boltSizeFor, boltStack, boltHole } from './stdparts.js';
-import { flatPattern, polyEdges, polyArcs, bendAllowance, sheetChecks, SHEET_RULES, nestParts, pressForce, SHEET_RM, holeCircle, collarPlan, cutProgram, CUT_CONTROLS } from './sheetmetal.js';
+import { unfoldFaces } from './unfold.js';
+import { flatPattern, polyEdges, polyArcs, bendAllowance, sheetChecks, SHEET_RULES, nestParts, pressForce, SHEET_RM, holeCircle, collarPlan, cutProgram, CUT_CONTROLS, shellPattern, transitionPattern, tabSlots } from './sheetmetal.js';
 import { TurnSim, TURN_OPS, turnCutShape, LatheStock } from './turning.js';
 import { CylSim, CylStock, cylPartMap } from './cylstock.js';
 import { WindowManager } from './windows.js';
@@ -120,7 +121,8 @@ let toastTimer;
 function status(msg) {
   $('#status').textContent = msg;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => ($('#status').textContent = ''), 5000);
+  // (a short note goes after 5 s; a long one – dimensions, a hint – stays as long as it takes to read it)
+  toastTimer = setTimeout(() => ($('#status').textContent = ''), Math.min(20000, 5000 + 60 * Math.max(0, String(msg ?? '').length - 40)));
 }
 
 function showBanner(content) {
@@ -144,6 +146,21 @@ function applyTheme() {
   matBody.color.set(dark ? 0x9aa6b2 : 0xc3ccd5);
   rebuildScene();
 }
+// Full screen (F11 or the button in the head bar): the desktop program switches its window, the browser its page –
+// there Esc is kept for the program where the browser allows it (it leaves full screen only when held).
+let fullOn = false;
+const showFull = on => { fullOn = !!on; $('#fullBtn').classList.toggle('on', fullOn); status(fullOn ? 'Vollbild – zurück mit F11.' : 'Vollbild beendet.'); };
+async function toggleFull() {
+  if (window.werkfabApp?.fullscreen) { try { showFull(await window.werkfabApp.fullscreen()); } catch { /* stays as it is */ } return; }
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else { await document.documentElement.requestFullscreen(); try { await navigator.keyboard?.lock?.(['Escape']); } catch { /* Esc leaves full screen */ } }
+  } catch { status('Vollbild ist in diesem Browser nicht möglich.'); }
+}
+$('#fullBtn').onclick = toggleFull;
+document.addEventListener('fullscreenchange', () => { if (!window.werkfabApp?.fullscreen) showFull(!!document.fullscreenElement); });
+window.addEventListener('keydown', e => { if (e.key === 'F11') { e.preventDefault(); e.stopPropagation(); toggleFull(); } }, true);
+
 $('#themeBtn').onclick = () => {
   const next = isDark() ? 'light' : 'dark';
   document.documentElement.dataset.theme = next;
@@ -2367,7 +2384,9 @@ function toolbarTabs() {
       PRUEFEN(),
     ];
     tabs['BLECH'] = [
-      tgroup('ERSTELLEN', SKETCH(), C('sheet', 'Blech', 'sheet')),
+      tgroup('ERSTELLEN', SKETCH(), C('sheet', 'Blech', 'sheet'), tbtn('surfrevolve', 'Mantel', () => shellDialog(), '', 'Rohr- oder Kegelmantel aus gerolltem Blech: Körper und Abwicklung aus Durchmessern, Höhe und Blechdicke'),
+        tbtn('surfloft', 'Übergang', () => transitionDialog(), '', 'Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke'),
+        tbtn('thicken', 'Körper → Blech', () => bodyToSheet(), '', 'Einen Körper gleicher Dicke (gezeichnet oder aus einer STEP-Datei) in ein Blech umwandeln: Dicke, Biegungen und Abwicklung werden aus seinen Flächen erkannt')),
       tgroup('ABWICKLUNG',
         tbtn('flat', 'Abwicklung', () => { const f = activeSheet(); if (f) toggleFlatView(f); }, state.flatView ? 'active' : '', 'Abwicklung anzeigen / gefalteten Zustand zeigen'),
         tbtn('flat_dxf', 'DXF', () => { const f = activeSheet(), r = f && sheetFlat(f); if (r) download(`${safeName()}_Abwicklung.dxf`, flatDXF(r.fp), 'application/dxf'); }, '', 'Abwicklung als DXF speichern (Biegelinien auf der Ebene BIEGUNG)'),
@@ -4705,13 +4724,60 @@ function sheetOf(f) {
   return sheetBase(fs.find(x => x.id === rf.sketch), rf, id => fs.find(x => x.id === id && x.type === 'sketch'));
 }
 
+// the slots that fit the tabs of a sheet: one sketch per plane the tabs stand through
+function tabSlotSketches(f) {
+  let base;
+  try { base = sheetOf(f); } catch (err) { return status(err.message); }
+  const slots = tabSlots(base.poly, base.z0, base.f), clr = Math.max(0, +(f.tabClear ?? 0.1) || 0);
+  if (!slots.length) return status((base.f.folds || []).length ? 'Schlitze als Skizze gibt es nicht für ein Blech mit Biegelinien.' : 'Keine Zunge passt auf ihre Lasche – Anzahl oder Breite verkleinern.');
+  const dot = (a, c) => a[0] * c[0] + a[1] * c[1] + a[2] * c[2], r4 = x => +(+x).toFixed(4), groups = [];
+  for (const s of slots) {
+    const d = dot(s.dir, s.c);
+    let g = groups.find(q => dot(q.n, s.dir) > 1 - 1e-6 && Math.abs(q.d - d) < 1e-4);
+    if (!g) groups.push(g = { n: s.dir, d, x: Math.abs(s.dir[2]) > 0.999 ? [1, 0, 0] : s.e, list: [] });
+    g.list.push(s);
+  }
+  const feats = groups.map(g => {
+    const o = g.n.map(v => v * g.d), y = [g.n[1] * g.x[2] - g.n[2] * g.x[1], g.n[2] * g.x[0] - g.n[0] * g.x[2], g.n[0] * g.x[1] - g.n[1] * g.x[0]];
+    return { id: uid('sk'), type: 'sketch', name: nextName(state.project.features, 'Schlitze'), plane: { o: o.map(r4), x: g.x.map(r4), n: g.n.map(r4) },
+      entities: g.list.map(s => ({ id: uid('e'), type: 'poly', closed: true, pts: [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, c]) => {
+        const p = s.c.map((v, i) => v + s.e[i] * a * (s.w / 2 + clr) + s.nrm[i] * c * (s.t / 2 + clr) - o[i]);
+        return [r4(dot(p, g.x)), r4(dot(p, y))];
+      }) })) };
+  });
+  commit(p => { p.features.push(...feats); });
+  status(feats.length === 1 ? `${slots.length} Schlitze als Skizze „${feats[0].name}“ angelegt – dort den Umriss des Gegenstücks zeichnen.` : `${slots.length} Schlitze in ${feats.length} Skizzen angelegt – je Ebene eine; dort den Umriss des Gegenstücks zeichnen.`);
+  select('feature', feats[0].id);
+}
+
+// sheet rules of the user (thickness, radius and K-factor of the own shop), kept with the settings of the program
+const OWN_RULES_KEY = 'openfab.sheetrules.v1';
+const ownSheetRules = () => { const l = loadJ(OWN_RULES_KEY, []); return Array.isArray(l) ? l.filter(r => r && r.id && +r.thickness > 0) : []; };
+async function saveSheetRule(f) {
+  const fmt = x => String(+x).replace('.', ',');
+  const v = await formDialog('Blechregel speichern', [
+    { key: 'name', label: 'Name', value: `Eigene ${fmt(f.thickness)} mm`, text: true },
+    { key: 'hint', hint: `Gespeichert werden Blechdicke ${fmt(f.thickness)} mm, Biegeradius innen ${fmt(f.radius)} mm und K-Faktor ${fmt(f.kfactor)}. Die Regel steht danach bei jedem Blech in der Liste „Blechregel“ – auch in anderen Projekten auf diesem Rechner.` }], 'Speichern');
+  const name = String(v?.name || '').trim();
+  if (!name) return;
+  const list = ownSheetRules().filter(r => r.name !== name);
+  list.push({ id: uid('rule'), name, thickness: +f.thickness, radius: +f.radius, kfactor: +f.kfactor });
+  saveJ(OWN_RULES_KEY, list);
+  status(`Blechregel „${name}“ gespeichert.`);
+  renderAll();
+}
+
 function propsSheet(b, f, ed) {
   const N = (label, key, opt = {}) => row(label, num(f[key], v => ed(x => (x[key] = v)), { unit: 'mm', ...opt }));
-  const rule = SHEET_RULES.find(r => r.thickness === +f.thickness && r.radius === +f.radius && r.kfactor === +f.kfactor);
+  const own = ownSheetRules(), rules = [...SHEET_RULES, ...own];
+  const rule = rules.find(r => r.thickness === +f.thickness && r.radius === +f.radius && r.kfactor === +f.kfactor);
   b.append(
     row('Skizze', sel(sketchOptions(), f.sketch, v => ed(x => { x.sketch = v; x.flanges = []; x.lines = []; x.collars = []; }))),
-    row('Blechregel', sel([['', 'Eigene Werte'], ...SHEET_RULES.map(r => [r.id, r.name])], rule?.id || '', v => { const r = SHEET_RULES.find(q => q.id === v); if (r) ed(x => { x.thickness = r.thickness; x.radius = r.radius; x.kfactor = r.kfactor; }); })),
+    row('Blechregel', sel([['', 'Eigene Werte'], ...SHEET_RULES.map(r => [r.id, r.name]), ...own.map(r => [r.id, `★ ${r.name}`])], rule?.id || '', v => { const r = rules.find(q => q.id === v); if (r) ed(x => { x.thickness = r.thickness; x.radius = r.radius; x.kfactor = r.kfactor; }); })),
     N('Blechdicke', 'thickness', { min: 0.1 }), N('Biegeradius innen', 'radius', { min: 0 }), N('K-Faktor', 'kfactor', { unit: null, min: 0, max: 1 }),
+    h('div', { class: 'btns' },
+      ...(rule ? [] : [btn('Als Blechregel speichern', () => saveSheetRule(f))]),
+      ...(rule && own.includes(rule) ? [btn('Blechregel löschen', () => { saveJ(OWN_RULES_KEY, own.filter(r => r !== rule)); status(`Blechregel „${rule.name}“ gelöscht – die Werte des Blechs bleiben.`); renderAll(); })] : [])),
     row('Laschenmaß', sel([['straight', 'Gerader Teil (nach der Biegung)'], ['outer', 'Außenmaß (ab Außenfläche der Platte)'], ['inner', 'Innenmaß (ab Innenfläche der Platte)']], f.flangeDim || 'straight', v => ed(x => (x.flangeDim = v)))),
     sec('ECKEN'),
     row('Ecke', sel([['open', 'Offen (Laschen gekürzt)'], ['closed', 'Geschlossen (Gehrung)']], f.corner || 'open', v => ed(x => (x.corner = v)))),
@@ -4739,15 +4805,35 @@ function propsSheet(b, f, ed) {
       if (!fl.on) return;
       // flange on flange: further bends on the free edge of this flange (+ = same way round, − = the other way)
       const numIn = (val, title, fn) => h('input', { type: 'text', value: val, title, onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); if (Number.isFinite(v) && v !== 0) setFl(q => fn(q, v)); } });
-      (fl.next || []).forEach((nx, j) => b.append(h('div', { class: 'flange-row flange-sub' },
-        h('span', null, `↳ Lasche ${j + 2}`),
+      // (the inner radius of one bend: empty = the one of the sheet)
+      const radIn = (cur, fn) => h('input', { type: 'text', value: cur ?? '', placeholder: 'R', title: 'Biegeradius innen dieser Biegung in mm (leer = wie beim Blech eingestellt)', onchange: ev => { const tx = ev.target.value.trim().replace(',', '.'), v = parseFloat(tx); setFl(q => fn(q, tx !== '' && Number.isFinite(v) && v >= 0 ? v : null)); } });
+      const setR = (o, v) => { if (v == null) delete o.r; else o.r = v; };
+      (fl.next || []).forEach((nx, j) => b.append(h('div', { class: 'flange-row flange-sub flange-next' },
+        h('span', null, Math.abs(+nx.angle) > 179 ? `↳ Saum ${j + 2}` : `↳ Lasche ${j + 2}`),
         numIn(nx.h, 'Laschenlänge (gerader Teil) mm', (q, v) => (q.next[j].h = Math.max(0, v))), h('small', null, 'mm'),
         numIn(nx.angle, 'Biegewinkel ° (+ gleiche Richtung wie die erste Biegung, − Gegenrichtung)', (q, v) => (q.next[j].angle = Math.max(-180, Math.min(180, v)))), h('small', null, '°'),
+        radIn(nx.r, (q, v) => setR(q.next[j], v)),
         btn('✕', () => setFl(q => q.next.splice(j, 1))))));
       // partial flange: distance from the start and from the end of the edge (0 = up to the corner / the relief)
       const offIn = (key, title) => h('input', { type: 'text', value: +fl[key] || 0, title, onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); setFl(q => (q[key] = Number.isFinite(v) && v > 0 ? v : 0)); } });
       b.append(h('div', { class: 'flange-row flange-sub' }, h('span', null, 'Abstand Anfang / Ende'), offIn('offA', 'Abstand der Lasche vom Kantenanfang in mm (0 = bis zur Ecke)'), h('small', null, 'mm'), offIn('offB', 'Abstand der Lasche vom Kantenende in mm (0 = bis zur Ecke)'), h('small', null, 'mm')));
-      b.append(h('div', { class: 'flange-row flange-sub' }, btn('+ Lasche an Lasche', () => setFl(q => { q.next ||= []; q.next.push({ h: 10, angle: 90 }); }))));
+      b.append(h('div', { class: 'flange-row flange-sub' }, h('span', null, 'Biegeradius'), radIn(fl.r, (q, v) => setR(q, v)), h('small', null, 'mm')));
+      // a hem: the edge folded back on itself (open: the gap of one thickness; closed: pressed flat)
+      const tt = +f.thickness || 1, hem = (r, sg) => setFl(q => { q.next ||= []; q.next.push({ h: f2(Math.max(4 * tt, 5)), angle: 180 * sg, r }); });
+      b.append(h('div', { class: 'btns flange-holebtns' }, btn('+ Lasche an Lasche', () => setFl(q => { q.next ||= []; q.next.push({ h: 10, angle: 90 }); })),
+        btn('+ Saum offen', () => hem(f2(tt / 2), 1)), btn('+ Saum geschlossen', () => hem(0, 1)),
+        // a jog: two bends against each other, the edge runs on parallel, offset by about two thicknesses
+        btn('+ Kröpfung', () => setFl(q => { q.next ||= []; q.next.push({ h: f2(2 * tt), angle: -45 }, { h: 10, angle: 45 }); })),
+        // tabs for a tab-and-slot joint: tongues on the free end, as long as the sheet they are put through is thick
+        ...(arc || fl.tabs ? [] : [btn('+ Zungen', () => setFl(q => { q.tabs = { n: 2, w: f2(Math.max(5, Math.min(20, e.L / 6))), len: tt }; }))])));
+      if (fl.tabs && !arc) {
+        const tin = (key, title, min) => h('input', { type: 'text', value: +fl.tabs[key] || 0, title, onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); if (Number.isFinite(v) && v >= min) setFl(q => (q.tabs[key] = key === 'n' ? Math.round(v) : v)); } });
+        b.append(h('div', { class: 'flange-row flange-sub flange-next' }, h('span', null, '↳ Zungen'),
+          tin('n', 'Anzahl der Zungen, gleichmäßig über die Lasche verteilt', 1), h('small', null, '×'),
+          tin('w', 'Breite einer Zunge entlang der Kante in mm', 0.1), h('small', null, 'mm'),
+          tin('len', 'Länge der Zunge über das Laschenende hinaus in mm (üblich: Dicke des Gegenstücks)', 0.1),
+          btn('✕', () => setFl(q => { delete q.tabs; }))));
+      }
       // cut-outs in the flange (they travel into the flat pattern): position along the edge, distance from the bend, size
       const nLv = 1 + (fl.next || []).length;
       (fl.holes || []).forEach((hq, j) => {
@@ -4769,7 +4855,13 @@ function propsSheet(b, f, ed) {
       const addHole = kind => setFl(q => { q.holes ||= []; q.holes.push(kind === 'rect' ? { lv: 0, kind, s: f2((arc ? arc.L : e.L) / 2), d: f2((+q.h || 15) / 2), w: 10, h: f2(Math.max(1, (+q.h || 15) / 3)) } : { lv: 0, kind, s: f2((arc ? arc.L : e.L) / 2), d: f2((+q.h || 15) / 2), dia: f2(Math.max(1, Math.min(6, (+q.h || 15) / 3))) }); });
       b.append(h('div', { class: 'btns flange-holebtns' }, btn('+ Bohrung in Lasche', () => addHole('circle')), btn('+ Fenster in Lasche', () => addHole('rect')), btn('+ Kontur aus Skizze', () => setFl(q => { q.holes ||= []; q.holes.push({ lv: 0, kind: 'sketch', sketch: sketchOptions().filter(([id]) => id !== f.sketch).pop()?.[0] || '', s: 0, d: 0 }); }))));
     });
-    b.append(h('p', { class: 'hint' }, 'Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil).'));
+    b.append(h('p', { class: 'hint' }, 'Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.'));
+    if ((f.flanges || []).some(q => q.on && q.tabs)) {
+      b.append(sec('LASCHEN-SCHLITZ-VERBINDUNG'),
+        row('Spiel der Schlitze', num(f.tabClear ?? 0.1, v => ed(x => (x.tabClear = Math.max(0, v))), { unit: 'mm', min: 0 })),
+        h('div', { class: 'btns' }, btn('Schlitze als Skizze', () => tabSlotSketches(f))),
+        h('p', { class: 'hint' }, 'Zungen stehen am freien Ende der Lasche über und kommen in den Zuschnitt. „Schlitze als Skizze“ legt die passenden Schlitze dort an, wo die Zungen stehen – je Ebene eine Skizze, jeder Schlitz ringsum um das Spiel größer als die Zunge. In dieser Skizze den Umriss des Gegenstücks zeichnen und daraus ein Blech oder eine Extrusion machen: die Schlitze werden Ausschnitte. Das Gegenstück liegt auf den Laschenenden auf; die Zungenlänge ist üblich gleich seiner Dicke.'));
+    }
     // bends on lines across the plate, beads along lines inside it
     if (base.lines.length) {
       b.append(sec('BIEGELINIEN, SICKEN, KIEMEN'));
@@ -5012,6 +5104,169 @@ function cutPreview(progs, W, H) {
     back.addEventListener('keydown', e => { if (e.key === 'Escape') done(false); });
     document.body.append(back);
   });
+}
+
+// ----- Körper → Blech: a body of even thickness read back as sheet metal -----
+// the faces of a body as plain numbers: flat faces with their outlines, every face with the edges it shares
+function bodyFaceData(shape) {
+  const P = v => [v.x, v.y, v.z], near = (a, c) => Math.hypot(a[0] - c[0], a[1] - c[1], a[2] - c[2]) < 1e-4;
+  return shape.faces.map(fc => {
+    const plane = fc.geomType === 'PLANE', keys = [], loops = [];
+    for (const w of fc.wires) {
+      const eds = w.edges, segs = [];
+      for (const e of eds) {
+        keys.push(P(e.pointAt(0.5)).map(c => Math.round(c * 1000)).join(','));
+        if (!plane) continue;
+        const N = e.geomType === 'LINE' ? 1 : e.isClosed ? 64 : 16;
+        segs.push(Array.from({ length: N + 1 }, (_, i) => P(e.pointAt(i / N))));
+      }
+      if (!plane || !segs.length) continue;
+      // the pieces in the order they follow each other
+      const pts = [...segs.shift()];
+      while (segs.length) {
+        const end = pts[pts.length - 1], i = segs.findIndex(s => near(s[0], end) || near(s[s.length - 1], end));
+        if (i < 0) break;
+        const s = segs.splice(i, 1)[0];
+        pts.push(...(near(s[0], end) ? s : s.reverse()).slice(1));
+      }
+      if (pts.length > 1 && near(pts[0], pts[pts.length - 1])) pts.pop();
+      if (pts.length < 3) continue;
+      const lp = { pts };
+      if (eds.length === 1 && eds[0].geomType === 'CIRCLE' && eds[0].isClosed) { const c = [0, 1, 2].map(a => pts.reduce((s, p) => s + p[a], 0) / pts.length); lp.circle = { c, r: Math.hypot(pts[0][0] - c[0], pts[0][1] - c[1], pts[0][2] - c[2]) }; }
+      loops.push(lp);
+    }
+    let n = null;
+    if (plane) { const v = fc.normalAt(fc.center), l = Math.hypot(v.x, v.y, v.z) || 1; n = [v.x / l, v.y / l, v.z / l]; }
+    return { plane, n, loops, keys };
+  });
+}
+
+async function bodyToSheet() {
+  const bodies = getModel().bodies.filter(b => b.shape?.faces && !b.surface);
+  if (!bodies.length) return status('Kein Volumenkörper vorhanden.');
+  const last = state.toSheetLast || {};
+  const v = await formDialog('Körper → Blech', [
+    { key: 'body', label: 'Körper', options: bodies.map(b => [b.id, bodyName(b)]), value: state.sel?.kind === 'body' && bodies.some(b => b.id === state.sel.id) ? state.sel.id : bodies[bodies.length - 1].id },
+    { key: 'k', label: 'K-Faktor', value: last.k ?? 0.42 },
+    { key: 'out', label: 'Ergebnis', value: last.out ?? 'sheet', options: [['sheet', 'Blech mit Biegelinien (änderbar)'], ['sketch', 'Nur Abwicklung als Skizze'], ['dxf', 'Abwicklung als DXF-Datei']],
+      hint: 'Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Nicht erkannt werden Säume (180°), gerollte Wände und Umformungen wie Sicken.' },
+  ], 'Umwandeln');
+  if (!v) return;
+  state.toSheetLast = { k: v.k, out: v.out };
+  const body = bodies.find(b => b.id === v.body);
+  if (!body) return;
+  let u;
+  try { u = unfoldFaces(bodyFaceData(body.shape), { k: +v.k }); } catch (err) { return status(`Körper → Blech: ${err.message}.`); }
+  const name = bodyName(body), r4 = x => +(+x).toFixed(4), circ = q => Array.from({ length: 72 }, (_, i) => [q.c[0] + q.r * Math.cos((i * Math.PI) / 36), q.c[1] + q.r * Math.sin((i * Math.PI) / 36)]);
+  const NOTE = { uneven: 'eine Biegung ist auf beiden Seiten verschieden weit angesetzt', left: 'nicht alle Wände hängen über eine erkennbare Biegung zusammen (Saum, gerollte Wand?) – sie fehlen', radii: `die Biegungen haben verschiedene Radien, das Blech nimmt ${f2(u.r)} mm`, parts: 'die Abwicklung zerfällt in mehrere Stücke' };
+  const notes = [...u.notes.map(q => NOTE[q]), ...(u.overlap ? ['die Abwicklung überlappt sich – so nicht aus einem Stück herstellbar'] : [])];
+  const say = `„${name}“: Blechdicke ${f2(u.t)} mm, ${u.folds.length === 1 ? '1 Biegung' : `${u.folds.length} Biegungen`}${u.folds.length ? `, Innenradius ${f2(u.r)} mm` : ''}, Zuschnittfläche ${f2(u.area / 100)} cm²${notes.length ? ` – Hinweis: ${notes.join('; ')}` : ''}.`;
+  if (v.out === 'dxf') { download(`${safeName()}_${name}_Abwicklung.dxf`, flatDXF({ outline: [...u.outline, ...u.holes.map(q => q.pts || circ(q))], bends: u.folds.map(q => [q.a, q.b]), slits: [] }), 'application/dxf'); return status(say); }
+  const asSheet = v.out === 'sheet', sid = uid('sk'), fid = uid('sh'), lines = u.folds.map(q => ({ id: uid('e'), type: 'poly', closed: false, pts: [q.a.map(r4), q.b.map(r4)], ...(asSheet ? {} : { bend: true }) }));
+  const sketch = { id: sid, type: 'sketch', name: `Abwicklung ${name}`, plane: { o: [0, 0, r4(u.z0)], x: [1, 0, 0], n: [0, 0, 1] }, ...(asSheet ? { hidden: true } : {}),
+    entities: [...u.outline.map(pts => ({ id: uid('e'), type: 'poly', closed: true, pts: pts.map(p => p.map(r4)) })),
+      ...u.holes.map(q => (q.pts ? { id: uid('e'), type: 'poly', closed: true, pts: q.pts.map(p => p.map(r4)) } : { id: uid('e'), type: 'circle', cx: r4(q.c[0]), cy: r4(q.c[1]), r: r4(q.r) })), ...lines] };
+  const feats = [sketch];
+  if (asSheet) feats.push({ id: fid, type: 'sheet', name: nextName(state.project.features, FEATURE_TYPES.sheet), sketch: sid, thickness: u.t, radius: u.r, kfactor: u.k, flanges: [], lines: lines.map((l, i) => ({ id: l.id, kind: 'bend', angle: r4(u.folds[i].angle), w: 8, h: 2 })), op: 'new' });
+  let v0 = null;
+  try { v0 = bodyProps(body).volume; } catch { /* no comparison */ }
+  commit(p => { p.features.push(...feats); if (asSheet) { p.bodyMeta ||= {}; (p.bodyMeta[fid] ||= {}).name = `${name} (Blech)`; } });
+  select('feature', asSheet ? fid : sid);
+  if (!asSheet) return status(`${say} Abwicklung als Skizze angelegt.`);
+  const err = getModel().errors[fid], nb = getModel().bodies.find(b => b.id === fid || b.feature === fid || String(b.id).startsWith(fid));
+  if (err) return status(`${say} Das Blech lässt sich so nicht falten (${err}) – die Abwicklung liegt als Skizze vor.`);
+  let cmp = '';
+  try { const v1 = nb && bodyProps(nb).volume; if (v0 > 0 && v1 > 0) cmp = ` Volumen des Blechs: ${f2((100 * v1) / v0)} % des Körpers.`; } catch { /* no comparison */ }
+  state.hiddenBodies.add(body.id);
+  rebuildScene(); renderTree();
+  status(`${say}${cmp} Der Körper ist ausgeblendet${u.aligned ? '' : '; das Blech liegt flach auf der XY-Ebene'}.`);
+}
+
+// ----- Übergang: a transition piece from a rectangle to a circle -----
+async function transitionDialog() {
+  const last = state.transLast || {}, own = ownSheetRules(), rules = [...SHEET_RULES, ...own];
+  const v = await formDialog('Übergang (eckig auf rund)', [
+    { key: 'w', label: 'Rechteck Länge (X)', value: last.w ?? 120, unit: 'mm' },
+    { key: 'd', label: 'Rechteck Breite (Y)', value: last.d ?? 80, unit: 'mm' },
+    { key: 'dia', label: 'Durchmesser oben', value: last.dia ?? 60, unit: 'mm' },
+    { key: 'h', label: 'Höhe', value: last.h ?? 100, unit: 'mm' },
+    { key: 'dim', label: 'Maße gemessen', value: last.dim ?? 'outer', options: [['outer', 'Außen'], ['inner', 'Innen'], ['mid', 'Blechmitte']] },
+    { key: 'rule', label: 'Blechregel', value: last.rule ?? '', options: [['', 'Eigene Werte (unten)'], ...SHEET_RULES.map(r => [r.id, r.name]), ...own.map(r => [r.id, `★ ${r.name}`])] },
+    { key: 't', label: 'Blechdicke', value: last.t ?? 2, unit: 'mm' },
+    { key: 'bends', label: 'Kantungen je Ecke', value: last.bends ?? 6 },
+    { key: 'ox', label: 'Kreis versetzt in X', value: last.ox ?? 0, unit: 'mm' },
+    { key: 'oy', label: 'Kreis versetzt in Y', value: last.oy ?? 0, unit: 'mm' },
+    { key: 'gap', label: 'Nahtspalt', value: last.gap ?? 0, unit: 'mm' },
+    { key: 'out', label: 'Ergebnis', value: last.out ?? 'both', options: [['both', 'Körper + Abwicklung als Skizze'], ['body', 'Nur Körper'], ['sketch', 'Nur Abwicklung als Skizze'], ['dxf', 'Abwicklung als DXF-Datei']],
+      hint: 'Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke. Mit einem Versatz sitzt der Kreis außermittig (schiefes Übergangsstück). Der Nahtspalt öffnet die Naht im Körper (0 = geschlossen); die Abwicklung bleibt auf Stoß gerechnet.' },
+  ], 'Erstellen');
+  if (!v) return;
+  state.transLast = v;
+  const rule = rules.find(r => r.id === v.rule), t = rule ? rule.thickness : +v.t;
+  let tp;
+  try { tp = transitionPattern({ w: +v.w, d: +v.d, dia: +v.dia, h: +v.h, t, dim: v.dim, bends: +v.bends, ox: +v.ox || 0, oy: +v.oy || 0 }); } catch (err) { return status(`Übergang: ${err.message}`); }
+  const label = 'Übergangsstück', r4 = x => +(+x).toFixed(4);
+  const say = `${label}: Zuschnitt ${f2(tp.size[0])} × ${f2(tp.size[1])} mm, Fläche ${f2(tp.area / 100)} cm², ${tp.bends.length} Kantlinien, Naht ${f2(tp.seam)} mm.`;
+  if (v.out === 'dxf') { download(`${safeName()}_${label}.dxf`, flatDXF({ outline: tp.outline, bends: tp.bends, slits: [] }), 'application/dxf'); return status(say); }
+  const feats = [];
+  let first = null;
+  if (v.out !== 'sketch') {
+    const a = uid('sk'), b = uid('sk'), m = tp.mid;
+    first = uid('lf');
+    feats.push({ id: a, type: 'sketch', name: `${label} – unten`, plane: { o: [0, 0, 0], x: [1, 0, 0], n: [0, 0, 1] }, entities: [{ id: uid('e'), type: 'rect', x: r4(-m.w / 2), y: r4(-m.d / 2), w: r4(m.w), h: r4(m.d) }], hidden: true },
+      { id: b, type: 'sketch', name: `${label} – oben`, plane: { o: [0, 0, r4(+v.h)], x: [1, 0, 0], n: [0, 0, 1] }, entities: [{ id: uid('e'), type: 'circle', cx: r4(tp.ox), cy: r4(tp.oy), r: r4(m.r) }], hidden: true },
+      { id: first, type: 'loft', name: nextName(state.project.features, label), sections: [a, b], ruled: true, op: 'new', transition: { outer: tp.outer, inner: tp.inner, h: +v.h, ox: tp.ox, oy: tp.oy, gap: Math.max(0, +v.gap || 0) } });
+  }
+  if (v.out !== 'body') feats.push({ id: uid('sk'), type: 'sketch', name: nextName(state.project.features, `Abwicklung ${label}`), plane: { o: [r4(tp.outer.w / 2 + 20), 0, 0], x: [1, 0, 0], n: [0, 0, 1] },
+    entities: [...tp.outline.map(pts => ({ id: uid('e'), type: 'poly', closed: true, pts: pts.map(([x, y]) => [r4(x), r4(y)]) })),
+      ...tp.bends.map(pts => ({ id: uid('e'), type: 'poly', closed: false, pts: pts.map(([x, y]) => [r4(x), r4(y)]), bend: true }))] });
+  commit(p => { p.features.push(...feats); if (first) { p.bodyMeta ||= {}; (p.bodyMeta[first] ||= {}).name = label; } });
+  const err = Object.keys(getModel().errors).find(id => feats.some(q => q.id === id));
+  status(err ? `${label}: ${getModel().errors[err]}` : say);
+  select('feature', first || feats.at(-1).id);
+  fitView();
+}
+
+// ----- Mantel: a rolled tube or cone frustum, as a body and as its flat pattern -----
+async function shellDialog() {
+  const last = state.shellLast || {}, own = ownSheetRules(), rules = [...SHEET_RULES, ...own];
+  const v = await formDialog('Mantel (Rohr / Kegel)', [
+    { key: 'd1', label: 'Durchmesser unten', value: last.d1 ?? 120, unit: 'mm' },
+    { key: 'd2', label: 'Durchmesser oben', value: last.d2 ?? 80, unit: 'mm' },
+    { key: 'h', label: 'Höhe', value: last.h ?? 100, unit: 'mm' },
+    { key: 'dim', label: 'Durchmesser gemessen', value: last.dim ?? 'outer', options: [['outer', 'Außen'], ['inner', 'Innen'], ['mid', 'Blechmitte']] },
+    { key: 'rule', label: 'Blechregel', value: last.rule ?? '', options: [['', 'Eigene Werte (unten)'], ...SHEET_RULES.map(r => [r.id, r.name]), ...own.map(r => [r.id, `★ ${r.name}`])] },
+    { key: 't', label: 'Blechdicke', value: last.t ?? 2, unit: 'mm' },
+    { key: 'k', label: 'K-Faktor', value: last.k ?? 0.5 },
+    { key: 'gap', label: 'Nahtspalt', value: last.gap ?? 1, unit: 'mm' },
+    { key: 'out', label: 'Ergebnis', value: last.out ?? 'both', options: [['both', 'Körper + Abwicklung als Skizze'], ['body', 'Nur Körper'], ['sketch', 'Nur Abwicklung als Skizze'], ['dxf', 'Abwicklung als DXF-Datei']],
+      hint: 'Gleiche Durchmesser ergeben ein Rohr, verschiedene einen Kegelstumpf. Die Abwicklung wird auf der neutralen Faser gerechnet (Innenfläche + K-Faktor × Blechdicke); beim Runden liegt sie näher an der Blechmitte als beim Abkanten – üblich ist ein K-Faktor von 0,45 bis 0,5. Mit einer Blechregel gelten deren Dicke und K-Faktor. Der Nahtspalt bleibt am größeren Durchmesser offen (0 = stumpf gestoßen, im Körper dann ein Schlitz von 0,01 mm).' },
+  ], 'Erstellen');
+  if (!v) return;
+  state.shellLast = v;
+  const rule = rules.find(r => r.id === v.rule), t = rule ? rule.thickness : +v.t, k = rule ? rule.kfactor : +v.k;
+  let sp;
+  try { sp = shellPattern({ d1: +v.d1, d2: +v.d2, h: +v.h, t, k, gap: Math.max(+v.gap || 0, v.out === 'both' || v.out === 'body' ? 0.01 : 0), dim: v.dim }); } catch (err) { return status(`Mantel: ${err.message}`); }
+  const label = sp.cone ? 'Kegelmantel' : 'Rohrmantel', r4 = x => +(+x).toFixed(4);
+  const say = sp.cone
+    ? `${label}: Zuschnitt ${f2(sp.size[0])} × ${f2(sp.size[1])} mm, Ringstück R ${f2(sp.R1)} / R ${f2(sp.R2)} mm über ${f2(sp.phi)}°, Mantellinie ${f2(sp.slant)} mm, halber Kegelwinkel ${f2(sp.alpha)}°.`
+    : `${label}: Zuschnitt ${f2(sp.L)} × ${f2(sp.size[1])} mm (gestreckte Länge × Höhe).`;
+  if (v.out === 'dxf') { download(`${safeName()}_${label}.dxf`, flatDXF({ outline: sp.outline, bends: [], slits: [] }), 'application/dxf'); return status(say); }
+  const feats = [], ro = Math.max(...sp.section.map(p => p[0]));
+  let first = null;
+  if (v.out !== 'sketch') {
+    const sid = uid('sk');
+    first = uid('rv');
+    feats.push({ id: sid, type: 'sketch', name: `${label} – Skizze`, plane: { o: [0, 0, 0], x: [1, 0, 0], n: [0, -1, 0] }, entities: [{ id: uid('e'), type: 'poly', closed: true, pts: sp.section.map(([x, y]) => [r4(x), r4(y)]) }], hidden: true },
+      { id: first, type: 'revolve', name: nextName(state.project.features, label), sketch: sid, profiles: 'all', axis: 'y', angle: r4(sp.sweep), op: 'new' });
+  }
+  if (v.out !== 'body') feats.push({ id: uid('sk'), type: 'sketch', name: nextName(state.project.features, `Abwicklung ${label}`), plane: { o: [r4(ro + 20), 0, 0], x: [1, 0, 0], n: [0, 0, 1] },
+    entities: sp.outline.map(pts => ({ id: uid('e'), type: 'poly', closed: true, pts: pts.map(([x, y]) => [r4(x), r4(y)]) })) });
+  commit(p => { p.features.push(...feats); if (first) { p.bodyMeta ||= {}; (p.bodyMeta[first] ||= {}).name = label; } });
+  const err = Object.keys(getModel().errors).find(id => feats.some(q => q.id === id));
+  status(err ? `${label}: ${getModel().errors[err]}` : say);
+  select('feature', first || feats.at(-1).id);
+  fitView();
 }
 
 function flatToSketch(f, fp, z0) {
@@ -10885,7 +11140,7 @@ function shortcutsHelp() {
     ['Entf', 'Feature löschen'], ['Esc', 'Abbrechen / Skizze beenden'], ['Strg+Z / Strg+Y', 'Rückgängig / Wiederholen'], ['Strg+S', 'Projekt speichern'],
     ['Strg+Umschalt+S', 'Speichern unter'], ['Strg+O', 'Öffnen'], ['Strg+N', 'Neues Projekt'], ['F2', 'Auswahl umbenennen'], ['V', 'Auswahl ein-/ausblenden'],
     ['Strg+1 … Strg+6', 'Ansicht von vorne, hinten, links, rechts, oben, unten'], ['Strg+7', 'Isometrische Ansicht'], ['Strg+8', 'Senkrecht auf die gewählte Skizze oder Ebene schauen'],
-    ['← → ↑ ↓', 'Ansicht um 15° drehen (mit Umschalt um 90°)'], ['Strg + ← → ↑ ↓', 'Ansicht verschieben'], ['Bild↑ / Bild↓ oder + / −', 'Zoomen'], ['F6', 'Einpassen'],
+    ['← → ↑ ↓', 'Ansicht um 15° drehen (mit Umschalt um 90°)'], ['Strg + ← → ↑ ↓', 'Ansicht verschieben'], ['Bild↑ / Bild↓ oder + / −', 'Zoomen'], ['F6', 'Einpassen'], ['F11', 'Vollbild ein/aus'],
     ['Doppelklick mit der mittleren Taste', 'Einpassen oder Ausgangsansicht (Einstellungen → Navigation)'],
     ['L R C A E B', 'Skizze: Linie, Rechteck, Kreis, Bogen, Ellipse, Spline'], ['G U', 'Skizze: Polygon, Langloch'], ['O T P X', 'Skizze: Versatz, Stutzen, Projizieren, Konstruktionslinie'], ['D', 'Skizze: Bemaßung']];
   const own = Object.entries(tbKeys).map(([id, k]) => [k, `${id.split('|').slice(1).join('|')} (eigener Kurzbefehl)`]);
@@ -13146,22 +13401,3 @@ function openPostDialog(saved = null) {
   // steps waiting for the full kernel (delete face, fillet with radius points) are computed as soon as it is there
   onFullKernel(() => { clearTimelineCache(); model.key = null; renderAll(); });
 })();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

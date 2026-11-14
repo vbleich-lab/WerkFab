@@ -2,7 +2,7 @@
 // Fusion .cps post-processors (converted into an editable WerkFab template).
 import { R } from './kernel.js';
 import { BUILTIN_POSTS, copyPost } from './post.js';
-import { collapseNeedles, findCylinders, findRound, standIn, arcOnTorus } from './mesh.js';
+import { collapseNeedles, findCylinders, findRound, standIn, arcOnTorus, chordIn, stats as meshStats } from './mesh.js';
 
 // ---------- imported files (kept in IndexedDB, too big for localStorage) ----------
 const mem = new Map();
@@ -152,13 +152,21 @@ export async function meshToStep(m0, cyls = [], round = {}, noStand = null, noTo
   ringed.forEach((s, i) => keyOf.set(s, 'r' + i));
   let stand = { m: mc, tori: [], spheres: [], rings: [] };
   try { stand = standIn(mc, (round.tori || []).filter(t => !skipKeys.has(keyOf.get(t))), (round.spheres || []).filter(s => !skipKeys.has(keyOf.get(s))), ringed.filter(s => !skipKeys.has(keyOf.get(s)))); } catch { /* facet by facet */ }
-  const m = stand.m, stood = new Map([...stand.tori, ...stand.spheres, ...(stand.rings || [])].map(x => [x.src, x])), standOk = new Set();
+  let m = stand.m;
+  const stood = new Map([...stand.tori, ...stand.spheres, ...(stand.rings || [])].map(x => [x.src, x])), standOk = new Set();
   // (without the facets of a fillet next to it a cylinder shows whole)
   // (and the rows of facets of a torus that stays faceted are no pieces of cylinders)
   if (stood.size) { try { cyls = [...findCylinders(m).filter(c => !arcOnTorus(c, rnd.tori || [])), ...cyls.filter(c => c.ring)]; } catch { /* as they were found */ } }
   { const gr = cyls.filter(c => c.ring && stood.has(c)); if (gr.length) cyls = cyls.filter(c => c.ring || !gr.some(q => c.r < q.r && c.r > 0.9 * q.r && Math.abs(q.d[0] * c.d[0] + q.d[1] * c.d[1] + q.d[2] * c.d[2]) > 0.9999)); }
   // (a few even strips in the wall of a cylinder found ring by ring are no arc of their own)
   { const rc = cyls.filter(c => c.ring); if (rc.length) cyls = cyls.filter(c => c.full !== false || !rc.some(q => Math.abs(q.r - c.r) < 5e-3 && Math.abs(q.d[0] * c.d[0] + q.d[1] * c.d[1] + q.d[2] * c.d[2]) > 0.9999 && (() => { const v = [c.c[0] - q.c[0], c.c[1] - q.c[1], c.c[2] - q.c[2]], k = v[0] * q.d[0] + v[1] * q.d[1] + v[2] * q.d[2]; return Math.hypot(v[0] - q.d[0] * k, v[1] - q.d[1] * k, v[2] - q.d[2] * k) < 0.01; })())); }
+  // (fillets that end in mitres: a flat chord stands in for their facets – all of them, so that no lid is left in
+  // a mitre plane – and the true piece comes on top, each with the same oversize)
+  const chord = new Map();
+  if (!noTori && !skipKeys.has('chord')) try {
+    const zz = cyls.filter(c => c.full === false && !c.hole && (c.ends || []).length === 2);
+    if (zz.length) { const ch = chordIn(m, zz); if (ch.arcs.length && meshStats(ch.m).closed) { m = ch.m; for (const x of ch.arcs) chord.set(x.src, x); } }
+  } catch { /* facet by facet */ }
   const triFaces = () => { const faces = [], P = m.pos; for (let t = 0; t < m.idx.length; t += 3) {
     const [a, b, c] = [m.idx[t], m.idx[t + 1], m.idx[t + 2]].map(i => [P[i * 3], P[i * 3 + 1], P[i * 3 + 2]]);
     try { faces.push(R.makePolygon([a, b, c])); } catch { /* degenerate triangle */ }
@@ -217,8 +225,8 @@ export async function meshToStep(m0, cyls = [], round = {}, noStand = null, noTo
   };
   // (an arc is tried with its exact radius too – where it ends in a face across, that is the cleaner cut – and
   // the result with fewer faces is taken)
-  const doCyl = c0 => { let best = null; for (const grow of c0.full === false ? [0, 1e-4, 1e-3] : [1e-4, 1e-3]) {
-    if (best && (c0.full !== false || grow > 1e-4)) break;
+  const doCyl = c0 => { let best = null; for (const grow of c0.full === false && !chord.has(c0) ? [0, 1e-4, 1e-3] : [1e-4, 1e-3]) {
+    if (best && (c0.full !== false || grow > 1e-4 || chord.has(c0))) break;
     // the fitted values carry the noise of single-precision points, so they are rounded. A cylinder exactly
     // through the corner points leaves shreds of the facets behind (edges lying in its surface): it is made
     // 0.1 µm larger (1 µm at the second try), which the kernel cuts cleanly
@@ -230,11 +238,11 @@ export async function meshToStep(m0, cyls = [], round = {}, noStand = null, noTo
       c.c = c0.c.map((x, i) => Math.round((x + c0.d[i] * a[0]) * 1e5) / 1e5); c.h = b[0] - a[0]; c.slv = (stood.has(c0) ? stood.get(c0).vol : c0.slv) + vA + vB;
     }
     try {
-      const v0 = vol(solid), sliver = c.slv != null ? c.slv : c.full === false ? c.sl * c.h : Math.PI * c.r * c.r * c.h * (1 - Math.sin((2 * Math.PI) / c.n) / ((2 * Math.PI) / c.n));
+      const v0 = vol(solid), sliver = chord.has(c0) ? chord.get(c0).vol + (c0.slv || 0) : c.slv != null ? c.slv : c.full === false ? c.sl * c.h : Math.PI * c.r * c.r * c.h * (1 - Math.sin((2 * Math.PI) / c.n) / ((2 * Math.PI) / c.n));
       let tool;
       if (c.full === false) {
         // a band between the circle and a smaller one inside the chords, from the first to the last corner
-        const e0 = endExt(c, 0), ri = c.r * Math.cos(Math.PI / c.n) * 0.9, at = (rr, a) => [rr * Math.cos(a), rr * Math.sin(a)], a1 = c.a0 + c.sweep, am = c.a0 + c.sweep / 2;
+        const e0 = endExt(c, 0), ri = c.r * (chord.has(c0) ? chord.get(c0).kin : Math.cos(Math.PI / c.n)) * 0.9, at = (rr, a) => [rr * Math.cos(a), rr * Math.sin(a)], a1 = c.a0 + c.sweep, am = c.a0 + c.sweep / 2;
         // (where a flat face touches the circle, the larger tool would stand a step above it: there it ends in
         // that face, a hair's breadth along it)
         const tn = (c0.tan || []).map(e => {
@@ -257,7 +265,9 @@ export async function meshToStep(m0, cyls = [], round = {}, noStand = null, noTo
       }
       // (ends on a mitre: what of the tool lies beyond the two planes is cut off)
       for (const e of c0.ends || []) {
-        const n = e.n.map(x => Math.round(x * 1e6) / 1e6), nl = Math.hypot(...n), nn = n.map(x => x / nl), big = 4 * (c.r + c.h) + 10;
+        // (a plane fitted to the corners of a mesh leans by its single-precision noise: a lean of a few millionths
+        // is none – two pieces cut by "the same" plane would otherwise leave splinters a micrometre wide)
+        const n = e.n.map(x => (Math.abs(x) < 2e-5 ? 0 : Math.round(x * 1e6) / 1e6)), nl = Math.hypot(...n), nn = n.map(x => x / nl), big = 4 * (c.r + c.h) + 10;
         const a = Math.abs(nn[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0], k = a[0] * nn[0] + a[1] * nn[1] + a[2] * nn[2], x = a.map((q, i) => q - nn[i] * k), xl = Math.hypot(...x);
         tool = tool.cut(R.drawRectangle(big, big).sketchOnPlane(new R.Plane(e.p.map(q => Math.round(q * 1e5) / 1e5), x.map(q => q / xl), nn)).extrude(big));
       }
@@ -485,7 +495,8 @@ export async function meshToStep(m0, cyls = [], round = {}, noStand = null, noTo
   }
   // a stand-in whose true face did not come about has changed the shape: once more without it
   const failed = [...stood.keys()].filter(x => !standOk.has(x));
-  if (failed.length) { const no = new Set(skipKeys); for (const x of failed) no.add(keyOf.get(x)); return meshToStep(m0, cyls0, round0, no, noTori); }
+  const flat = [...chord.keys()].some(x => !done.has(x));
+  if (failed.length || flat) { const no = new Set(skipKeys); for (const x of failed) no.add(keyOf.get(x)); if (flat) no.add('chord'); return meshToStep(m0, cyls0, round0, no, noTori); }
   if (made || cones || spheres || tori) { solid = simp(solid); }
   const text = await solid.blobSTEP().text();
   // what is written must read back as the same body (a face that lost its outline comes back endless): if it

@@ -1,0 +1,19 @@
+{
+ "Übergang": "Geçiş",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "Köşeliden yuvarlağa geçiş parçası: dikdörtgenden, çaptan, yükseklikten ve sac kalınlığından büküm çizgileriyle gövde ve açınım",
+ "+ Kröpfung": "+ Basamak",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "Kanat üzerine kanat: + açısı aynı yönde bükmeye devam eder (U profil, 180° kenet), − ters yönde (Z kademe, şapka profil). Kıvrım: kanadın kenarı kendi üzerine 180° katlanır – açıkta bir sac kalınlığı kadar boşlukla, kapalıda düz bastırılarak; − 180° ile diğer tarafta durur. R alanı yalnızca bu bükümün iç yarıçapıdır (boş = sactaki gibi). Doğrudan plaka kenarında bir kıvrım için kanadın kendisini 180° yapın. Basamak: birbirine ters iki büküm (− 45° ve + 45°) – kenar paralel ve kaymış olarak devam eder; kayma, eğik parçanın uzunluğundan ve açılardan çıkar.",
+ "Übergang (eckig auf rund)": "Geçiş (köşeliden yuvarlağa)",
+ "Rechteck Länge (X)": "Dikdörtgen uzunluğu (X)",
+ "Rechteck Breite (Y)": "Dikdörtgen genişliği (Y)",
+ "Maße gemessen": "Ölçüler ölçülmüş",
+ "Kantungen je Ecke": "Köşe başına büküm",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "Dikdörtgen altta, daire ortalanmış olarak üstünde yer alır. Dikdörtgenin her kenarı düz bir üçgen olarak dairenin bir noktasına, her köşe ise eğik bir koninin parçası olarak dairenin dörtte birine uzanır. Açınım, sac orta hattında üçgenleme yöntemiyle elde edilir; dikiş, −Y tarafındaki kenarın ortasındadır. Kesik çizgili: her köşeden daireye giden büküm çizgileri – köşe başına belirtilen sayıda (1 ile 24 arası); daha fazla büküm daha yuvarlak bir açıklık verir. Sac kuralı varsa onun kalınlığı geçerlidir.",
+ "Übergang: {0}": "Geçiş: {0}",
+ "Übergangsstück": "Geçiş parçası",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}: kesim ölçüsü {1} × {2} mm, alan {3} cm², {4} büküm çizgisi, dikiş {5} mm.",
+ "{0} – unten": "{0} – alt",
+ "{0} – oben": "{0} – üst",
+ "Übergangsstück nicht möglich – Maße prüfen": "Geçiş parçası mümkün değil – ölçüleri kontrol edin",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "Dikdörtgen ve çap, sac kalınlığının iki katından büyük olmalıdır"
+}

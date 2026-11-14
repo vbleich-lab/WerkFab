@@ -1,0 +1,19 @@
+{
+ "Übergang": "トランジション",
+ "Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke": "角から丸への変形部品：長方形、直径、高さ、板厚から曲げ線付きのボディと展開図を作成します",
+ "+ Kröpfung": "+ 段曲げ",
+ "Lasche an Lasche: Winkel + biegt in dieselbe Richtung weiter (U-Profil, Falz mit 180°), − in die Gegenrichtung (Z-Stufe, Hutprofil). Saum: der Rand der Lasche wird um 180° auf sich selbst zurückgelegt – offen mit einem Spalt von einer Blechdicke, geschlossen flach zugedrückt; mit − 180° liegt er auf der anderen Seite. Das Feld R ist der Innenradius nur dieser Biegung (leer = wie beim Blech). Für einen Saum direkt an der Plattenkante die Lasche selbst auf 180° stellen. Kröpfung: zwei Biegungen gegeneinander (− 45° und + 45°) – der Rand läuft parallel versetzt weiter; Versatz über die Länge des schrägen Stücks und die Winkel.": "フランジ上にフランジ：角度 + は同じ向きにさらに曲げ（U字形材、180°のシーム）、− は逆向きに曲げます（Z段、ハット形材）。ヘム：フランジの端を180°折り返して自身に重ねます。オープンは板厚1枚分の隙間を残し、クローズドは平らに押しつぶします。− 180° では反対側に重なります。R欄はこの曲げだけの内側半径です（空欄＝板金の設定どおり）。板の端に直接ヘムを付ける場合は、フランジ自体を180°に設定してください。段曲げ：2つの曲げを逆向きに行います（− 45° と + 45°）。端は平行にずれたまま続き、ずれ量は斜め部分の長さと角度から決まります。",
+ "Übergang (eckig auf rund)": "トランジション（角から丸）",
+ "Rechteck Länge (X)": "長方形の長さ (X)",
+ "Rechteck Breite (Y)": "長方形の幅 (Y)",
+ "Maße gemessen": "寸法を実測",
+ "Kantungen je Ecke": "角ごとの曲げ数",
+ "Das Rechteck liegt unten, der Kreis mittig darüber. Jede Seite des Rechtecks läuft als ebenes Dreieck zu einem Punkt des Kreises, jede Ecke als Stück eines schiefen Kegels zu einem Viertel davon. Die Abwicklung entsteht im Dreiecksverfahren auf der Blechmitte; die Naht liegt in der Mitte der Seite bei −Y. Gestrichelt: die Kantlinien von jeder Ecke zum Kreis – so viele je Ecke wie angegeben (1 bis 24); mehr Kantungen ergeben eine rundere Öffnung. Mit einer Blechregel gilt deren Dicke.": "長方形が下にあり、円はその真上の中央にあります。長方形の各辺は平らな三角形として円の1点へ、各角は斜め円すいの一部としてその4分の1へつながります。展開図は板厚中心で三角形法により求めます。継ぎ目は −Y 側の辺の中央にあります。破線は各角から円へ向かう曲げ線で、角ごとに指定した本数（1〜24）が入ります。曲げ数が多いほど開口部は丸くなります。板金ルールを使う場合は、そのルールの板厚が適用されます。",
+ "Übergang: {0}": "トランジション：{0}",
+ "Übergangsstück": "トランジション部品",
+ "{0}: Zuschnitt {1} × {2} mm, Fläche {3} cm², {4} Kantlinien, Naht {5} mm.": "{0}：素板 {1} × {2} mm、面積 {3} cm²、曲げ線 {4} 本、継ぎ目 {5} mm。",
+ "{0} – unten": "{0} – 下",
+ "{0} – oben": "{0} – 上",
+ "Übergangsstück nicht möglich – Maße prüfen": "トランジション部品を作成できません。寸法を確認してください",
+ "Rechteck und Durchmesser müssen größer als die doppelte Blechdicke sein": "長方形と直径は板厚の2倍より大きくする必要があります"
+}
