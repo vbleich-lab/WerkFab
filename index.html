@@ -53,9 +53,11 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
         <button data-act="iges">Als IGES exportieren</button>
         <button data-act="stl">Als STL exportieren (3D-Druck)</button>
         <button data-act="gltf">Als glTF exportieren (.glb, mit Farben)</button>
-        <button data-act="urdf">Als URDF exportieren (.zip, Baugruppe mit Gelenken)</button>
+        <button data-act="urdf">Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…</button>
         <hr>
         <button data-act="script">Befehlsskript ausführen (.json)…</button>
+        <button data-act="pyscript">Python-Skript ausführen (.py)…</button>
+        <button data-act="pyaddins">Skripte und Zusatzmodule… <kbd>Umschalt+S</kbd></button>
         <hr>
         <button data-act="example">Beispiel: Grundplatte</button>
         <button data-act="example-turn">Beispiel: Drehteil</button>

@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Все три",
+ "Roboterbeschreibung exportieren": "Экспорт описания робота",
+ "ROS-Paket (für URDF)": "Пакет ROS (для URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Каждое видимое тело становится звеном (link) с сеткой (STL, в метрах), массой и инерцией, каждое соединение — соединением с осью и пределами. Текущее положение считается нулевым. При указании имени пакета сетки записываются в URDF как package://Name/meshes/…, иначе как относительный путь.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Описание робота экспортировано ({0}): тел — {1}, подвижных соединений — {2} – в метрах, текущее положение считается нулевым{3}",
+ "Frei ({0})": "Свободная ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Сообщает о траекториях, которые режут глубже модели в этом месте (концевые, торцевые, сферические и тороидальные фрезы, 3-осевые перемещения). Рез, которого нет в модели — гравировка, поднутрение углов, карман только из эскиза — также отмечается.",
+ "Auch gegen das fertige Teil prüfen": "Проверять также по готовой детали",
+ "– bis {0} mm": "– до {0} мм",
+ ", kein Schnitt ins fertige Teil": ", без врезания в готовую деталь",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Столкновений с материалом нет (державка, хвостовик, ускоренные перемещения){0}{1} – проверено построчно по оставшейся на этот момент заготовке",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Экспорт как описание робота (URDF, SDF, MJCF)…"
+}

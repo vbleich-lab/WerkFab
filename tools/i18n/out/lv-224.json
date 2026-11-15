@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Visi trīs",
+ "Roboterbeschreibung exportieren": "Eksportēt robota aprakstu",
+ "ROS-Paket (für URDF)": "ROS pakotne (URDF vajadzībām)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Katrs redzamais ķermenis kļūst par posmu ar tīklu (STL, metros), masu un inerci, katrs savienojums – par savienojumu ar asi un robežām. Pašreizējā poza ir nulles poza. Ar pakotnes nosaukumu tīkli URDF ir norādīti kā package://Name/meshes/…, citādi kā relatīvs ceļš.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Robota apraksts eksportēts ({0}): ķermeņi: {1}, kustīgi savienojumi: {2} – metros, pašreizējā poza ir nulles poza{3}",
+ "Frei ({0})": "Brīvs ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Ziņo par trajektorijām, kas šajā vietā griež dziļāk nekā modelis (kāta, plakanās, lodveida un toru frēzes, 3 asu kustības). Tiek ziņots arī par griezumu, kura modelī nav – gravējums, stūra atslogojums, kabata tikai no skices.",
+ "Auch gegen das fertige Teil prüfen": "Pārbaudīt arī pret gatavo detaļu",
+ "– bis {0} mm": "– līdz {0} mm",
+ ", kein Schnitt ins fertige Teil": ", nav griezuma gatavajā detaļā",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Nav sadursmes ar materiālu (turētājs, kāts, ātrie gājieni){0}{1} – pārbaudīts rindu pa rindai pret attiecīgajā brīdī atlikušo sagatavi",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Eksportēt kā robota aprakstu (URDF, SDF, MJCF)…"
+}

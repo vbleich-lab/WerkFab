@@ -56,6 +56,8 @@ The interface is available in **28 languages**: English (US and UK), German, Chi
 - **Construction geometry**: planes (offset, at an angle, through 3 points, tangent), axes and points
 - **Surfaces**: extrude, revolve, loft, patch, offset, stitch, trim, extend, fill
 - **Sheet metal**: flanges, flange on flange (U hem, Z step, 180° hem), open or closed corners with corner relief (round or square), bend lines, beads, collars, louvres, embossing, flat pattern with bend table, nesting with a cutting program per sheet
+- **Bend calculation** with a K-factor of your own or after DIN 6935 (from radius and thickness); the bend table exports as CSV for the press brake
+- **Meshes and 3D printing**: offset, hollow, remesh and lay flat on a face; overhangs that need supports shown in red; send visible parts to the slicer as 3MF or STL
 - **Parts catalogue**: standard parts (screws, nuts, washers, pins, keys, retaining rings, bearings, seals), round tubes, square and rectangular hollow sections, I-beams (IPE, IPN, HEA, HEB), channels (UPN, UPE), T sections, equal and unequal angles, flat, square and round bars – searchable by name, standard or dimension, with a drawn preview and the table of sizes
 - **Configurations**: named sets of parameter values – one design, several variants
 - **Timeline** with a cache: a change recomputes only the features it affects, step by step with a progress display
@@ -93,9 +95,10 @@ The interface is available in **28 languages**: English (US and UK), German, Chi
 - **Languages**: 28 – English (US and UK), German, Chinese, French, Spanish, Italian, Portuguese (Brazil), Dutch, Polish, Turkish, Japanese, Korean, Russian, Czech, Danish, Finnish, Norwegian, Ukrainian, Croatian, Bosnian, Serbian, Georgian, Latvian, Malay, Galician, Arabic and Hebrew (Preferences → Units and value display → Language; “System” follows the language of the browser or operating system). Everything except German, English and Chinese is a machine translation that no native speaker has reviewed yet – corrections are welcome
 - **Look**: ten designs (light, dark, high contrast), accent colour of your choice, icon colour and size, density, corner shape, font, window opacity, interface size, and named profiles of all preferences
 - **Updates**: the program looks for a new version on GitHub at start. The installed Windows app and the Linux AppImage download and install it on request; the portable Windows folder, macOS and the browser version show a note with the download page. This look-up is the only connection WerkFab makes to the net by itself, and it can be switched off (Preferences → General → Updates).
-- **AI agents**: the desktop app can open a local port that speaks the Model Context Protocol (MCP) – Preferences → AI agents shows the address, the key and the command to connect. An agent reads and changes the open design, inserts catalogue parts, adds tools and machining operations, outputs the NC program (a draft to verify) and has it checked for collisions and for cuts into the finished part, runs the material removal simulation and gets its picture with the comparison against the part, asks for bodies, volumes and errors, gets a picture of the view and exports STEP or STL. Off by default, this computer only, key required; no access to files or settings. The same commands run from a JSON script (File → Run command script)
+- **AI agents**: the desktop app can open a local port that speaks the Model Context Protocol (MCP) – Preferences → AI agents shows the address, the key and the command to connect. An agent reads and changes the open design, inserts catalogue parts, adds tools and machining operations, outputs the NC program (a draft to verify) and has it checked for collisions and for cuts into the finished part, runs the material removal simulation and gets its picture with the comparison against the part, places bodies, adds and moves joints and sees which bodies run into each other, asks for bodies, volumes and errors, gets a picture of the view and exports STEP or STL. Off by default, this computer only, key required; no access to files or settings. The same commands run from a JSON script (File → Run command script)
+- **Python scripts and add-ins**: Python runs inside the program (Pyodide, nothing to install). Scripts and add-ins written for the Python API of Autodesk Fusion (`adsk.core`, `adsk.fusion`) run in many cases unchanged – sketches, extrude, revolve, hole, fillet, chamfer, shell, patterns, mirror, parameters, and commands with their own dialog inputs and toolbar buttons. Values in centimetres and radians as in the original; one run is one undo step
 - Marking menu (right click), ViewCube, keyboard shortcuts (e.g. Q press/pull, F fillet, M move, I measure, X construction line)
-- Several documents in tabs, versions on save; import of STEP, IGES, STL, OBJ and DXF, export of STEP, IGES, STL and glTF, assemblies with their joints as URDF (robot description with meshes, masses and inertia), tool libraries and post processors (.cps)
+- Several documents in tabs, versions on save; import of STEP, IGES, STL, OBJ and DXF, export of STEP, IGES, STL and glTF, assemblies with their joints as a robot description (URDF, SDF or MJCF with meshes, masses and inertia), tool libraries and post processors (.cps)
 
 ---
 
@@ -228,6 +231,7 @@ By default WerkFab computes with **OpenCascade** (through replicad / WebAssembly
 - No simultaneous 5-axis milling. Supported are 3+2 (tilted setups) and 4-axis simultaneous around the A axis.
 - Live tools on the lathe: drilling, keyways, flats and sketch contours on the face and around the diameter; no Y axis, pockets on the face only. Polar and cylindrical interpolation (G12.1, G7.1) in the Fanuc post only, otherwise short X/C steps or Z/C without interpolation. The simulation shows these contours as ribbons, not as stock removal. The M codes for the C axis and the tool spindle depend on the machine and must be checked in the post processor. The NC check does not test live tool operations against the stock.
 - No freeform / T-spline modelling.
+- Python scripts: a subset of the `adsk` interface. Sketch dimensions and constraints are ignored, selection inputs and HTML palettes are not supported, edges are found by their midpoint (a script that changes the topology before it picks edges may pick other ones), and CAM functions are missing.
 - Large 3D strategies (adaptive 3D, geodesic) need several seconds of computing time, depending on the part.
 - Translations: the interface is written in German. In the other languages a few composed messages can remain German; comments in the NC program are always German. The changelog is in German.
 
@@ -239,7 +243,7 @@ WerkFab is licensed under the **GNU General Public License v3.0 or later**, see 
 
 Bundled libraries come under their own licenses, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the license texts are in [`licenses/`](licenses).
 
-Names of controls, machines and other software (Heidenhain, Fanuc, Sinumerik, Okuma, LinuxCNC, GRBL and others) are trademarks of their owners. They are used only to say what WerkFab's output and import functions are meant for; WerkFab is not affiliated with or endorsed by any of them.
+Names of controls, machines and other software (Heidenhain, Fanuc, Sinumerik, Okuma, LinuxCNC, GRBL, Autodesk Fusion and others) are trademarks of their owners. They are used only to say what WerkFab's output and import functions are meant for; WerkFab is not affiliated with or endorsed by any of them.
 
 ---
 

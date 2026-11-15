@@ -13,6 +13,8 @@ export const JOINT_DOF = {
   ball: [['Drehung um die Achse', '°'], ['Neigung 1', '°'], ['Neigung 2', '°']],
 };
 const AXES = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
+// the axis of a joint without picked origins: X, Y or Z – or a free direction [x, y, z]
+const axisOf = j => (Array.isArray(j.axis) && j.axis.length === 3 && Math.hypot(...j.axis.map(Number)) > 1e-9 ? new THREE.Vector3(...j.axis.map(Number)).normalize() : new THREE.Vector3(...(AXES[j.axis] || AXES.z)));
 const DEG = Math.PI / 180;
 
 export function placementMatrix(pl) {
@@ -23,7 +25,7 @@ export function placementMatrix(pl) {
 
 function motionMatrix(j, value, value2 = 0, value3 = 0) {
   // joints made by picking: the axis is the parent's joint origin (point + normal)
-  const axis = j.pO ? new THREE.Vector3(...j.pO.n).normalize() : new THREE.Vector3(...(AXES[j.axis] || AXES.z));
+  const axis = j.pO ? new THREE.Vector3(...j.pO.n).normalize() : axisOf(j);
   const o = new THREE.Vector3(...(j.pO ? j.pO.p : j.origin || [0, 0, 0]).map(Number));
   // two directions across the axis (for planar and ball joints)
   const u = new THREE.Vector3().crossVectors(axis, Math.abs(axis.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0)).normalize();
@@ -50,7 +52,7 @@ function motionMatrix(j, value, value2 = 0, value3 = 0) {
 
 // The frame of a joint in its parent's coordinates: origin o, axis n and the two directions u, w across it
 export function jointFrame(j) {
-  const n = j.pO ? new THREE.Vector3(...j.pO.n).normalize() : new THREE.Vector3(...(AXES[j.axis] || AXES.z));
+  const n = j.pO ? new THREE.Vector3(...j.pO.n).normalize() : axisOf(j);
   const o = new THREE.Vector3(...(j.pO ? j.pO.p : j.origin || [0, 0, 0]).map(Number));
   const u = new THREE.Vector3().crossVectors(n, Math.abs(n.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0)).normalize();
   return { o, n, u, w: new THREE.Vector3().crossVectors(n, u) };

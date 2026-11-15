@@ -11,7 +11,7 @@ const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'))
 
 const COPY = ['index.html', 'manifest.webmanifest', 'css', 'js', 'vendor', 'icons', 'licenses', 'LICENSE', 'THIRD_PARTY_NOTICES.md'];
 // large and only needed for IGES: cached when first used instead of on install
-const LAZY = ['vendor/opencascade-full/'];
+const LAZY = ['vendor/opencascade-full/', 'vendor/pyodide/'];
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });

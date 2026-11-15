@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Усі три",
+ "Roboterbeschreibung exportieren": "Експортувати опис робота",
+ "ROS-Paket (für URDF)": "Пакет ROS (для URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Кожне видиме тіло стає ланкою із сіткою (STL, у метрах), масою та інерцією, кожен шарнір – шарніром з віссю та межами. Поточне положення є нульовим. За наявності назви пакета сітки в URDF записуються як package://Name/meshes/…, інакше – як відносний шлях.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Опис робота експортовано ({0}): тіл – {1}, рухомих шарнірів – {2} – у метрах, поточне положення є нульовим{3}",
+ "Frei ({0})": "Вільний ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Повідомляє про траєкторії, що врізаються глибше, ніж модель у цьому місці (кінцеві, торцеві, кулькові та торові фрези, 3-осьові рухи). Про різ, якого немає в моделі – гравіювання, розвантажувальна виточка в куті, кишеня лише з ескіза – також повідомляється.",
+ "Auch gegen das fertige Teil prüfen": "Перевіряти також за готовою деталлю",
+ "– bis {0} mm": "– до {0} мм",
+ ", kein Schnitt ins fertige Teil": ", без врізання в готову деталь",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Немає колізії з матеріалом (тримач, хвостовик, швидкі переміщення){0}{1} – перевірено рядок за рядком щодо заготовки, що залишилася на відповідний момент",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Експортувати як опис робота (URDF, SDF, MJCF)…"
+}

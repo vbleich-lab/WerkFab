@@ -1,0 +1,14 @@
+{
+ "Alle drei": "الثلاثة جميعًا",
+ "Roboterbeschreibung exportieren": "تصدير وصف الروبوت",
+ "ROS-Paket (für URDF)": "حزمة ROS (لـ URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "يتحول كل جسم مرئي إلى حلقة (link) ذات شبكة (STL، بالمتر) وكتلة وعزم قصور، وكل وصلة إلى وصلة ذات محور وحدود. الوضع الحالي هو وضع الصفر. عند إدخال اسم حزمة تظهر الشبكات في URDF على الصورة package://Name/meshes/…، وإلا فبمسار نسبي.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "تم تصدير وصف الروبوت ({0}): {1} جسم، {2} وصلات متحركة – بالمتر، الوضع الحالي هو وضع الصفر{3}",
+ "Frei ({0})": "حر ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "يُبلغ عن المسارات التي تقطع أعمق من النموذج في هذا الموضع (قواطع طرفية ومستوية وكروية وطرفية بنصف قطر، حركات ثلاثية المحاور). كما يُبلغ عن أي قطع غير موجود في النموذج – نقش، تفريغ زوايا، جيب من رسم تخطيطي فقط.",
+ "Auch gegen das fertige Teil prüfen": "الفحص أيضًا مقابل الجزء النهائي",
+ "– bis {0} mm": "– حتى {0} مم",
+ ", kein Schnitt ins fertige Teil": "، لا قطع في الجزء النهائي",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ لا يوجد تصادم مع الخامة (الحامل، الساق، الحركات السريعة){0}{1} – تم الفحص سطرًا بسطر مقابل الخامة المتبقية في كل لحظة",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "تصدير كوصف روبوت (URDF، SDF، MJCF)…"
+}

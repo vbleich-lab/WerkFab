@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Ketiga-tiganya",
+ "Roboterbeschreibung exportieren": "Eksport huraian robot",
+ "ROS-Paket (für URDF)": "Pakej ROS (untuk URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Setiap jasad yang kelihatan menjadi pautan dengan jejaring (STL, dalam meter), jisim dan inersia, setiap sendi menjadi sendi dengan paksi dan had. Pose semasa ialah pose sifar. Dengan nama pakej, jejaring dinyatakan dalam URDF sebagai package://Name/meshes/…, jika tidak sebagai laluan relatif.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Huraian robot dieksport ({0}): {1} jasad, {2} sendi bergerak – dalam meter, pose semasa ialah pose sifar{3}",
+ "Frei ({0})": "Bebas ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Melaporkan laluan yang memotong lebih dalam daripada model pada tempat itu (pemotong hujung, pemotong muka, pemotong bebola dan torus, gerakan 3 paksi). Potongan yang tiada dalam model – ukiran, pelegaan sudut, poket daripada lakaran sahaja – turut dilaporkan.",
+ "Auch gegen das fertige Teil prüfen": "Semak juga terhadap bahagian siap",
+ "– bis {0} mm": "– sehingga {0} mm",
+ ", kein Schnitt ins fertige Teil": ", tiada potongan ke dalam bahagian siap",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Tiada perlanggaran dengan bahan (pemegang, batang, gerakan pantas){0}{1} – disemak baris demi baris terhadap bahan mentah yang tinggal pada ketika itu",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Eksport sebagai huraian robot (URDF, SDF, MJCF)…"
+}

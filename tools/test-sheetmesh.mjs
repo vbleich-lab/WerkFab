@@ -961,3 +961,22 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
     ok('Zungen an einer Kreiskante: vier Zungen im Zuschnitt, Schlitze auf dem Kreis der Wand, um die Wölbung breiter', fp1.tabs === 4 && fp1.area > fp0.area + 4 * 10 * 2 * 0.9 && !fp1.overlap && sl.length === 4 && sl.every(s => near(Math.hypot(s.c[0], s.c[1]), 43 - s.sag / 2, 0.01) && s.sag > 0.2 && near(s.c[2], 19)), `${fp1.tabs} Zungen, +${(fp1.area - fp0.area).toFixed(1)} mm², Wölbung ${sl[0]?.sag.toFixed(3)}`);
   } else ok('Zungen an einer Kreiskante: Kreis wird als Bogen erkannt', false);
 }
+
+// ---- bend calculation after DIN 6935, mesh offset / hollow / remesh / overhangs ----
+{
+  const { dinK, sheetK } = await import('../js/sheetmetal.js');
+  ok('DIN 6935: K = 0,325 bei r/s = 1, 0,5 ab r/s = 5, sonst 0,65 + 0,5·lg(r/s) halbiert', near(dinK(2, 2), 0.325) && near(dinK(10, 2), 0.5) && near(dinK(4, 2), (0.65 + 0.5 * Math.log10(2)) / 2) && dinK(0, 2) === 0, `${dinK(2, 2)} ${dinK(4, 2).toFixed(4)}`);
+  const poly = [[0, 0], [100, 0], [100, 60], [0, 60]], f = { thickness: 2, radius: 2, kfactor: 0.44, bendCalc: 'din6935', flanges: [{ edge: 0, on: true, h: 20, angle: 90 }] };
+  const fp = flatPattern(poly, f);
+  ok('DIN 6935 in der Abwicklung: Zugabe aus dem berechneten K-Faktor', near(sheetK(f), 0.325) && near(fp.table[0].allowance, bendAllowance(90, 2, 2, 0.325)) && near(fp.size[1], 60 + 20 + bendAllowance(90, 2, 2, 0.325), 0.02), `${fp.size[1].toFixed(3)}`);
+  const cube = s => { const g = new THREE.BoxGeometry(s, s, s).toNonIndexed(); return M.weld(g.attributes.position.array); };
+  const vol = m => M.stats(m).volume;
+  const c = cube(20);
+  {
+    ok('Netz versetzen: Würfel 20 um 1 nach außen wird 22³', near(vol(M.offset(c, 1)), 22 ** 3, 1), vol(M.offset(c, 1)).toFixed(2));
+    ok('Aushöhlen: Wand 2 lässt 20³ − 16³', near(vol(M.hollow(c, 2)), 8000 - 16 ** 3, 1), vol(M.hollow(c, 2)).toFixed(2));
+    ok('Neu vernetzen: Volumen bleibt', near(vol(M.remesh(c, 4)), 8000, 8), vol(M.remesh(c, 4)).toFixed(2));
+    const oh = M.overhangs(c, 45);
+    ok('Überhänge: ein Würfel hat keine (Unterseite liegt auf der Platte)', oh.area < 1e-6 && near(oh.plate, 400, 0.01), `${oh.area} / Platte ${oh.plate}`);
+  }
+}

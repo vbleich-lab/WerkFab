@@ -11,8 +11,10 @@ WerkFab liefert die folgenden Bibliotheken unverändert im Ordner `vendor/` mit.
 | Clipper (JavaScript-Portierung) | 6.4.2 | Boost Software License 1.0 | https://sourceforge.net/projects/jsclipper/ |
 | opentype.js (inkl. tiny-inflate) | 1.3.4 | MIT | https://github.com/opentypejs/opentype.js |
 | Roboto, Roboto Mono (Schriften) | – | Apache License 2.0 | https://fonts.google.com/specimen/Roboto |
+| Pyodide (Python in WebAssembly, wird erst beim ersten Python-Skript geladen) | 314.0.8 | MPL-2.0 | https://github.com/pyodide/pyodide |
+| CPython-Standardbibliothek (in Pyodide) | 3.x | PSF License | https://github.com/python/cpython |
 
-Die vollständigen Lizenztexte liegen im Ordner [`licenses/`](licenses): MIT (three.js, replicad, three-mesh-bvh, opentype.js, tiny-inflate, serde_json, wasm-bindgen, Electron), Boost Software License 1.0 (Clipper), Apache License 2.0 (Roboto, truck), LGPL 2.1 mit Open-CASCADE-Ausnahme (Open CASCADE Technology, opencascade.js). Der Quelltext von Open CASCADE und opencascade.js steht unter den oben genannten Adressen.
+Die vollständigen Lizenztexte liegen im Ordner [`licenses/`](licenses): MIT (three.js, replicad, three-mesh-bvh, opentype.js, tiny-inflate, serde_json, wasm-bindgen, Electron), Boost Software License 1.0 (Clipper), Apache License 2.0 (Roboto, truck), LGPL 2.1 mit Open-CASCADE-Ausnahme (Open CASCADE Technology, opencascade.js), Mozilla Public License 2.0 (Pyodide, unverändert; Quelltext unter der angegebenen Adresse), PSF License (Python). Der Quelltext von Open CASCADE und opencascade.js steht unter den oben genannten Adressen.
 
 ## Rust-Kern (`rust/werkfab-kernel`, `vendor/werkfab-kernel`)
 

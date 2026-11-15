@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Tutti e tre",
+ "Roboterbeschreibung exportieren": "Esporta descrizione del robot",
+ "ROS-Paket (für URDF)": "Pacchetto ROS (per URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Ogni corpo visibile diventa un membro (link) con mesh (STL, in metri), massa e inerzia, ogni giunto diventa un giunto (joint) con asse e limiti. La posizione attuale è la posizione zero. Con un nome di pacchetto le mesh compaiono nell'URDF come package://Name/meshes/…, altrimenti come percorso relativo.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Descrizione del robot esportata ({0}): {1} corpi, {2} giunti mobili – in metri, la posizione attuale è la posizione zero{3}",
+ "Frei ({0})": "Libero ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Segnala i percorsi che tagliano più in profondità del modello in quel punto (frese cilindriche, a spianare, sferiche e toriche, movimenti a 3 assi). Viene segnalato anche un taglio che non è nel modello – incisione, scarico d'angolo, tasca ricavata solo da uno schizzo.",
+ "Auch gegen das fertige Teil prüfen": "Verifica anche rispetto al pezzo finito",
+ "– bis {0} mm": "– fino a {0} mm",
+ ", kein Schnitt ins fertige Teil": ", nessun taglio nel pezzo finito",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Nessuna collisione con il materiale (portautensile, gambo, rapidi){0}{1} – verificato riga per riga rispetto al grezzo rimasto in quel momento",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Esporta come descrizione del robot (URDF, SDF, MJCF)…"
+}

@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "Kao pogled (svi trouglovi)",
+ "Konvexe Hülle": "Konveksna ljuska",
+ "Quader um den Körper": "Kvadar oko tijela",
+ "Kollisionsform": "Oblik sudara",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "Oblik sudara: konveksna ljuska ima malo trouglova i brzo se računa u simulaciji, ali popunjava džepove i rupe; kvadar je najgrublji. Pogled uvijek zadržava cijelu mrežu.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; sudar kao konveksna ljuska ({0} umjesto {1} trouglova)",
+ "; Kollision als Quader": "; sudar kao kvadar",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "Opis robota izvezen ({0}): tijela {1}, pokretnih zglobova {2} – u metrima, trenutni položaj je nulti položaj{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Prijavljuje putanje koje režu dublje od modela na tom mjestu (valjkasti, čeoni, kuglasti i torusni glodači, glodala za skošenje i burgije sa svojim konusom; 3-osna kretanja). Prijavljuje se i rez kojeg nema u modelu – graviranje, rasterećenje ugla, džep samo iz skice."
+}

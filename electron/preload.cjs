@@ -17,6 +17,11 @@ contextBridge.exposeInMainWorld('werkfabApp', {
     onCall: fn => { ipcRenderer.on('agent:call', (_e, c) => fn(c)); },
     reply: (id, r) => ipcRenderer.send('agent:reply', id, r),
   },
+  // 3D printing: a file for the slicer is written to the temp folder and opened (exe: chosen program, else the system's)
+  slicer: {
+    open: ({ name, data, exe }) => ipcRenderer.invoke('slicer:open', { name: String(name || 'werkfab.3mf'), data, exe: String(exe || '') }),
+    pick: () => ipcRenderer.invoke('slicer:pick'),
+  },
   // size of the whole interface (Einstellungen → Benutzeroberfläche)
   zoom: f => { try { webFrame.setZoomFactor(Math.max(0.5, Math.min(3, +f || 1))); } catch { /* keeps the size */ } },
 });

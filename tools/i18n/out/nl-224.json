@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Alle drie",
+ "Roboterbeschreibung exportieren": "Robotbeschrijving exporteren",
+ "ROS-Paket (für URDF)": "ROS-pakket (voor URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Elk zichtbaar lichaam wordt een schakel (link) met mesh (STL, in meters), massa en traagheid, elk scharnier een scharnier (joint) met as en grenzen. De huidige stand is de nulstand. Met een pakketnaam staan de meshes in de URDF als package://Name/meshes/…, anders als relatief pad.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Robotbeschrijving geëxporteerd ({0}): {1} lichamen, {2} bewegende scharnieren – in meters, de huidige stand is de nulstand{3}",
+ "Frei ({0})": "Vrij ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Meldt banen die dieper snijden dan het model op die plek (vingerfrezen, vlakfrezen, kogelfrezen en torusfrezen, 3-assige bewegingen). Een snede die niet in het model staat – gravure, hoekvrijstelling, kamer alleen uit een schets – wordt ook gemeld.",
+ "Auch gegen das fertige Teil prüfen": "Ook controleren tegen het eindproduct",
+ "– bis {0} mm": "– tot {0} mm",
+ ", kein Schnitt ins fertige Teil": ", geen snede in het eindproduct",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Geen botsing met het materiaal (houder, schacht, ijlgangen){0}{1} – regel voor regel gecontroleerd tegen het op dat moment resterende ruwe materiaal",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Exporteren als robotbeschrijving (URDF, SDF, MJCF)…"
+}

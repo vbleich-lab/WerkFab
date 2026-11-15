@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "表示と同じ(すべての三角形)",
+ "Konvexe Hülle": "凸包",
+ "Quader um den Körper": "ボディを囲む直方体",
+ "Kollisionsform": "衝突形状",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "衝突形状:凸包は三角形が少なくシミュレーションでの計算が速いですが、ポケットや穴が埋まります。直方体は最も粗い形状です。表示には常に完全なメッシュが使われます。",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": ";衝突は凸包({1}個の三角形の代わりに{0}個)",
+ "; Kollision als Quader": ";衝突は直方体",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "ロボット記述をエクスポートしました({0}):ボディ{1}個、可動ジョイント{2}個。単位はメートル、現在の姿勢がゼロ姿勢です{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "この位置でモデルより深く切削するパスを報告します(エンドミル、正面フライス、ボールエンドミル、ブルノーズカッター、面取りカッター、ドリル(先端の円錐を含む)、3軸の動き)。モデルにない切削(刻印、コーナーの逃がし、スケッチのみで作成したポケット)も報告されます。"
+}

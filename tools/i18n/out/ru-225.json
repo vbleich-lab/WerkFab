@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "Как на виде (все треугольники)",
+ "Konvexe Hülle": "Выпуклая оболочка",
+ "Quader um den Körper": "Параллелепипед вокруг тела",
+ "Kollisionsform": "Форма столкновения",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "Форма столкновения: у выпуклой оболочки мало треугольников, и в симуляции она считается быстро, но она заполняет карманы и отверстия; параллелепипед — самый грубый вариант. Вид всегда сохраняет полную сетку.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; столкновение как выпуклая оболочка ({0} вместо {1} треугольников)",
+ "; Kollision als Quader": "; столкновение как параллелепипед",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "Описание робота экспортировано ({0}): тел — {1}, подвижных соединений — {2} – в метрах, текущее положение считается нулевым{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Сообщает о траекториях, которые режут глубже модели в этом месте (концевые, торцевые, сферические и тороидальные фрезы, фасочные фрезы и сверла с их конусом; 3-осевые перемещения). Рез, которого нет в модели — гравировка, поднутрение углов, карман только из эскиза — также отмечается."
+}

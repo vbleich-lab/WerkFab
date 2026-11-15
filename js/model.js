@@ -2112,6 +2112,24 @@ function* regenSteps(project, upTo = null) {
   return { bodies, errors, notes: ctx.notes, threads: ctx.threads, faceExtrude: ctx.faceExtrude || {}, kernel: K.id, resumedAt: start, featureCount: list.length };
 }
 
+// Triangles of a body for 3D printing: the chord tolerance is a share of the body size (standard 0.02 %, fine
+// 0.005 %, finest 0.001 %), never coarser than the view. Returns a BufferGeometry, or null when the kernel cannot.
+export const EXPORT_QUALITY = { standard: [2e-4, 0.2], fine: [5e-5, 0.1], finest: [1e-5, 0.05] };
+export function exportGeometry(body, quality = 'standard') {
+  const q = EXPORT_QUALITY[quality];
+  if (!q || !body.shape) return null;
+  body.geometry.computeBoundingBox();
+  const size = body.geometry.boundingBox.getSize(new THREE.Vector3()).length() || 1;
+  const tol = Math.max(5e-4, Math.min(0.02, q[0] * size));
+  try {
+    const m = kernelOf(body.shape).mesh(body.shape, tol, q[1]);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(m.vertices, 3));
+    g.setIndex(Array.isArray(m.triangles) ? m.triangles : new THREE.BufferAttribute(m.triangles, 1));
+    return g;
+  } catch { return null; }
+}
+
 export function edgeMidpoint(body, edgeIndex) {
   const p = body.shape.edges[edgeIndex].pointAt(0.5);
   return [+p.x.toFixed(5), +p.y.toFixed(5), +p.z.toFixed(5)];
@@ -2158,9 +2176,9 @@ const occKernel = {
   async load() { const { loadKernel } = await import('./kernel.js'); await loadKernel(); },
   supports: () => true,
   runFeature,
-  mesh(shape) {
-    const m = shape.mesh({ tolerance: 0.02, angularTolerance: 0.2 });
-    const em = shape.meshEdges({ tolerance: 0.02, angularTolerance: 0.2 });
+  mesh(shape, tolerance = 0.02, angularTolerance = 0.2) {
+    const m = shape.mesh({ tolerance, angularTolerance });
+    const em = shape.meshEdges({ tolerance, angularTolerance });
     return { vertices: m.vertices, normals: m.normals, triangles: m.triangles, faceGroups: m.faceGroups, lines: em.lines, edgeGroups: em.edgeGroups };
   },
   props(shape) {

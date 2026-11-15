@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "Као поглед (сви троуглови)",
+ "Konvexe Hülle": "Конвексни омотач",
+ "Quader um den Körper": "Квадар око тела",
+ "Kollisionsform": "Облик судара",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "Облик судара: конвексни омотач има мало троуглова и брзо се рачуна у симулацији, али попуњава џепове и рупе; квадар је најгрубљи. Поглед увек задржава целу мрежу.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; судар као конвексни омотач ({0} уместо {1} троуглова)",
+ "; Kollision als Quader": "; судар као квадар",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "Опис робота извезен ({0}): тела {1}, покретних зглобова {2} – у метрима, тренутни положај је нулти положај{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Пријављује путање које секу дубље од модела на том месту (прстасти, чеони, кугласти и торусни глодачи, глодала за скошење и бургије са својим конусом; 3-осна кретања). Пријављује се и рез којег нема у моделу – гравирање, растерећење угла, џеп само из скице."
+}

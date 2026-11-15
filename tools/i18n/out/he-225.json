@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "כמו התצוגה (כל המשולשים)",
+ "Konvexe Hülle": "מעטפת קמורה",
+ "Quader um den Körper": "תיבה סביב הגוף",
+ "Kollisionsform": "צורת התנגשות",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "צורת התנגשות: למעטפת הקמורה מעט משולשים והיא מחושבת מהר בסימולציה, אך היא ממלאת כיסים וקדחים; התיבה היא הגסה ביותר. התצוגה שומרת תמיד על הרשת המלאה.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; התנגשות כמעטפת קמורה ({0} במקום {1} משולשים)",
+ "; Kollision als Quader": "; התנגשות כתיבה",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "תיאור הרובוט יוצא ({0}): {1} גופים, {2} מפרקים נעים – במטרים, המצב הנוכחי הוא מצב האפס{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "מדווח על מסלולים החותכים עמוק יותר מהמודל במקום זה (כרסומי קצה, פנים, כדוריים וטורוס, כרסומי פאזה ומקדחים עם החרוט שלהם, תנועות תלת-צירים). חיתוך שאינו במודל – חריטה, שחרור פינות, כיס מסקיצה בלבד – מדווח אף הוא."
+}

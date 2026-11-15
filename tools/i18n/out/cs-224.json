@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Všechny tři",
+ "Roboterbeschreibung exportieren": "Exportovat popis robota",
+ "ROS-Paket (für URDF)": "Balíček ROS (pro URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Každé viditelné těleso se stane článkem se sítí (STL, v metrech), hmotností a setrvačností, každý kloub kloubem s osou a mezemi. Současná poloha je nulová poloha. Se zadaným názvem balíčku jsou sítě v URDF uvedeny jako package://Name/meshes/…, jinak jako relativní cesta.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Popis robota exportován ({0}): těles {1}, pohyblivých kloubů {2} – v metrech, současná poloha je nulová poloha{3}",
+ "Frei ({0})": "Volný ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Hlásí dráhy, které řežou hlouběji než model v daném místě (stopkové, čelní, kulové a toroidní frézy, 3osé pohyby). Hlásí se také řez, který v modelu není – gravírování, odlehčení rohů, kapsa jen ze skici.",
+ "Auch gegen das fertige Teil prüfen": "Kontrolovat také vůči hotovému dílu",
+ "– bis {0} mm": "– až {0} mm",
+ ", kein Schnitt ins fertige Teil": ", žádný řez do hotového dílu",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Žádná kolize s materiálem (držák, stopka, rychloposuvy){0}{1} – kontrolováno řádek po řádku proti zbylému polotovaru",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Exportovat jako popis robota (URDF, SDF, MJCF)…"
+}

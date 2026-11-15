@@ -42,6 +42,12 @@ export const ICONS = {
   mesh_refine: svg(P('M3 19 12 4l9 15z', 'f2') + P('M7.5 11.5h9M7.5 11.5 12 19l4.5-7.5M5.25 15.25h13.5M9.75 7.75h4.5', 'a')),
   mesh_tobody: svg(P('M2 14 6 6l4 8z', 'f2') + P('M4 10h4M6 6v8') + P('M10 11h4M12 9l2 2-2 2', 'a') + P('M15 9l4-2 3 2v7l-4 2-3-2z', 'f1') + P('M15 9l3 2 4-2M18 11v7')),
   mesh_frombody: svg(P('M2 9l4-2 3 2v7l-4 2-3-2z', 'f1') + P('M2 9l3 2 4-2M5 11v7') + P('M10 11h4M12 9l2 2-2 2', 'a') + P('M14 16 18 7l4 9z', 'f2') + P('M16 11.5h4M18 7v9')),
+  mesh_remesh: svg(P('M3 19 12 4l9 15z', 'f2') + P('M7.5 11.5h9M12 4v15M7.5 11.5 12 19l4.5-7.5M5.2 15.2h13.6', 'a')),
+  mesh_offset: svg(P('M7 17 12 8l5 9z', 'f2') + P('M3 20 12 4l9 16z', 'a').replace('/>', ' fill="none" stroke-dasharray="2 2"/>')),
+  mesh_hollow: svg(P('M3 19 12 4l9 15z', 'f2') + P('M8 16.5 12 9.5l4 7z', 'f1') + P('M8 16.5 12 9.5l4 7z', 'a').replace('/>', ' fill="none"/>')),
+  mesh_layflat: svg(P('M5 16 12 6l7 10z', 'f2') + P('M2 19.5h20', 'a') + P('M12 16v3', 'a')),
+  mesh_overhang: svg(P('M4 19h6V9h10v5h-6', 'f2') + P('M10 14h10', 'r') + P('M12 14v5M16 14v5', 'r').replace('/>', ' stroke-dasharray="1.5 1.5"/>')),
+  mesh_slicer: svg(R(3, 15, 18, 5, 'f2', 1) + P('M8 4h8l-1.5 5h-5z', 'f1') + P('M12 9v4.5', 'a') + C(12, 13.8, 0.9, 'af')),
   mesh_section: svg(P('M3 19 12 4l9 15z', 'f2') + P('M2 13h20', 'r') + P('M8.4 13h7.2', 'a').replace('/>', ' stroke-width="2.4"/>')),
 
   // ---------- skizze ----------
@@ -166,6 +172,8 @@ export const ICONS = {
   svgfile: svg(doc(P('M8 17c2-6 5 2 8-4', 'a'))),
   dxffile: svg(doc(P('M8.5 17h7M8.5 17v-5M8.5 12l7 5', 'a'))),
   template: svg(doc(P('M9 11h7M9 14h7M9 17h4', 'a'))),
+  pyscript: svg(doc(P('M10.5 11 8 13.5l2.5 2.5M14.5 11l2.5 2.5-2.5 2.5', 'a'))),
+  addin: svg(R(4, 4, 7, 7, 'f1', 1) + R(13, 4, 7, 7, 'f2', 1) + R(4, 13, 7, 7, 'f3', 1) + P('M16.5 13.5v6M13.5 16.5h6', 'a')),
   exportdef: svg(doc(P('M12.5 10v7.5M9.5 14.5l3 3 3-3', 'a'))),
   importdef: svg(doc(P('M12.5 17.5V10M9.5 13l3-3 3 3', 'a'))),
   resetdef: svg(P('M4 12a8 8 0 1 0 3-6.2', 'a') + P('M4 4v4h4', 'a') + C(12, 12, 2, 'f2')),

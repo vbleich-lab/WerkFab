@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "Kā skatā (visi trijstūri)",
+ "Konvexe Hülle": "Izliektais apvalks",
+ "Quader um den Körper": "Kvadrs ap ķermeni",
+ "Kollisionsform": "Sadursmes forma",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "Sadursmes forma: izliektajam apvalkam ir maz trijstūru un simulācijā tas tiek aprēķināts ātri, bet tas aizpilda kabatas un caurumus; kvadrs ir visrupjākais. Skats vienmēr saglabā pilno tīklu.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; sadursme kā izliektais apvalks ({0} {1} trijstūru vietā)",
+ "; Kollision als Quader": "; sadursme kā kvadrs",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "Robota apraksts eksportēts ({0}): ķermeņi: {1}, kustīgi savienojumi: {2} – metros, pašreizējā poza ir nulles poza{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Ziņo par trajektorijām, kas šajā vietā griež dziļāk nekā modelis (kāta, plakanās, lodveida un toru frēzes, nošķēlumu frēzes un urbji ar savu konusu; 3 asu kustības). Tiek ziņots arī par griezumu, kura modelī nav – gravējums, stūra atslogojums, kabata tikai no skices."
+}

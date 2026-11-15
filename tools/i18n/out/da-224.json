@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Alle tre",
+ "Roboterbeschreibung exportieren": "Eksportér robotbeskrivelse",
+ "ROS-Paket (für URDF)": "ROS-pakke (til URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Hvert synligt legeme bliver et link med net (STL, i meter), masse og inerti, hvert led et led med akse og grænser. Den aktuelle stilling er nulstillingen. Med et pakkenavn står nettene i URDF som package://Name/meshes/…, ellers som relativ sti.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Robotbeskrivelse eksporteret ({0}): {1} legemer, {2} bevægelige led – i meter, den aktuelle stilling er nulstillingen{3}",
+ "Frei ({0})": "Frit ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Melder baner, der skærer dybere end modellen på det sted (skaft-, plan-, kugle- og torusfræsere, 3-akse-bevægelser). Et snit, der ikke findes i modellen – gravering, hjørnefrigang, lomme kun ud fra en skitse – meldes også.",
+ "Auch gegen das fertige Teil prüfen": "Kontrollér også mod den færdige del",
+ "– bis {0} mm": "– op til {0} mm",
+ ", kein Schnitt ins fertige Teil": ", intet snit ind i den færdige del",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Ingen kollision med materialet (holder, skaft, hurtiggang){0}{1} – kontrolleret linje for linje mod det råemne, der er tilbage på det pågældende tidspunkt",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Eksportér som robotbeskrivelse (URDF, SDF, MJCF)…"
+}

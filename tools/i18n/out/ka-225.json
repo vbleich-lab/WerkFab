@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "ხედის მსგავსად (ყველა სამკუთხედი)",
+ "Konvexe Hülle": "ამოზნექილი გარსი",
+ "Quader um den Körper": "პარალელეპიპედი სხეულის გარშემო",
+ "Kollisionsform": "შეჯახების ფორმა",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "შეჯახების ფორმა: ამოზნექილ გარსს ცოტა სამკუთხედი აქვს და სიმულაციაში სწრაფად ითვლება, მაგრამ ავსებს ჯიბეებს და ხვრელებს; პარალელეპიპედი ყველაზე უხეშია. ხედი ყოველთვის სრულ ბადეს ინარჩუნებს.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; შეჯახება ამოზნექილი გარსით ({0} {1} სამკუთხედის ნაცვლად)",
+ "; Kollision als Quader": "; შეჯახება პარალელეპიპედით",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "რობოტის აღწერა ექსპორტირებულია ({0}): სხეული {1}, მოძრავი სახსარი {2} – მეტრებში, მიმდინარე მდგომარეობა არის ნულოვანი მდგომარეობა{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "აცნობებს ტრაექტორიებს, რომლებიც ამ ადგილას მოდელზე უფრო ღრმად ჭრის (თითისებრი, ბრტყელი, სფერული და ტორული ფრეზები, ფასკის ფრეზები და ბურღები თავისი კონუსით; 3-ღერძიანი მოძრაობები). ჭრილიც, რომელიც მოდელში არ არის – გრავირება, კუთხის გასათავისუფლებელი ჭრილი, ჯიბე მხოლოდ ესკიზიდან – ასევე ფიქსირდება."
+}

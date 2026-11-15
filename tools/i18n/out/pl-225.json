@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "Jak widok (wszystkie trójkąty)",
+ "Konvexe Hülle": "Otoczka wypukła",
+ "Quader um den Körper": "Prostopadłościan wokół bryły",
+ "Kollisionsform": "Kształt kolizji",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "Kształt kolizji: otoczka wypukła ma mało trójkątów i szybko się liczy w symulacji, ale wypełnia kieszenie i otwory; prostopadłościan jest najgrubszy. Widok zawsze zachowuje pełną siatkę.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; kolizja jako otoczka wypukła ({0} zamiast {1} trójkątów)",
+ "; Kollision als Quader": "; kolizja jako prostopadłościan",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "Opis robota wyeksportowany ({0}): {1} brył, {2} ruchomych przegubów – w metrach, bieżące ustawienie jest pozycją zerową{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Zgłasza ścieżki, które skrawają głębiej niż model w danym miejscu (frezy palcowe, czołowe, kuliste i toroidalne, frezy do fazowania i wiertła wraz ze stożkiem; ruchy 3-osiowe). Zgłaszane jest także cięcie, którego nie ma w modelu – grawerowanie, podcięcie narożnika, kieszeń utworzona tylko ze szkicu."
+}

@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Sva tri",
+ "Roboterbeschreibung exportieren": "Izvezi opis robota",
+ "ROS-Paket (für URDF)": "ROS paket (za URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Svako vidljivo tijelo postaje karika s mrežom (STL, u metrima), masom i inercijom, svaki zglob zglob s osom i granicama. Trenutni položaj je nulti položaj. Sa nazivom paketa mreže u URDF-u stoje kao package://Name/meshes/…, inače kao relativna putanja.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Opis robota izvezen ({0}): tijela {1}, pokretnih zglobova {2} – u metrima, trenutni položaj je nulti položaj{3}",
+ "Frei ({0})": "Slobodan ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Prijavljuje putanje koje režu dublje od modela na tom mjestu (valjkasti, čeoni, kuglasti i torusni glodači, 3-osna kretanja). Prijavljuje se i rez kojeg nema u modelu – graviranje, rasterećenje ugla, džep samo iz skice.",
+ "Auch gegen das fertige Teil prüfen": "Provjeri i prema gotovom dijelu",
+ "– bis {0} mm": "– do {0} mm",
+ ", kein Schnitt ins fertige Teil": ", bez reza u gotov dio",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Nema kolizije s materijalom (držač, drška, brzi hodovi){0}{1} – provjereno red po red prema preostalom pripremku u tom trenutku",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Izvezi kao opis robota (URDF, SDF, MJCF)…"
+}

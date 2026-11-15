@@ -54,6 +54,8 @@ WerkFab ist ein parametrisches 3D-CAD mit integriertem CAM. Teile werden über S
 - **Konstruktionsgeometrie**: Ebenen (versetzt, unter Winkel, durch 3 Punkte, tangential), Achsen und Punkte
 - **Flächen**: Extrusion, Rotation, Loft, Pflaster, Versatz, Vernähen, Trennen, Verlängern, Füllen
 - **Blech**: Laschen, Lasche an Lasche (U-Falz, Z-Stufe, 180°-Umschlag), offene oder geschlossene Ecken mit Eckfreistellung (rund oder eckig), Biegelinien, Sicken, Durchzüge, Kiemen, Prägungen, Abwicklung mit Biegetabelle, Schachteln mit Schneidprogramm je Tafel
+- **Biegeberechnung** mit eigenem K-Faktor oder nach DIN 6935 (aus Radius und Dicke); die Biegetabelle geht als CSV an die Abkantpresse
+- **Netze und 3D-Druck**: versetzen, aushöhlen, neu vernetzen und auf eine Fläche legen; Überhänge, die Stützen brauchen, rot zeigen; sichtbare Teile als 3MF oder STL an den Slicer senden
 - **Zeitachse** mit Zwischenspeicher: Änderungen berechnen nur die betroffenen Features neu, mit schrittweiser Berechnung und Fortschrittsanzeige
 
 ### Baugruppen
@@ -90,10 +92,11 @@ WerkFab ist ein parametrisches 3D-CAD mit integriertem CAM. Teile werden über S
 - **Aussehen**: zehn Designs (hell, dunkel, hoher Kontrast), frei wählbare Akzentfarbe, Farbe und Größe der Symbole, Dichte, Eckenform, Schrift, Deckkraft der Fenster, Größe der Oberfläche und benannte Profile aller Einstellungen
 - **Updates**: Das Programm sieht beim Start auf GitHub nach einer neuen Version. Die installierte Windows-App und das Linux-AppImage laden und installieren sie auf Wunsch selbst; der Windows-Ordner ohne Installation, macOS und die Browser-Version zeigen einen Hinweis mit der Download-Seite. Diese Abfrage ist die einzige Verbindung ins Netz, die WerkFab von sich aus aufbaut, und sie lässt sich abschalten (Voreinstellungen → Allgemein → Updates).
 - **Bauteilkatalog**: Normteile, Rundrohre, Quadrat- und Rechteckrohre, I-Träger (IPE, IPN, HEA, HEB), U-Stahl (UPN, UPE), T-Stahl, Winkel-, Flach-, Vierkant- und Rundstahl – durchsuchbar nach Name, Norm oder Maß, mit gezeichneter Ansicht und Größentabelle
-- **KI-Agenten**: die Desktop-App öffnet auf Wunsch einen lokalen Anschluss nach dem Model Context Protocol (MCP) – Voreinstellungen → KI-Agenten zeigt Adresse, Schlüssel und den Befehl zum Verbinden. Ein Agent liest und ändert den geöffneten Entwurf, fügt Katalogteile ein, legt Werkzeuge und Fertigungsoperationen an, gibt das NC-Programm aus (ein Entwurf, der zu prüfen bleibt) und lässt es auf Kollisionen und auf Schnitte ins fertige Teil prüfen, lässt die Abtragssimulation laufen und bekommt ihr Bild mit dem Vergleich zum Teil, fragt Körper, Volumen und Fehler ab, holt ein Bild der Ansicht und gibt STEP oder STL aus. Ab Werk aus, nur auf diesem Rechner, nur mit Schlüssel; kein Zugriff auf Dateien oder Einstellungen. Dieselben Befehle laufen auch aus einem JSON-Skript (Datei → Befehlsskript ausführen)
+- **KI-Agenten**: die Desktop-App öffnet auf Wunsch einen lokalen Anschluss nach dem Model Context Protocol (MCP) – Voreinstellungen → KI-Agenten zeigt Adresse, Schlüssel und den Befehl zum Verbinden. Ein Agent liest und ändert den geöffneten Entwurf, fügt Katalogteile ein, legt Werkzeuge und Fertigungsoperationen an, gibt das NC-Programm aus (ein Entwurf, der zu prüfen bleibt) und lässt es auf Kollisionen und auf Schnitte ins fertige Teil prüfen, lässt die Abtragssimulation laufen und bekommt ihr Bild mit dem Vergleich zum Teil, positioniert Körper, legt Gelenke an, bewegt sie und sieht, welche Körper ineinanderlaufen, fragt Körper, Volumen und Fehler ab, holt ein Bild der Ansicht und gibt STEP oder STL aus. Ab Werk aus, nur auf diesem Rechner, nur mit Schlüssel; kein Zugriff auf Dateien oder Einstellungen. Dieselben Befehle laufen auch aus einem JSON-Skript (Datei → Befehlsskript ausführen)
 - **Konfigurationen**: benannte Sätze von Parameterwerten – ein Entwurf, mehrere Varianten
+- **Python-Skripte und Zusatzmodule**: Python läuft im Programm selbst (Pyodide, nichts zu installieren). Skripte und Zusatzmodule, die für die Python-Schnittstelle von Autodesk Fusion geschrieben sind (`adsk.core`, `adsk.fusion`), laufen in vielen Fällen ohne Änderung – Skizzen, Extrusion, Rotation, Bohrung, Verrundung, Fase, Schale, Muster, Spiegeln, Parameter und Befehle mit eigenem Dialog und eigener Schaltfläche. Werte in Zentimetern und Bogenmaß wie im Original; ein Lauf ist ein Schritt zum Rückgängigmachen
 - Markierungsmenü (Rechtsklick), ViewCube, Tastenkürzel (z. B. Q Drücken/Ziehen, F Verrundung, M Verschieben, I Messen, X Konstruktionslinie)
-- Mehrere Dokumente in Tabs, Versionsstände beim Speichern; Import von STEP, IGES, STL, OBJ und DXF, Export als STEP, IGES, STL und glTF, Baugruppen mit ihren Gelenken als URDF (Roboterbeschreibung mit Netzen, Massen und Trägheit), Werkzeugbibliotheken und Postprozessoren (.cps)
+- Mehrere Dokumente in Tabs, Versionsstände beim Speichern; Import von STEP, IGES, STL, OBJ und DXF, Export als STEP, IGES, STL und glTF, Baugruppen mit ihren Gelenken als Roboterbeschreibung (URDF, SDF oder MJCF mit Netzen, Massen und Trägheit), Werkzeugbibliotheken und Postprozessoren (.cps)
 
 ---
 
@@ -218,6 +221,7 @@ WerkFab erzeugt Programme, die echte Maschinen bewegen. Ein falsches Programm ka
 - Kein simultanes 5-Achs-Fräsen. Unterstützt werden 3+2 (geschwenkte Aufspannungen) und 4-Achs-Simultan um die A-Achse.
 - Angetriebene Werkzeuge an der Drehmaschine: Bohren, Nuten, Flächen und Skizzenkonturen auf Planfläche und Umfang; keine Y-Achse, Taschen nur auf der Planfläche. Polar- und Zylinder-Interpolation (G12.1, G7.1) nur im Fanuc-Postprozessor, sonst kurze X/C-Schritte bzw. Z/C ohne Interpolation. In der Simulation erscheinen Konturen als Bänder, nicht als Materialabtrag. Die M-Codes für C-Achse und Werkzeugspindel sind maschinenabhängig und müssen im Postprozessor geprüft werden. Die NC-Prüfung rechnet angetriebene Bearbeitungen nicht gegen das Rohteil.
 - Keine Freiform-/T-Spline-Modellierung.
+- Python-Skripte: ein Teil der Schnittstelle `adsk`. Bemaßungen und Abhängigkeiten in Skizzen werden übergangen, Auswahl-Eingaben und HTML-Paletten gibt es nicht, Kanten werden über ihre Mitte gefunden (ändert ein Skript die Topologie, bevor es Kanten wählt, kann es andere treffen), CAM-Funktionen fehlen.
 - Übersetzungen: Die Oberfläche ist auf Deutsch geschrieben. In den anderen Sprachen können einzelne zusammengesetzte Meldungen deutsch bleiben; Kommentare im NC-Programm sind immer deutsch.
 - Große 3D-Strategien (Adaptiv 3D, Geodätisch) brauchen je nach Teil mehrere Sekunden Rechenzeit.
 
@@ -229,7 +233,7 @@ WerkFab steht unter der **GNU General Public License v3.0 oder später**, siehe 
 
 Mitgelieferte Bibliotheken stehen unter ihren eigenen Lizenzen, siehe [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); die Lizenztexte liegen in [`licenses/`](licenses).
 
-Namen von Steuerungen, Maschinen und anderer Software (Heidenhain, Fanuc, Sinumerik, Okuma, LinuxCNC, GRBL und andere) sind Marken ihrer Inhaber. Sie werden nur genannt, um zu sagen, wofür Ausgabe und Import von WerkFab gedacht sind; WerkFab steht mit keinem dieser Unternehmen in Verbindung.
+Namen von Steuerungen, Maschinen und anderer Software (Heidenhain, Fanuc, Sinumerik, Okuma, LinuxCNC, GRBL, Autodesk Fusion und andere) sind Marken ihrer Inhaber. Sie werden nur genannt, um zu sagen, wofür Ausgabe und Import von WerkFab gedacht sind; WerkFab steht mit keinem dieser Unternehmen in Verbindung.
 
 ---
 

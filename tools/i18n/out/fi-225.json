@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "Kuten näkymä (kaikki kolmiot)",
+ "Konvexe Hülle": "Kupera verho",
+ "Quader um den Körper": "Särmiö kappaleen ympärillä",
+ "Kollisionsform": "Törmäysmuoto",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "Törmäysmuoto: kuperassa verhossa on vähän kolmioita ja se laskee simulaatiossa nopeasti, mutta täyttää taskut ja reiät; särmiö on karkein. Näkymä säilyttää aina koko verkon.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; törmäys kuperana verhona ({0} kolmiota {1}:n sijaan)",
+ "; Kollision als Quader": "; törmäys särmiönä",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "Robottikuvaus viety ({0}): {1} kappaletta, {2} liikkuvaa niveltä – metreinä, nykyinen asento on nolla-asento{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Ilmoittaa radat, jotka leikkaavat syvemmälle kuin malli kyseisessä kohdassa (varsi-, tasa-, pallo- ja torusjyrsimet, viistejyrsimet ja porat kärkikartioineen; 3-akseliset liikkeet). Myös leikkaus, jota ei ole mallissa – kaiverrus, kulmavapautus, tasku pelkästä luonnoksesta – ilmoitetaan."
+}

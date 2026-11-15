@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "보기와 동일 (모든 삼각형)",
+ "Konvexe Hülle": "볼록 껍질",
+ "Quader um den Körper": "바디를 감싸는 직육면체",
+ "Kollisionsform": "충돌 형상",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "충돌 형상: 볼록 껍질은 삼각형이 적어 시뮬레이션에서 빠르게 계산되지만 포켓과 구멍을 메웁니다. 직육면체가 가장 거칩니다. 보기에는 항상 전체 메시가 유지됩니다.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; 충돌은 볼록 껍질 (삼각형 {1}개 대신 {0}개)",
+ "; Kollision als Quader": "; 충돌은 직육면체",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "로봇 기술을 내보냈습니다 ({0}): 바디 {1}개, 가동 조인트 {2}개 – 미터 단위, 현재 자세가 영점 자세입니다{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "이 위치에서 모델보다 깊게 절삭하는 경로를 알려 줍니다 (엔드밀, 페이스 밀, 볼 엔드밀, 토러스 커터, 모따기 밀과 원뿔 부분을 포함한 드릴, 3축 이동). 모델에 없는 절삭 – 각인, 모서리 릴리프, 스케치만으로 만든 포켓 – 도 함께 알려 줍니다."
+}

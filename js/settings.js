@@ -92,6 +92,21 @@ export const DEFAULTS = {
   arcs: true,
   lineNumbers: false,
   simSpeed: 20,
+  // 3D-Druck
+  exportQuality: 'standard', // view | standard | fine | finest: how finely solids are divided into triangles for STL / 3MF / OBJ
+  slicerPath: '',           // program the "An Slicer senden" file is opened with (desktop app); empty = the program the system opens 3MF with
+  slicerFormat: '3mf',      // 3mf | stl
+  overhangAngle: 45,        // overhangs steeper than this (from the vertical) need supports
+  meshUnit: 'mm',           // unit of inserted STL / OBJ / 3MF / PLY files
+  meshYUp: false,           // inserted meshes are Y-up (turned to Z-up)
+  // Features
+  holeDia: 6,
+  filletRadius: 2,
+  chamferDist: 1,
+  shellThickness: 2,
+  // view
+  fitMargin: 'normal',      // tight | normal | wide: room around the model when fitting the view
+  showFps: false,           // pictures per second at the bottom of the view
 };
 
 export const MOUSE_PRESETS = {

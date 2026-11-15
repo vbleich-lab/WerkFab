@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Wszystkie trzy",
+ "Roboterbeschreibung exportieren": "Eksportuj opis robota",
+ "ROS-Paket (für URDF)": "Pakiet ROS (dla URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Każda widoczna bryła staje się członem (link) z siatką (STL, w metrach), masą i bezwładnością, a każdy przegub – przegubem (joint) z osią i ograniczeniami. Bieżące ustawienie jest pozycją zerową. Przy podanej nazwie pakietu siatki występują w URDF jako package://Name/meshes/…, w przeciwnym razie jako ścieżka względna.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Opis robota wyeksportowany ({0}): {1} brył, {2} ruchomych przegubów – w metrach, bieżące ustawienie jest pozycją zerową{3}",
+ "Frei ({0})": "Swobodny ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Zgłasza ścieżki, które skrawają głębiej niż model w danym miejscu (frezy palcowe, czołowe, kuliste i toroidalne, ruchy 3-osiowe). Zgłaszane jest także cięcie, którego nie ma w modelu – grawerowanie, podcięcie narożnika, kieszeń utworzona tylko ze szkicu.",
+ "Auch gegen das fertige Teil prüfen": "Sprawdzaj także względem gotowego detalu",
+ "– bis {0} mm": "– do {0} mm",
+ ", kein Schnitt ins fertige Teil": ", brak cięcia w gotowy detal",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Brak kolizji z materiałem (oprawka, trzonek, ruchy szybkie){0}{1} – sprawdzono wiersz po wierszu względem półfabrykatu pozostałego w danym momencie",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Eksportuj jako opis robota (URDF, SDF, MJCF)…"
+}

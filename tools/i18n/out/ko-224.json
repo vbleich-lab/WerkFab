@@ -1,0 +1,14 @@
+{
+ "Alle drei": "세 가지 모두",
+ "Roboterbeschreibung exportieren": "로봇 기술 내보내기",
+ "ROS-Paket (für URDF)": "ROS 패키지 (URDF용)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "보이는 모든 바디는 메시(STL, 미터 단위), 질량, 관성을 가진 링크가 되고, 각 조인트는 축과 한계를 가진 조인트가 됩니다. 현재 자세가 영점 자세입니다. 패키지 이름을 지정하면 메시는 URDF에 package://Name/meshes/… 형식으로, 지정하지 않으면 상대 경로로 기록됩니다.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "로봇 기술을 내보냈습니다 ({0}): 바디 {1}개, 가동 조인트 {2}개 – 미터 단위, 현재 자세가 영점 자세입니다{3}",
+ "Frei ({0})": "자유 ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "이 위치에서 모델보다 깊게 절삭하는 경로를 알려 줍니다 (엔드밀, 페이스 밀, 볼 엔드밀, 토러스 커터, 3축 이동). 모델에 없는 절삭 – 각인, 모서리 릴리프, 스케치만으로 만든 포켓 – 도 함께 알려 줍니다.",
+ "Auch gegen das fertige Teil prüfen": "완성 부품에 대해서도 검사",
+ "– bis {0} mm": "– 최대 {0} mm",
+ ", kein Schnitt ins fertige Teil": ", 완성 부품에 대한 절삭 없음",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ 재료와의 충돌 없음 (홀더, 섕크, 급속 이송){0}{1} – 그 시점에 남아 있는 소재를 기준으로 한 줄씩 검사했습니다",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "로봇 기술로 내보내기 (URDF, SDF, MJCF)…"
+}

@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "Como la vista (todos los triángulos)",
+ "Konvexe Hülle": "Envolvente convexa",
+ "Quader um den Körper": "Caja alrededor del cuerpo",
+ "Kollisionsform": "Forma de colisión",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "Forma de colisión: la envolvente convexa tiene pocos triángulos y se calcula rápido en la simulación, pero rellena cajeras y agujeros; la caja es la más tosca. La vista conserva siempre la malla completa.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; colisión como envolvente convexa ({0} en lugar de {1} triángulos)",
+ "; Kollision als Quader": "; colisión como caja",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "Descripción del robot exportada ({0}): {1} cuerpos, {2} uniones móviles – en metros, la posición actual es la posición cero{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Avisa de las trayectorias que cortan más profundo que el modelo en ese punto (fresas cilíndricas, de planear, esféricas y toroidales, fresas de chaflanar y brocas con su cono; movimientos de 3 ejes). También se avisa de un corte que no está en el modelo – grabado, alivio de esquina, cajera creada solo a partir de un boceto."
+}

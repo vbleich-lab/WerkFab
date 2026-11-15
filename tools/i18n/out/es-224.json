@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Los tres",
+ "Roboterbeschreibung exportieren": "Exportar descripción del robot",
+ "ROS-Paket (für URDF)": "Paquete ROS (para URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Cada cuerpo visible se convierte en un eslabón (link) con malla (STL, en metros), masa e inercia, y cada unión en una unión (joint) con eje y límites. La posición actual es la posición cero. Con un nombre de paquete, las mallas aparecen en el URDF como package://Name/meshes/…; de lo contrario, como ruta relativa.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Descripción del robot exportada ({0}): {1} cuerpos, {2} uniones móviles – en metros, la posición actual es la posición cero{3}",
+ "Frei ({0})": "Libre ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Avisa de las trayectorias que cortan más profundo que el modelo en ese punto (fresas cilíndricas, de planear, esféricas y toroidales, movimientos de 3 ejes). También se avisa de un corte que no está en el modelo – grabado, alivio de esquina, cajera creada solo a partir de un boceto.",
+ "Auch gegen das fertige Teil prüfen": "Comprobar también con la pieza terminada",
+ "– bis {0} mm": "– hasta {0} mm",
+ ", kein Schnitt ins fertige Teil": ", sin cortes en la pieza terminada",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Sin colisión con el material (portaherramientas, vástago, avances rápidos){0}{1} – comprobado línea a línea contra el material en bruto restante en ese momento",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Exportar como descripción de robot (URDF, SDF, MJCF)…"
+}

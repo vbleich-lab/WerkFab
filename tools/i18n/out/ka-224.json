@@ -1,0 +1,14 @@
+{
+ "Alle drei": "სამივე",
+ "Roboterbeschreibung exportieren": "რობოტის აღწერის ექსპორტი",
+ "ROS-Paket (für URDF)": "ROS პაკეტი (URDF-ისთვის)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "ყოველი ხილული სხეული ხდება რგოლი ბადით (STL, მეტრებში), მასითა და ინერციით, ყოველი სახსარი – სახსარი ღერძითა და ზღვრებით. მიმდინარე მდგომარეობა არის ნულოვანი მდგომარეობა. პაკეტის სახელის მითითებისას ბადეები URDF-ში იწერება როგორც package://Name/meshes/…, სხვა შემთხვევაში – ფარდობითი გზით.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "რობოტის აღწერა ექსპორტირებულია ({0}): სხეული {1}, მოძრავი სახსარი {2} – მეტრებში, მიმდინარე მდგომარეობა არის ნულოვანი მდგომარეობა{3}",
+ "Frei ({0})": "თავისუფალი ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "აცნობებს ტრაექტორიებს, რომლებიც ამ ადგილას მოდელზე უფრო ღრმად ჭრის (თითისებრი, ბრტყელი, სფერული და ტორული ფრეზები, 3-ღერძიანი მოძრაობები). ჭრილიც, რომელიც მოდელში არ არის – გრავირება, კუთხის გასათავისუფლებელი ჭრილი, ჯიბე მხოლოდ ესკიზიდან – ასევე ფიქსირდება.",
+ "Auch gegen das fertige Teil prüfen": "შემოწმება მზა დეტალთანაც",
+ "– bis {0} mm": "– {0} mm-მდე",
+ ", kein Schnitt ins fertige Teil": ", მზა დეტალში ჭრის გარეშე",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ მასალასთან შეჯახება არ არის (დამჭერი, ტარი, სწრაფი სვლები){0}{1} – შემოწმებულია ხაზ-ხაზ დარჩენილ ნამზადთან მიმართებით",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "ექსპორტი რობოტის აღწერად (URDF, SDF, MJCF)…"
+}

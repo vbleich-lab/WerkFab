@@ -341,7 +341,7 @@ export class Viewport {
       center = box.getCenter(new THREE.Vector3());
       size = Math.max(20, box.getSize(new THREE.Vector3()).length());
     }
-    const dist = size * 1.6 / Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) / 2;
+    const dist = size * 1.6 * (this.fitMargin || 1) / Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) / 2;
     this.animateTo(center, center.clone().addScaledVector(dir, dist), 300, this.orbitMode === 'free' ? this.upFor(dir) : new THREE.Vector3(0, 0, 1));
   }
 

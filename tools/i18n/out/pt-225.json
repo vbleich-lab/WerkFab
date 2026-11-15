@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "Como a vista (todos os triângulos)",
+ "Konvexe Hülle": "Envoltória convexa",
+ "Quader um den Körper": "Caixa em volta do corpo",
+ "Kollisionsform": "Forma de colisão",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "Forma de colisão: a envoltória convexa tem poucos triângulos e é calculada rapidamente na simulação, mas preenche bolsões e furos; a caixa é a mais grosseira. A vista sempre mantém a malha completa.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; colisão como envoltória convexa ({0} em vez de {1} triângulos)",
+ "; Kollision als Quader": "; colisão como caixa",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "Descrição do robô exportada ({0}): {1} corpos, {2} juntas móveis – em metros, a posição atual é a posição zero{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Avisa sobre trajetórias que cortam mais fundo que o modelo neste ponto (fresas de topo, de facear, esféricas e toroidais, fresas de chanfro e brocas com seu cone; movimentos de 3 eixos). Um corte que não está no modelo – gravação, alívio de canto, bolsão feito apenas a partir de um esboço – também é avisado."
+}

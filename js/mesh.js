@@ -2433,3 +2433,88 @@ export function collapseNeedles(m, rel = 2e-3, abs = 2e-3) {
   }
   return cur;
 }
+
+// ---------- offset, hollow, remesh, overhangs ----------
+// Every point moves along its normal so that the faces around it lie the distance d further out (d < 0: inwards).
+// The normal is the angle-weighted mean of the faces; at an edge or a corner the step is lengthened so that each
+// face moves by d (a cube corner moves by d·√3) – up to four times d at very sharp spikes.
+export function offset(m, d) {
+  const P = m.pos, I = m.idx, n = P.length / 3, N = new Float64Array(n * 3);
+  const fn = new Float64Array(I.length);
+  const at = (i, o) => P[i * 3 + o];
+  for (let t = 0; t < I.length; t += 3) {
+    const a = I[t], b = I[t + 1], c = I[t + 2];
+    const ux = at(b, 0) - at(a, 0), uy = at(b, 1) - at(a, 1), uz = at(b, 2) - at(a, 2), wx = at(c, 0) - at(a, 0), wy = at(c, 1) - at(a, 1), wz = at(c, 2) - at(a, 2);
+    let nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
+    const l = Math.hypot(nx, ny, nz);
+    if (!(l > 1e-20)) continue;
+    nx /= l; ny /= l; nz /= l;
+    fn[t] = nx; fn[t + 1] = ny; fn[t + 2] = nz;
+    for (let k = 0; k < 3; k++) {
+      const p = I[t + k], q = I[t + (k + 1) % 3], r = I[t + (k + 2) % 3];
+      const ax = at(q, 0) - at(p, 0), ay = at(q, 1) - at(p, 1), az = at(q, 2) - at(p, 2), bx = at(r, 0) - at(p, 0), by = at(r, 1) - at(p, 1), bz = at(r, 2) - at(p, 2);
+      const ang = Math.acos(Math.max(-1, Math.min(1, (ax * bx + ay * by + az * bz) / ((Math.hypot(ax, ay, az) * Math.hypot(bx, by, bz)) || 1))));
+      N[p * 3] += nx * ang; N[p * 3 + 1] += ny * ang; N[p * 3 + 2] += nz * ang;
+    }
+  }
+  for (let i = 0; i < n; i++) { const l = Math.hypot(N[i * 3], N[i * 3 + 1], N[i * 3 + 2]) || 1; N[i * 3] /= l; N[i * 3 + 1] /= l; N[i * 3 + 2] /= l; }
+  // the smallest cosine between the point normal and the faces around it
+  const minCos = new Float64Array(n).fill(1);
+  for (let t = 0; t < I.length; t += 3) {
+    if (!fn[t] && !fn[t + 1] && !fn[t + 2]) continue;
+    for (let k = 0; k < 3; k++) {
+      const p = I[t + k], c = N[p * 3] * fn[t] + N[p * 3 + 1] * fn[t + 1] + N[p * 3 + 2] * fn[t + 2];
+      if (c < minCos[p]) minCos[p] = c;
+    }
+  }
+  const pos = new Float32Array(P.length);
+  for (let i = 0; i < n; i++) {
+    const s = d / Math.max(0.25, minCos[i]);
+    for (let k = 0; k < 3; k++) pos[i * 3 + k] = P[i * 3 + k] + N[i * 3 + k] * s;
+  }
+  return { pos, idx: m.idx.slice() };
+}
+
+// Hollow a closed mesh: an inner wall at the distance t, turned inside out, joined with the outside. Walls thinner
+// than 2·t cross over themselves – the result then needs a check (slicer, "Reparieren").
+export function hollow(m, t) {
+  if (!(t > 0)) throw new Error('Wandstärke muss größer 0 sein');
+  const st = stats(m);
+  if (!st.closed) throw new Error('Das Netz muss geschlossen sein – zuerst „Reparieren“');
+  const outward = st.volume >= 0 ? 1 : -1, inner = flip(offset(m, -t * outward));
+  return combine([m, inner]);
+}
+
+// Even triangles of about the edge length L: long edges are split, then the mesh is reduced to the number of
+// triangles an even mesh of that size has. Flat areas get as many triangles as curved ones.
+export function remesh(m, L) {
+  if (!(L > 0)) throw new Error('Kantenlänge muss größer 0 sein');
+  const st = stats(m), target = Math.max(4, Math.round(st.area / ((Math.sqrt(3) / 4) * L * L)));
+  let r = subdivide(m, L, 8);
+  const now = r.idx.length / 3;
+  if (now > target * 1.1) r = decimate(r, target / now);
+  return r;
+}
+
+// Faces that hang over further than the angle allows (measured from the vertical: 45° = the usual limit of a
+// 3D printer) – the ones lying on the build plate (lowest Z) do not count. Returns the area and the triangles.
+export function overhangs(m, angleDeg = 45, plateTol = 0.05) {
+  const P = m.pos, I = m.idx, lim = Math.sin((angleDeg * Math.PI) / 180);
+  let zmin = Infinity;
+  for (let i = 2; i < P.length; i += 3) if (P[i] < zmin) zmin = P[i];
+  const tris = [];
+  let area = 0, total = 0, plate = 0;
+  for (let t = 0; t < I.length; t += 3) {
+    const a = I[t] * 3, b = I[t + 1] * 3, c = I[t + 2] * 3;
+    const ux = P[b] - P[a], uy = P[b + 1] - P[a + 1], uz = P[b + 2] - P[a + 2], wx = P[c] - P[a], wy = P[c + 1] - P[a + 1], wz = P[c + 2] - P[a + 2];
+    const nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx, l = Math.hypot(nx, ny, nz);
+    if (!(l > 0)) continue;
+    const ar = l / 2;
+    total += ar;
+    if (-nz / l <= lim) continue;
+    if (Math.max(P[a + 2], P[b + 2], P[c + 2]) - zmin < plateTol) { plate += ar; continue; }
+    area += ar;
+    tris.push(t);
+  }
+  return { area, total, plate, tris };
+}

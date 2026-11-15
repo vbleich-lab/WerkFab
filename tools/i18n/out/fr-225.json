@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "Comme la vue (tous les triangles)",
+ "Konvexe Hülle": "Enveloppe convexe",
+ "Quader um den Körper": "Parallélépipède autour du corps",
+ "Kollisionsform": "Forme de collision",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "Forme de collision : l'enveloppe convexe a peu de triangles et se calcule vite en simulation, mais elle comble les poches et les perçages ; le parallélépipède est le plus grossier. La vue conserve toujours le maillage complet.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; collision en enveloppe convexe ({0} au lieu de {1} triangles)",
+ "; Kollision als Quader": "; collision en parallélépipède",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "Description du robot exportée ({0}) : {1} corps, {2} liaisons mobiles – en mètres, la position actuelle est la position zéro{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Signale les trajectoires qui coupent plus profondément que le modèle à cet endroit (fraises 2 tailles, à surfacer, hémisphériques et toriques, fraises à chanfreiner et forets avec leur cône ; mouvements 3 axes). Une coupe absente du modèle – gravure, dégagement d'angle, poche issue d'une simple esquisse – est également signalée."
+}

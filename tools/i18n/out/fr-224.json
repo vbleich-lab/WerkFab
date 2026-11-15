@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Les trois",
+ "Roboterbeschreibung exportieren": "Exporter la description du robot",
+ "ROS-Paket (für URDF)": "Paquet ROS (pour URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Chaque corps visible devient un segment (link) avec maillage (STL, en mètres), masse et inertie, chaque liaison devient une liaison (joint) avec axe et limites. La position actuelle est la position zéro. Avec un nom de paquet, les maillages figurent dans l'URDF sous la forme package://Name/meshes/…, sinon sous forme de chemin relatif.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Description du robot exportée ({0}) : {1} corps, {2} liaisons mobiles – en mètres, la position actuelle est la position zéro{3}",
+ "Frei ({0})": "Libre ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Signale les trajectoires qui coupent plus profondément que le modèle à cet endroit (fraises 2 tailles, à surfacer, hémisphériques et toriques, mouvements 3 axes). Une coupe absente du modèle – gravure, dégagement d'angle, poche issue d'une simple esquisse – est également signalée.",
+ "Auch gegen das fertige Teil prüfen": "Contrôler aussi par rapport à la pièce finie",
+ "– bis {0} mm": "– jusqu'à {0} mm",
+ ", kein Schnitt ins fertige Teil": ", aucune coupe dans la pièce finie",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Aucune collision avec la matière (porte-outil, queue, avances rapides){0}{1} – contrôlé ligne par ligne par rapport au brut restant à ce moment",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Exporter comme description de robot (URDF, SDF, MJCF)…"
+}

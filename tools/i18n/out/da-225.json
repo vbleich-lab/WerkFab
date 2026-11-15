@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "Som visningen (alle trekanter)",
+ "Konvexe Hülle": "Konveks hylster",
+ "Quader um den Körper": "Kasse om legemet",
+ "Kollisionsform": "Kollisionsform",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "Kollisionsform: det konvekse hylster har få trekanter og regner hurtigt i simuleringen, men udfylder lommer og huller; kassen er den groveste. Visningen beholder altid det fulde net.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; kollision som konveks hylster ({0} i stedet for {1} trekanter)",
+ "; Kollision als Quader": "; kollision som kasse",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "Robotbeskrivelse eksporteret ({0}): {1} legemer, {2} bevægelige led – i meter, den aktuelle stilling er nulstillingen{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Melder baner, der skærer dybere end modellen på det sted (skaft-, plan-, kugle- og torusfræsere, affasningsfræsere og bor med deres kegle; 3-akse-bevægelser). Et snit, der ikke findes i modellen – gravering, hjørnefrigang, lomme kun ud fra en skitse – meldes også."
+}

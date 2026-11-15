@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Üçü de",
+ "Roboterbeschreibung exportieren": "Robot tanımını dışa aktar",
+ "ROS-Paket (für URDF)": "ROS paketi (URDF için)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Görünen her gövde ağ (STL, metre cinsinden), kütle ve eylemsizlikle bir uzva (link), her mafsal eksen ve sınırlarla bir mafsala (joint) dönüşür. Mevcut konum sıfır konumudur. Bir paket adıyla ağlar URDF içinde package://Name/meshes/… biçiminde, aksi halde göreli yol olarak yer alır.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Robot tanımı dışa aktarıldı ({0}): {1} gövde, {2} hareketli mafsal – metre cinsinden, mevcut konum sıfır konumudur{3}",
+ "Frei ({0})": "Serbest ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Bu noktada modelden daha derin kesen takım yollarını bildirir (parmak, yüzey, küresel ve torus frezeler, 3 eksenli hareketler). Modelde olmayan bir kesim – gravür, köşe boşluğu, yalnızca bir eskizden oluşturulan cep – de bildirilir.",
+ "Auch gegen das fertige Teil prüfen": "Bitmiş parçaya karşı da kontrol et",
+ "– bis {0} mm": "– en fazla {0} mm",
+ ", kein Schnitt ins fertige Teil": ", bitmiş parçada kesim yok",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Malzemeyle çarpışma yok (tutucu, sap, hızlı hareketler){0}{1} – satır satır, o anda kalan ham parçaya karşı kontrol edildi",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Robot tanımı olarak dışa aktar (URDF, SDF, MJCF)…"
+}

@@ -1,5 +1,43 @@
 # Änderungen
 
+## v1.0.0-rc.17 – 2026-11-15
+
+### Python-Skripte und Zusatzmodule
+- **Python-Skripte ausführen**: Datei → „Python-Skript ausführen (.py)…“ startet ein Skript mit `run(context)`. Python läuft im Programm selbst (Pyodide, wird beim ersten Start geladen) – nichts muss installiert werden. Ein Lauf ist ein Schritt zum Rückgängigmachen; Fehler stehen mit Zeilennummer im Fenster „Python-Ausgabe“.
+- **Kompatibel zur Schnittstelle „adsk“**: Skripte und Zusatzmodule, die für die Python-Schnittstelle von Fusion geschrieben sind, laufen in vielen Fällen ohne Änderung – Skizzen (Linien, Rechtecke, Kreise, Bögen, Polygone, Splines, Ellipsen, Texte), Extrusion (Abstand, symmetrisch, zwei Seiten, durch alles, Verjüngung), Rotation, Bohrung (einfach, Senkung, Flachsenkung), Verrundung, Fase, Schale, Kombinieren, Spiegeln, rechteckiges und kreisförmiges Muster, Konstruktionsebenen und -achsen, Benutzerparameter, Körper mit Flächen, Kanten, Volumen und Begrenzungsrahmen, Export als STEP, IGES und STL. Werte in Zentimetern und Bogenmaß wie im Original.
+- **Zusatzmodule mit eigenen Befehlen**: ein Zusatzmodul (Ordner mit .py und .manifest) legt mit `CommandDefinitions` Schaltflächen an; sie erscheinen in der Gruppe ZUSATZMODULE. Ein Klick öffnet den Dialog mit den Eingaben des Befehls (Wert, Zahl, Schieberegler, Haken, Text, Auswahlliste); „OK“ führt ihn aus. Zusatzmodule können beim Öffnen von WerkFab mitstarten.
+- **Fenster „Skripte und Zusatzmodule“** (Umschalt+S): Dateien oder ganze Ordner laden, ausführen, starten und stoppen, im eingebauten Editor ändern, zwischen Skript und Zusatzmodul umstellen. Ein Beispielskript und ein Beispiel-Zusatzmodul (Zahnscheibe mit Eingaben) zeigen den Aufbau.
+
+### Netz und 3D-Druck
+- **Netz versetzen**: jede Fläche um einen Abstand nach außen oder innen – für Spiel, Aufmaß oder ein Negativ.
+- **Aushöhlen**: ein geschlossenes Netz bekommt eine Innenwand in Wandstärke – spart Material und Druckzeit.
+- **Neu vernetzen**: gleichmäßige Dreiecke einer gewählten Kantenlänge, gut vor dem Glätten von Scans.
+- **Auf Fläche legen**: dreht das Netz so, dass eine ebene Seite auf der Druckplatte liegt (größte, zweitgrößte … Auflagefläche).
+- **Überhänge**: rot zeigt, welche Flächen Stützen brauchen; der Grenzwinkel steht in den Einstellungen. In den Eigenschaften eines Netzes stehen Überhangfläche, Auflage auf der Platte und tiefster Punkt.
+- **An Slicer senden**: sichtbare Netze und Körper gehen als 3MF (mehrere Teile mit Namen) oder STL an den Slicer – in der Desktop-App direkt an das gewählte Programm, im Browser als Datei.
+
+### Blech
+- **Biegeberechnung nach DIN 6935**: statt eines festen K-Faktors rechnet das Blech den Faktor aus Biegeradius und Blechdicke (k = 0,65 + 0,5·lg(r/s), ab r/s = 5 die Mitte). Der berechnete Wert steht in den Eigenschaften und gilt für Abwicklung, Biegetabelle und Prüfungen.
+- **Biegetabelle als CSV**: alle Biegungen mit Kante, Winkel, Richtung, Radius, K-Faktor, Biegezugabe, Biegelänge und Presskraft – öffnet sich direkt in der Tabellenkalkulation, für die Abkantpresse.
+
+### Einstellungen
+- **Neue Seite „3D-Druck“**: Exportqualität für STL, 3MF und den Slicer (Standard, fein, sehr fein), Dateiformat und Programm für den Slicer, Überhangwinkel, Einheit und Achsrichtung (Y nach oben) beim Einfügen von Netzen.
+- **Vorgaben für neue Features**: Bohrungsdurchmesser, Verrundungsradius, Fasenabstand und Wandstärke der Schale.
+- **Arbeitsfläche**: Rand beim Einpassen der Ansicht (knapp, normal, großzügig) und eine Anzeige der Bildrate.
+
+### Fertigung
+- **NC-Programm gegen das fertige Teil prüfen**: im NC-Fenster gibt es den Haken „Auch gegen das fertige Teil prüfen“. Dann meldet die Prüfung auch Bahnen, die tiefer schneiden als das Modell an dieser Stelle – mit den Zeilen und dem tiefsten Schnitt. Ab Werk aus, weil ein Schnitt, der nicht im Modell steht (Gravur, Eckenfreistich, Tasche nur aus einer Skizze), ebenfalls gemeldet wird; die Wahl bleibt gemerkt.
+- **Fasenfräser und Bohrer in der Teilprüfung**: die Prüfung gegen das fertige Teil rechnet jetzt auch Fasen- und Gravurfräser, Senker, Bohrer, Zentrier- und Anbohrer – mit ihrem Kegel (Spitzenwinkel, Spitzendurchmesser), auch in Bohrzyklen. Eine Bohrung, die tiefer geht als im Modell, oder eine Fase, die das Modell nicht hat, wird gemeldet.
+
+### Baugruppe
+- **Roboterbeschreibung in drei Formaten**: Datei → „Als Roboterbeschreibung exportieren“ fragt jetzt nach dem Format – URDF (ROS), SDF (Gazebo, mit model.config), MJCF (MuJoCo) oder alle drei in einem Zip. Im MJCF sind die Körper verschachtelt, die Gelenke einer Kette sitzen im bewegten Körper, eine Bewegungsverknüpfung wird zur Gleichung zwischen den Gelenken. Mit einem ROS-Paketnamen stehen die Netze im URDF als package://Name/meshes/….
+- **Kollisionsform im Roboter-Export**: wählbar ist, womit ein Körper kollidiert – mit dem vollen Netz, mit seiner konvexen Hülle (ein eigenes Netz mit wenigen Dreiecken, das in der Simulation schnell rechnet, aber Taschen und Bohrungen füllt) oder mit dem Quader um den Körper. Die Ansicht behält das volle Netz.
+
+### KI-Agenten
+- **Baugruppen bauen und bewegen**: ein Agent kann Körper positionieren, Gelenke anlegen (starr, Dreh-, Schiebe-, zylindrisch, planar, Kugel – mit Ursprung, Achse auch als freie Richtung, Grenzen und Bewegungsverknüpfung), sie ändern, bewegen und löschen. Die Baugruppe kommt mit dem Platz jedes Körpers in der jetzigen Stellung und den Körperpaaren zurück, die ineinanderlaufen (mit dem gemeinsamen Volumen). Gelenke, die einen Ring bilden würden, werden abgelehnt.
+- **Roboterbeschreibung für Agenten**: URDF, SDF und MJCF als Text, die Netze auf Wunsch dazu; die Kollisionsform ist wählbar.
+- **Bewegungsstudie für Agenten**: ein Gelenk (oder alle, die sich selbst bewegen) wird in gleichen Schritten durch seinen Bereich gefahren; zurück kommen die Stellungen, in denen Körper ineinanderlaufen, mit den Körperpaaren und dem gemeinsamen Volumen, dazu die erste und die tiefste Kollision. Der Entwurf bleibt unverändert.
+
 ## v1.0.0-rc.16 – 2026-11-15
 
 ### Skizze

@@ -6,11 +6,12 @@ import { loadKernel, R as OC } from './kernel.js';
 import { LANGS, lang as uiLang, langChoice, setLanguage, t as tr, tHtml, deText, deAttr } from './i18n.js';
 import { initUpdates, checkForUpdates } from './update.js';
 import { AGENT_TOOLS, agentCall } from './agent.js';
+import { initFusion, fusionButtons, storedScripts, importPythonFiles, runEntry, stopEntry, isRunning, runCommand as runPyCommand, startAddins, addTemplate, updateEntry, removeEntry, showOutput as showPyOutput } from './fusionapi.js';
 import { exportGLB } from './gltf.js';
-import { meshMass, stlBinary, urdfNames, buildUrdf, URDF_CHAIN } from './urdf.js';
+import { meshMass, stlBinary, urdfNames, buildUrdf, buildSdf, sdfConfig, buildMjcf, convexHull, URDF_CHAIN } from './urdf.js';
 import { setActiveKernel, activeKernelId, getKernel } from './kern/index.js';
 import './kern/rust.js';
-import { THREAD_SIZES, meshBody } from './model.js';
+import { THREAD_SIZES, meshBody, exportGeometry } from './model.js';
 import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache } from './model.js';
 import { Sketcher } from './sketcher.js';
 import { buildHeightmap, cornerOf } from './heightmap.js';
@@ -37,7 +38,7 @@ import { makeDrawing, SHEETS, VIEWS as DRAW_VIEWS } from './drawing.js';
 import { bodyMatrix, hasAssembly, transformShape, JOINT_TYPES, JOINT_DOF, jointValues, jointFrame, jointMotion } from './assembly.js';
 import { STD_FAMILIES, STD_LENGTHS, stdFamily, stdPartName, stdPartSteps, boltSizeFor, boltStack, boltHole } from './stdparts.js';
 import { unfoldFaces } from './unfold.js';
-import { flatPattern, polyEdges, polyArcs, bendAllowance, sheetChecks, SHEET_RULES, nestParts, pressForce, SHEET_RM, holeCircle, collarPlan, cutProgram, CUT_CONTROLS, shellPattern, transitionPattern, tabSlots } from './sheetmetal.js';
+import { flatPattern, polyEdges, polyArcs, bendAllowance, sheetK, sheetChecks, SHEET_RULES, nestParts, pressForce, SHEET_RM, holeCircle, collarPlan, cutProgram, CUT_CONTROLS, shellPattern, transitionPattern, tabSlots } from './sheetmetal.js';
 import { TurnSim, TURN_OPS, turnCutShape, LatheStock } from './turning.js';
 import { CylSim, CylStock, cylPartMap } from './cylstock.js';
 import { WindowManager } from './windows.js';
@@ -52,7 +53,8 @@ import { SpaceMouse } from './spacemouse.js';
 import { RenderStudio, ENVIRONMENTS, RENDER_DEFAULTS } from './render.js';
 import { parseSTL, parseOBJ, weld as meshWeld, decodeMesh, encodeMesh, applyMatrix as meshApply, bounds as meshBounds, transform as meshTransform, flip as meshFlip, repair as meshRepair,
   smooth as meshSmooth, decimate as meshDecimate, cutPlane as meshCut, split as meshSplit, toGeometry as meshToGeometry, stats as meshStatsRaw, openEdgeLines as meshOpenEdgesRaw,
-  mirror as meshMirror, combine as meshCombine, subdivide as meshSubdivide, sectionLoops as meshSection, fromGeometry as meshFromGeometry, boolean as meshBoolean, findRound as meshRound, toOBJ, to3MF, parse3MF, parsePLY } from './mesh.js';
+  mirror as meshMirror, combine as meshCombine, subdivide as meshSubdivide, sectionLoops as meshSection, fromGeometry as meshFromGeometry, boolean as meshBoolean, findRound as meshRound, toOBJ, to3MF, parse3MF, parsePLY,
+  offset as meshOffset, hollow as meshHollow, remesh as meshRemesh, overhangs as meshOverhangs } from './mesh.js';
 // analysis results are cached per mesh object
 const meshMemo = (fn, wm = new WeakMap()) => m => { if (!wm.has(m)) wm.set(m, fn(m)); return wm.get(m); };
 const meshStats = meshMemo(meshStatsRaw), meshOpenEdges = meshMemo(meshOpenEdgesRaw);
@@ -392,6 +394,14 @@ const ASYNC_MS = 600;
 let regenJob = null;
 function modelKey(rp, upTo) {
   return JSON.stringify([rp.features.map(featureKey), upTo, activeKernelId()]);
+}
+// the model right now, computed on the spot (Python scripts ask for bodies while they run)
+function modelSync() {
+  const rp = resolved(), upTo = replayCount(), key = modelKey(rp, upTo);
+  if (key === model.key) return model;
+  if (regenJob) { regenJob.cancelled = true; regenJob = null; regenProgress(null); }
+  installModel(key, regenerate(rp, upTo), performance.now());
+  return model;
 }
 function installModel(key, r, t0) {
   model.bodies.forEach(b => { b.geometry.dispose(); b.edges.dispose(); });
@@ -2368,11 +2378,17 @@ function toolbarTabs() {
         tbtn('import', 'STEP/IGES importieren', () => $('#cadInput').click(), '', 'STEP oder IGES einfügen'), tbtn('example', 'Beispiel', () => loadExample()), tbtn('revolve', 'Drehteil', () => loadExample(true), '', 'Beispiel: Welle für die Drehbearbeitung')),
     ];
     const MO = (icon, label, kind) => tbtn(icon, label, () => createMeshOp(kind), '', MESH_OPS[kind]);
+    const ADDINS = () => tgroup('ZUSATZMODULE', tbtn('pyscript', 'Skripte und Zusatzmodule', openScriptManager, '', 'Skripte und Zusatzmodule in Python verwalten und ausführen (Umschalt+S)'),
+      ...fusionButtons().map(b => tbtn('addin', b.name, () => runPyCommand(b.id), '', b.tooltip || b.name)));
     tabs['NETZ'] = [
       tgroup('EINFÜGEN', tbtn('mesh', 'Netz einfügen', () => $('#cadInput').click(), '', 'STL-, OBJ-, 3MF- oder PLY-Datei als Netz einfügen (ohne B-Rep)'),
         tbtn('mesh_frombody', 'Körper → Netz', () => bodyToMesh(), '', 'Einen Volumenkörper als Dreiecksnetz übernehmen')),
       tgroup('ÄNDERN', MO('mesh_repair', 'Reparieren', 'repair'), MO('mesh_reduce', 'Reduzieren', 'reduce'), MO('mesh_refine', 'Verfeinern', 'refine'), MO('mesh_smooth', 'Glätten', 'smooth'), MO('mesh_cut', 'Ebenenschnitt', 'cut'),
-        MO('mesh_transform', 'Verschieben', 'transform'), MO('mesh_mirror', 'Spiegeln', 'mirror'), MO('mesh_combine', 'Vereinen', 'combine'), MO('mesh_boolean', 'Boolesch', 'boolean'), MO('mesh_flip', 'Normalen umk.', 'flip'), MO('mesh_split', 'Trennen', 'split')),
+        MO('mesh_transform', 'Verschieben', 'transform'), MO('mesh_mirror', 'Spiegeln', 'mirror'), MO('mesh_combine', 'Vereinen', 'combine'), MO('mesh_boolean', 'Boolesch', 'boolean'), MO('mesh_flip', 'Normalen umk.', 'flip'), MO('mesh_split', 'Trennen', 'split'),
+        MO('mesh_remesh', 'Neu vernetzen', 'remesh'), MO('mesh_offset', 'Versatz', 'offset'), MO('mesh_hollow', 'Aushöhlen', 'hollow')),
+      tgroup('3D-DRUCK', MO('mesh_layflat', 'Auf Fläche legen', 'layflat'),
+        tbtn('mesh_overhang', 'Überhänge', toggleOverhang, state.overhang ? 'active' : '', 'Überhänge, die Stützen brauchen, rot zeigen'),
+        tbtn('mesh_slicer', 'An Slicer senden', () => sendToSlicer(), '', 'Sichtbare Netze und Körper als 3MF an den Slicer geben (Einstellungen → 3D-Druck)')),
       tgroup('UMWANDELN', tbtn('mesh_tobody', 'Netz → Körper', () => meshToBody(), '', 'Ein geschlossenes Netz in einen Volumenkörper umwandeln (jedes Dreieck wird eine Fläche)'),
         tbtn('mesh_section', 'Schnitt als Skizze', () => meshSectionDialog(), '', 'Die Schnittkontur des Netzes mit einer Ebene als Skizze anlegen')),
       tgroup('PRÜFEN', tbtn('measure', 'Messen', toggleMeasure, state.pick?.mode === 'measure' ? 'active' : ''), tbtn('section', 'Schnitt', toggleSection, state.section ? 'active' : ''), tbtn('fit', 'Einpassen', fitView, '', 'Einpassen (F)')),
@@ -2402,7 +2418,9 @@ function toolbarTabs() {
       tgroup('ZEICHNUNG', tbtn('sheet', 'Zeichnung', openDrawing, '', 'Zeichnungsableitung (Ansichten, Bemaßung, Schriftfeld)')),
       tgroup('EXPORT', tbtn('import', 'STEP', () => menuAction('step')), tbtn('import', 'IGES', () => menuAction('iges')), tbtn('import', 'STL', () => menuAction('stl'))),
       tgroup('VERWALTEN', tbtn('params', 'Parameter', () => select('params')), tbtn('spacemouse', 'SpaceMouse kalibrieren', () => openSmCalibration(), '', 'Nullpunkt, Totzone, Empfindlichkeit und Richtung der 3D-Maus'), tbtn('gear', 'Einstellungen', openSettings)),
+      ADDINS(),
     ];
+    if (fusionButtons().length) tabs['VOLUMENKÖRPER'].splice(tabs['VOLUMENKÖRPER'].length - 1, 0, ADDINS());
     return tabs;
   }
   const A = (icon, label, type) => tbtn(icon, label, () => addOp(type));
@@ -3180,8 +3198,9 @@ function exportGltfFile() {
 
 // URDF: the assembly as a robot description – a link per visible body (mesh in metres, mass and inertia from the
 // material), a joint per joint. The pose of the export is the zero pose; all link frames are parallel to the world
-// there, a moved link has its frame in its joint. → { files: [[name, bytes]], links, joints, name }
-function urdfExport() {
+// there, a moved link has its frame in its joint. opt: { format: urdf | sdf | mjcf | all, pkg: name of a ROS package
+// for package:// paths in the URDF } → { files: [[name, bytes]], docs: [[name, text]], links, joints, robot }
+function urdfExport(opt = {}) {
   const list = [...getModel().bodies, ...getMeshes().bodies].filter(x => !state.hiddenBodies.has(x.id) && x.geometry?.attributes?.position?.count);
   if (!list.length) return null;
   const asm = state.project.assembly, on = hasAssembly(asm), vals = motionValues;
@@ -3199,16 +3218,24 @@ function urdfExport() {
   const files = [], links = [{ name: 'base_link' }], joints = [], jn = urdfNames((asm?.joints || []).map(j => j.name || 'joint')), jname = new Map((asm?.joints || []).map((j, i) => [j.id, jn[i]]));
   const first = new Map(); // joint id → { name, conv } of the URDF joint that carries its first value
   const DEG = Math.PI / 180;
-  let defaulted = 0;
+  let defaulted = 0, meshFaces = 0, hullFaces = 0;
   for (const b of list) {
     const name = nameOf.get(b.id), O = frame.get(b.id), meta = bodyMeta(b.id);
     const g = b.geometry.clone().applyMatrix4(world(b.id)), pos = g.attributes.position.array, idx = g.index?.array || null;
     files.push([`meshes/${name}.stl`, stlBinary(pos, idx, O.toArray(), 0.001)]);
+    // what collides: the mesh itself, its convex hull (a mesh of its own) or the box around it
+    const col = {};
+    if (opt.collision === 'hull' || opt.collision === 'box') {
+      const hull = opt.collision === 'hull' ? convexHull(pos) : null;
+      if (hull) { files.push([`meshes/${name}_collision.stl`, stlBinary(hull, null, O.toArray(), 0.001)]); col.collisionMesh = `meshes/${name}_collision.stl`; hullFaces += hull.length / 9; }
+      else { g.computeBoundingBox(); const bb = g.boundingBox; col.box = { size: bb.getSize(new THREE.Vector3()).multiplyScalar(0.001).toArray(), center: bb.getCenter(new THREE.Vector3()).sub(O).multiplyScalar(0.001).toArray() }; }
+    }
+    meshFaces += idx ? idx.length / 3 : pos.length / 9;
     const mp = meshMass(pos, idx);
     if (!meta.material) defaulted++;
     const rho = (MATERIALS[meta.material || 'alu']?.density || 2.7) * 1e-6; // kg/mm³
     const look = APPEARANCES[meta.appearance] || (meta.material ? APPEARANCES[MATERIAL_LOOK[meta.material]] : null) || APPEARANCES.alu_satin, c = new THREE.Color(meta.color || look.color);
-    links.push({ name, mesh: `meshes/${name}.stl`, color: [c.r, c.g, c.b].map(v => +v.toFixed(4)),
+    links.push({ name, mesh: `meshes/${name}.stl`, ...col, pos: O.clone().multiplyScalar(0.001).toArray(), color: [c.r, c.g, c.b].map(v => +v.toFixed(4)),
       ...(mp.volume > 1e-6 ? { mass: mp.volume * rho, com: mp.com.map((v, k) => (v - O.getComponent(k)) * 0.001), inertia: mp.inertia.map(v => v * rho * 1e-6) } : {}) });
     g.dispose();
   }
@@ -3222,7 +3249,7 @@ function urdfExport() {
     let from = parent;
     chain.forEach((d, q) => {
       const last = q === chain.length - 1, to = last ? child : `${child}_${base}_${q + 1}`, nm = chain.length === 1 ? base : `${base}_${q + 1}`;
-      if (!last) links.push({ name: to });
+      if (!last) links.push({ name: to, pos: O.clone().multiplyScalar(0.001).toArray() });
       const axis = fr[d.axis].clone().transformDirection(R).toArray().map(v => +v.toFixed(9));
       if (d.rot) R.multiply(new THREE.Matrix4().makeRotationAxis(fr[d.axis], cur[d.k] * DEG));
       const conv = d.rot ? DEG : 0.001, lim = d.k === 0 && j.limits !== false && Number.isFinite(+j.min) && Number.isFinite(+j.max) && +j.max > +j.min;
@@ -3244,19 +3271,127 @@ function urdfExport() {
     if (drv && drv.name !== jj.name) jj.mimic = { joint: drv.name, multiplier: (jj.link.ratio * jj.link.conv) / drv.conv };
     delete jj.link;
   }
-  files.unshift([`${robot}.urdf`, new TextEncoder().encode(buildUrdf(robot, links, joints))]);
-  return { files, robot, links: list.length, joints: joints.filter(q => q.type !== 'fixed').length, defaulted };
+  const fmt = ['urdf', 'sdf', 'mjcf', 'all'].includes(opt.format) ? opt.format : 'urdf', want = k => fmt === k || fmt === 'all', docs = [];
+  const pkg = opt.pkg ? urdfNames([opt.pkg])[0] : '';
+  if (want('urdf')) docs.push([`${robot}.urdf`, buildUrdf(robot, links, joints, { meshPrefix: pkg ? `package://${pkg}/` : '' })]);
+  if (want('sdf')) docs.push(['model.sdf', buildSdf(robot, links, joints)], ['model.config', sdfConfig(robot)]);
+  if (want('mjcf')) docs.push([`${robot}.xml`, buildMjcf(robot, links, joints)]);
+  files.unshift(...docs.map(([n, t]) => [n, new TextEncoder().encode(t)]));
+  return { files, docs, robot, format: fmt, links: list.length, joints: joints.filter(q => q.type !== 'fixed').length, defaulted, collision: ['hull', 'box'].includes(opt.collision) ? opt.collision : 'mesh', meshFaces, hullFaces };
 }
-function exportUrdfFile() {
+const ROBOT_FORMATS = { urdf: 'URDF (ROS)', sdf: 'SDF (Gazebo)', mjcf: 'MJCF (MuJoCo)', all: 'Alle drei' };
+const ROBOT_COLLISION = { mesh: 'Wie die Ansicht (alle Dreiecke)', hull: 'Konvexe Hülle', box: 'Quader um den Körper' };
+async function exportUrdfFile() {
+  if (![...getModel().bodies, ...getMeshes().bodies].some(x => !state.hiddenBodies.has(x.id))) return status('Kein Körper zum Exportieren.');
+  const v = await formDialog('Roboterbeschreibung exportieren', [
+    { key: 'format', label: 'Format', value: localStorage.getItem('openfab.robotFormat') || 'urdf', options: Object.entries(ROBOT_FORMATS) },
+    { key: 'collision', label: 'Kollisionsform', value: localStorage.getItem('openfab.robotCollision') || 'mesh', options: Object.entries(ROBOT_COLLISION) },
+    { key: 'pkg', label: 'ROS-Paket (für URDF)', value: '', text: true },
+    { key: 'hint', hint: 'Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.' },
+    { key: 'hint2', hint: 'Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.' }], 'Exportieren');
+  if (!v) return;
+  try { localStorage.setItem('openfab.robotFormat', v.format); localStorage.setItem('openfab.robotCollision', v.collision); } catch { /* private mode */ }
   let r;
-  try { r = urdfExport(); } catch (err) { console.warn(err); return status(`URDF: ${err.message}`); }
+  try { r = urdfExport({ format: v.format, pkg: String(v.pkg || '').trim(), collision: v.collision }); } catch (err) { console.warn(err); return status(`URDF: ${err.message}`); }
   if (!r) return status('Kein Körper zum Exportieren.');
-  download(`${safeName()}-urdf.zip`, zipStore(r.files), 'application/zip');
-  status(`URDF exportiert: ${r.links} Körper, ${r.joints} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung${r.defaulted ? `; ${r.defaulted} Körper ohne Werkstoff als Aluminium gerechnet` : ''}`);
+  download(`${safeName()}-${r.format === 'all' ? 'robot' : r.format}.zip`, zipStore(r.files), 'application/zip');
+  status(`Roboterbeschreibung exportiert (${ROBOT_FORMATS[r.format]}): ${r.links} Körper, ${r.joints} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung${r.collision === 'hull' ? `; Kollision als konvexe Hülle (${r.hullFaces} statt ${r.meshFaces} Dreiecke)` : r.collision === 'box' ? '; Kollision als Quader' : ''}${r.defaulted ? `; ${r.defaulted} Körper ohne Werkstoff als Aluminium gerechnet` : ''}`);
 }
 
 // A command script: a JSON file with the steps an agent would send, run one after the other –
 // [{ "tool": "add_features", "args": { … } }, …] or { "steps": [ … ] }. The tools: Einstellungen → KI-Agenten.
+// ----- Python scripts and add-ins (interface of the "adsk" modules) -----
+function fusionEnv() {
+  return {
+    state, commit, uid, h, status, formDialog, fitView, renderToolbar,
+    changed: () => { renderAll(); renderToolbar(); },
+    modelSync, resolved, bodyInfo: b => agentApi.bodyInfo(b), edgeMidpoint,
+    exportFile(fmt, bodyId, file, binary) {
+      const all = modelSync().bodies.filter(x => !state.hiddenBodies.has(x.id) || x.id === bodyId), bodies = bodyId ? all.filter(x => x.id === bodyId) : all;
+      if (!bodies.length) throw new Error('Kein Körper zum Exportieren');
+      const base = String(file || '').split(/[\\/]/).pop().replace(/\.[^.]*$/, '') || safeName();
+      if (fmt === 'step') download(`${base}.step`, exportSTEP(bodies), 'application/step');
+      else if (fmt === 'iges') exportSTEP(bodies).text().then(stepToIges).then(txt => download(`${base}.igs`, txt, 'model/iges')).catch(err => status('IGES-Export fehlgeschlagen: ' + (err.message || err)));
+      else if (fmt === 'stl') { const grp = new THREE.Group(); bodies.forEach(x => grp.add(new THREE.Mesh(x.geometry))); download(`${base}.stl`, new STLExporter().parse(grp, { binary: binary !== false }), 'model/stl'); }
+      else throw new Error(`Format ${fmt} wird von Skripten nicht unterstützt (STEP, IGES, STL)`);
+    },
+  };
+}
+function runPythonFile() {
+  const inp = h('input', { type: 'file', accept: '.py,text/x-python', multiple: true });
+  inp.onchange = async () => {
+    try {
+      const list = await importPythonFiles(inp.files);
+      for (const e of list) await runEntry(e);
+    } catch (err) { status(err.message || String(err)); }
+  };
+  inp.click();
+}
+function openScriptManager() {
+  const back = h('div', { class: 'modal-back' }), body = h('div', { class: 'py-list' });
+  const close = () => { back.remove(); document.removeEventListener('keydown', esc); };
+  const esc = e => { if (e.key === 'Escape') close(); };
+  const pick = dir => {
+    const inp = h('input', { type: 'file', accept: '.py,.manifest,.json', multiple: true });
+    if (dir) inp.webkitdirectory = true;
+    inp.onchange = async () => { try { const l = await importPythonFiles(inp.files); status(l.length ? `${l.length} Skript(e) übernommen` : 'Keine Python-Datei gefunden.'); } catch (err) { status(err.message || String(err)); } draw(); };
+    inp.click();
+  };
+  const draw = () => {
+    body.textContent = '';
+    for (const kind of ['script', 'addin']) {
+      const list = storedScripts().filter(e => e.kind === kind);
+      body.append(h('div', { class: 'py-sec' }, kind === 'script' ? 'Skripte' : 'Zusatzmodule'));
+      if (!list.length) body.append(h('p', { class: 'hint' }, kind === 'script' ? 'Noch kein Skript – eine .py-Datei oder einen Ordner laden.' : 'Noch kein Zusatzmodul – einen Ordner mit Zusatzmodul laden.'));
+      for (const e of list) {
+        const on = isRunning(e.key);
+        const btns = [
+          kind === 'addin' && on
+            ? h('button', { onclick: async () => { await stopEntry(e); draw(); } }, 'Stoppen')
+            : h('button', { class: 'primary', onclick: async () => { await runEntry(e); draw(); } }, kind === 'addin' ? 'Starten' : 'Ausführen'),
+          h('button', { onclick: () => editScript(e, draw) }, 'Bearbeiten'),
+          h('button', { title: 'Als Skript oder Zusatzmodul führen', onclick: () => { e.kind = kind === 'addin' ? 'script' : 'addin'; updateEntry(e); draw(); } }, kind === 'addin' ? '→ Skript' : '→ Zusatzmodul'),
+          h('button', { onclick: async () => { if (!confirm(`„${e.name}“ entfernen?`)) return; if (on) await stopEntry(e); removeEntry(e.key); draw(); } }, 'Entfernen'),
+        ];
+        body.append(h('div', { class: 'py-item' + (on ? ' on' : '') },
+          h('div', { class: 'py-name' }, h('b', null, e.name), on ? h('span', { class: 'py-run' }, 'läuft') : null, e.desc ? h('span', { class: 'hint' }, e.desc) : null,
+            h('span', { class: 'hint' }, `${Object.keys(e.files).length} Datei(en) · Start: ${e.main}.py`)),
+          kind === 'addin' ? h('label', { class: 'py-start', title: 'Beim Öffnen von WerkFab starten' }, chk(e.runOnStart, v => { e.runOnStart = v; updateEntry(e); }), 'Beim Start') : null,
+          h('div', { class: 'py-btns' }, ...btns)));
+      }
+    }
+  };
+  back.append(h('div', { class: 'modal py-manager', style: 'height:auto;max-height:calc(100vh - 60px);width:min(680px,calc(100vw - 32px))' },
+    h('div', { class: 'modal-head' }, 'SKRIPTE UND ZUSATZMODULE', h('button', { onclick: close }, '✕')),
+    h('div', { class: 'py-tools' },
+      h('button', { onclick: () => pick(false) }, 'Python-Datei laden…'), h('button', { onclick: () => pick(true) }, 'Ordner laden…'),
+      h('button', { onclick: () => { addTemplate('script'); draw(); } }, 'Beispielskript'), h('button', { onclick: () => { addTemplate('addin'); draw(); } }, 'Beispiel-Zusatzmodul'),
+      h('button', { onclick: () => showPyOutput() }, 'Ausgabe')),
+    h('p', { class: 'hint', style: 'margin:0 16px' }, 'Skripte und Zusatzmodule für die Python-Schnittstelle „adsk“ (run/stop, Skizzen, Extrusion, Rotation, Bohrung, Verrundung, Fase, Schale, Muster, Spiegeln, Parameter, Befehle mit Eingaben). Werte in Zentimetern und Bogenmaß wie im Original. Python wird beim ersten Start geladen (einige Sekunden). Ein Lauf ist ein Schritt zum Rückgängigmachen.'),
+    body,
+    h('div', { class: 'modal-foot' }, h('button', { onclick: close }, 'Schließen'))));
+  document.addEventListener('keydown', esc);
+  document.body.append(back);
+  draw();
+}
+function editScript(e, redraw) {
+  const names = Object.keys(e.files).filter(p => /\.(py|manifest|json|txt)$/.test(p)).sort((a, b) => (a === e.main + '.py' ? -1 : b === e.main + '.py' ? 1 : a.localeCompare(b)));
+  let cur = names[0];
+  const ta = h('textarea', { class: 'py-code', spellcheck: false });
+  ta.value = e.files[cur] || '';
+  ta.addEventListener('keydown', ev => { if (ev.key === 'Tab') { ev.preventDefault(); const s = ta.selectionStart; ta.setRangeText('    ', s, ta.selectionEnd, 'end'); } });
+  const back = h('div', { class: 'modal-back' });
+  const keep = () => { e.files[cur] = ta.value; };
+  const save = () => { keep(); updateEntry(e); redraw?.(); };
+  back.append(h('div', { class: 'modal', style: 'height:min(720px,calc(100vh - 40px));width:min(900px,calc(100vw - 32px));display:flex;flex-direction:column' },
+    h('div', { class: 'modal-head' }, e.name.toUpperCase(), h('button', { onclick: () => back.remove() }, '✕')),
+    h('div', { class: 'py-tools' }, names.length > 1 ? sel(names.map(n => [n, n]), cur, v => { keep(); cur = v; ta.value = e.files[cur] || ''; }) : h('span', null, cur)),
+    ta,
+    h('div', { class: 'modal-foot' }, h('button', { onclick: () => back.remove() }, 'Abbrechen'), h('button', { onclick: () => { save(); back.remove(); } }, 'Speichern'),
+      h('button', { class: 'primary', onclick: async () => { save(); back.remove(); if (isRunning(e.key)) await stopEntry(e); await runEntry(e); redraw?.(); } }, e.kind === 'addin' ? 'Speichern und starten' : 'Speichern und ausführen'))));
+  document.body.append(back);
+  ta.focus();
+}
 function runScriptFile() {
   const inp = h('input', { type: 'file', accept: '.json,application/json' });
   inp.onchange = async () => {
@@ -4466,6 +4601,56 @@ const agentApi = {
     await new Promise(r => setTimeout(r, 450));
     return thumbnail(vp.renderer, vp.scene, vp.camera, isDark() ? '#2a323b' : '#e4e9ee', 960, 640);
   },
+  // the assembly: where every body stands now, the joints, and bodies that run into each other
+  async assembly(collisions) {
+    const m = await agentApi.settled(), asm = state.project.assembly || {}, on = hasAssembly(asm);
+    const r4 = q => +(+q).toFixed(4);
+    const bodies = m.bodies.map(b => {
+      b.geometry.computeBoundingBox();
+      const bb = b.geometry.boundingBox.clone();
+      if (on) bb.applyMatrix4(bodyMatrix(asm, b.id, {}));
+      const pl = asm.placements?.[b.id];
+      return { id: b.id, name: bodyName(b), min: bb.min.toArray().map(r4), max: bb.max.toArray().map(r4), ...(pl && Object.values(pl).some(Boolean) ? { placement: pl } : {}) };
+    });
+    const out = { bodies, joints: (asm.joints || []).map(j => {
+      const dof = JOINT_DOF[j.type] || [], v = jointValues(asm, j, {});
+      return { ...structuredClone(j), typeName: JOINT_TYPES[j.type], motions: dof.map(([label, unit], k) => ({ field: ['value', 'value2', 'value3'][k], unit: unit === '°' ? 'deg' : 'mm', now: r4(v[k]) })) };
+    }) };
+    if (collisions !== false && m.bodies.length > 1) {
+      try { out.collisions = interference(placedBodies({})).map(c => ({ a: c.a.id, b: c.b.id, volume: +c.volume.toFixed(3) })); } catch (e) { out.collisionsError = e.message; }
+    }
+    return out;
+  },
+  // a joint (or all that move on their own) driven through its range: the poses in which bodies run into each other
+  async motion(jointId, steps) {
+    await agentApi.settled();
+    const asm = state.project.assembly || {}, all = (asm.joints || []).filter(j => j.type !== 'rigid' && !j.suppressed);
+    if (jointId && !all.some(j => j.id === jointId)) throw new Error(`No moving joint with the id "${jointId}"`);
+    const joints = all.filter(j => (jointId ? j.id === jointId : !j.link?.from));
+    if (!joints.length) throw new Error('The assembly has no moving joint');
+    const n = Math.min(72, Math.max(2, Math.round(+steps) || 24)), lin = j => (JOINT_DOF[j.type]?.[0]?.[1] || '°') !== '°';
+    const range = j => { const lim = j.limits !== false && Number.isFinite(+j.min) && Number.isFinite(+j.max) && +j.max > +j.min; return lim ? [+j.min, +j.max] : lin(j) ? [-100, 100] : [-180, 180]; };
+    const r4 = q => +(+q).toFixed(4), poses = [];
+    let hit = 0, first = null, worst = null;
+    for (let k = 0; k <= n; k++) {
+      const vals = Object.fromEntries(joints.map(j => { const [a, b] = range(j); return [j.id, r4(a + ((b - a) * k) / n)]; }));
+      const col = interference(placedBodies(vals)).map(c => ({ a: c.a.id, b: c.b.id, volume: +c.volume.toFixed(3) }));
+      if (col.length) { hit++; first ||= vals; const v = Math.max(...col.map(c => c.volume)); if (!worst || v > worst.volume) worst = { values: vals, volume: v }; }
+      poses.push({ values: vals, collisions: col });
+    }
+    return { joints: joints.map(j => ({ id: j.id, name: j.name, type: j.type, unit: lin(j) ? 'mm' : 'deg', from: range(j)[0], to: range(j)[1] })), steps: n, poses: n + 1, colliding: hit, clear: hit === 0,
+      ...(first ? { firstCollision: first, deepestCollision: worst } : {}), collidingPoses: poses.filter(q => q.collisions.length),
+      notice: 'All listed joints move together from "from" to "to" in equal steps; linked joints follow their drivers. Between two steps nothing is checked – take more steps for thin parts. The design itself is not changed.' };
+  },
+  robot(format, pkg, meshes, collision) {
+    const r = urdfExport({ format, pkg, collision });
+    if (!r) throw new Error('The design has no body');
+    const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+    const mesh = r.files.filter(([n]) => n.startsWith('meshes/'));
+    return { format: r.format, name: r.robot, bodies: r.links, movingJoints: r.joints, collision: r.collision, triangles: { meshes: r.meshFaces, ...(r.collision === 'hull' ? { hulls: r.hullFaces } : {}) }, files: r.docs.map(([name, content]) => ({ name, content })),
+      meshes: mesh.map(([name, u8]) => ({ name, bytes: u8.length, ...(meshes ? { base64: b64(u8) } : {}) })),
+      notice: `Lengths in metres, angles in radians; the present pose is the zero pose. Meshes are binary STL${meshes ? '' : ' (pass meshes: true to get them as base64)'}.${r.defaulted ? ` ${r.defaulted} bodies without a material were counted as aluminium.` : ''}` };
+  },
   async exportText(format) {
     const m = await agentApi.settled();
     if (!m.bodies.length) throw new Error('The design has no body');
@@ -5176,7 +5361,9 @@ function propsSheet(b, f, ed) {
   b.append(
     row('Skizze', sel(sketchOptions(), f.sketch, v => ed(x => { x.sketch = v; x.flanges = []; x.lines = []; x.collars = []; }))),
     row('Blechregel', sel([['', 'Eigene Werte'], ...SHEET_RULES.map(r => [r.id, r.name]), ...own.map(r => [r.id, `★ ${r.name}`])], rule?.id || '', v => { const r = rules.find(q => q.id === v); if (r) ed(x => { x.thickness = r.thickness; x.radius = r.radius; x.kfactor = r.kfactor; }); })),
-    N('Blechdicke', 'thickness', { min: 0.1 }), N('Biegeradius innen', 'radius', { min: 0 }), N('K-Faktor', 'kfactor', { unit: null, min: 0, max: 1 }),
+    N('Blechdicke', 'thickness', { min: 0.1 }), N('Biegeradius innen', 'radius', { min: 0 }),
+    row('Biegeberechnung', sel([['kfactor', 'K-Faktor (eigener Wert)'], ['din6935', 'Nach DIN 6935 (aus Radius und Dicke)']], f.bendCalc || 'kfactor', v => ed(x => (x.bendCalc = v)))),
+    f.bendCalc === 'din6935' ? row('K-Faktor', h('b', null, `${+sheetK(f).toFixed(3)} (berechnet, r/s = ${f2(+f.radius / +f.thickness)})`)) : N('K-Faktor', 'kfactor', { unit: null, min: 0, max: 1 }),
     h('div', { class: 'btns' },
       ...(rule ? [] : [btn('Als Blechregel speichern', () => saveSheetRule(f))]),
       ...(rule && own.includes(rule) ? [btn('Blechregel löschen', () => { saveJ(OWN_RULES_KEY, own.filter(r => r !== rule)); status(`Blechregel „${rule.name}“ gelöscht – die Werte des Blechs bleiben.`); renderAll(); })] : [])),
@@ -5310,7 +5497,7 @@ function propsSheet(b, f, ed) {
         h('span', null, 'Schnittlänge'), h('b', null, `${f2(fp.cutLength)} mm`),
         h('span', null, 'Ausschnitte'), h('b', null, String(base.holes.length)),
         h('span', null, 'Masse'), h('b', null, `${f2((fp.area * (+f.thickness || 0)) / 1000 * smat.density)} g (${smat.label})`),
-        h('span', null, 'Biegezugabe 90°'), h('b', null, `${f2(bendAllowance(90, +f.radius, +f.thickness, +f.kfactor))} mm`)),
+        h('span', null, 'Biegezugabe 90°'), h('b', null, `${f2(bendAllowance(90, +f.radius, +f.thickness, sheetK(f)))} mm`)),
       h('div', { class: 'btns' },
         btn(state.flatView === f.id ? 'Gefalteten Zustand zeigen' : 'Abwicklung anzeigen', () => toggleFlatView(f), state.flatView === f.id ? 'on' : 'primary')),
       fp.table.length ? h('table', { class: 'mtable bend-table' },
@@ -5321,12 +5508,22 @@ function propsSheet(b, f, ed) {
       fp.table.length ? h('p', { class: 'hint' }, `Presskraft: Richtwert für freies Biegen im Gesenk V = ${f2(pressForce(+f.thickness, 1, srm).V)} mm mit Zugfestigkeit ${srm} N/mm² (${smat.label}); kürzester Schenkel dafür etwa ${f2(pressForce(+f.thickness, 1, srm).minFlange)} mm. Größte Biegung: ${f2(Math.max(...fp.table.map(q => pressForce(+f.thickness, q.length, srm).kN)))} kN.`) : null,
       h('div', { class: 'btns' },
         btn('Als Skizze', () => flatToSketch(f, fp, base.z0)),
-        btn('Als DXF', () => download(`${safeName()}_Abwicklung.dxf`, flatDXF(fp), 'application/dxf'))),
+        btn('Als DXF', () => download(`${safeName()}_Abwicklung.dxf`, flatDXF(fp), 'application/dxf')),
+        ...(fp.table.length ? [btn('Biegetabelle (CSV)', () => download(`${safeName()}_Biegungen.csv`, bendTableCSV(f, fp, srm), 'text/csv'), '', 'Alle Biegungen mit Winkel, Radius, K-Faktor, Zugabe, Länge und Presskraft als Tabelle für die Abkantpresse')] : [])),
       h('p', { class: 'hint' }, 'Gestrichelt im DXF/der Skizze: Biegelinien (Anfang und Ende jeder Biegezone). Im DXF liegen sie auf der Ebene BIEGUNG, der Umriss auf Ebene 0.'));
   }
   b.append(opSelect(f, ed));
 }
 
+// bend table for the press brake: one row per bend, semicolon separated (opens directly in spreadsheet programs)
+function bendTableCSV(f, fp, srm) {
+  const k = sheetK(f), n = x => String(+(+x).toFixed(3)).replace('.', ',');
+  const rows = [['Biegung', 'Kante', 'Winkel (°)', 'Richtung', 'Radius innen (mm)', 'K-Faktor', 'Biegezugabe (mm)', 'Biegelänge (mm)', 'Presskraft (kN)']];
+  fp.table.forEach((b, i) => rows.push([`B${i + 1}`, b.line != null ? `L${b.line + 1}` : b.level ? `${b.edge + 1}.${b.level + 1}` : String(b.edge + 1), n(Math.abs(b.angle)),
+    b.level ? (b.angle > 0 ? 'gleichsinnig' : 'gegensinnig') : b.angle > 0 ? 'hoch' : 'runter', n(b.radius), n(k), n(b.allowance), n(b.length), n(pressForce(+f.thickness, b.length, srm).kN)]));
+  rows.push([], ['Blechdicke (mm)', n(f.thickness)], ['Berechnung', f.bendCalc === 'din6935' ? 'DIN 6935' : 'K-Faktor'], ['Zuschnitt (mm)', `${n(fp.size[0])} x ${n(fp.size[1])}`]);
+  return '\ufeff' + rows.map(r => r.map(c => /[;"\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c).join(';')).join('\r\n') + '\r\n';
+}
 function toggleFlatView(f) {
   state.flatView = state.flatView === f.id ? null : f.id;
   showBanner(state.flatView ? [`Abwicklung von „${f.name}“ – Biegelinien orange (B1, B2 …)`, h('button', { onclick: () => toggleFlatView(f) }, 'Gefaltet zeigen')] : null);
@@ -9016,7 +9213,7 @@ function createFeature(type, extra = {}) {
       f = { ...base, sketch: sk.id, profiles: 'all', axis: axisLine ? axisLine.id : 'y', angle: 360, op: hasBodies ? 'join' : 'new' };
     } else {
       if (!hasBodies) return status('Bohrungen brauchen einen Körper.');
-      f = { ...base, sketch: sk.id, points: 'all', kind: 'simple', dia: 6, depth: 10, through: false, cbDia: 11, cbDepth: 6, csDia: 12, csAngle: 90, tip: true };
+      f = { ...base, sketch: sk.id, points: 'all', kind: 'simple', dia: +getSettings().holeDia || 6, depth: 10, through: false, cbDia: 11, cbDepth: 6, csDia: 12, csAngle: 90, tip: true };
     }
   } else if (type === 'loft') {
     // pick the two most recent sketches with closed profiles on different planes
@@ -9089,7 +9286,8 @@ function createFeature(type, extra = {}) {
     f = { ...base, thickness: 2, direction: 'out', faces: [], op: 'new' };
   } else if (type === 'fillet' || type === 'chamfer' || type === 'shell') {
     if (!hasBodies) return status('Zuerst einen Körper erstellen.');
-    f = type === 'fillet' ? { ...base, radius: 2, edges: [], all: false } : type === 'chamfer' ? { ...base, distance: 1, edges: [], all: false } : { ...base, thickness: 2, faces: [] };
+    const S = getSettings();
+    f = type === 'fillet' ? { ...base, radius: +S.filletRadius || 2, edges: [], all: false } : type === 'chamfer' ? { ...base, distance: +S.chamferDist || 1, edges: [], all: false } : { ...base, thickness: +S.shellThickness || 2, faces: [] };
   } else if (type === 'delface') {
     if (!hasBodies) return status('Zuerst einen Körper erstellen.');
     requestFullKernel();
@@ -9826,7 +10024,7 @@ function propsJoint(b, j) {
       row('Winkel', num(j.angle || 0, v => ed(x => (x.angle = v ?? 0)), { unit: '°' })),
       h('div', { class: 'btns' }, btn('Gelenkursprünge neu wählen', () => { commit(pp => (pp.assembly.joints = pp.assembly.joints.filter(x => x.id !== j.id))); addJoint(); })),
     ] : [
-      j.type !== 'rigid' ? row('Achse', sel([['x', 'X'], ['y', 'Y'], ['z', 'Z']], j.axis, v => ed(x => (x.axis = v)))) : null,
+      j.type !== 'rigid' ? row('Achse', sel([...(Array.isArray(j.axis) ? [['free', `Frei (${j.axis.map(q => f2(+q)).join(' · ')})`]] : []), ['x', 'X'], ['y', 'Y'], ['z', 'Z']], Array.isArray(j.axis) ? 'free' : j.axis, v => { if (v !== 'free') ed(x => (x.axis = v)); })) : null,
       j.type === 'revolute' ? sec('DREHPUNKT') : null,
       ...(j.type === 'revolute' ? [0, 1, 2].map(k => row('XYZ'[k], num(j.origin[k], v => ed(x => (x.origin[k] = v)), { unit: 'mm' }))) : []),
     ]),
@@ -10928,6 +11126,8 @@ function menuAction(act) {
   else if (act === 'gltf') exportGltfFile();
   else if (act === 'urdf') exportUrdfFile();
   else if (act === 'script') runScriptFile();
+  else if (act === 'pyscript') runPythonFile();
+  else if (act === 'pyaddins') openScriptManager();
   else if (act === 'step' || act === 'stl' || act === 'iges') {
     const bodies = getModel().bodies.filter(x => !state.hiddenBodies.has(x.id));
     const meshes = getMeshes().bodies.filter(x => !state.hiddenBodies.has(x.id));
@@ -10943,7 +11143,7 @@ function menuAction(act) {
     }
     else {
       const grp = new THREE.Group();
-      bodies.forEach(x => grp.add(new THREE.Mesh(x.geometry)));
+      bodies.forEach(x => grp.add(new THREE.Mesh(printGeometry(x))));
       download(`${safeName()}.stl`, new STLExporter().parse(grp, { binary: true }), 'model/stl');
     }
   }
@@ -11075,6 +11275,7 @@ window.addEventListener('keydown', e => {
     const f = state.sel?.kind === 'feature' && feature(state.sel.id);
     if (f?.type === 'sketch') return setSketchesHidden([f.id], !f.hidden);
   }
+  if (k === 's' && e.shiftKey && !state.sketchId) { e.preventDefault(); return openScriptManager(); }
   if (k === 's' && !state.sketchId) { e.preventDefault(); return openCommandSearch(); }
   if (state.workspace === 'design' && !state.sketchId) {
     if (k === 'e') return createFeature('extrude');
@@ -11159,6 +11360,18 @@ function switchKernel(id) {
     .catch(err => { kernelFailed.add(id); status(`Geometriekern konnte nicht geladen werden (${err.message || err}) – OpenCascade bleibt aktiv.`); })
     .finally(() => { kernelBusy = false; });
 }
+// pictures per second, counted at the renderer, at the bottom of the view
+let fpsState = null;
+function fpsMeter(on) {
+  if (!on) { if (fpsState) { vp.renderer.render = fpsState.orig; fpsState.el.remove(); clearInterval(fpsState.timer); fpsState = null; } return; }
+  if (fpsState) return;
+  const orig = vp.renderer.render.bind(vp.renderer), el = h('div', { id: 'fpsMeter', class: 'fps-meter' }, '– B/s');
+  const st = { orig: vp.renderer.render, el, n: 0, t: performance.now() };
+  vp.renderer.render = (...a) => { st.n++; return orig(...a); };
+  st.timer = setInterval(() => { const now = performance.now(); el.textContent = `${Math.round((st.n * 1000) / (now - st.t))} B/s`; st.n = 0; st.t = now; }, 1000);
+  $('#viewportWrap').append(el);
+  fpsState = st;
+}
 function applySettings() {
   const s = getSettings();
   const root = document.documentElement;
@@ -11233,6 +11446,8 @@ function applySettings() {
     document.querySelectorAll('#navBar [data-display]').forEach(x => x.classList.toggle('on', x.dataset.display === display));
   }
   state.noAutosave = s.autosave === false;
+  vp.fitMargin = { tight: 0.8, normal: 1, wide: 1.35 }[s.fitMargin] || 1;
+  fpsMeter(!!s.showFps);
   if (!state.sketchId) state.snap = +s.snap || state.snap;
   const sp = $('#simSpeed');
   if (sp && [...sp.options].some(o => o.value === String(s.simSpeed))) sp.value = String(s.simSpeed);
@@ -11276,9 +11491,30 @@ const PREF_TREE = [
       ]],
       ['Features', [
         ['defaultExtrude', 'Standard-Extrusionslänge', 'Vorgabe für neue Extrusionen', 'num', { unit: 'mm' }],
+        ['holeDia', 'Bohrungsdurchmesser', 'Vorgabe für neue Bohrungen', 'num', { unit: 'mm', min: 0.1 }],
+        ['filletRadius', 'Verrundungsradius', 'Vorgabe für neue Verrundungen', 'num', { unit: 'mm', min: 0.01 }],
+        ['chamferDist', 'Fasenabstand', 'Vorgabe für neue Fasen', 'num', { unit: 'mm', min: 0.01 }],
+        ['shellThickness', 'Wandstärke der Schale', 'Vorgabe für neue Schalen', 'num', { unit: 'mm', min: 0.01 }],
       ]],
       ['Geometriekern', [
         ['kernel', 'Geometriekern', 'OpenCascade: alle Funktionen. Rust-Kern (truck, experimentell): Grundkörper, Extrusion, Rotation, Bohrung, Muster, Spiegeln, Verschieben, Skalieren, Kombinieren und STEP-Export – andere Features werden als „noch nicht unterstützt“ markiert.', [['occ', 'OpenCascade (alle Funktionen)'], ['rust', 'Rust-Kern (experimentell)']]],
+      ]],
+    ] },
+    { id: 'print', label: '3D-Druck', groups: [
+      ['Export', [
+        ['exportQuality', 'Exportqualität', 'Wie fein Körper für STL, 3MF und den Slicer in Dreiecke zerlegt werden: Abweichung von der wahren Fläche als Anteil der Körpergröße. Netze bleiben, wie sie sind.', [['view', 'Wie die Ansicht'], ['standard', 'Standard (0,02 % der Größe)'], ['fine', 'Fein (0,005 %)'], ['finest', 'Sehr fein (0,001 %)']]],
+      ]],
+      ['Slicer', [
+        ['slicerFormat', 'Dateiformat', 'In welcher Form „An Slicer senden“ die Teile übergibt', [['3mf', '3MF (mehrere Teile, mit Namen)'], ['stl', 'STL (ein Netz)']]],
+        ['slicerPath', 'Slicer-Programm', 'Programm, mit dem die Datei geöffnet wird (Desktop-App). Leer: das Programm, mit dem das System 3MF- oder STL-Dateien öffnet. Im Browser wird die Datei gespeichert.', 'text'],
+        ['__slicerPick'],
+      ]],
+      ['Prüfen', [
+        ['overhangAngle', 'Überhangwinkel', 'Flächen, die stärker überhängen (gemessen von der Senkrechten), brauchen Stützen – 45° ist bei den meisten Druckern die Grenze', 'num', { unit: '°', min: 10, max: 89, step: 1 }],
+      ]],
+      ['Netze einfügen', [
+        ['meshUnit', 'Einheit der Dateien', 'In welcher Einheit STL-, OBJ-, 3MF- und PLY-Dateien ohne Angabe gelesen werden (je Netz änderbar)', [['mm', 'Millimeter'], ['cm', 'Zentimeter'], ['m', 'Meter'], ['in', 'Zoll']]],
+        ['meshYUp', 'Y zeigt nach oben', 'Für Dateien aus Programmen, in denen Y nach oben zeigt: das Netz wird aufgerichtet und auf Z = 0 gestellt', 'bool'],
       ]],
     ] },
     { id: 'manufacture', label: 'Fertigung', groups: [
@@ -11329,6 +11565,8 @@ const PREF_TREE = [
     ]],
     ['Arbeitsfläche', [
       ['showViewCube', 'ViewCube anzeigen', 'Würfel oben rechts zum Ausrichten der Ansicht', 'bool'],
+      ['fitMargin', 'Rand beim Einpassen', 'Wie viel Platz um das Modell bleibt, wenn die Ansicht eingepasst wird', [['tight', 'Knapp'], ['normal', 'Normal'], ['wide', 'Großzügig']]],
+      ['showFps', 'Bildrate anzeigen', 'Bilder pro Sekunde unten in der Ansicht – zum Vergleichen von Darstellungsqualität und Rechnern', 'bool'],
       ['showNavBar', 'Navigationsleiste anzeigen', 'Leiste unten mit Drehen, Verschieben, Ansichten', 'bool'],
     ]],
   ] },
@@ -11441,6 +11679,7 @@ function openSettings(page) {
     const set = v => { draft[key] = v; setDirty(true); };
     if (kind === 'bool') { const i = h('input', { type: 'checkbox' }); i.checked = !!draft[key]; i.onchange = () => set(i.checked); return i; }
     if (kind === 'color') { const i = h('input', { type: 'color', value: draft[key] }); i.oninput = () => set(i.value); return i; }
+    if (kind === 'text') { const i = h('input', { type: 'text', value: draft[key] ?? '', spellcheck: false, style: 'width:230px' }); i.onchange = () => set(i.value.trim()); return i; }
     if (kind === 'num') {
       const i = h('input', { type: 'number', value: draft[key], step: opt.step || 'any' });
       if (opt.min != null) i.min = opt.min;
@@ -11484,6 +11723,12 @@ function openSettings(page) {
       };
       ag.info().then(show, () => box.append(h('p', { class: 'hint' }, 'Der Anschluss antwortet nicht.')));
       return box;
+    }
+    if (key === '__slicerPick') {
+      const sl = window.werkfabApp?.slicer;
+      return h('div', { class: 'prefs-row' }, h('label', null, '', null), h('div', { class: 'prefs-ctl' },
+        sl ? h('button', { class: 'prefs-btn', onclick: async () => { const p = await sl.pick(); if (p) { draft.slicerPath = p; setDirty(true); draw(); } } }, 'Programm wählen …') : h('span', { class: 'hint' }, 'Nur in der Desktop-App'),
+        h('button', { class: 'prefs-btn', onclick: () => sendToSlicer() }, 'Jetzt senden')));
     }
     if (key === '__unit') return h('div', { class: 'prefs-row' }, h('label', null, 'Standardeinheit', info('Alle Längen in Millimeter, Winkel in Grad')), h('div', { class: 'prefs-ctl' }, h('b', null, 'Millimeter (mm)')));
     if (key === '__smStatus') {
@@ -12261,7 +12506,35 @@ $('#saveBtn').onclick = () => saveVersionCmd();
 
 // ---------- meshes (NETZ workspace) – edited as triangles, never converted to B-rep ----------
 const MESH_OPS = { transform: 'Netz verschieben/drehen', cut: 'Ebenenschnitt', reduce: 'Reduzieren', smooth: 'Glätten', repair: 'Reparieren', flip: 'Normalen umkehren', split: 'Körper trennen',
-  mirror: 'Netz spiegeln', combine: 'Netze vereinen', refine: 'Netz verfeinern', boolean: 'Netze verrechnen (Boolesch)' };
+  mirror: 'Netz spiegeln', combine: 'Netze vereinen', refine: 'Netz verfeinern', boolean: 'Netze verrechnen (Boolesch)',
+  hollow: 'Aushöhlen', offset: 'Netz versetzen', remesh: 'Neu vernetzen', layflat: 'Auf Fläche legen' };
+// the flat sides of the convex hull of a mesh, largest first: { n (outward normal), area }
+function hullFlats(m) {
+  const tri = convexHull(m.pos);
+  if (!tri) return [];
+  const groups = [];
+  for (let i = 0; i < tri.length; i += 9) {
+    const a = new THREE.Vector3(tri[i], tri[i + 1], tri[i + 2]), b = new THREE.Vector3(tri[i + 3], tri[i + 4], tri[i + 5]), c = new THREE.Vector3(tri[i + 6], tri[i + 7], tri[i + 8]);
+    const n = b.clone().sub(a).cross(c.clone().sub(a)), ar = n.length() / 2;
+    if (!(ar > 0)) continue;
+    n.normalize();
+    const g = groups.find(q => q.n.dot(n) > 1 - 1e-6 && Math.abs(q.n.dot(a) - q.d) < 1e-3 * (1 + Math.abs(q.d)));
+    if (g) g.area += ar; else groups.push({ n, d: n.dot(a), area: ar });
+  }
+  return groups.sort((p, q) => q.area - p.area);
+}
+// turn a mesh so that one flat side of its hull lies on the plate (Z = 0, centre kept in X and Y)
+function layFlat(m, rank = 1) {
+  const flats = hullFlats(m);
+  if (!flats.length) throw new Error('Das Netz hat keine Auflagefläche');
+  const f = flats[Math.max(0, Math.min(flats.length - 1, Math.round(rank) - 1))];
+  const c0 = meshBounds(m).getCenter(new THREE.Vector3());
+  const q = new THREE.Quaternion().setFromUnitVectors(f.n, new THREE.Vector3(0, 0, -1));
+  let r = meshApply(m, new THREE.Matrix4().makeRotationFromQuaternion(q));
+  const bb = meshBounds(r), c1 = bb.getCenter(new THREE.Vector3());
+  r = meshApply(r, new THREE.Matrix4().makeTranslation(c0.x - c1.x, c0.y - c1.y, -bb.min.z));
+  return r;
+}
 const MESH_UNITS = { mm: 1, cm: 10, m: 1000, in: 25.4 };
 vp.meshes = new THREE.Group();
 vp.scene.add(vp.meshes);
@@ -12269,6 +12542,7 @@ const matMesh = new THREE.MeshStandardMaterial({ color: 0xa9b8a0, metalness: 0.0
 const matMeshSel = matMesh.clone(); matMeshSel.color.set(0x7fb4e8);
 const matMeshWire = new THREE.LineBasicMaterial({ color: 0x2a3440, transparent: true, opacity: 0.25 });
 const matOpenEdge = new THREE.LineBasicMaterial({ color: 0xe5484d, depthTest: false, transparent: true });
+const matOverhang = new THREE.MeshBasicMaterial({ color: 0xe5484d, transparent: true, opacity: 0.55, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, depthWrite: false });
 
 const meshStep = new Map(); // step cache: chain of mesh features -> resulting mesh bodies
 let meshState = { key: null, bodies: [], errors: {} };
@@ -12313,6 +12587,10 @@ function getMeshes() {
         else if (f.kind === 'reduce') m = meshDecimate(m, (+f.percent || 50) / 100);
         else if (f.kind === 'mirror') m = meshMirror(m, f.axis || 'x', +f.offset || 0, !!f.keep);
         else if (f.kind === 'refine') m = meshSubdivide(m, Math.max(0, +f.maxEdge || 0), +f.levels || 1);
+        else if (f.kind === 'hollow') m = meshHollow(m, +f.thickness || 2);
+        else if (f.kind === 'offset') { const s = meshStatsRaw(m).volume >= 0 ? 1 : -1; m = meshOffset(m, s * (+f.distance || 0)); }
+        else if (f.kind === 'remesh') m = meshRemesh(m, +f.edge || 1);
+        else if (f.kind === 'layflat') m = layFlat(m, +f.rank || 1);
         else if (f.kind === 'combine' || f.kind === 'boolean') {
           const o = bodies.get(f.other);
           if (!o || o.id === t.id) throw new Error('Zweiten Netzkörper wählen');
@@ -12363,7 +12641,8 @@ async function importMesh(file) {
     const blob = await putBlob(encodeMesh(m));
     const id = uid('nm');
     const bb = meshBounds(m);
-    commit(p => p.features.push({ id, type: 'meshimport', name: file.name.replace(/\.[^.]+$/, ''), file: file.name, blob, unit: 'mm', yUp: false, center: false, floor: bb.min.z < -1e-6, dx: 0, dy: 0, dz: 0 }));
+    const S = getSettings(), unit = MESH_UNITS[S.meshUnit] ? S.meshUnit : 'mm';
+    commit(p => p.features.push({ id, type: 'meshimport', name: file.name.replace(/\.[^.]+$/, ''), file: file.name, blob, unit, yUp: !!S.meshYUp, center: false, floor: !!S.meshYUp || bb.min.z < -1e-6, dx: 0, dy: 0, dz: 0 }));
     select('feature', id);
     fitView();
     status(`„${file.name}“ eingefügt – ${(m.idx.length / 3).toLocaleString('de-DE')} Dreiecke, bleibt als Netz (kein B-Rep)`);
@@ -12383,7 +12662,8 @@ function createMeshOp(kind, target) {
   const bsz = box ? box.getSize(new THREE.Vector3()) : null;
   const defs = { transform: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0, scale: 1 }, cut: { axis: 'z', offset: box ? f2((box.min.z + box.max.z) / 2) : 0, keep: 'neg', cap: true },
     reduce: { percent: 50 }, smooth: { iterations: 3, strength: 0.5 }, repair: { tol: 0.001, holes: true, orient: true }, flip: {}, split: {},
-    mirror: { axis: 'x', offset: box ? f2(box.min.x) : 0, keep: true }, refine: { maxEdge: bsz ? f2(Math.max(bsz.x, bsz.y, bsz.z) / 20) : 5, levels: 3 }, combine: { other: [...ms].reverse().find(x => x.id !== t)?.id || '' }, boolean: { other: [...ms].reverse().find(x => x.id !== t)?.id || '', op: 'union' } }[kind];
+    mirror: { axis: 'x', offset: box ? f2(box.min.x) : 0, keep: true }, refine: { maxEdge: bsz ? f2(Math.max(bsz.x, bsz.y, bsz.z) / 20) : 5, levels: 3 }, hollow: { thickness: 2 }, offset: { distance: 1 }, remesh: { edge: bsz ? f2(Math.max(bsz.x, bsz.y, bsz.z) / 40) : 2 }, layflat: { rank: 1 },
+    combine: { other: [...ms].reverse().find(x => x.id !== t)?.id || '' }, boolean: { other: [...ms].reverse().find(x => x.id !== t)?.id || '', op: 'union' } }[kind];
   pendingNew = { id, depth: undoDepth() };
   insertFeature({ id, type: 'meshop', kind, target: t, name: nextName(state.project.features, MESH_OPS[kind]), ...defs });
   state.sel = { kind: 'feature', id };
@@ -12456,15 +12736,47 @@ function propsMeshOp(b, f, ed) {
     h('p', { class: 'hint' }, 'Verrechnet zwei geschlossene Netze wirklich miteinander: innen liegende Flächen verschwinden, die Schnittkanten werden neu vernetzt. Gerechnet wird nur dort, wo sich die beiden Netze begegnen können – ein großes Netz mit einem kleinen Eingriff geht deshalb schnell. Überlappen zwei große Netze ganz, vorher „Reduzieren“.'));
   if (f.kind === 'cut') b.append(h('div', { class: 'btns' }, btn('Schnittkontur als Skizze', () => { const r = getMeshes().bodies.find(x => x.id === f.target || x.id.startsWith(f.target + '~' + f.id)); if (r) meshSectionSketch(r, f.axis || 'z', (+f.offset || 0) + (f.keep === 'pos' || f.keep === 'both' ? 1e-5 : -1e-5)); })));
   if (f.kind === 'flip') b.append(h('p', { class: 'hint' }, 'Dreht die Richtung aller Dreiecke um (innen ↔ außen).'));
+  if (f.kind === 'hollow') b.append(N('Wandstärke', 'thickness', { min: 0.01 }),
+    h('p', { class: 'hint' }, 'Macht ein geschlossenes Netz hohl: eine Innenwand im Abstand der Wandstärke kommt dazu – spart Material und Druckzeit. Stellen, die dünner sind als zwei Wandstärken, überschneiden sich danach; für Harzdruck ein Ablaufloch mit „Boolesch“ abziehen.'));
+  if (f.kind === 'offset') b.append(N('Abstand', 'distance'),
+    h('p', { class: 'hint' }, 'Verschiebt jede Fläche um den Abstand nach außen (negativ: nach innen) – für Spiel, Aufmaß oder ein Negativ. Kanten und Ecken bleiben scharf; sehr feine Stellen können sich beim Schrumpfen überschneiden.'));
+  if (f.kind === 'remesh') b.append(N('Kantenlänge', 'edge', { min: 0.01 }),
+    h('p', { class: 'hint' }, 'Gleichmäßige Dreiecke dieser Größe: lange Kanten werden geteilt, danach wird auf die Dreieckszahl eines gleichmäßigen Netzes reduziert. Gut vor dem Glätten oder Formen von Scans.'));
+  if (f.kind === 'layflat') {
+    b.append(row('Auflage', num(f.rank || 1, v => ed(x => (x.rank = Math.max(1, Math.round(v)))), { unit: null, min: 1, int: true })),
+      h('p', { class: 'hint' }, 'Dreht das Netz so, dass eine ebene Seite auf der Druckplatte liegt (Z = 0). 1 = die größte Auflagefläche, 2 = die zweitgrößte … Mitte in X und Y bleibt.'));
+  }
   const res = getMeshes().bodies.filter(x => x.id === f.target || x.id.startsWith(f.target + '~' + f.id));
   if (res.length) b.append(sec('ERGEBNIS'), ...res.map(r => meshStatsBlock(r.mesh)));
 }
 
+function printBlock(mb) {
+  const ang = +getSettings().overhangAngle || 45, oh = meshOverhangs(mb.mesh, ang), bb = meshBounds(mb.mesh);
+  return h('div', null,
+    h('div', { class: 'stats' },
+      h('span', null, `Überhänge (über ${ang}°)`), h('b', { style: oh.area > 0.5 ? 'color:var(--danger)' : 'color:var(--ok)' }, oh.area > 0.5 ? `${f2(oh.area / 100)} cm² (${f2((100 * oh.area) / (oh.total || 1))} %)` : 'keine ✓'),
+      h('span', null, 'Auflage auf der Platte'), h('b', null, `${f2(oh.plate / 100)} cm²`),
+      h('span', null, 'Tiefster Punkt'), h('b', { style: Math.abs(bb.min.z) > 1e-3 ? 'color:var(--danger)' : '' }, `Z = ${f2(bb.min.z)} mm`)),
+    h('div', { class: 'btns' },
+      btn(state.overhang ? 'Überhänge ausblenden' : 'Überhänge zeigen', () => toggleOverhang()),
+      btn('Auf Fläche legen', () => createMeshOp('layflat', mb.id)),
+      btn('An Slicer senden', () => sendToSlicer([mb]), 'primary')));
+}
+function toggleOverhang() {
+  state.overhang = !state.overhang;
+  if (state.overhang) {
+    const ms = getMeshes().bodies.filter(x => !state.hiddenBodies.has(x.id)), ang = +getSettings().overhangAngle || 45;
+    const a = ms.reduce((s, x) => s + meshOverhangs(x.mesh, ang).area, 0);
+    status(ms.length ? `Überhänge über ${ang}° rot: ${f2(a / 100)} cm² brauchen Stützen (Winkel in den Einstellungen unter 3D-Druck)` : 'Kein Netz – zuerst einfügen oder einen Körper umwandeln.');
+  }
+  renderAll();
+}
 function propsMeshBody(b, mb) {
   setTitle('NETZKÖRPER');
   b.append(row('Name', txt(mb.name, v => commit(p => { p.bodyMeta ||= {}; (p.bodyMeta[mb.id] ||= {}).name = v; }, 'meta'))), meshStatsBlock(mb.mesh),
     h('div', { class: 'btns' },
-      ...['repair', 'reduce', 'refine', 'smooth', 'cut', 'transform', 'mirror', 'combine', 'boolean', 'flip', 'split'].map(k => btn(MESH_OPS[k], () => createMeshOp(k, mb.id), k === 'repair' ? 'primary' : ''))),
+      ...['repair', 'reduce', 'refine', 'remesh', 'smooth', 'offset', 'hollow', 'layflat', 'cut', 'transform', 'mirror', 'combine', 'boolean', 'flip', 'split'].map(k => btn(MESH_OPS[k], () => createMeshOp(k, mb.id), k === 'repair' ? 'primary' : ''))),
+    sec('3D-DRUCK'), printBlock(mb),
     sec('UMWANDELN'),
     h('div', { class: 'btns' }, btn('Netz → Körper', () => meshToBody(mb)), btn('Schnitt als Skizze', () => meshSectionDialog(mb))),
     sec('EXPORT'),
@@ -12472,9 +12784,37 @@ function propsMeshBody(b, mb) {
   if (!meshStats(mb.mesh).closed) b.append(h('p', { class: 'hint' }, 'Offene Kanten werden rot angezeigt. „Reparieren“ schließt Löcher.'));
 }
 
+// triangles of a body for printing (Einstellungen → 3D-Druck → Exportqualität); meshes keep theirs
+function printGeometry(b) {
+  const q = getSettings().exportQuality;
+  if (!b.shape || !q || q === 'view') return b.geometry;
+  printGeoCache.has(b) || printGeoCache.set(b, new Map());
+  const c = printGeoCache.get(b);
+  if (!c.has(q)) c.set(q, exportGeometry(b, q) || b.geometry);
+  return c.get(q);
+}
+const printGeoCache = new WeakMap();
+// hand visible meshes and bodies to the slicer: the desktop app writes a 3MF (or STL) and opens it with the program
+// chosen in the settings (or the one the system opens such files with); the browser saves the file instead
+async function sendToSlicer(list) {
+  const s = getSettings();
+  list ||= [...getModel().bodies.filter(b => !state.hiddenBodies.has(b.id) && !b.surface), ...getMeshes().bodies.filter(b => !state.hiddenBodies.has(b.id))];
+  if (!list.length) return status('Nichts zum Drucken: kein sichtbarer Körper und kein Netz.');
+  const items = list.map(x => ({ name: x.name || bodyName(x), mesh: x.mesh || meshFromGeometry(printGeometry(x)) }));
+  const fmt = s.slicerFormat === 'stl' ? 'stl' : '3mf', name = `${safeName()}.${fmt}`;
+  let data;
+  if (fmt === '3mf') data = to3MF(items);
+  else { const grp = new THREE.Group(); items.forEach(it => grp.add(new THREE.Mesh(meshToGeometry(it.mesh)))); data = new STLExporter().parse(grp, { binary: true }); }
+  const bytes = data instanceof Blob ? new Uint8Array(await data.arrayBuffer()) : data instanceof DataView ? new Uint8Array(data.buffer) : data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+  const sl = window.werkfabApp?.slicer;
+  if (!sl) { download(name, bytes, fmt === '3mf' ? 'model/3mf' : 'model/stl'); return status(`${name} gespeichert – im Browser die Datei im Slicer öffnen (die Desktop-App öffnet ihn selbst).`); }
+  const r = await sl.open({ name, data: bytes, exe: s.slicerPath || '' });
+  if (r?.error) return status(`Slicer konnte nicht geöffnet werden: ${r.error}`);
+  status(`${items.length} Teil(e) an den Slicer gegeben (${name})`);
+}
 function exportMeshSTL(list) {
   const grp = new THREE.Group();
-  list.forEach(x => grp.add(new THREE.Mesh(x.geometry)));
+  list.forEach(x => grp.add(new THREE.Mesh(printGeometry(x))));
   download(`${list.length === 1 ? list[0].name : safeName()}.stl`, new STLExporter().parse(grp, { binary: true }), 'model/stl');
 }
 
@@ -12573,6 +12913,19 @@ function drawMeshes() {
     if (selected && mb.mesh.idx.length < 600000) {
       const w = new THREE.LineSegments(new THREE.WireframeGeometry(mb.geometry), matMeshWire);
       vp.meshes.add(w);
+    }
+    if (state.overhang && state.workspace === 'design') {
+      const oh = meshOverhangs(mb.mesh, +getSettings().overhangAngle || 45);
+      if (oh.tris.length) {
+        const idx = new Uint32Array(oh.tris.length * 3);
+        oh.tris.forEach((t, i) => { idx[i * 3] = mb.mesh.idx[t]; idx[i * 3 + 1] = mb.mesh.idx[t + 1]; idx[i * 3 + 2] = mb.mesh.idx[t + 2]; });
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', mb.geometry.attributes.position);
+        g.setIndex(new THREE.BufferAttribute(idx, 1));
+        const ov = new THREE.Mesh(g, matOverhang);
+        ov.renderOrder = 8;
+        vp.meshes.add(ov);
+      }
     }
     if (selected || state.workspace === 'design') {
       const oe = meshOpenEdges(mb.mesh);
@@ -13016,6 +13369,10 @@ function hhPocketMoves(c, pos, top, zr, rT) {
 // Collision check of the NC program against the finished part (setup frame): holder or shank touching the
 // part, rapid moves through it. Every move is sampled along its length.
 const PART_CHECK_TOOLS = ['flat', 'facemill', 'ball', 'torus'];
+// tools whose cutting part is a cone from the tip: for the check against the part they are taken with that cone
+// (point angle, flat at the tip) – as the simulation does
+const PART_CHECK_CONES = ['chamfer', 'drill'];
+const partCone = t => (PART_CHECK_CONES.includes(toolBase(t)) ? { tan: Math.tan((((+t.angle || (toolBase(t) === 'drill' ? 118 : 90)) / 2) * Math.PI) / 180), tip: (+t.tip || 0) / 2 } : null);
 function ncCollisions(g, pts, opt) {
   // Collision check against the material that is still there at each line: the stock is cut away move by move
   // (flat or ball end), and before every move the holder, the shank and rapids are tested against it.
@@ -13085,9 +13442,13 @@ function ncCollisions(g, pts, opt) {
     return z;
   };
   const inTool = (x, y, R, z, ball) => !disc(x, y, R * 0.98, (idx, d2) => h[idx] <= edgeZ(z, R, d2, ball) + 0.05 || h[idx] <= lo[idx]);
-  const cut = (x, y, z, R, ball, chk) => disc(x, y, R, (idx, d2) => {
+  const cut = (x, y, z, R, ball, chk, cone) => disc(x, y, R, (idx, d2) => {
     const t = edgeZ(z, R, d2, ball);
-    if (chk && t < ph[idx] - 0.1) { partHit = true; if (ph[idx] - t > partDeep) partDeep = ph[idx] - t; }
+    if (chk) {
+      // (a cone is checked with its own shape; the stock is still cut as before)
+      const tc = cone ? z + Math.max(0, Math.sqrt(d2) - cone.tip) / cone.tan : t;
+      if (tc < ph[idx] - 0.1) { partHit = true; if (ph[idx] - tc > partDeep) partDeep = ph[idx] - tc; }
+    }
     if (h[idx] > t) h[idx] = t;
   });
   const o = originOf(g.setup, s);
@@ -13113,7 +13474,10 @@ function ncCollisions(g, pts, opt) {
     if (p.cycle) {
       if (b.z + stick < top && above(b.x, b.y, holder / 2, b.z + stick)) out.push({ k, kind: 'holder', at: { x: p.x, y: p.y, z: p.z } });
       if (fh && fxHit(b.x, b.y, b.z, R, shaft, flute, holder, stick)) out.push({ k, kind: 'fixture', at: { x: p.x, y: p.y, z: p.z } });
-      cut(b.x, b.y, b.z, R, false);
+      const cone = ph ? partCone(t) : null;
+      partHit = false;
+      cut(b.x, b.y, b.z, R, false, !!cone, cone);
+      if (partHit) out.push({ k, kind: 'part', at: { x: p.x, y: p.y, z: p.z } });
       return;
     }
     const kinds = new Set();
@@ -13137,7 +13501,7 @@ function ncCollisions(g, pts, opt) {
       return;
     }
     const chain = [a, ...(p.arc || []).map(q => ({ x: q.x + o.x, y: q.y + o.y, z: q.z + o.z })), b];
-    const chk = !!ph && PART_CHECK_TOOLS.includes(t.type);
+    const cone = ph ? partCone(t) : null, chk = !!ph && (PART_CHECK_TOOLS.includes(t.type) || !!cone);
     partHit = false;
     for (let c = 1; c < chain.length; c++) {
       const A = chain[c - 1], B = chain[c];
@@ -13148,7 +13512,7 @@ function ncCollisions(g, pts, opt) {
         if (!kinds.has('shank') && shaft / 2 >= R - 1e-6 && z + flute < top && above(x, y, shaft / 2, z + flute + 0.05)) kinds.add('shank');
         if (p.rapid && !kinds.has('rapid') && z < top && inTool(x, y, R, z, ball)) kinds.add('rapid');
         if (fh && !kinds.has('fixture') && fxHit(x, y, z, R, shaft, flute, holder, stick)) kinds.add('fixture');
-        cut(x, y, z, R, ball, chk);
+        cut(x, y, z, R, ball, chk, cone);
       }
     }
     if (partHit) kinds.add('part');
@@ -13595,6 +13959,13 @@ function ncViewer(results) {
   const search = h('input', { type: 'search', class: 'twl-search', placeholder: 'Suchen (Enter = weiter)' });
   let pts = [], toolOf = new Map(), M = null, origin = null, lines = [], issues = [], editing = false;
   const issueBox = h('div', { class: 'nc-issues' });
+  // also against the finished part (off by default: a cut that is not in the model – an engraving, a pocket from a
+  // sketch only – would be reported)
+  let partOn = localStorage.getItem('openfab.ncPart') === '1', partDeep = 0;
+  const partChk = h('input', { type: 'checkbox' });
+  partChk.checked = partOn;
+  partChk.addEventListener('change', () => { partOn = partChk.checked; try { localStorage.setItem('openfab.ncPart', partOn ? '1' : '0'); } catch { /* private mode */ } show(); });
+  const partRow = h('label', { class: 'nc-part', title: 'Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.' }, partChk, ' Auch gegen das fertige Teil prüfen');
   const close = () => { clearInterval(timer); win.remove(); vp.clear(ncPlot); };
   // colours for words: G (motion) blue, M orange, coordinates green, feed / speed violet, comments grey
   const colour = line => {
@@ -13634,13 +14005,13 @@ function ncViewer(results) {
       const hhCode = fam.startsWith('heidenhain') || /^\s*\d*\s*BEGIN PGM\b/m.test(r.code);
       pts = parseNcPositions(r.code, hhCode, n => (+tools.find(t => +t.number === +n)?.dia || 0) / 2);
       toolOf = new Map(tools.map(t => [+t.number, t]));
-      try { issues = ncCollisions(g, pts); } catch { issues = []; }
+      try { issues = ncCollisions(g, pts, { part: partOn }); partDeep = issues.partDeep || 0; } catch { issues = []; }
       if (hhCode) try { issues.push(...ncHeidenhainCheck(r.code)); } catch (e) { console.warn(e); }
       try { const mc = ncMachineCheck(g, pts); issues.push(...mc.issues); kinInfo = mc.info; kinWhy = mc.why; } catch (e) { console.warn(e); }
       const nA = pts.filter(p => p?.a != null && Math.abs((((p.a % 360) + 540) % 360) - 180) < 179.999).length;
       // 4-axis program on a cylinder stock: all lines (also the 3-axis ones) are checked on the cylinder below;
       // the flat height field only keeps the clamping devices
-      if (nA && [...(g.results?.values() || [])].some(x => x?.rotary && !x.error)) issues = issues.filter(is => !['holder', 'shank', 'rapid', 'contour', 'probe'].includes(is.kind));
+      if (nA && [...(g.results?.values() || [])].some(x => x?.rotary && !x.error)) issues = issues.filter(is => !['holder', 'shank', 'rapid', 'contour', 'probe', 'part'].includes(is.kind));
       if (nA) {
         let rotIssues = null;
         try { rotIssues = ncRotaryCheck(g, pts); issues.push(...rotIssues); } catch (e) { console.warn(e); }
@@ -13651,9 +14022,10 @@ function ncViewer(results) {
     const byKind = {};
     for (const is of issues) (byKind[is.kind] ||= []).push(is);
     issueBox.replaceChildren(...(kinInfo ? [h('div', { class: 'nc-kin' }, '⟲ ' + kinInfo)] : []), ...(kinWhy ? [h('div', { class: 'nc-issue' }, '⚠ ' + kinWhy)] : []), ...(!M ? [] : issues.length
-      ? Object.entries(byKind).map(([kind, list]) => h('div', { class: 'nc-issue' }, `⚠ ${NC_ISSUE[kind]}: `, ...list.slice(0, 12).map(is => h('a', { onclick: () => go(is.k) }, `Z. ${is.k + 1}`)), list.length > 12 ? ` … (${list.length})` : ''))
+      ? Object.entries(byKind).map(([kind, list]) => h('div', { class: 'nc-issue' }, `⚠ ${NC_ISSUE[kind]}${kind === 'part' && partDeep > 0 ? ` – bis ${f2(partDeep)} mm` : ''}: `, ...list.slice(0, 12).map(is => h('a', { onclick: () => go(is.k) }, `Z. ${is.k + 1}`)), list.length > 12 ? ` … (${list.length})` : ''))
       : [h('div', { class: 'nc-ok' }, lathe ? '✓ Keine Kollision (Eilgänge, Futter, Fertigkontur, Schneidrichtung) – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft'
-        : `✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge)${g.setup?.fixtures?.length ? ' und den Spannmitteln' : ''} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft`)]));
+        : `✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge)${g.setup?.fixtures?.length ? ' und den Spannmitteln' : ''}${partOn ? ', kein Schnitt ins fertige Teil' : ''} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft`)]));
+    partRow.style.display = M && !lathe ? '' : 'none';
     slider.max = Math.max(0, lines.length - 1);
     slider.value = 0;
     cur = -1;
@@ -13787,6 +14159,7 @@ function ncViewer(results) {
     tabs, warn,
     h('p', { class: 'warn', style: 'margin:4px 12px' }, '⚠ Jedes NC-Programm vor dem ersten Lauf prüfen: an der Maschine im Probelauf (Einzelsatz, reduzierter Eilgang) oder in einem externen NC-Simulator. Die Simulation hier ersetzt das nicht – Nutzung auf eigene Gefahr, ohne Gewährleistung.'),
     h('div', { class: 'nc-bar' }, search, tplBtn, editBtn),
+    partRow,
     issueBox,
     code,
     h('div', { class: 'nc-play' }, h('button', { title: 'Zum Anfang', onclick: () => go(firstMove()) }, '⏮'), play, slider, h('button', { title: 'Zum Ende', onclick: () => go(lines.length - 1) }, '⏭')),
@@ -13976,7 +14349,10 @@ function openPostDialog(saved = null) {
   fitView();
   initUpdates(status);
   initAgent();
+  initFusion(fusionEnv());
+  setTimeout(startAddins, 1500);
   // steps waiting for the full kernel (delete face, fillet with radius points) are computed as soon as it is there
   onFullKernel(() => { clearTimelineCache(); model.key = null; renderAll(); });
 })();
+
 

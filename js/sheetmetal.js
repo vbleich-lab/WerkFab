@@ -18,6 +18,20 @@ export const SHEET_RULES = [
   { id: 'al3', name: 'Aluminium 3 mm', thickness: 3, radius: 3, kfactor: 0.42 },
 ];
 
+/**
+ * Neutral-fibre factor after DIN 6935: correction factor k = 0.65 + 0.5·lg(r/s) for r/s < 5, else 1;
+ * the neutral fibre lies at k·s/2 from the inside, so the K-factor is k/2 (0 … 0.5).
+ */
+export function dinK(r, t) {
+  if (!(t > 0)) return 0.5;
+  const q = r / t;
+  if (!(q > 0)) return 0;
+  return q >= 5 ? 0.5 : Math.min(0.5, Math.max(0, (0.65 + 0.5 * Math.log10(q)) / 2));
+}
+/** K-factor in effect for a sheet: entered value, or computed after DIN 6935 */
+export function sheetK(f) {
+  return f.bendCalc === 'din6935' ? dinK(+f.radius, +f.thickness) : +f.kfactor;
+}
 export function bendAllowance(angleDeg, r, t, k) {
   return angleDeg * DEG * (r + k * t);
 }
@@ -453,7 +467,7 @@ function plateDrawing(R, P, runs) {
 const flangeGaps = (fl, en, gap, closedGap, jn = null) => [jn?.a ? 0 : +fl.offA > 0 ? +fl.offA : en.a ? closedGap : gap, jn?.b ? 0 : +fl.offB > 0 ? +fl.offB : en.b ? closedGap : gap];
 
 export function sheetSolid(R, poly, z0, f, holes = []) {
-  const t = +f.thickness, r = +f.radius, k = +f.kfactor;
+  const t = +f.thickness, r = +f.radius, k = sheetK(f);
   if (!(t > 0)) throw new Error('Blechdicke fehlt');
   f = splitAtFolds(poly, f);
   const edges = polyEdges(poly);
@@ -599,7 +613,7 @@ export function sheetSolid(R, poly, z0, f, holes = []) {
  * every tab is turned with the piece of the plate its flange stands on.
  */
 export function tabSlots(poly, z0, f) {
-  const t = +f.thickness, r = +f.radius, k = +f.kfactor, out = [];
+  const t = +f.thickness, r = +f.radius, k = sheetK(f), out = [];
   const plan = (f.folds || []).length ? foldPlan(poly, f) : null;
   if (plan) f = splitAtFolds(poly, f);
   // where a point of the flat plate (and what stands on it) ends up: the bends on the way to its piece, last first
@@ -696,7 +710,7 @@ export function splitAtFolds(poly, f) {
  * [{ i, s, path (of the fixed side) }] }.
  */
 export function foldPlan(poly, f) {
-  const t = +f.thickness, r = +f.radius, k = +f.kfactor;
+  const t = +f.thickness, r = +f.radius, k = sheetK(f);
   const folds = (f.folds || []).filter(q => q && q.on !== false && Number.isFinite(+q.angle) && +q.angle).map(q => {
     const L = Math.hypot(q.b[0] - q.a[0], q.b[1] - q.a[1]);
     if (!(L > 1e-6)) throw new Error('Biegelinie ohne Länge');
@@ -865,7 +879,7 @@ export function holeCircle(hp) {
  * (where the bend starts), flat (radius of the hole to cut in the blank), ba }.
  */
 export function collarPlan(holes, f) {
-  const t = +f.thickness, r = +f.radius, k = +f.kfactor, out = new Map();
+  const t = +f.thickness, r = +f.radius, k = sheetK(f), out = new Map();
   for (const q of f.collars || []) {
     if (!q || q.on === false || !+q.h) continue;
     const ci = holeCircle(holes[q.hole]);
@@ -1041,7 +1055,7 @@ const polyLen = p => { let l = 0; for (let i = 0; i < p.length; i++) { const q =
  * developed flanges lie on each other or on the plate: cannot be cut from one sheet) }.
  */
 export function flatPattern(poly, f, holes = []) {
-  const t = +f.thickness, r = +f.radius, k = +f.kfactor;
+  const t = +f.thickness, r = +f.radius, k = sheetK(f);
   f = splitAtFolds(poly, f);
   const edges = polyEdges(poly);
   const ends = flangeEnds(edges, f);
@@ -1185,12 +1199,12 @@ const segDist = (p, a, b) => {
  * polygon poly with the cut-outs holes and its flat pattern fp.
  */
 export function sheetChecks(poly, holes, f, fp) {
-  const t = +f.thickness, r = +f.radius, k = +f.kfactor, out = [];
+  const t = +f.thickness, r = +f.radius, k = sheetK(f), out = [];
   try { const f2 = splitAtFolds(poly, f), cut = (f2.flanges || []).filter(q => q.split).length; if (cut) out.push({ level: 'info', text: 'Laschen, die über eine Biegelinie laufen, sind dort geteilt und freigestellt.' }); f = f2; } catch (err) { out.push({ level: 'warn', text: err.message }); }
   const n2 = v => String(Math.round(v * 100) / 100).replace('.', ',');
   if (!(t > 0)) return out;
   if (r < 0.5 * t - 1e-9) out.push({ level: 'warn', text: `Biegeradius ${n2(r)} mm ist kleiner als die halbe Blechdicke – das Blech kann an der Biegung reißen.` });
-  if (k < 0.25 || k > 0.5) out.push({ level: 'info', text: `K-Faktor ${n2(k)} liegt außerhalb des üblichen Bereichs 0,25 … 0,5 – der Zuschnitt weicht dann meist vom gebogenen Teil ab.` });
+  if (f.bendCalc !== 'din6935' && (k < 0.25 || k > 0.5)) out.push({ level: 'info', text: `K-Faktor ${n2(k)} liegt außerhalb des üblichen Bereichs 0,25 … 0,5 – der Zuschnitt weicht dann meist vom gebogenen Teil ab.` });
   const edges = polyEdges(poly), ends = flangeEnds(edges, f);
   const arcs = polyArcs(poly), joins = flangeJoins(poly, f, arcs);
   // cut-outs of a flange that stands on the stretch gA … L − gB of its edge (round: all the way round)

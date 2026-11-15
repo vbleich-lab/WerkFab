@@ -44,6 +44,10 @@ with the post processor of the design or another one from the list in get_cam; c
 machine limits and cuts into the finished part of that program. add_setup adds another clamping (e.g. the part turned over). simulate runs the material removal and returns a picture
 of the stock, the collisions and how the stock compares with the part (on size, material left, cut too deep).
 An NC program is a draft: tell the user to check it in the simulation and with a dry run before cutting.
+Assembly: every body is a component. set_placement shifts and turns a body; add_joint joins a body to another one
+(or to the ground) so that it turns or slides; update_joint with { "value": … } moves it. get_assembly shows where
+the bodies stand and which ones run into each other; motion_study drives a joint through its range and reports the
+poses that collide. export_robot gives the assembly as URDF, SDF or MJCF.
 The user watches the same window: keep the design tidy, name features, and do not delete what you did not make
 unless asked.`;
 
@@ -71,8 +75,15 @@ export const AGENT_TOOLS = [
   { name: 'add_setup', description: 'Add a setup (a clamping of the part). It starts as a copy of the setup "copy_of" (default: the last one); "fields" are merged in – e.g. name, orientation ("top", "bottom", "front", "back", "left", "right"), stock margins, origin. Returns get_cam.', inputSchema: obj({ copy_of: { type: 'string' }, fields: { type: 'object' } }) },
   { name: 'delete_setups', description: 'Remove setups by id, together with their operations. The last setup stays.', inputSchema: obj({ ids: { type: 'array', items: { type: 'string' } } }, ['ids']) },
   { name: 'simulate', description: 'Run the material removal simulation of a setup and return a picture of the stock (PNG) with what was found: collisions (rapid in material, shank, holder) and the comparison with the part – share on size, material left, cut too deep (gouge) and the deepest cut into the part in mm. Optional: setup (id), at (0…1 of the run time, default 1 = the end), view (iso, top, front, right, current).', inputSchema: obj({ setup: { type: 'string' }, at: { type: 'number' }, view: { type: 'string', enum: ['iso', 'top', 'front', 'right', 'current'] } }) },
-  { name: 'check_nc_program', description: 'Post a setup and check the program line by line: holder and shank against the remaining stock and the clamping, rapids through material, machine travels and limits, and paths that cut into the finished part (kind "part", with deepestCutIntoPart in mm; end mills, face mills, ball and bull nose cutters on 3-axis moves; sideways from about one grid cell, 0.3 mm or more on large parts). A cut that is not in the model – an engraving, a dog-bone relief, a pocket milled from a sketch only – is reported as "part" too: set against_part to false to leave that check out. Returns the issues by kind with the lines they are on; "clean": true when nothing was found. Optional: setup (id), post (id), against_part (default true).', inputSchema: obj({ setup: { type: 'string' }, post: { type: 'string' }, against_part: { type: 'boolean' } }) },
+  { name: 'check_nc_program', description: 'Post a setup and check the program line by line: holder and shank against the remaining stock and the clamping, rapids through material, machine travels and limits, and paths that cut into the finished part (kind "part", with deepestCutIntoPart in mm; end mills, face mills, ball and bull nose cutters, chamfer mills and drills with their cone, on 3-axis moves and drilling cycles; sideways from about one grid cell, 0.3 mm or more on large parts). A cut that is not in the model – an engraving, a dog-bone relief, a pocket milled from a sketch only – is reported as "part" too: set against_part to false to leave that check out. Returns the issues by kind with the lines they are on; "clean": true when nothing was found. Optional: setup (id), post (id), against_part (default true).', inputSchema: obj({ setup: { type: 'string' }, post: { type: 'string' }, against_part: { type: 'boolean' } }) },
   { name: 'get_nc_program', description: 'The NC program of a setup as text, with line count, run time and warnings. Optional: setup (id, default the first), post (id of a post processor from get_cam). A draft – it must be verified before cutting.', inputSchema: obj({ setup: { type: 'string' }, post: { type: 'string' } }) },
+  { name: 'get_assembly', description: 'The assembly: every body with the box it fills where it stands now (placement and joints applied), the joints with their motions (field, unit, value now), and the pairs of bodies that run into each other with the shared volume in mm³ (collisions: false leaves that check out – it takes time on large models).', inputSchema: obj({ collisions: { type: 'boolean' } }) },
+  { name: 'set_placement', description: 'Place a body as a component: shift dx, dy, dz (mm) and turn rx, ry, rz (degrees, about X then Y then Z through the origin). Fields left out keep their value; all zero takes the placement away. A body moved by a joint with picked origins ignores its placement.', inputSchema: obj({ body: { type: 'string' }, dx: { type: 'number' }, dy: { type: 'number' }, dz: { type: 'number' }, rx: { type: 'number' }, ry: { type: 'number' }, rz: { type: 'number' } }, ['body']) },
+  { name: 'add_joint', description: 'Join a body (child, the one that moves) to another body (parent; leave out for the ground). type: rigid, revolute (turns about the axis through origin), slider (moves along the axis), cylindrical (turns and moves), planar (moves in the plane across the axis and turns), ball. origin: [x, y, z] in the coordinates of the model as built (before any motion); axis: "x", "y", "z" or a direction [x, y, z]. value: where it stands (degrees or mm; value2, value3 for the further motions of cylindrical, planar and ball). min, max: the range of value; limits: false for a joint without limits. link: { from: id of another joint, ratio, offset } makes value follow that joint (value = ratio × its value + offset). A body has one joint as child; a second one replaces the first.', inputSchema: obj({ type: { type: 'string', enum: ['rigid', 'revolute', 'slider', 'cylindrical', 'planar', 'ball'] }, child: { type: 'string' }, parent: { type: 'string' }, name: { type: 'string' }, origin: { type: 'array', items: { type: 'number' } }, axis: {}, value: { type: 'number' }, value2: { type: 'number' }, value3: { type: 'number' }, min: { type: 'number' }, max: { type: 'number' }, limits: { type: 'boolean' }, link: { type: 'object' } }, ['type', 'child']) },
+  { name: 'update_joint', description: 'Change fields of a joint: patch with e.g. value (move it), min, max, axis, origin, parent, type, name, link (null removes a field). Returns the assembly as get_assembly does, with the collisions in the new pose.', inputSchema: obj({ id: { type: 'string' }, patch: { type: 'object' }, collisions: { type: 'boolean' } }, ['id', 'patch']) },
+  { name: 'delete_joints', description: 'Remove joints by id.', inputSchema: obj({ ids: { type: 'array', items: { type: 'string' } } }, ['ids']) },
+  { name: 'motion_study', description: 'Drive a joint through its range (joint: id; without it all joints that move on their own, together) in equal steps and check every pose for bodies that run into each other. Returns how many poses collide, the first and the deepest collision and the colliding poses with the pairs of bodies and the shared volume in mm³. steps: 2…72, default 24. The design is not changed; set a pose with update_joint.', inputSchema: obj({ joint: { type: 'string' }, steps: { type: 'number' } }) },
+  { name: 'export_robot', description: 'The assembly as a robot description: format "urdf" (ROS), "sdf" (Gazebo), "mjcf" (MuJoCo) or "all". Every visible body is a link with mesh, mass and inertia from its material, every joint a joint with axis and limits; the present pose is the zero pose. Returns the description files as text and the list of mesh files (binary STL, metres); meshes: true adds them as base64 (long answers). package: name of a ROS package – the URDF then names the meshes as package://name/meshes/… instead of relative paths. collision: "mesh" (default, the full mesh), "hull" (the convex hull as a mesh of its own – few triangles, but pockets and holes are filled) or "box" (the box around the body).', inputSchema: obj({ format: { type: 'string', enum: ['urdf', 'sdf', 'mjcf', 'all'] }, package: { type: 'string' }, meshes: { type: 'boolean' }, collision: { type: 'string', enum: ['mesh', 'hull', 'box'] } }) },
   { name: 'undo', description: 'Take back the last change.', inputSchema: obj() },
   { name: 'redo', description: 'Do the last undone change again.', inputSchema: obj() },
 ];
@@ -80,6 +91,48 @@ export const AGENT_TOOLS = [
 // api: what the page lends (js/main.js): project(), commit(fn), settled() → model, bodyInfo(body), picture(view, fit),
 // exportText(format), insertPart(v, at), undo(), redo(), uid(prefix), note(what, n) – what: added | changed | deleted | replaced | emptied | opAdded,
 // cam(full), addOp(type, setupId, toolId, fields) → id, opResult(id), nc(setupId, postId)
+// The fields of a joint from what an agent sent, checked: the bodies exist, no body hangs on itself.
+const JOINT_KINDS = ['rigid', 'revolute', 'slider', 'cylindrical', 'planar', 'ball'];
+function jointFields(a, bodyIds, joints, selfId) {
+  if (!JOINT_KINDS.includes(a.type)) throw new Error(`type: one of ${JOINT_KINDS.join(', ')}`);
+  if (!bodyIds.includes(a.child)) throw new Error(`child: no body with the id "${a.child}" (ids: ${bodyIds.join(', ')})`);
+  const parent = a.parent || '';
+  if (parent && !bodyIds.includes(parent)) throw new Error(`parent: no body with the id "${parent}" (ids: ${bodyIds.join(', ')})`);
+  if (parent === a.child) throw new Error('A body cannot be joined to itself');
+  // up the chain of parents: the child must not come again
+  const others = joints.filter(q => q.id !== selfId && q.child !== a.child);
+  for (let p = parent, n = 0; p && n < 1000; n++) {
+    if (p === a.child) throw new Error('These joints would form a ring: the parent already hangs on the child');
+    p = others.find(q => q.child === p)?.parent || '';
+  }
+  const num = (k, d) => { if (a[k] === undefined || a[k] === null) return d; if (!Number.isFinite(+a[k])) throw new Error(`${k}: a number is needed`); return +a[k]; };
+  const j = { type: a.type, child: a.child, parent };
+  if (a.pO && a.cO) return { ...j, value: num('value', 0) }; // picked in the app: origins and axis stay as they are
+  const o = a.origin ?? [0, 0, 0];
+  if (!Array.isArray(o) || o.length !== 3 || o.some(q => !Number.isFinite(+q))) throw new Error('origin: [x, y, z] is needed');
+  j.origin = o.map(Number);
+  const ax = a.axis ?? 'z';
+  if (Array.isArray(ax)) {
+    if (ax.length !== 3 || ax.some(q => !Number.isFinite(+q)) || !(Math.hypot(...ax.map(Number)) > 1e-9)) throw new Error('axis: "x", "y", "z" or a direction [x, y, z] is needed');
+    const u = ax.map(Number), len = Math.hypot(...u), n = u.map(q => +(q / len).toFixed(9)), k = n.findIndex(q => Math.abs(q - 1) < 1e-9);
+    j.axis = k >= 0 && n.every((q, i) => i === k || Math.abs(q) < 1e-9) ? 'xyz'[k] : n;
+  } else if (['x', 'y', 'z'].includes(ax)) j.axis = ax;
+  else throw new Error('axis: "x", "y", "z" or a direction [x, y, z] is needed');
+  const lin = a.type === 'slider';
+  j.value = num('value', 0);
+  if (a.value2 !== undefined) j.value2 = num('value2', 0);
+  if (a.value3 !== undefined) j.value3 = num('value3', 0);
+  j.min = num('min', lin ? 0 : -180);
+  j.max = num('max', lin ? 50 : 180);
+  if (j.max < j.min) throw new Error('max must not be smaller than min');
+  if (a.limits === false) j.limits = false;
+  if (a.link && typeof a.link === 'object') {
+    if (!joints.some(q => q.id === a.link.from && q.id !== selfId)) throw new Error(`link.from: no other joint with the id "${a.link.from}"`);
+    j.link = { from: a.link.from, ratio: Number.isFinite(+a.link.ratio) ? +a.link.ratio : 1, offset: Number.isFinite(+a.link.offset) ? +a.link.offset : 0 };
+  }
+  return j;
+}
+
 export async function agentCall(name, a, api) {
   a ||= {};
   const errorsNow = async () => { const m = await api.settled(); return { errors: m.errors || {}, bodies: m.bodies.length }; };
@@ -133,12 +186,12 @@ export async function agentCall(name, a, api) {
     case 'set_project': {
       const q = a.project;
       if (!q || !Array.isArray(q.features)) throw new Error('project: needs at least a "features" list');
-      api.commit(p => { for (const k of ['name', 'params', 'features', 'cam', 'post', 'bodyMeta']) if (q[k] !== undefined) p[k] = structuredClone(q[k]); });
+      api.commit(p => { for (const k of ['name', 'params', 'features', 'cam', 'post', 'bodyMeta', 'assembly']) if (q[k] !== undefined) p[k] = structuredClone(q[k]); });
       api.note('replaced');
       return errorsNow();
     }
     case 'new_design': {
-      api.commit(p => { p.features = []; p.params = []; p.cam.ops = []; p.bodyMeta = {}; if (a.name) p.name = String(a.name).slice(0, 80); });
+      api.commit(p => { p.features = []; p.params = []; p.cam.ops = []; p.bodyMeta = {}; delete p.assembly; if (a.name) p.name = String(a.name).slice(0, 80); });
       api.note('emptied');
       return { ok: true };
     }
@@ -213,6 +266,52 @@ export async function agentCall(name, a, api) {
     case 'simulate': return api.simulate(a.setup || null, a.at, a.view || 'iso');
     case 'check_nc_program': { await api.settled(); return api.check(a.setup || null, a.post || null, a.against_part); }
     case 'get_nc_program': { await api.settled(); return api.nc(a.setup || null, a.post || null); }
+    case 'get_assembly': return api.assembly(a.collisions);
+    case 'set_placement': {
+      const m = await api.settled();
+      if (!m.bodies.some(b => b.id === a.body)) throw new Error(`No body with the id "${a.body}" (ids: ${m.bodies.map(b => b.id).join(', ')})`);
+      const keys = ['dx', 'dy', 'dz', 'rx', 'ry', 'rz'];
+      for (const k of keys) if (a[k] !== undefined && !Number.isFinite(+a[k])) throw new Error(`${k}: a number is needed`);
+      api.commit(p => {
+        p.assembly ||= { placements: {}, joints: [] };
+        p.assembly.placements ||= {};
+        const pl = { ...(p.assembly.placements[a.body] || {}) };
+        for (const k of keys) if (a[k] !== undefined) pl[k] = +a[k];
+        if (keys.some(k => +pl[k])) p.assembly.placements[a.body] = pl; else delete p.assembly.placements[a.body];
+      });
+      return api.assembly(false);
+    }
+    case 'add_joint': {
+      const m = await api.settled(), ids = m.bodies.map(b => b.id), asm = api.project().assembly || {};
+      const j = jointFields(a, ids, asm.joints || [], null);
+      j.id = api.uid('j');
+      j.name = String(a.name || '').trim().slice(0, 60) || `Joint${(asm.joints || []).length + 1}`;
+      api.commit(p => {
+        p.assembly ||= { placements: {}, joints: [] };
+        p.assembly.joints = (p.assembly.joints || []).filter(q => q.child !== j.child);
+        p.assembly.joints.push(j);
+      });
+      return { id: j.id, ...(await api.assembly(a.collisions)) };
+    }
+    case 'update_joint': {
+      const asm = api.project().assembly || {}, old = (asm.joints || []).find(q => q.id === a.id);
+      if (!old) throw new Error(`No joint with the id "${a.id}"`);
+      if (!a.patch || typeof a.patch !== 'object' || 'id' in a.patch) throw new Error('patch: an object with the fields to change is needed (not the id)');
+      const m = await api.settled(), next = structuredClone(old);
+      for (const [k, v] of Object.entries(structuredClone(a.patch))) { if (v === null) delete next[k]; else next[k] = v; }
+      const j = { ...next, ...jointFields(next, m.bodies.map(b => b.id), asm.joints || [], a.id) };
+      if (a.patch.link === null) delete j.link;
+      api.commit(p => { const i = p.assembly.joints.findIndex(q => q.id === a.id); p.assembly.joints[i] = j; if ('child' in a.patch) p.assembly.joints = p.assembly.joints.filter(q => q.id === a.id || q.child !== j.child); });
+      return api.assembly(a.collisions);
+    }
+    case 'delete_joints': {
+      const ids = new Set(a.ids || []), n = (api.project().assembly?.joints || []).filter(q => ids.has(q.id)).length;
+      if (!n) throw new Error('None of these ids is a joint');
+      api.commit(p => { p.assembly.joints = p.assembly.joints.filter(q => !ids.has(q.id)); for (const q of p.assembly.joints) if (q.link && ids.has(q.link.from)) delete q.link; });
+      return { deleted: n, ...(await api.assembly(false)) };
+    }
+    case 'motion_study': return api.motion(a.joint || null, a.steps);
+    case 'export_robot': { await api.settled(); return api.robot(a.format || 'urdf', String(a.package || '').trim(), a.meshes === true, a.collision); }
     case 'undo': api.undo(); return errorsNow();
     case 'redo': api.redo(); return errorsNow();
     default: throw new Error(`Unknown tool "${name}"`);

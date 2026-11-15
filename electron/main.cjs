@@ -1,7 +1,7 @@
 // WerkFab desktop app: serves the app files from disk through a private
 // "app://" scheme (ES modules, WebAssembly and fetch work like on a web server),
 // so everything runs offline.
-const { app, BrowserWindow, protocol, Menu, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, protocol, Menu, shell, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -63,6 +63,36 @@ const canAutoUpdate = () => !!updater && app.isPackaged && process.platform !== 
   && fs.existsSync(path.join(process.resourcesPath, 'app-update.yml')) && (process.platform !== 'linux' || !!process.env.APPIMAGE);
 
 // full screen of the window the page asks for (the button in the head bar, F11)
+// "An Slicer senden": the file goes to a folder of its own in the temp folder and is opened with the chosen program or
+// the one the system uses for this kind of file
+ipcMain.handle('slicer:open', async (_e, { name, data, exe }) => {
+  try {
+    const safe = String(name).replace(/[^\w\-. äöüÄÖÜß]/g, '_').slice(0, 120) || 'werkfab.3mf';
+    if (!/\.(3mf|stl)$/i.test(safe)) return { error: 'only 3MF or STL' };
+    const dir = path.join(app.getPath('temp'), 'werkfab-print');
+    await fs.promises.mkdir(dir, { recursive: true });
+    const file = path.join(dir, safe);
+    await fs.promises.writeFile(file, Buffer.from(data));
+    if (exe) {
+      if (!fs.existsSync(exe) || !fs.statSync(exe).isFile() && !/\.app$/i.test(exe)) return { error: `program not found: ${exe}` };
+      const { spawn } = require('child_process');
+      const child = process.platform === 'darwin' && /\.app$/i.test(exe) ? spawn('open', ['-a', exe, file], { detached: true, stdio: 'ignore' }) : spawn(exe, [file], { detached: true, stdio: 'ignore' });
+      child.on('error', () => {});
+      child.unref();
+    } else {
+      const err = await shell.openPath(file);
+      if (err) return { error: err };
+    }
+    return { ok: true, file };
+  } catch (err) {
+    return { error: String(err.message || err) };
+  }
+});
+ipcMain.handle('slicer:pick', async e => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  const r = await dialog.showOpenDialog(w, { properties: ['openFile'], filters: process.platform === 'win32' ? [{ name: 'Programme', extensions: ['exe'] }] : [] });
+  return r.canceled ? '' : r.filePaths[0] || '';
+});
 ipcMain.handle('win:fullscreen', (e, on) => {
   const w = BrowserWindow.fromWebContents(e.sender);
   if (!w) return false;

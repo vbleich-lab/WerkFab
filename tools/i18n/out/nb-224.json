@@ -1,0 +1,14 @@
+{
+ "Alle drei": "Alle tre",
+ "Roboterbeschreibung exportieren": "Eksporter robotbeskrivelse",
+ "ROS-Paket (für URDF)": "ROS-pakke (for URDF)",
+ "Jeder sichtbare Körper wird ein Glied mit Netz (STL, in Metern), Masse und Trägheit, jedes Gelenk ein Gelenk mit Achse und Grenzen. Die jetzige Stellung ist die Nullstellung. Mit einem Paketnamen stehen die Netze im URDF als package://Name/meshes/…, sonst als relativer Pfad.": "Hver synlige kropp blir en lenke med nett (STL, i meter), masse og treghet, hvert ledd et ledd med akse og grenser. Gjeldende stilling er nullstillingen. Med et pakkenavn står nettene i URDF som package://Name/meshes/…, ellers som relativ sti.",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}": "Robotbeskrivelse eksportert ({0}): {1} kropper, {2} bevegelige ledd – i meter, gjeldende stilling er nullstillingen{3}",
+ "Frei ({0})": "Fri ({0})",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Melder baner som skjærer dypere enn modellen på det stedet (skaft-, plan-, kule- og torusfreser, 3-akse-bevegelser). Et kutt som ikke finnes i modellen – gravering, hjørnefrigang, lomme bare fra en skisse – meldes også.",
+ "Auch gegen das fertige Teil prüfen": "Kontroller også mot den ferdige delen",
+ "– bis {0} mm": "– opptil {0} mm",
+ ", kein Schnitt ins fertige Teil": ", ingen kutt inn i den ferdige delen",
+ "✓ Keine Kollision mit dem Material (Halter, Schaft, Eilgänge){0}{1} – Zeile für Zeile gegen das jeweils verbliebene Rohteil geprüft": "✓ Ingen kollisjon med materialet (holder, skaft, hurtiggang){0}{1} – kontrollert linje for linje mot det råemnet som er igjen på det aktuelle tidspunktet",
+ "Als Roboterbeschreibung exportieren (URDF, SDF, MJCF)…": "Eksporter som robotbeskrivelse (URDF, SDF, MJCF)…"
+}

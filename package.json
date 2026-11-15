@@ -1,7 +1,7 @@
 {
   "name": "werkfab",
   "productName": "WerkFab",
-  "version": "1.0.0-rc.16",
+  "version": "1.0.0-rc.17",
   "description": "WerkFab CAD/CAM – design and CNC machining, offline",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -38,7 +38,8 @@
   "devDependencies": {
     "@electron/packager": "18.3.6",
     "electron": "33.4.11",
-    "electron-builder": "25.1.8"
+    "electron-builder": "25.1.8",
+    "pyodide": "^314.0.8"
   },
   "homepage": "https://github.com/vbleich-lab/WerkFab",
   "author": {

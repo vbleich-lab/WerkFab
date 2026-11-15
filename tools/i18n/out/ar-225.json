@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "مثل العرض (كل المثلثات)",
+ "Konvexe Hülle": "الغلاف المحدب",
+ "Quader um den Körper": "متوازي مستطيلات حول الجسم",
+ "Kollisionsform": "شكل التصادم",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "شكل التصادم: الغلاف المحدب قليل المثلثات وسريع الحساب في المحاكاة، لكنه يملأ الجيوب والثقوب؛ أما متوازي المستطيلات فهو الأكثر خشونة. يحتفظ العرض دائماً بالشبكة الكاملة.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; التصادم كغلاف محدب ({0} بدلاً من {1} مثلث)",
+ "; Kollision als Quader": "; التصادم كمتوازي مستطيلات",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "تم تصدير وصف الروبوت ({0}): {1} جسم، {2} وصلات متحركة – بالمتر، الوضع الحالي هو وضع الصفر{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "يُبلغ عن المسارات التي تقطع أعمق من النموذج في هذا الموضع (قواطع طرفية ومستوية وكروية وطرفية بنصف قطر، وقواطع الشطف والمثاقب مع مخروطها؛ حركات ثلاثية المحاور). كما يُبلغ عن أي قطع غير موجود في النموذج – نقش، تفريغ زوايا، جيب من رسم تخطيطي فقط."
+}

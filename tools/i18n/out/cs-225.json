@@ -1,0 +1,11 @@
+{
+ "Wie die Ansicht (alle Dreiecke)": "Jako pohled (všechny trojúhelníky)",
+ "Konvexe Hülle": "Konvexní obal",
+ "Quader um den Körper": "Kvádr kolem tělesa",
+ "Kollisionsform": "Tvar kolize",
+ "Kollisionsform: die konvexe Hülle hat wenige Dreiecke und rechnet in der Simulation schnell, füllt aber Taschen und Bohrungen; der Quader ist am gröbsten. Die Ansicht behält immer das volle Netz.": "Tvar kolize: konvexní obal má málo trojúhelníků a v simulaci se počítá rychle, ale vyplní kapsy a díry; kvádr je nejhrubší. Pohled si vždy ponechává celou síť.",
+ "; Kollision als konvexe Hülle ({0} statt {1} Dreiecke)": "; kolize jako konvexní obal ({0} místo {1} trojúhelníků)",
+ "; Kollision als Quader": "; kolize jako kvádr",
+ "Roboterbeschreibung exportiert ({0}): {1} Körper, {2} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{3}{4}": "Popis robota exportován ({0}): těles {1}, pohyblivých kloubů {2} – v metrech, současná poloha je nulová poloha{3}{4}",
+ "Meldet Bahnen, die tiefer schneiden als das Modell an dieser Stelle (Schaft-, Plan-, Kugel- und Torusfräser, Fasenfräser und Bohrer mit ihrem Kegel; 3-Achs-Bewegungen). Ein Schnitt, der nicht im Modell steht – Gravur, Eckenfreistich, Tasche nur aus einer Skizze – wird ebenfalls gemeldet.": "Hlásí dráhy, které řežou hlouběji než model v daném místě (stopkové, čelní, kulové a toroidní frézy, zkosovací frézy a vrtáky s kuželem; 3osé pohyby). Hlásí se také řez, který v modelu není – gravírování, odlehčení rohů, kapsa jen ze skici."
+}
