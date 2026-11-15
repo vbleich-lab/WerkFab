@@ -1042,7 +1042,7 @@ export function sheetBase(sk, f = null, findSketch = null) {
     const kindOf = q => (q.on === false ? '' : q.kind || 'collar'), pick = k => (rf.collars || []).filter(q => kindOf(q) === k && +q.h && holeIds.includes(q.id)).map(q => ({ hole: holeIds.indexOf(q.id), h: +q.h, wall: +q.wall || 0 }));
     const L = id => lines.find(l => l.id === id);
     rf = { ...rf,
-      folds: (rf.lines || []).filter(q => q.kind === 'bend' && L(q.id)).map(q => ({ a: L(q.id).a, b: L(q.id).b, angle: +q.angle || 90 })),
+      folds: (rf.lines || []).filter(q => q.kind === 'bend' && L(q.id)).map(q => ({ a: L(q.id).a, b: L(q.id).b, angle: +q.angle || 90, ...(q.r != null && q.r !== '' ? { r: +q.r } : {}), ...(q.free ? { free: true } : {}) })),
       beads: (rf.lines || []).filter(q => q.kind === 'bead' && L(q.id)).map(q => ({ a: L(q.id).a, b: L(q.id).b, w: +q.w || 8, h: +q.h || 2 })),
       louvers: (rf.lines || []).filter(q => q.kind === 'louver' && L(q.id)).map(q => ({ a: L(q.id).a, b: L(q.id).b, w: +q.w || 8, h: +q.h || 3 })),
       collars: pick('collar'), embosses: pick('emboss'), dimples: pick('dimple') };

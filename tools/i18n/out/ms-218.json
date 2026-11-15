@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Potong alur",
+ "Schlitze schneiden: {0}": "Potong alur: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} alur dipotong dalam „{1}“.",
+ "Schlitze schneiden in": "Potong alur dalam",
+ "– Körper wählen –": "– pilih jasad –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Memotong alur terus ke dalam jasad yang dipilih – sedalam panjang lidah. Lakaran dan potongan kemudian berada pada garis masa dan boleh diubah.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Jasad mestilah sama tebal di mana-mana – dilukis, diekstrusi atau daripada fail STEP. Yang dikenal pasti ialah ketebalan kepingan (jarak muka terbesar ke muka bertentangannya), dinding rata dan lenturan di antaranya dengan sudut dan jejari dalam, bulat atau bertepi tajam. Daripada ini terhasil bentangan; sebagai kepingan ia berupa lakaran dengan garis lenturan dan boleh diubah, dibentangkan dan disusun seperti mana-mana kepingan. Faktor K menentukan panjang terbentang. Jika muka terbesar menghadap ke atas atau ke bawah, kepingan terletak tepat dalam jasad, jika tidak rata pada satah XY. Lipatan tepi (180°) dan dinding melengkung di antara dua dinding rata diambil alih sebagai lenturan dengan jejarinya sendiri. Yang tidak dikenal pasti ialah tepi bergulung yang berakhir bebas, paip dan pembentukan seperti rusuk penguat.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "tidak semua dinding disambung oleh lenturan yang dapat dikenal pasti (tepi bergulung?) – ia tiada",
+ "bis {0}": "hingga {0}",
+ ", Innenradius {0}{1} mm": ", jejari dalam {0}{1} mm",
+ "Updates automatisch laden": "Muat turun kemas kini secara automatik",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Memuat turun versi baharu di latar belakang sebaik sahaja ditemui dan memasangnya semasa keluar – hanya dalam aplikasi Windows yang dipasang dan dalam AppImage Linux. Jika tidak, ia bertanya dahulu.",
+ "Version {0} wird geladen …": "Versi {0} sedang dimuat turun …",
+ "Suche nach einer neuen Version …": "Mencari versi baharu …"
+}

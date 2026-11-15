@@ -5,6 +5,8 @@ import { Viewport } from './viewport.js';
 import { loadKernel, R as OC } from './kernel.js';
 import { LANGS, lang as uiLang, langChoice, setLanguage, t as tr, tHtml, deText, deAttr } from './i18n.js';
 import { initUpdates, checkForUpdates } from './update.js';
+import { AGENT_TOOLS, agentCall } from './agent.js';
+import { exportGLB } from './gltf.js';
 import { setActiveKernel, activeKernelId, getKernel } from './kern/index.js';
 import './kern/rust.js';
 import { THREAD_SIZES, meshBody } from './model.js';
@@ -2355,7 +2357,7 @@ function toolbarTabs() {
       KONSTRUKTION(),
       tgroup('BAUGRUPPE', tbtn('move', 'Positionieren', placeSelectedBody, '', 'Körper als Komponente positionieren'), tbtn('revolve', 'Gelenk', addJoint), tbtn('cpoint', 'Gelenkursprung', addJointOrigin, state.pick?.mode === 'jorigin' ? 'active' : '', 'Gelenkursprung auf einem Körper setzen (später beim Gelenk anklickbar)'), tbtn('sim', 'Bewegung', motionStudy, motion.on ? 'active' : '', 'Bewegungsstudie mit Kollisionsprüfung')),
       PRUEFEN(),
-      tgroup('EINFÜGEN', tbtn('decal', 'Aufkleber', insertDecal, '', 'Aufkleber: Bild auf eine Körperfläche legen'), tbtn('canvas', 'Ansichtsbereich', insertCanvas, '', 'Ansichtsbereich: Vorlagebild auf einer Ebene'),
+      tgroup('EINFÜGEN', tbtn('bolt', 'Bauteilkatalog', () => catalogDialog(), '', 'Bauteilkatalog: Normteile, Rohre und Profile durchsuchen – nach Name, Norm oder Maß – und einfügen'), tbtn('decal', 'Aufkleber', insertDecal, '', 'Aufkleber: Bild auf eine Körperfläche legen'), tbtn('canvas', 'Ansichtsbereich', insertCanvas, '', 'Ansichtsbereich: Vorlagebild auf einer Ebene'),
         tbtn('decal', 'Bild nachzeichnen', traceImageDialog, '', 'Bild nachzeichnen: aus einem Bild Konturen oder Mittellinien als neue Skizze, SVG oder DXF erzeugen'),
         tbtn('measure', 'Vorlage kalibrieren', () => calibrateCanvas(), '', 'Vorlage kalibrieren: zwei Punkte im Bild anklicken und ihren wirklichen Abstand eingeben'),
         tbtn('svgfile', 'SVG-Datei einfügen', insertSVG, '', 'SVG-Datei als Skizze einfügen'), tbtn('dxffile', 'DXF-Datei einfügen', insertDXF, '', 'DXF-Datei als Skizze einfügen'),
@@ -3157,6 +3159,51 @@ function propsBody(b, body) {
   );
 }
 
+// glTF: the visible bodies and meshes with their names, colours and surface (metal, roughness, transparency)
+function exportGltfFile() {
+  const list = [...getModel().bodies, ...getMeshes().bodies].filter(x => !state.hiddenBodies.has(x.id) && x.geometry?.attributes?.position?.count);
+  if (!list.length) return status('Kein Körper zum Exportieren.');
+  const parts = list.map(b => {
+    const meta = bodyMeta(b.id), look = APPEARANCES[meta.appearance] || (meta.material ? APPEARANCES[MATERIAL_LOOK[meta.material]] : null) || APPEARANCES.alu_satin;
+    const g = b.geometry, c = new THREE.Color(meta.color || look.color);
+    if (!g.attributes.normal) g.computeVertexNormals();
+    let pos = g.attributes.position.array;
+    const M = assemblyActive() ? bodyMatrix(state.project.assembly, b.id, motionValues) : null;
+    let nor = g.attributes.normal?.array;
+    if (M) { const g2 = g.clone().applyMatrix4(M); pos = g2.attributes.position.array; nor = g2.attributes.normal?.array; }
+    return { name: bodyName(b), positions: pos, normals: nor, index: g.index?.array, color: [c.r, c.g, c.b], metalness: look.metalness ?? 0.5, roughness: look.roughness ?? 0.4, opacity: look.opacity ?? 1 };
+  });
+  try { download(`${safeName()}.glb`, exportGLB(parts, state.project.name), 'model/gltf-binary'); status(`glTF exportiert: ${parts.length === 1 ? '1 Körper' : `${parts.length} Körper`} mit Farben, in Metern, Y oben`); }
+  catch (err) { status(err.message); }
+}
+
+// A command script: a JSON file with the steps an agent would send, run one after the other –
+// [{ "tool": "add_features", "args": { … } }, …] or { "steps": [ … ] }. The tools: Einstellungen → KI-Agenten.
+function runScriptFile() {
+  const inp = h('input', { type: 'file', accept: '.json,application/json' });
+  inp.onchange = async () => {
+    const file = inp.files[0];
+    if (!file) return;
+    let steps;
+    try { const j = JSON.parse(await file.text()); steps = Array.isArray(j) ? j : j.steps; } catch { return status('Das Skript ist keine gültige JSON-Datei.'); }
+    if (!Array.isArray(steps) || !steps.length) return status('Das Skript enthält keine Schritte – erwartet wird eine Liste aus { "tool": …, "args": … }.');
+    const names = new Set(AGENT_TOOLS.map(q => q.name)), bad = steps.findIndex(s => !s || !names.has(s.tool));
+    if (bad >= 0) return status(`Skript, Schritt ${bad + 1}: unbekannter Befehl „${steps[bad]?.tool ?? ''}“. Befehle: ${[...names].join(', ')}`);
+    const depth = undoDepth();
+    for (let i = 0; i < steps.length; i++) {
+      status(`Skript: Schritt ${i + 1} von ${steps.length} (${steps[i].tool}) …`);
+      try {
+        const r = await agentCall(steps[i].tool, steps[i].args || {}, { ...agentApi, note: () => {} });
+        const errs = r && r.errors ? Object.values(r.errors) : [];
+        if (errs.length && steps[i].tool !== 'undo') { renderAll(); return status(`Skript hält bei Schritt ${i + 1} (${steps[i].tool}): ${errs[0]}`); }
+      } catch (err) { revertTo(depth); renderAll(); return status(`Skript, Schritt ${i + 1} (${steps[i].tool}): ${err.message} – alle Schritte zurückgenommen.`); }
+    }
+    renderAll(); fitView();
+    status(`Skript „${file.name}“ ausgeführt: ${steps.length === 1 ? '1 Schritt' : `${steps.length} Schritte`}`);
+  };
+  inp.click();
+}
+
 function propsParams(b) {
   setTitle('PARAMETER');
   const p = state.project;
@@ -3177,6 +3224,23 @@ function propsParams(b) {
   });
   b.append(grid, h('div', { class: 'btns' }, btn('+ Parameter', () => commit(pp => pp.params.push({ name: nextName(pp.params, 'p'), expr: '10' })), 'primary')));
   b.append(h('p', { class: 'hint' }, 'Hinweis: Beim Umbenennen werden bestehende Verweise nicht automatisch angepasst.'));
+  // configurations: named sets of the parameter values – one design, several variants
+  const cfgs = p.configs || [], same = c => p.params.length > 0 && p.params.every(q => c.values[q.name] === undefined || String(c.values[q.name]) === String(q.expr));
+  b.append(h('div', { class: 'sec' }, 'KONFIGURATIONEN'));
+  if (!cfgs.length) b.append(h('p', { class: 'hint' }, 'Eine Konfiguration merkt sich die Ausdrücke aller Parameter unter einem Namen – etwa „kurz“ und „lang“. Ein Klick stellt die Variante wieder her.'));
+  cfgs.forEach((c, i) => b.append(h('div', { class: 'row' },
+    h('label', { title: Object.entries(c.values).map(([k, v]) => `${k} = ${v}`).join('\n') }, (same(c) ? '● ' : '○ ') + c.name),
+    h('div', { class: 'btns', style: 'margin:0' },
+      btn('Anwenden', () => { commit(pp => { for (const q of pp.params) if (c.values[q.name] !== undefined) q.expr = String(c.values[q.name]); }); status(`Konfiguration „${c.name}“ angewendet`); }),
+      btn('Aktualisieren', () => { commit(pp => { pp.configs[i].values = Object.fromEntries(pp.params.map(q => [q.name, q.expr])); }); status(`Konfiguration „${c.name}“ auf die jetzigen Werte gesetzt`); }),
+      h('button', { title: 'Löschen', onclick: () => commit(pp => pp.configs.splice(i, 1)) }, '✕')))));
+  b.append(h('div', { class: 'btns' }, btn('+ Konfiguration aus den jetzigen Werten', async () => {
+    if (!p.params.length) return status('Erst Parameter anlegen – eine Konfiguration merkt sich deren Werte.');
+    const v = await formDialog('Konfiguration', [{ key: 'name', label: 'Name', value: nextName(cfgs, 'Variante'), text: true }]);
+    const name = String(v?.name || '').trim();
+    if (!name) return;
+    commit(pp => { pp.configs ||= []; pp.configs.push({ name, values: Object.fromEntries(pp.params.map(q => [q.name, q.expr])) }); });
+  })));
 }
 
 function propsFeature(b, f) {
@@ -4185,6 +4249,134 @@ function stdPartDialog(hasBody) {
     document.body.append(back);
   });
 }
+// ----- KI-Agenten: what the page lends to the tools of js/agent.js. The desktop app passes the calls of a
+// connected agent on (electron/main.cjs); window.werkfabAgent offers the same tools to scripts in the page. -----
+const agentApi = {
+  project: () => state.project,
+  commit: fn => commit(fn),
+  uid,
+  undo: () => undo(),
+  redo: () => redo(),
+  note: (what, n) => status(what === 'added' ? (n === 1 ? 'KI-Agent: 1 Feature eingefügt' : `KI-Agent: ${n} Features eingefügt`) : what === 'deleted' ? (n === 1 ? 'KI-Agent: 1 Feature gelöscht' : `KI-Agent: ${n} Features gelöscht`) : what === 'changed' ? 'KI-Agent: Feature geändert' : what === 'replaced' ? 'KI-Agent: Entwurf ersetzt' : 'KI-Agent: Entwurf geleert'),
+  // the model once it is computed (large designs are rebuilt in steps)
+  async settled() {
+    for (let i = 0; i < 3000; i++) {
+      const m = getModel();
+      if (!regenJob) return m;
+      await new Promise(r => setTimeout(r, 100));
+    }
+    throw new Error('The model is still being rebuilt');
+  },
+  bodyInfo(b) {
+    const r = { id: b.id, name: state.project.bodyMeta?.[b.id]?.name || b.name };
+    try { const p = bodyProps(b); r.volume = +p.volume.toFixed(3); r.area = +p.area.toFixed(3); } catch { /* a surface or a mesh */ }
+    b.geometry.computeBoundingBox();
+    const bb = b.geometry.boundingBox;
+    if (bb && !bb.isEmpty()) { r.min = bb.min.toArray().map(q => +q.toFixed(4)); r.max = bb.max.toArray().map(q => +q.toFixed(4)); }
+    return r;
+  },
+  async picture(view, fit) {
+    const m = await agentApi.settled();
+    if (view !== 'current') vp.setView(view, fit && !m.box.isEmpty() ? m.box : null); else if (fit) fitView();
+    renderAll();
+    await new Promise(r => setTimeout(r, 450));
+    return thumbnail(vp.renderer, vp.scene, vp.camera, isDark() ? '#2a323b' : '#e4e9ee', 960, 640);
+  },
+  async exportText(format) {
+    const m = await agentApi.settled();
+    if (!m.bodies.length) throw new Error('The design has no body');
+    if (format === 'step') return { format, name: `${safeName()}.step`, content: await exportSTEP(m.bodies).text() };
+    if (format !== 'stl') throw new Error('format: step or stl');
+    const grp = new THREE.Group();
+    m.bodies.forEach(b => grp.add(new THREE.Mesh(b.geometry)));
+    return { format, name: `${safeName()}.stl`, content: new STLExporter().parse(grp, { binary: false }) };
+  },
+  insertPart: (v, at) => buildStdPart(v, new THREE.Vector3(...at), new THREE.Vector3(0, 0, 1)),
+};
+function initAgent() {
+  window.werkfabAgent = { tools: AGENT_TOOLS, call: (name, args) => agentCall(name, args, agentApi) };
+  const ag = window.werkfabApp?.agent;
+  if (!ag) return;
+  ag.onCall(async ({ id, name, args }) => {
+    try { ag.reply(id, { ok: true, result: name === '__tools' ? AGENT_TOOLS : await agentCall(name, args, agentApi) }); }
+    catch (err) { ag.reply(id, { ok: false, error: String(err?.message || err) }); }
+  });
+}
+
+// ----- Bauteilkatalog: all families with a picture, a search over names, standards and sizes, the table of sizes -----
+// side view of a part from its steps (turned outlines mirrored, prisms as their width)
+function stdPartPicture(famId, size, len) {
+  let part;
+  try { part = stdPartSteps(famId, size, len); } catch { return h('div', { class: 'cat-pic' }); }
+  const shapes = [];
+  let x1 = 0, z0 = Infinity, z1 = -Infinity;
+  const ext = (x, z) => { x1 = Math.max(x1, Math.abs(x)); z0 = Math.min(z0, z); z1 = Math.max(z1, z); };
+  for (const s of part.steps) {
+    if (s.k === 'thread' || s.op === 'cut') continue;
+    if (s.k === 'rev') { for (const sg of [1, -1]) shapes.push(s.pts.map(([r, z]) => [sg * r, z])); s.pts.forEach(([r, z]) => ext(r, z)); }
+    else if (s.k === 'ring') { for (const sg of [1, -1]) shapes.push(Array.from({ length: 24 }, (_, i) => [sg * s.r + s.rad * Math.cos((i * Math.PI) / 12), s.z + s.rad * Math.sin((i * Math.PI) / 12)])); ext(s.r + s.rad, s.z - s.rad); ext(s.r + s.rad, s.z + s.rad); }
+    else { const w = s.shape === 'hex' ? s.s / Math.sqrt(3) : s.shape === 'rect' ? s.w / 2 : s.r, cx = s.cx || 0; shapes.push([[cx - w, s.z], [cx + w, s.z], [cx + w, s.z + s.dist], [cx - w, s.z + s.dist]]); ext(Math.abs(cx) + w, s.z); ext(Math.abs(cx) + w, s.z + s.dist); }
+  }
+  if (!shapes.length) return h('div', { class: 'cat-pic' });
+  const W = 2 * x1, H = z1 - z0, m = 0.08 * Math.max(W, H) + 0.01, d = shapes.map(p => 'M' + p.map(([x, z]) => `${(x + x1).toFixed(2)} ${(z1 - z).toFixed(2)}`).join('L') + 'Z').join('');
+  const box = h('div', { class: 'cat-pic' });
+  box.innerHTML = `<svg viewBox="${-m} ${-m} ${W + 2 * m} ${H + 2 * m}" preserveAspectRatio="xMidYMid meet"><path d="${d}" fill="var(--ic2)" stroke="var(--icEdge, currentColor)" stroke-width="${Math.max(W, H) / 90}" stroke-linejoin="round"/></svg>`;
+  return box;
+}
+let catLast = { q: '', group: '', fam: '' };
+function catalogDialog() {
+  const back = h('div', { class: 'modal-back' }), list = h('div', { class: 'cat-list' }), side = h('div', { class: 'cat-side' }), groupsEl = h('div', { class: 'cat-groups' });
+  const v = { ...catLast, size: '', len: 0 };
+  const done = () => { catLast = { q: v.q, group: v.group, fam: v.fam }; back.remove(); };
+  const groups = [...new Set(STD_FAMILIES.map(f => f.group))];
+  // every word of the search must be found in the names of the family or in one of its sizes
+  const words = () => v.q.toLowerCase().replace(/,/g, '.').replace(/(\d)\s*[x*]\s*(?=\d)/g, '$1×').split(/\s+/).filter(Boolean);
+  const text = f => `${f.name} ${f.norm} ${f.group} ${tr(f.name)} ${tr(f.group)}`.toLowerCase();
+  const sizeHit = (f, z, ws) => ws.every(w => text(f).includes(w) || `${z} ${f.dims(z)}`.toLowerCase().replace(/,/g, '.').includes(w));
+  const sizesOf = f => { const ws = words(), all = f.sizes(); if (!ws.length || ws.every(w => text(f).includes(w))) return all; return all.filter(z => sizeHit(f, z, ws)); };
+  const take = () => {
+    const fam = stdFamily(v.fam);
+    if (!fam || !v.size) return;
+    done();
+    stdLast = { ...stdLast, fam: fam.id, size: v.size, len: fam.len ? +v.len || fam.len : stdLast.len, ...(fam.stock ? { where: 'origin' } : {}) };
+    insertBolt();
+  };
+  const draw = () => {
+    const fams = STD_FAMILIES.filter(f => (!v.group || f.group === v.group) && sizesOf(f).length);
+    groupsEl.replaceChildren(...[['', 'Alle'], ...groups.map(g => [g, g])].map(([g, label]) => h('button', { class: 'cat-group' + (v.group === g ? ' on' : ''), onclick: () => { v.group = g; draw(); } }, label,
+      h('small', null, String(STD_FAMILIES.filter(f => (!g || f.group === g) && sizesOf(f).length).length)))));
+    if (!fams.some(f => f.id === v.fam)) { v.fam = fams[0]?.id || ''; v.size = ''; v.len = 0; }
+    list.replaceChildren(...(fams.length ? fams.map(f => {
+      const zs = sizesOf(f), mid = zs.includes('M6') ? 'M6' : zs[Math.floor(zs.length / 3)];
+      return h('button', { class: 'cat-tile' + (v.fam === f.id ? ' on' : ''), onclick: () => { v.fam = f.id; v.size = ''; v.len = 0; draw(); } }, stdPartPicture(f.id, mid, f.len && f.stock ? 60 : f.len), h('b', null, f.name.replace(/\s*\([^)]*\)\s*$/, '')), h('small', null, f.norm), h('small', null, zs.length === f.sizes().length ? `${zs.length} Größen` : `${zs.length} von ${f.sizes().length} Größen`));
+    }) : [h('p', { class: 'hint' }, 'Nichts gefunden – anderes Wort, eine Norm (ISO 4762) oder ein Maß (M8, 6204, 33,7) versuchen.')]));
+    const fam = stdFamily(v.fam);
+    if (!fam) return side.replaceChildren();
+    const zs = sizesOf(fam);
+    if (!zs.includes(v.size)) v.size = zs.includes(String(stdLast.size)) ? String(stdLast.size) : zs.includes('M6') ? 'M6' : zs[0];
+    if (fam.len && !(+v.len > 0)) v.len = fam.len;
+    const li = h('input', { type: 'text', value: v.len, list: 'stdLens' });
+    li.addEventListener('change', () => { const n = +String(li.value).replace(',', '.'); if (Number.isFinite(n) && n > 0) { v.len = n; draw(); } else li.value = v.len; });
+    side.replaceChildren(
+      h('div', { class: 'cat-head' }, stdPartPicture(fam.id, v.size, fam.len ? (fam.stock ? Math.min(+v.len || fam.len, 80) : +v.len || fam.len) : 0), h('div', null, h('b', null, fam.name), h('div', { class: 'hint' }, fam.len ? stdPartName(fam, v.size, +v.len || fam.len) : stdPartName(fam, v.size, 0)), h('div', { class: 'hint' }, fam.group))),
+      ...(fam.len ? [row(fam.stock ? 'Länge (Zuschnitt)' : 'Länge', h('div', { class: 'unit' }, li, h('span', null, 'mm'))), ...(fam.stock ? [] : [h('datalist', { id: 'stdLens' }, ...STD_LENGTHS.map(q => h('option', { value: q })))])] : []),
+      h('div', { class: 'cat-table' }, h('div', { class: 'cat-row cat-th' }, h('span', null, 'Größe'), h('span', null, 'Richtmaße in mm')),
+        ...zs.map(z => h('button', { class: 'cat-row' + (z === v.size ? ' on' : ''), onclick: () => { v.size = z; draw(); }, ondblclick: () => { v.size = z; take(); } }, h('span', null, z), h('span', null, fam.dims(z))))),
+      ...(fam.stock ? [h('p', { class: 'hint' }, 'Halbzeug: Nennmaße der Norm, auf jede Länge zugeschnitten. Nicht jede Paarung von Maß und Wanddicke ist bei jedem Händler am Lager. Ein Rohr entlang einer Skizzenlinie – auch um Ecken und Bögen – legt der Befehl „Rohr“ an.')] : []));
+    side.querySelector('.cat-row.on')?.scrollIntoView({ block: 'nearest' });
+  };
+  const search = h('input', { type: 'search', class: 'cat-search', value: v.q, placeholder: 'Suchen: Name, Norm oder Maß – z. B. Senkschraube, ISO 4762, M8, 6204, 33,7' });
+  search.addEventListener('input', () => { v.q = search.value; draw(); });
+  draw();
+  back.append(h('div', { class: 'modal cat-modal' },
+    h('div', { class: 'modal-head' }, 'BAUTEILKATALOG', h('button', { onclick: done }, '✕')),
+    h('div', { class: 'cat-top' }, search), h('div', { class: 'cat-body' }, groupsEl, list, side),
+    h('div', { class: 'modal-foot' }, h('span', { class: 'hint', style: 'margin-right:auto' }, `${STD_FAMILIES.length} Bauteilfamilien, ${STD_FAMILIES.reduce((a, f) => a + f.sizes().length, 0)} Größen – Nennmaße ohne Toleranzen`), h('button', { onclick: done }, 'Schließen'), h('button', { class: 'primary', onclick: take }, 'Weiter: einfügen …'))));
+  back.addEventListener('keydown', e => { if (e.key === 'Escape') done(); if (e.key === 'Enter' && document.activeElement === search) take(); });
+  document.body.append(back);
+  setTimeout(() => search.focus(), 0);
+}
+
 async function insertBolt() {
   const hasBody = !getModel().box.isEmpty();
   const v = await stdPartDialog(hasBody);
@@ -4725,7 +4917,7 @@ function sheetOf(f) {
 }
 
 // the slots that fit the tabs of a sheet: one sketch per plane the tabs stand through
-function tabSlotSketches(f) {
+function tabSlotSketches(f, target = null) {
   let base;
   try { base = sheetOf(f); } catch (err) { return status(err.message); }
   const slots = tabSlots(base.poly, base.z0, base.f), clr = Math.max(0, +(f.tabClear ?? 0.1) || 0);
@@ -4741,10 +4933,18 @@ function tabSlotSketches(f) {
     const o = g.n.map(v => v * g.d), y = [g.n[1] * g.x[2] - g.n[2] * g.x[1], g.n[2] * g.x[0] - g.n[0] * g.x[2], g.n[0] * g.x[1] - g.n[1] * g.x[0]];
     return { id: uid('sk'), type: 'sketch', name: nextName(state.project.features, 'Schlitze'), plane: { o: o.map(r4), x: g.x.map(r4), n: g.n.map(r4) },
       entities: g.list.map(s => ({ id: uid('e'), type: 'poly', closed: true, pts: [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, c]) => {
-        const p = s.c.map((v, i) => v + s.e[i] * a * (s.w / 2 + clr) + s.nrm[i] * c * (s.t / 2 + clr) - o[i]);
+        const p = s.c.map((v, i) => v + s.e[i] * a * (s.w / 2 + clr) + s.nrm[i] * c * (s.t / 2 + clr + (s.sag || 0) / 2) - o[i]);
         return [r4(dot(p, g.x)), r4(dot(p, y))];
       }) })) };
   });
+  if (target) {
+    const cuts = feats.map((sk, i) => ({ id: uid('ex'), type: 'extrude', name: nextName(state.project.features, 'Schlitze schneiden'), sketch: sk.id, profiles: 'all', extent: 'one', distance: r4(Math.max(...groups[i].list.map(s => s.len))), distance2: 5, op: 'cut', target }));
+    feats.forEach(sk => (sk.hidden = true));
+    commit(p => { p.features.push(...feats, ...cuts); });
+    const err = cuts.map(c => getModel().errors[c.id]).find(Boolean);
+    select('feature', cuts[0].id);
+    return status(err ? `Schlitze schneiden: ${err}` : `${slots.length} Schlitze in „${bodyOptions().find(([id]) => id === target)?.[1] || target}“ geschnitten.`);
+  }
   commit(p => { p.features.push(...feats); });
   status(feats.length === 1 ? `${slots.length} Schlitze als Skizze „${feats[0].name}“ angelegt – dort den Umriss des Gegenstücks zeichnen.` : `${slots.length} Schlitze in ${feats.length} Skizzen angelegt – je Ebene eine; dort den Umriss des Gegenstücks zeichnen.`);
   select('feature', feats[0].id);
@@ -4825,8 +5025,8 @@ function propsSheet(b, f, ed) {
         // a jog: two bends against each other, the edge runs on parallel, offset by about two thicknesses
         btn('+ Kröpfung', () => setFl(q => { q.next ||= []; q.next.push({ h: f2(2 * tt), angle: -45 }, { h: 10, angle: 45 }); })),
         // tabs for a tab-and-slot joint: tongues on the free end, as long as the sheet they are put through is thick
-        ...(arc || fl.tabs ? [] : [btn('+ Zungen', () => setFl(q => { q.tabs = { n: 2, w: f2(Math.max(5, Math.min(20, e.L / 6))), len: tt }; }))])));
-      if (fl.tabs && !arc) {
+        ...(fl.tabs ? [] : [btn('+ Zungen', () => setFl(q => { q.tabs = { n: arc?.full ? 4 : 2, w: f2(Math.max(5, Math.min(20, (arc ? arc.L : e.L) / 6))), len: tt }; }))])));
+      if (fl.tabs) {
         const tin = (key, title, min) => h('input', { type: 'text', value: +fl.tabs[key] || 0, title, onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); if (Number.isFinite(v) && v >= min) setFl(q => (q.tabs[key] = key === 'n' ? Math.round(v) : v)); } });
         b.append(h('div', { class: 'flange-row flange-sub flange-next' }, h('span', null, '↳ Zungen'),
           tin('n', 'Anzahl der Zungen, gleichmäßig über die Lasche verteilt', 1), h('small', null, '×'),
@@ -4860,6 +5060,8 @@ function propsSheet(b, f, ed) {
       b.append(sec('LASCHEN-SCHLITZ-VERBINDUNG'),
         row('Spiel der Schlitze', num(f.tabClear ?? 0.1, v => ed(x => (x.tabClear = Math.max(0, v))), { unit: 'mm', min: 0 })),
         h('div', { class: 'btns' }, btn('Schlitze als Skizze', () => tabSlotSketches(f))),
+        row('Schlitze schneiden in', sel([['', '– Körper wählen –'], ...bodyOptions().filter(([id]) => id !== f.id)], state.tabTarget || '', v => { state.tabTarget = v; renderAll(); })),
+        ...(state.tabTarget && bodyOptions().some(([id]) => id === state.tabTarget && id !== f.id) ? [h('div', { class: 'btns' }, btn('Schlitze schneiden', () => tabSlotSketches(f, state.tabTarget))), h('p', { class: 'hint' }, 'Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.')] : []),
         h('p', { class: 'hint' }, 'Zungen stehen am freien Ende der Lasche über und kommen in den Zuschnitt. „Schlitze als Skizze“ legt die passenden Schlitze dort an, wo die Zungen stehen – je Ebene eine Skizze, jeder Schlitz ringsum um das Spiel größer als die Zunge. In dieser Skizze den Umriss des Gegenstücks zeichnen und daraus ein Blech oder eine Extrusion machen: die Schlitze werden Ausschnitte. Das Gegenstück liegt auf den Laschenenden auf; die Zungenlänge ist üblich gleich seiner Dicke.'));
     }
     // bends on lines across the plate, beads along lines inside it
@@ -4871,7 +5073,8 @@ function propsSheet(b, f, ed) {
         const inp = (key, title, def) => h('input', { type: 'text', value: q[key] ?? def, title, onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); if (Number.isFinite(v) && v !== 0) setLn(z => (z[key] = v)); else ev.target.value = q[key] ?? def; } });
         b.append(h('div', { class: 'flange-row form-row' }, h('span', null, `Linie ${i + 1} (${f2(Math.hypot(ln.b[0] - ln.a[0], ln.b[1] - ln.a[1]))} mm)`),
           sel([['', '–'], ['bend', 'Biegung'], ['bead', 'Sicke'], ['louver', 'Kieme']], q.kind || '', v => setLn(z => (z.kind = v))),
-          ...(q.kind === 'bend' ? [inp('angle', 'Biegewinkel ° (+ hoch, − runter)', 90), h('small', null, '°')]
+          ...(q.kind === 'bend' ? [inp('angle', 'Biegewinkel ° (+ hoch, − runter)', 90), h('small', null, '°'),
+            h('input', { type: 'text', value: q.r ?? '', placeholder: 'R', title: 'Biegeradius innen dieser Biegung in mm (leer = wie beim Blech eingestellt)', onchange: ev => { const tx = ev.target.value.trim().replace(',', '.'), v = parseFloat(tx); setLn(z => { if (tx !== '' && Number.isFinite(v) && v >= 0) z.r = v; else delete z.r; }); } }), h('small', null, 'mm')]
             : q.kind === 'bead' ? [inp('w', 'Breite der Sicke mm', 8), h('small', null, 'mm'), inp('h', 'Höhe der Sicke mm (+ nach oben, − nach unten)', 2), h('small', null, 'mm')]
               : q.kind === 'louver' ? [inp('w', 'Tiefe der Kieme mm (+ links der Linie, − rechts)', 8), h('small', null, 'mm'), inp('h', 'Höhe der Kieme am Schlitz mm (+ nach oben, − nach unten)', 2), h('small', null, 'mm')] : [])));
       });
@@ -5111,12 +5314,12 @@ function cutPreview(progs, W, H) {
 function bodyFaceData(shape) {
   const P = v => [v.x, v.y, v.z], near = (a, c) => Math.hypot(a[0] - c[0], a[1] - c[1], a[2] - c[2]) < 1e-4;
   return shape.faces.map(fc => {
-    const plane = fc.geomType === 'PLANE', keys = [], loops = [];
+    const plane = fc.geomType === 'PLANE', keys = [], loops = [], lines = [];
     for (const w of fc.wires) {
       const eds = w.edges, segs = [];
       for (const e of eds) {
         keys.push(P(e.pointAt(0.5)).map(c => Math.round(c * 1000)).join(','));
-        if (!plane) continue;
+        if (!plane) { if (e.geomType === 'LINE') lines.push([P(e.pointAt(0)), P(e.pointAt(1))]); continue; }
         const N = e.geomType === 'LINE' ? 1 : e.isClosed ? 64 : 16;
         segs.push(Array.from({ length: N + 1 }, (_, i) => P(e.pointAt(i / N))));
       }
@@ -5137,7 +5340,7 @@ function bodyFaceData(shape) {
     }
     let n = null;
     if (plane) { const v = fc.normalAt(fc.center), l = Math.hypot(v.x, v.y, v.z) || 1; n = [v.x / l, v.y / l, v.z / l]; }
-    return { plane, n, loops, keys };
+    return { plane, n, loops, keys, ...(lines.length ? { lines } : {}) };
   });
 }
 
@@ -5149,7 +5352,7 @@ async function bodyToSheet() {
     { key: 'body', label: 'Körper', options: bodies.map(b => [b.id, bodyName(b)]), value: state.sel?.kind === 'body' && bodies.some(b => b.id === state.sel.id) ? state.sel.id : bodies[bodies.length - 1].id },
     { key: 'k', label: 'K-Faktor', value: last.k ?? 0.42 },
     { key: 'out', label: 'Ergebnis', value: last.out ?? 'sheet', options: [['sheet', 'Blech mit Biegelinien (änderbar)'], ['sketch', 'Nur Abwicklung als Skizze'], ['dxf', 'Abwicklung als DXF-Datei']],
-      hint: 'Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Nicht erkannt werden Säume (180°), gerollte Wände und Umformungen wie Sicken.' },
+      hint: 'Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.' },
   ], 'Umwandeln');
   if (!v) return;
   state.toSheetLast = { k: v.k, out: v.out };
@@ -5158,16 +5361,16 @@ async function bodyToSheet() {
   let u;
   try { u = unfoldFaces(bodyFaceData(body.shape), { k: +v.k }); } catch (err) { return status(`Körper → Blech: ${err.message}.`); }
   const name = bodyName(body), r4 = x => +(+x).toFixed(4), circ = q => Array.from({ length: 72 }, (_, i) => [q.c[0] + q.r * Math.cos((i * Math.PI) / 36), q.c[1] + q.r * Math.sin((i * Math.PI) / 36)]);
-  const NOTE = { uneven: 'eine Biegung ist auf beiden Seiten verschieden weit angesetzt', left: 'nicht alle Wände hängen über eine erkennbare Biegung zusammen (Saum, gerollte Wand?) – sie fehlen', radii: `die Biegungen haben verschiedene Radien, das Blech nimmt ${f2(u.r)} mm`, parts: 'die Abwicklung zerfällt in mehrere Stücke' };
+  const NOTE = { uneven: 'eine Biegung ist auf beiden Seiten verschieden weit angesetzt', left: 'nicht alle Wände hängen über eine erkennbare Biegung zusammen – sie fehlen', curl: 'frei endender gerollter Rand als Biegung bis zur Blechkante übernommen', parts: 'die Abwicklung zerfällt in mehrere Stücke' };
   const notes = [...u.notes.map(q => NOTE[q]), ...(u.overlap ? ['die Abwicklung überlappt sich – so nicht aus einem Stück herstellbar'] : [])];
-  const say = `„${name}“: Blechdicke ${f2(u.t)} mm, ${u.folds.length === 1 ? '1 Biegung' : `${u.folds.length} Biegungen`}${u.folds.length ? `, Innenradius ${f2(u.r)} mm` : ''}, Zuschnittfläche ${f2(u.area / 100)} cm²${notes.length ? ` – Hinweis: ${notes.join('; ')}` : ''}.`;
+  const say = `„${name}“: Blechdicke ${f2(u.t)} mm, ${u.folds.length === 1 ? '1 Biegung' : `${u.folds.length} Biegungen`}${u.folds.length ? `, Innenradius ${f2(u.rMin)}${u.rMax > u.rMin + 1e-6 ? ` bis ${f2(u.rMax)}` : ''} mm` : ''}, Zuschnittfläche ${f2(u.area / 100)} cm²${notes.length ? ` – Hinweis: ${notes.join('; ')}` : ''}.`;
   if (v.out === 'dxf') { download(`${safeName()}_${name}_Abwicklung.dxf`, flatDXF({ outline: [...u.outline, ...u.holes.map(q => q.pts || circ(q))], bends: u.folds.map(q => [q.a, q.b]), slits: [] }), 'application/dxf'); return status(say); }
   const asSheet = v.out === 'sheet', sid = uid('sk'), fid = uid('sh'), lines = u.folds.map(q => ({ id: uid('e'), type: 'poly', closed: false, pts: [q.a.map(r4), q.b.map(r4)], ...(asSheet ? {} : { bend: true }) }));
   const sketch = { id: sid, type: 'sketch', name: `Abwicklung ${name}`, plane: { o: [0, 0, r4(u.z0)], x: [1, 0, 0], n: [0, 0, 1] }, ...(asSheet ? { hidden: true } : {}),
     entities: [...u.outline.map(pts => ({ id: uid('e'), type: 'poly', closed: true, pts: pts.map(p => p.map(r4)) })),
       ...u.holes.map(q => (q.pts ? { id: uid('e'), type: 'poly', closed: true, pts: q.pts.map(p => p.map(r4)) } : { id: uid('e'), type: 'circle', cx: r4(q.c[0]), cy: r4(q.c[1]), r: r4(q.r) })), ...lines] };
   const feats = [sketch];
-  if (asSheet) feats.push({ id: fid, type: 'sheet', name: nextName(state.project.features, FEATURE_TYPES.sheet), sketch: sid, thickness: u.t, radius: u.r, kfactor: u.k, flanges: [], lines: lines.map((l, i) => ({ id: l.id, kind: 'bend', angle: r4(u.folds[i].angle), w: 8, h: 2 })), op: 'new' });
+  if (asSheet) feats.push({ id: fid, type: 'sheet', name: nextName(state.project.features, FEATURE_TYPES.sheet), sketch: sid, thickness: u.t, radius: u.r, kfactor: u.k, flanges: [], lines: lines.map((l, i) => ({ id: l.id, kind: 'bend', angle: r4(u.folds[i].angle), w: 8, h: 2, ...(Math.abs(u.folds[i].r - u.r) > 1e-6 ? { r: u.folds[i].r } : {}), ...(u.folds[i].free ? { free: true } : {}) })), op: 'new' });
   let v0 = null;
   try { v0 = bodyProps(body).volume; } catch { /* no comparison */ }
   commit(p => { p.features.push(...feats); if (asSheet) { p.bodyMeta ||= {}; (p.bodyMeta[fid] ||= {}).name = `${name} (Blech)`; } });
@@ -10425,6 +10628,8 @@ function menuAction(act) {
     status('Design exportiert');
   } else if (act === 'example') loadExample();
   else if (act === 'example-turn') loadExample(true);
+  else if (act === 'gltf') exportGltfFile();
+  else if (act === 'script') runScriptFile();
   else if (act === 'step' || act === 'stl' || act === 'iges') {
     const bodies = getModel().bodies.filter(x => !state.hiddenBodies.has(x.id));
     const meshes = getMeshes().bodies.filter(x => !state.hiddenBodies.has(x.id));
@@ -10752,6 +10957,7 @@ const PREF_TREE = [
     ]],
     ['Updates', [
       ['updateCheck', 'Nach Updates suchen', 'Fragt beim Start bei GitHub nach einer neuen Version. Sonst baut WerkFab von sich aus keine Verbindung ins Netz auf.', 'bool'],
+      ['updateAuto', 'Updates automatisch laden', 'Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.', 'bool'],
       ['__update'],
     ]],
     ['Benutzeroberfläche', [
@@ -10900,6 +11106,7 @@ const PREF_TREE = [
     ['Profile', [['__profiles']]],
     ['Fenster', [['__layout']]],
   ] },
+  { id: 'agents', label: 'KI-Agenten', groups: [['Verbindung für KI-Agenten', [['__agent']]]] },
   { id: 'keys', label: 'Tastenkürzel', groups: [] },
   { id: 'about', label: 'Über WerkFab', groups: [] },
 ];
@@ -10957,6 +11164,29 @@ function openSettings(page) {
       h('div', { class: 'prefs-ctl' }, sel([['system', 'System (' + LANGS[langChoice() === 'system' ? uiLang : 'en'] + ')'], ...Object.entries(LANGS).sort((a, b) => a[1].localeCompare(b[1]))], langChoice(), v => setLanguage(v))));
     if (key === '__update') return h('div', { class: 'prefs-row' }, h('label', null, 'Neue Version', info('Installierte Windows-App und Linux-AppImage laden das Update selbst; sonst öffnet sich die Download-Seite')),
       h('div', { class: 'prefs-ctl' }, h('button', { class: 'btn', onclick: () => checkForUpdates(true) }, 'Jetzt nach Updates suchen')));
+    if (key === '__agent') {
+      const box = h('div', { style: 'display:grid;gap:8px' }), ag = window.werkfabApp?.agent;
+      const about = 'Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben und exportiert STEP oder STL. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.';
+      if (!ag) { box.append(h('p', { class: 'hint' }, 'KI-Agenten verbinden sich mit der Desktop-App von WerkFab (Windows, Linux, macOS) über das Model Context Protocol (MCP). Im Browser gibt es dafür keinen Anschluss.'), h('p', { class: 'hint' }, about)); return box; }
+      const copy = text => navigator.clipboard.writeText(text).then(() => status('In die Zwischenablage kopiert'), () => status('Kopieren nicht möglich'));
+      const line = (label, text, secret = false) => h('div', { class: 'prefs-row' }, h('label', null, label), h('div', { class: 'prefs-ctl' },
+        h('input', { type: secret ? 'password' : 'text', readOnly: true, value: text, style: 'width:230px;font-family:var(--mono, monospace)', class: 'no-i18n' }), h('button', { class: 'prefs-btn', onclick: () => copy(text) }, 'Kopieren')));
+      const show = st => {
+        const cmd = `claude mcp add --transport http werkfab ${st.url} --header "Authorization: Bearer ${st.token}"`;
+        const json = JSON.stringify({ mcpServers: { werkfab: { type: 'http', url: st.url, headers: { Authorization: `Bearer ${st.token}` } } } }, null, 2);
+        box.replaceChildren(
+          h('div', { class: 'prefs-row' }, h('label', null, 'KI-Agenten zulassen', info('Öffnet einen Anschluss nur auf diesem Rechner (127.0.0.1). Ohne den Schlüssel kommt niemand herein.')),
+            h('div', { class: 'prefs-ctl' }, chk(st.on, async v => show(await ag.set(v))), h('b', { style: st.running ? 'color:var(--ok)' : '' }, st.running ? 'Anschluss offen' : st.error ? `Fehler: ${st.error}` : 'Aus'))),
+          ...(st.on ? [line('Adresse (MCP, HTTP)', st.url), line('Schlüssel (Bearer)', st.token, true),
+            h('div', { class: 'prefs-row' }, h('label', null, 'Neuer Schlüssel', info('Der alte Schlüssel gilt dann nicht mehr; verbundene Agenten müssen neu eingerichtet werden')), h('div', { class: 'prefs-ctl' }, h('button', { class: 'prefs-btn', onclick: async () => show(await ag.newToken()) }, 'Schlüssel erneuern'))),
+            line('Befehl für Claude Code', cmd),
+            h('div', { class: 'prefs-row' }, h('label', null, 'Eintrag für andere MCP-Programme', info('Die meisten Programme mit MCP lesen eine solche JSON-Einstellung')), h('div', { class: 'prefs-ctl' }, h('button', { class: 'prefs-btn', onclick: () => copy(json) }, 'JSON kopieren')))] : []),
+          h('p', { class: 'hint' }, about),
+          h('p', { class: 'hint' }, 'Den Schlüssel wie ein Kennwort behandeln: Wer ihn hat und auf diesem Rechner läuft, kann den geöffneten Entwurf ändern. Der Anschluss bleibt nur offen, solange WerkFab läuft.'));
+      };
+      ag.info().then(show, () => box.append(h('p', { class: 'hint' }, 'Der Anschluss antwortet nicht.')));
+      return box;
+    }
     if (key === '__unit') return h('div', { class: 'prefs-row' }, h('label', null, 'Standardeinheit', info('Alle Längen in Millimeter, Winkel in Grad')), h('div', { class: 'prefs-ctl' }, h('b', null, 'Millimeter (mm)')));
     if (key === '__smStatus') {
       const st = h('b', { style: spaceMouse.connected ? 'color:var(--ok)' : '' }, !spaceMouse.supported ? 'Nicht unterstützt (Chrome, Edge oder Desktop-App nötig)' : spaceMouse.connected ? `Verbunden: ${spaceMouse.name}` : 'Nicht verbunden');
@@ -13398,6 +13628,7 @@ function openPostDialog(saved = null) {
   applyTheme();
   fitView();
   initUpdates(status);
+  initAgent();
   // steps waiting for the full kernel (delete face, fillet with radius points) are computed as soon as it is there
   onFullKernel(() => { clearTimelineCache(); model.key = null; renderAll(); });
 })();

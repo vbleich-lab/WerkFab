@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "슬롯 절단",
+ "Schlitze schneiden: {0}": "슬롯 절단: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "“{1}”에 슬롯 {0}개를 절단했습니다.",
+ "Schlitze schneiden in": "슬롯을 절단할 대상",
+ "– Körper wählen –": "– 바디 선택 –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "슬롯을 선택한 바디에 바로, 탭의 길이만큼 깊이 절단합니다. 스케치와 절단은 이후 타임라인에 남아 수정할 수 있습니다.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "바디는 어디서나 두께가 같아야 합니다(작도, 돌출 또는 STEP 파일). 판 두께(가장 큰 면과 그 반대쪽 면 사이의 거리), 평평한 벽, 그 사이의 굽힘이 각도와 안쪽 반경, 둥근 모양 또는 날카로운 모서리와 함께 인식됩니다. 이로부터 전개도가 만들어지며, 판금으로는 굽힘선이 있는 스케치로 제공되어 다른 판금처럼 수정, 전개, 네스팅할 수 있습니다. K 계수가 전개 길이를 결정합니다. 가장 큰 면이 위나 아래를 향하면 판금은 바디 안에 정확히 놓이고, 그렇지 않으면 XY 평면 위에 평평하게 놓입니다. 헴(180°)과 두 평평한 벽 사이의 둥근 벽은 고유한 반경을 가진 굽힘으로 가져옵니다. 끝이 자유로운 말린 가장자리, 파이프, 비드 같은 성형은 인식되지 않습니다.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "모든 벽이 인식 가능한 굽힘으로 연결되어 있지는 않습니다(말린 가장자리?). 해당 벽이 빠져 있습니다",
+ "bis {0}": "~ {0}",
+ ", Innenradius {0}{1} mm": ", 안쪽 반경 {0}{1} mm",
+ "Updates automatisch laden": "업데이트 자동 다운로드",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "새 버전을 찾으면 바로 백그라운드에서 다운로드하고 종료할 때 설치합니다. 설치된 Windows 앱과 Linux AppImage에서만 동작합니다. 그 외에는 먼저 확인합니다.",
+ "Version {0} wird geladen …": "버전 {0} 다운로드 중 …",
+ "Suche nach einer neuen Version …": "새 버전 검색 중 …"
+}

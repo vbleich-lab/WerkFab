@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // modules without texts for the user (NC output, kernels, the translations themselves)
-const SKIP = new Set(['i18n.js', 'fonts.js', 'icons.js']);
+const SKIP = new Set(['i18n.js', 'fonts.js', 'icons.js', 'agent.js']); // (agent.js: tool descriptions for AI agents, English by design)
 
 const LOWER = new Set('links rechts vorne hinten unten oben ein aus generisch endlos gewählt gleichsinnig gegensinnig hoch runter automatisch mittig inaktiv deaktiviert berechnet ausstehend vorgaben und aktiv keine von bis nein waagerecht senkrecht ausgerichtet spanend beliebig heruntergeladen|schwer zerspanbar|und aktiviert|gerade eben'.split('|').flatMap((x, i) => (i ? [x] : x.split(' '))));
 

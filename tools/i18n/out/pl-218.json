@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Wytnij szczeliny",
+ "Schlitze schneiden: {0}": "Wytnij szczeliny: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "Wycięto {0} szczelin w „{1}”.",
+ "Schlitze schneiden in": "Wytnij szczeliny w",
+ "– Körper wählen –": "– wybierz bryłę –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Wycina szczeliny od razu w wybranej bryle – na głębokość równą długości języczków. Szkic i wycięcie znajdują się potem na osi czasu i można je zmieniać.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Bryła musi mieć wszędzie tę samą grubość – narysowana, wyciągnięta lub z pliku STEP. Rozpoznawane są grubość blachy (odległość największej ściany od ściany przeciwległej), płaskie ścianki oraz gięcia między nimi z kątem i promieniem wewnętrznym, zaokrąglone lub ostre. Na tej podstawie powstaje rozwinięcie; jako blacha występuje ono w postaci szkicu z liniami gięcia i można je zmieniać, rozwijać i rozmieszczać jak każdą blachę. Współczynnik K określa długości rozwinięte. Jeśli największa ściana jest skierowana w górę lub w dół, blacha leży dokładnie w bryle, w przeciwnym razie płasko na płaszczyźnie XY. Podwinięcia (180°) i zaokrąglone ścianki między dwiema płaskimi ściankami są przejmowane jako gięcie z własnym promieniem. Nie są rozpoznawane swobodnie zakończone zwinięte krawędzie, rury ani formowania, takie jak przetłoczenia.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "nie wszystkie ścianki są połączone rozpoznawalnym gięciem (zwinięta krawędź?) – brakuje ich",
+ "bis {0}": "do {0}",
+ ", Innenradius {0}{1} mm": ", promień wewnętrzny {0}{1} mm",
+ "Updates automatisch laden": "Pobieraj aktualizacje automatycznie",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Pobiera nową wersję w tle zaraz po jej znalezieniu i instaluje ją przy zamykaniu – tylko w zainstalowanej aplikacji dla Windows i w AppImage dla Linuksa. W pozostałych przypadkach program najpierw pyta.",
+ "Version {0} wird geladen …": "Pobieranie wersji {0} …",
+ "Suche nach einer neuen Version …": "Wyszukiwanie nowej wersji …"
+}

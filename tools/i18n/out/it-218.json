@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Taglia asole",
+ "Schlitze schneiden: {0}": "Taglia asole: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} asole tagliate in «{1}».",
+ "Schlitze schneiden in": "Taglia asole in",
+ "– Körper wählen –": "– scegliere un corpo –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Taglia le asole direttamente nel corpo scelto, profonde quanto sono lunghe le linguette. Schizzo e taglio compaiono poi nella timeline e possono essere modificati.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Il corpo deve avere ovunque lo stesso spessore – disegnato, estruso o da un file STEP. Vengono riconosciuti lo spessore della lamiera (distanza della faccia maggiore dalla sua faccia opposta), le pareti piane e le pieghe fra di esse con angolo e raggio interno, arrotondate o a spigolo vivo. Ne risulta lo sviluppo; come lamiera si presenta come schizzo con linee di piega e può essere modificato, sviluppato e annidato come ogni lamiera. Il fattore K determina le lunghezze sviluppate. Se la faccia maggiore è rivolta verso l'alto o il basso, la lamiera si trova esattamente nel corpo, altrimenti piatta sul piano XY. Gli orli (180°) e le pareti arrotondate fra due pareti piane vengono assunti come piega con raggio proprio. Non vengono riconosciuti i bordi arrotolati a estremità libera, i tubi e le formature come nervature.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "non tutte le pareti sono collegate da una piega riconoscibile (bordo arrotolato?) – mancano",
+ "bis {0}": "fino a {0}",
+ ", Innenradius {0}{1} mm": ", raggio interno {0}{1} mm",
+ "Updates automatisch laden": "Scarica aggiornamenti automaticamente",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Scarica una nuova versione in background subito dopo averla trovata e la installa alla chiusura – solo nell'app Windows installata e nell'AppImage Linux. Altrimenti il programma chiede prima.",
+ "Version {0} wird geladen …": "Download della versione {0} …",
+ "Suche nach einer neuen Version …": "Ricerca di una nuova versione …"
+}

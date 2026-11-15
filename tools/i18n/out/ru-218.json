@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Вырезать пазы",
+ "Schlitze schneiden: {0}": "Вырезать пазы: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "Вырезано пазов в «{1}»: {0}.",
+ "Schlitze schneiden in": "Вырезать пазы в",
+ "– Körper wählen –": "– выберите тело –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Сразу вырезает пазы в выбранном теле — на глубину, равную длине шипов. Эскиз и вырез затем отображаются на временной шкале и могут быть изменены.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Тело должно иметь везде одинаковую толщину — построенное, выдавленное или из файла STEP. Распознаются толщина листа (расстояние от самой большой грани до противоположной), плоские стенки и гибы между ними с углом и внутренним радиусом, закруглённые или с острой кромкой. Из этого строится развёртка; как лист металла она представлена эскизом с линиями гибов и редактируется, разворачивается и раскладывается, как любой лист. Коэффициент K определяет длины в развёртке. Если самая большая грань направлена вверх или вниз, лист располагается точно в теле, иначе — плашмя на плоскости XY. Отбортовки (180°) и закруглённые стенки между двумя плоскими стенками принимаются как гиб с собственным радиусом. Не распознаются свободно оканчивающиеся завальцованные кромки, трубы и формовки вроде рёбер жёсткости.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "не все стенки связаны распознаваемым гибом (завальцованная кромка?) — они отсутствуют",
+ "bis {0}": "до {0}",
+ ", Innenradius {0}{1} mm": ", внутренний радиус {0}{1} мм",
+ "Updates automatisch laden": "Загружать обновления автоматически",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Загружает новую версию в фоновом режиме сразу после обнаружения и устанавливает при выходе — только в установленном приложении Windows и в Linux AppImage. В остальных случаях сначала задаётся вопрос.",
+ "Version {0} wird geladen …": "Загрузка версии {0} …",
+ "Suche nach einer neuen Version …": "Поиск новой версии …"
+}

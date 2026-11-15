@@ -496,7 +496,7 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
   const vn = stdPartVolume(nut.steps), rc = (10 - 1.0825 * 1.5) / 2, vhex = (Math.sqrt(3) / 2) * 256 * 8.4 - Math.PI * rc * rc * 8.4;
   ok('Normteile: Mutter M10 – Sechskant SW 16 × 8,4 mit Bohrung, Fasen nehmen wenig weg', vn < vhex && vn > 0.85 * vhex && near(nut.z1, 8.4), `${vn.toFixed(1)} von ${vhex.toFixed(1)} mm³`);
   const th = stdPartSteps('iso4762', 'M8', 30).steps.find(q => q.k === 'thread'), tn = stdPartSteps('iso4032', 'M8').steps.find(q => q.k === 'thread'), sp = stdPartSteps('iso8752', '6', 20), tp = stdPartSteps('iso2339', '6', 50);
-  ok('Normteile: 25 Reihen; Gewinde als eigener Schritt (Schraube außen auf d, Mutter innen auf dem Kerndurchmesser), Spannstift hohl, Kegelstift 1:50', STD_FAMILIES.length === 25 && th.size === 'M8' && near(th.r, 4) && near(th.z, -15) && near(tn.r, (8 - 1.0825 * 1.25) / 2) && !stdPartSteps('iso7089', 'M8').steps.some(q => q.k === 'thread') && stdPartVolume(sp.steps) < 0.75 * Math.PI * 9 * 20 && near(tp.rmax, 3.5) && stdPartName(stdFamily('din6885b'), '6×6', 25) === 'DIN 6885 B 6×6×25');
+  ok('Normteile: 29 Reihen; Gewinde als eigener Schritt (Schraube außen auf d, Mutter innen auf dem Kerndurchmesser), Spannstift hohl, Kegelstift 1:50', STD_FAMILIES.length === 29 && th.size === 'M8' && near(th.r, 4) && near(th.z, -15) && near(tn.r, (8 - 1.0825 * 1.25) / 2) && !stdPartSteps('iso7089', 'M8').steps.some(q => q.k === 'thread') && stdPartVolume(sp.steps) < 0.75 * Math.PI * 9 * 20 && near(tp.rmax, 3.5) && stdPartName(stdFamily('din6885b'), '6×6', 25) === 'DIN 6885 B 6×6×25');
   let e = '';
   try { stdPartSteps('iso7380', 'M24', 20); } catch (err) { e = err.message; }
   ok('Normteile: Name und fehlende Größe', stdPartName(stdFamily('iso4762'), 'M6', 20) === 'ISO 4762 M6×20' && stdPartName(stdFamily('din625'), '608', 0) === 'DIN 625 608' && /gibt es in der Norm nicht/.test(e));
@@ -864,4 +864,68 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
   ok('Körper → Blech: ebene Platte mit Bohrung – keine Biegung, Bohrung bleibt ein Kreis, Lage bleibt', near(F1.t, 3) && !F1.folds.length && F1.holes.length === 1 && near(F1.holes[0].r, 5) && near(F1.holes[0].c[0], 30) && F1.aligned && near(F1.z0, 0) && near(F1.area, 3200 - Math.PI * 25, 0.01), `t ${F1.t}, ${F1.holes.length} Bohrung, ${F1.area.toFixed(2)} mm²`);
   let msg = ''; try { unfoldFaces(prism([[0, 0], [30, 0], [30, 30], [0, 30]], 40)); } catch (e) { msg = e.message; }
   ok('Körper → Blech: ein Klotz ist kein Blech', /zu dick/.test(msg), msg);
+}
+
+// ---- catalogue: tubes, hollow sections and bars ----
+{
+  const { STD_FAMILIES, stdPartSteps, stdPartVolume, stdPartName, stdFamily } = await import('../js/stdparts.js');
+  const vol = (fam, size, len) => stdPartVolume(stdPartSteps(fam, size, len).steps);
+  ok('Katalog: Rundrohr 33,7×2,6 – Volumen des Rings', near(vol('en10220', '33,7×2,6', 100), (Math.PI / 4) * (33.7 ** 2 - 28.5 ** 2) * 100, 0.01), vol('en10220', '33,7×2,6', 100).toFixed(2));
+  // 40×40×3: outer corner radius 6, inner 3
+  const q = 40 * 40 - (4 - Math.PI) * 36 - (34 * 34 - (4 - Math.PI) * 9);
+  ok('Katalog: Quadratrohr 40×40×3 – Querschnitt mit runden Ecken', near(vol('en10219q', '40×40×3', 100) / 100, q, 0.05 * q / 100 + 0.5), (vol('en10219q', '40×40×3', 100) / 100).toFixed(2) + ' / ' + q.toFixed(2));
+  ok('Katalog: Rechteckrohr und Rundstahl', near(vol('en10060', '20', 50), Math.PI * 100 * 50, 0.01) && vol('en10219r', '80×40×3', 10) > 0 && stdPartName(stdFamily('en10220'), '33,7×2,6', 100) === 'EN 10220 33,7×2,6×100');
+  const stock = STD_FAMILIES.filter(f => f.stock);
+  ok('Katalog: jede Größe der Rohre und Profile hat eine Wand, die hineinpasst', stock.length === 4 && stock.every(f => f.sizes().length > 3 && f.sizes().every(z => vol(f.id, z, 10) > 0 && f.dims(z).length >= 3)), stock.map(f => f.sizes().length).join(' '));
+}
+
+// ---- hems read back from a body, bend lines with their own radius, tabs on a curved edge ----
+{
+  const { tabSlots, foldPlan, polyArcs } = await import('../js/sheetmetal.js');
+  const { unfoldFaces } = await import('../js/unfold.js');
+  // a prism over an outline whose edges marked round are one round face (a bend) per run
+  const prismR = (out, round, h) => {
+    const key = (a, b) => [0, 1, 2].map(i => Math.round(((a[i] + b[i]) / 2) * 1000)).join(','), faces = [], n = out.length;
+    const cap = (z, nn) => ({ plane: true, n: nn, loops: [{ pts: out.map(q => [q[0], q[1], z]) }], keys: out.map((p, i) => key([...p, z], [...out[(i + 1) % n], z])) });
+    faces.push(cap(0, [0, 0, -1]), cap(h, [0, 0, 1]));
+    for (let i = 0; i < n; i++) {
+      const p = out[i], q = out[(i + 1) % n], ek = (a, b) => [key([...a, 0], [...b, 0]), key([...a, h], [...b, h])], vk = a => key([...a, 0], [...a, h]);
+      if (!round.has(i)) { const L = Math.hypot(q[0] - p[0], q[1] - p[1]); faces.push({ plane: true, n: [(q[1] - p[1]) / L, -(q[0] - p[0]) / L, 0], loops: [{ pts: [[...p, 0], [...q, 0], [...q, h], [...p, h]] }], keys: [...ek(p, q), vk(p), vk(q)] }); continue; }
+      let j = i; while (round.has(j + 1)) j++;
+      const keys = [vk(out[i]), vk(out[(j + 1) % n])];
+      for (let m = i; m <= j; m++) keys.push(...ek(out[m], out[(m + 1) % n]));
+      faces.push({ plane: false, n: null, loops: [], keys, lines: [[[...out[i], 0], [...out[i], h]], [[...out[(j + 1) % n], 0], [...out[(j + 1) % n], h]]] });
+      i = j;
+    }
+    return faces;
+  };
+  // base 50 long, 2 thick, the end folded back over it: hem with inner radius 1, 8 long
+  const arc = (r, a0, a1, m = 12) => Array.from({ length: m - 1 }, (_, i) => { const a = a0 + ((a1 - a0) * (i + 1)) / m; return [50 + r * Math.cos(a), 3 + r * Math.sin(a)]; });
+  const out = [[0, 0], [50, 0], ...arc(3, -Math.PI / 2, Math.PI / 2), [50, 6], [42, 6], [42, 4], [50, 4], ...arc(1, Math.PI / 2, -Math.PI / 2), [50, 2], [0, 2]], round = new Set();
+  for (let i = 1; i <= 12; i++) round.add(i);
+  for (let i = 16; i <= 27; i++) round.add(i);
+  const H = unfoldFaces(prismR(out, round, 30), { k: 0.4 }), xs = H.outline[0].flat(), ext = Math.max(...H.outline[0].map(p => p[0])) - Math.min(...H.outline[0].map(p => p[0])), ey = Math.max(...H.outline[0].map(p => p[1])) - Math.min(...H.outline[0].map(p => p[1]));
+  ok('Körper → Blech: Saum – eine Biegung von 180° mit eigenem Radius, gestreckte Länge', H.folds.length === 1 && near(Math.abs(H.folds[0].angle), 180, 1e-6) && near(H.folds[0].r, 1, 1e-3) && near(Math.max(ext, ey), 50 + bendAllowance(180, 1, 2, 0.4) + 8, 0.01) && !H.notes.length && xs.length > 0, `${H.folds[0]?.angle.toFixed(1)}°, R ${H.folds[0]?.r}, ${Math.max(ext, ey).toFixed(3)} mm`);
+  // the end rolled up through 270° with inner radius 3 and nothing behind it: a curl that ends free
+  {
+    const ar = (r, a0, a1, m = 18) => Array.from({ length: m - 1 }, (_, i) => { const a = a0 + ((a1 - a0) * (i + 1)) / m; return [50 + r * Math.cos(a), 5 + r * Math.sin(a)]; });
+    const oc = [[0, 0], [50, 0], ...ar(5, -Math.PI / 2, Math.PI), [45, 5], [47, 5], ...ar(3, Math.PI, -Math.PI / 2), [50, 2], [0, 2]], rc = new Set();
+    for (let i = 1; i <= 18; i++) rc.add(i);
+    for (let i = 20; i <= 37; i++) rc.add(i);
+    const C = unfoldFaces(prismR(oc, rc, 30), { k: 0.4 }), bx = q => Math.max(...C.outline[0].map(p => p[q])) - Math.min(...C.outline[0].map(p => p[q]));
+    ok('Körper → Blech: frei endender gerollter Rand – Winkel, Radius und gestreckte Länge', C.folds.length === 1 && C.folds[0].free && near(Math.abs(C.folds[0].angle), 270, 1e-4) && near(C.folds[0].r, 3, 1e-3) && near(Math.max(bx(0), bx(1)), 50 + bendAllowance(270, 3, 2, 0.4), 0.02) && C.notes.includes('curl') && !C.notes.includes('left') && !C.overlap,
+      `${C.folds[0]?.angle.toFixed(2)}° R${C.folds[0]?.r} ${Math.max(bx(0), bx(1)).toFixed(3)} ${C.notes}`);
+    // the hem above stays a bend between two walls
+    ok('Körper → Blech: der Saum bleibt eine Biegung zwischen zwei Wänden', !H.notes.includes('curl') && !H.folds[0].free);
+  }
+  // a bend line with its own radius
+  const fpl = foldPlan([[0, 0], [100, 0], [100, 40], [0, 40]], { thickness: 2, radius: 2, kfactor: 0.4, folds: [{ a: [30, 0], b: [30, 40], angle: 90 }, { a: [70, 0], b: [70, 40], angle: 180, r: 1 }] });
+  ok('Biegelinie mit eigenem Radius: Zugabe aus dem Radius der Linie', near(fpl.folds[0].ba, bendAllowance(90, 2, 2, 0.4)) && near(fpl.folds[1].ba, bendAllowance(180, 1, 2, 0.4)) && fpl.folds[1].r === 1);
+  // tabs on a round plate with a rim
+  const disc = Array.from({ length: 72 }, (_, i) => [40 * Math.cos((i * Math.PI) / 36), 40 * Math.sin((i * Math.PI) / 36)]);
+  if (polyArcs(disc).size) {
+    const fd = { thickness: 2, radius: 2, kfactor: 0.42, flanges: [{ edge: [...polyArcs(disc).keys()][0], on: true, h: 15, angle: 90, tabs: { n: 4, w: 10, len: 2 } }] };
+    const fp0 = flatPattern(disc, { ...fd, flanges: [{ ...fd.flanges[0], tabs: undefined }] }), fp1 = flatPattern(disc, fd), sl = tabSlots(disc, 0, fd);
+    ok('Zungen an einer Kreiskante: vier Zungen im Zuschnitt, Schlitze auf dem Kreis der Wand, um die Wölbung breiter', fp1.tabs === 4 && fp1.area > fp0.area + 4 * 10 * 2 * 0.9 && !fp1.overlap && sl.length === 4 && sl.every(s => near(Math.hypot(s.c[0], s.c[1]), 43 - s.sag / 2, 0.01) && s.sag > 0.2 && near(s.c[2], 19)), `${fp1.tabs} Zungen, +${(fp1.area - fp0.area).toFixed(1)} mm², Wölbung ${sl[0]?.sag.toFixed(3)}`);
+  } else ok('Zungen an einer Kreiskante: Kreis wird als Bogen erkannt', false);
 }

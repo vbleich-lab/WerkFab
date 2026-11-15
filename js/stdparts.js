@@ -52,6 +52,20 @@ const BEARINGS = { 623: [3, 10, 4], 624: [4, 13, 5], 625: [5, 16, 5], 626: [6, 1
 // O-rings: inner Ø × cord Ø
 const ORINGS = { '6×1,5': [6, 1.5], '8×2': [8, 2], '10×2': [10, 2], '12×2': [12, 2], '16×2': [16, 2], '20×2,5': [20, 2.5], '25×3': [25, 3], '30×3': [30, 3], '40×3,5': [40, 3.5], '50×4': [50, 4] };
 const PINS = [2, 3, 4, 5, 6, 8, 10, 12, 16, 20];
+// Tubes and sections (semi-finished products, cut to any length).
+// Round steel tubes: outer diameters of series 1 and preferred wall thicknesses (ISO 4200 / EN 10220). Not every pair
+// is rolled or stocked – the list offers the walls from about a fortieth to a fifth of the diameter.
+const TUBE_OD = [10.2, 13.5, 17.2, 21.3, 26.9, 33.7, 42.4, 48.3, 60.3, 76.1, 88.9, 114.3, 139.7, 168.3, 219.1];
+const TUBE_WALL = [1.6, 2, 2.3, 2.6, 2.9, 3.2, 3.6, 4, 4.5, 5, 5.6, 6.3, 7.1, 8, 8.8, 10];
+const num = x => String(x).replace('.', ',');
+const TUBES = Object.fromEntries(TUBE_OD.flatMap(d => TUBE_WALL.filter(t => t >= d / 45 && t <= d / 5).map(t => [`${num(d)}×${num(t)}`, [d, t]])));
+// cold formed hollow sections EN 10219: side(s) → walls; outer corner radius 2 × wall up to 6 mm, 2.5 × wall above
+const SHS = { 20: [2], 25: [2, 2.5], 30: [2, 2.5, 3], 40: [2, 2.5, 3, 4], 50: [2, 2.5, 3, 4, 5], 60: [2, 3, 4, 5], 70: [3, 4, 5], 80: [3, 4, 5, 6], 90: [3, 4, 5, 6], 100: [3, 4, 5, 6, 8], 120: [4, 5, 6, 8], 150: [5, 6, 8, 10] };
+const RHS = { '40×20': [2, 2.5, 3], '50×25': [2, 2.5, 3], '50×30': [2, 2.5, 3, 4], '60×40': [2, 3, 4, 5], '80×40': [2, 3, 4, 5], '80×60': [3, 4, 5], '100×50': [3, 4, 5, 6], '100×60': [3, 4, 5, 6], '120×60': [3, 4, 5, 6], '120×80': [4, 5, 6, 8], '150×100': [4, 5, 6, 8], '200×100': [5, 6, 8, 10] };
+const HOLLOW = Object.fromEntries([...Object.entries(SHS).flatMap(([a, ts]) => ts.map(t => [`${a}×${a}×${num(t)}`, [+a, +a, t]])), ...Object.entries(RHS).flatMap(([k, ts]) => ts.map(t => [`${k}×${num(t)}`, [...k.split('×').map(Number), t]]))]);
+const hollow = (z, L) => { const [w, hh, t] = HOLLOW[z], ro = (t > 6 ? 2.5 : 2) * t; return [{ k: 'prism', shape: 'rect', w, h: hh, rr: ro, z: 0, dist: L, op: 'new' }, { k: 'prism', shape: 'rect', w: w - 2 * t, h: hh - 2 * t, rr: ro - t, z: -0.01, dist: L + 0.02, op: 'cut' }]; };
+// hot rolled round bars EN 10060
+const BARS = [5, 6, 8, 10, 12, 14, 15, 16, 18, 20, 22, 25, 28, 30, 32, 35, 36, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 100];
 
 const shank = (d, L) => { const c = Math.min(0.1 * d, 0.3 * L); return [[0, -L], [d / 2 - c, -L], [d / 2, -L + c], [d / 2, 0]]; };
 // the corners of a hexagon cut off at 30°: what is left of a turned blank (top = +1: at z, material below)
@@ -144,6 +158,15 @@ export const STD_FAMILIES = [
   { id: 'iso3601', group: 'Lager und Dichtungen', name: 'O-Ring (ISO 3601)', norm: 'ISO 3601', sizes: () => Object.keys(ORINGS), seat: 'mid',
     make: z => { const [di, cs] = ORINGS[z]; return [{ k: 'ring', r: di / 2 + cs / 2, z: cs / 2, rad: cs / 2, op: 'new' }]; },
     dims: z => `Ø innen ${ORINGS[z][0]} · Schnur ${ORINGS[z][1]}` },
+  { id: 'en10220', group: 'Rohre und Profile', name: 'Rundrohr (EN 10220 / ISO 4200)', norm: 'EN 10220', sizes: () => Object.keys(TUBES), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => { const [d, t] = TUBES[z]; return [{ k: 'rev', pts: [[d / 2 - t, 0], [d / 2, 0], [d / 2, L], [d / 2 - t, L]], op: 'new' }]; },
+    dims: z => { const [d, t] = TUBES[z]; return `Ø außen ${num(d)} · Wand ${num(t)} · Ø innen ${num(+(d - 2 * t).toFixed(2))}`; } },
+  { id: 'en10219q', group: 'Rohre und Profile', name: 'Quadratrohr (EN 10219)', norm: 'EN 10219', sizes: () => Object.keys(HOLLOW).filter(z => HOLLOW[z][0] === HOLLOW[z][1]), len: 200, seat: 'mid', stock: true,
+    make: hollow, dims: z => { const [w, , t] = HOLLOW[z]; return `${w} × ${w} · Wand ${num(t)} · Eckradius außen ${num((t > 6 ? 2.5 : 2) * t)}`; } },
+  { id: 'en10219r', group: 'Rohre und Profile', name: 'Rechteckrohr (EN 10219)', norm: 'EN 10219', sizes: () => Object.keys(HOLLOW).filter(z => HOLLOW[z][0] !== HOLLOW[z][1]), len: 200, seat: 'mid', stock: true,
+    make: hollow, dims: z => { const [w, hh, t] = HOLLOW[z]; return `${w} × ${hh} · Wand ${num(t)} · Eckradius außen ${num((t > 6 ? 2.5 : 2) * t)}`; } },
+  { id: 'en10060', group: 'Rohre und Profile', name: 'Rundstahl (EN 10060)', norm: 'EN 10060', sizes: () => BARS.map(String), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => [{ k: 'rev', pts: [[0, 0], [+z / 2, 0], [+z / 2, L], [0, L]], op: 'new' }], dims: z => `Ø ${z}` },
 ];
 
 export const stdFamily = id => STD_FAMILIES.find(f => f.id === id);

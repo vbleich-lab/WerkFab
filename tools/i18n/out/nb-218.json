@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Skjær slisser",
+ "Schlitze schneiden: {0}": "Skjær slisser: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} slisser skåret i «{1}».",
+ "Schlitze schneiden in": "Skjær slisser i",
+ "– Körper wählen –": "– velg en kropp –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Skjærer slissene rett i den valgte kroppen – så dypt som tappene er lange. Skisse og snitt står deretter i tidslinjen og kan endres.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Kroppen må ha samme tykkelse overalt – tegnet, ekstrudert eller fra en STEP-fil. Gjenkjent blir platetykkelsen (avstanden fra den største flaten til motflaten), de plane veggene og bøyene mellom dem med vinkel og innvendig radius, runde eller skarpkantede. Av dette oppstår utbrettet; som plate foreligger det som en skisse med bøyelinjer og kan endres, brettes ut og nestes som enhver plate. K-faktoren bestemmer de strukkede lengdene. Peker den største flaten opp eller ned, ligger platen nøyaktig i kroppen, ellers flatt på XY-planet. Falser (180°) og avrundede vegger mellom to plane vegger overtas som en bøy med egen radius. Ikke gjenkjent blir fritt endende rullede kanter, rør og formgivinger som sikker.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "ikke alle vegger henger sammen via en gjenkjennelig bøy (rullet kant?) – de mangler",
+ "bis {0}": "til {0}",
+ ", Innenradius {0}{1} mm": ", innvendig radius {0}{1} mm",
+ "Updates automatisch laden": "Last ned oppdateringer automatisk",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Laster ned en ny versjon i bakgrunnen så snart den er funnet, og installerer den ved avslutning – bare i den installerte Windows-appen og i Linux-AppImage. Ellers spørres det først.",
+ "Version {0} wird geladen …": "Versjon {0} lastes ned …",
+ "Suche nach einer neuen Version …": "Søker etter en ny versjon …"
+}

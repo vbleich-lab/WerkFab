@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Kanalları kes",
+ "Schlitze schneiden: {0}": "Kanalları kes: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} kanal „{1}“ içine kesildi.",
+ "Schlitze schneiden in": "Kanalların kesileceği yer",
+ "– Körper wählen –": "– gövde seçin –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Kanalları doğrudan seçilen gövdeye keser – dillerin uzunluğu kadar derinlikte. Eskiz ve kesim bundan sonra zaman çizelgesinde yer alır ve değiştirilebilir.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Gövde her yerde aynı kalınlıkta olmalıdır – çizilmiş, ekstrüze edilmiş veya STEP dosyasından. Sac kalınlığı (en büyük yüzeyin karşı yüzeyine uzaklığı), düz duvarlar ve aralarındaki bükümler açı ve iç yarıçapla, yuvarlak veya keskin kenarlı olarak algılanır. Bundan açınım oluşur; sac olarak büküm çizgili bir eskiz halinde bulunur ve her sac gibi değiştirilebilir, açılabilir ve yerleştirilebilir. K faktörü açınım uzunluklarını belirler. En büyük yüzey yukarı veya aşağı bakıyorsa sac tam gövdenin içinde durur, aksi halde XY düzleminde düz yatar. Kıvrımlar (180°) ve iki düz duvar arasındaki yuvarlatılmış duvarlar, kendi yarıçapıyla bir büküm olarak devralınır. Serbest uçlu yuvarlanmış kenarlar, borular ve nervür gibi şekillendirmeler algılanmaz.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "tüm duvarlar algılanabilir bir bükümle bağlı değil (yuvarlanmış kenar?) – eksikler",
+ "bis {0}": "– {0}",
+ ", Innenradius {0}{1} mm": ", iç yarıçap {0}{1} mm",
+ "Updates automatisch laden": "Güncellemeleri otomatik indir",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Yeni bir sürümü bulunur bulunmaz arka planda indirir ve çıkarken kurar – yalnızca kurulu Windows uygulamasında ve Linux AppImage içinde. Aksi halde program önce sorar.",
+ "Version {0} wird geladen …": "Sürüm {0} indiriliyor …",
+ "Suche nach einer neuen Version …": "Yeni sürüm aranıyor …"
+}

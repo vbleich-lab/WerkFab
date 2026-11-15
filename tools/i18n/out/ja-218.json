@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "スロットを切断",
+ "Schlitze schneiden: {0}": "スロットを切断: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "「{1}」に{0}個のスロットを切断しました。",
+ "Schlitze schneiden in": "スロットの切断先",
+ "– Körper wählen –": "– ボディを選択 –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "スロットを選択したボディに直接、タブの長さと同じ深さで切断します。スケッチとカットはその後タイムラインに残り、変更できます。",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "ボディはどこも同じ厚みである必要があります（作図、押し出し、またはSTEPファイルから）。認識されるのは、板厚（最大の面とその対向面との距離）、平らな壁、その間の曲げ（角度と内側半径、丸みまたは鋭角）です。これから展開図が作られ、板金としては曲げ線付きのスケッチになり、他の板金と同様に変更、展開、ネスティングができます。K係数が展開長さを決めます。最大の面が上または下を向いている場合、板金はボディの内側にぴったり収まり、そうでない場合はXY平面上に平らに置かれます。ヘム（180°）と2つの平らな壁の間の丸い壁は、独自の半径を持つ曲げとして取り込まれます。端が自由な丸めた縁、パイプ、ビードなどの成形は認識されません。",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "すべての壁が認識可能な曲げでつながっているわけではありません（丸めた縁？）。それらは欠けています",
+ "bis {0}": "～ {0}",
+ ", Innenradius {0}{1} mm": "、内側半径 {0}{1} mm",
+ "Updates automatisch laden": "アップデートを自動的にダウンロード",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "新しいバージョンが見つかるとすぐにバックグラウンドでダウンロードし、終了時にインストールします。インストール版のWindowsアプリとLinuxのAppImageでのみ有効です。それ以外では事前に確認します。",
+ "Version {0} wird geladen …": "バージョン{0}をダウンロードしています …",
+ "Suche nach einer neuen Version …": "新しいバージョンを検索しています …"
+}

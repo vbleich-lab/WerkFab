@@ -524,6 +524,16 @@ export function sheetSolid(R, poly, z0, f, holes = []) {
         const sag = hw < rho ? rho - Math.sqrt(rho * rho - hw * hw) : rho;
         ring = cutHole(ring, fl, q, arcEdge(a, +q.s || 0), 0, Math.min(sag, Math.max(0, rho - t)) + 0.1);
       }
+      // tabs: pieces of a ring on the free end
+      const tpa = tabPlan(fl, { L: a.L }, sp.gA, sp.gB);
+      if (tpa) {
+        const ch = flangeChain(fl), at = chainAt(t, r, k, ch, ch.length - 1, ch[ch.length - 1].h);
+        const sq = [[-1e-3, -t / 2], [tpa.len, -t / 2], [tpa.len, t / 2], [-1e-3, t / 2]].map(([p, q]) => [ru(at.pos[0] + at.dir[0] * p + at.nrm[0] * q), at.pos[1] + at.dir[1] * p + at.nrm[1] * q]);
+        for (const s of tpa.at) {
+          const l2 = a.a0 + (sg * s) / a.R - tpa.w / 2 / a.R, x2 = [Math.cos(l2), Math.sin(l2), 0];
+          ring = ring.fuse(polyDrawing(R, sq).sketchOnPlane(new R.Plane(o, x2, [x2[1], -x2[0], 0])).revolve([0, 0, 1], { origin: o, angle: ((tpa.w / a.R) * 180) / Math.PI }));
+        }
+      }
       shape = shape.fuse(ring);
       continue;
     }
@@ -585,7 +595,8 @@ export function sheetSolid(R, poly, z0, f, holes = []) {
 /**
  * Where the tabs of a sheet stand in space (for the slots of the part they are put through): per tab { c (the middle
  * of its root, on the middle of the sheet), e (along the edge), nrm (across the sheet), dir (the way it points), w,
- * len, t, edge }. Flanges on straight edges; nothing for a sheet with bends on lines (there the flanges turn with it).
+ * len, t, edge, sag? (on a curved edge: how far the tab bulges over its chord) }. Nothing for a sheet with bends on
+ * lines (there the flanges turn with it).
  */
 export function tabSlots(poly, z0, f) {
   const t = +f.thickness, r = +f.radius, k = +f.kfactor, out = [];
@@ -593,10 +604,22 @@ export function tabSlots(poly, z0, f) {
   const edges = polyEdges(poly), ends = flangeEnds(edges, f), arcs = polyArcs(poly), joins = flangeJoins(poly, f, arcs);
   for (const fl of f.flanges || []) {
     const ed = edges[fl.edge];
-    if (!fl.on || !ed || arcs.has(fl.edge)) continue;
+    if (!fl.on || !ed) continue;
+    const ch = flangeChain(fl), at = chainAt(t, r, k, ch, ch.length - 1, ch[ch.length - 1].h);
+    if (arcs.has(fl.edge)) {
+      const a = arcs.get(fl.edge), en = ends[fl.edge] || {}, jn = joins.get(fl.edge) || {}, sp = arcSpan(a, fl, fl.relief ?? (r + t), { a: jn.a || !!en.a, b: jn.b || !!en.b });
+      const tpa = tabPlan(fl, { L: a.L }, sp.gA, sp.gB);
+      for (const s of tpa?.at || []) {
+        const pe = arcEdge(a, s), rho = a.convex ? a.R + at.pos[0] : a.R - at.pos[0], w = (tpa.w * rho) / a.R, sag = rho - Math.sqrt(Math.max(0, rho * rho - (w * w) / 4)), side = a.convex ? -1 : 1;
+        // (the slot is straight: it lies on the chord of the tab and is wider by its bulge)
+        out.push({ edge: fl.edge, w, len: tpa.len, t, sag,
+          c: [pe.a[0] + pe.n[0] * (at.pos[0] + (side * sag) / 2), pe.a[1] + pe.n[1] * (at.pos[0] + (side * sag) / 2), z0 + at.pos[1]],
+          e: [pe.e[0], pe.e[1], 0], nrm: [pe.n[0] * at.nrm[0], pe.n[1] * at.nrm[0], at.nrm[1]], dir: [pe.n[0] * at.dir[0], pe.n[1] * at.dir[0], at.dir[1]] });
+      }
+      continue;
+    }
     const tp = tabPlan(fl, ed, ...flangeGaps(fl, endsOf(ends, fl), fl.relief ?? (r + t), 0, joins.get(fl.edge)));
     if (!tp) continue;
-    const ch = flangeChain(fl), at = chainAt(t, r, k, ch, ch.length - 1, ch[ch.length - 1].h);
     for (const s of tp.at) out.push({ edge: fl.edge, w: tp.w, len: tp.len, t,
       c: [ed.a[0] + ed.e[0] * s + ed.n[0] * at.pos[0], ed.a[1] + ed.e[1] * s + ed.n[1] * at.pos[0], z0 + at.pos[1]],
       e: [ed.e[0], ed.e[1], 0], nrm: [ed.n[0] * at.nrm[0], ed.n[1] * at.nrm[0], at.nrm[1]], dir: [ed.n[0] * at.dir[0], ed.n[1] * at.dir[0], at.dir[1]] });
@@ -659,9 +682,12 @@ export function foldPlan(poly, f) {
   const folds = (f.folds || []).filter(q => q && q.on !== false && Number.isFinite(+q.angle) && +q.angle).map(q => {
     const L = Math.hypot(q.b[0] - q.a[0], q.b[1] - q.a[1]);
     if (!(L > 1e-6)) throw new Error('Biegelinie ohne Länge');
-    if (Math.abs(+q.angle) > 180) throw new Error('Biegewinkel über 180° ist nicht herstellbar');
+    // (a rolled edge – a bend that runs out at the edge of the sheet – may turn further than a hem)
+    if (Math.abs(+q.angle) > (q.free ? 350 : 180)) throw new Error(q.free ? 'Ein gerollter Rand über 350° schließt sich zum Rohr – das ist so nicht herstellbar' : 'Biegewinkel über 180° ist nicht herstellbar');
     const e = [(q.b[0] - q.a[0]) / L, (q.b[1] - q.a[1]) / L];
-    return { o: [(q.a[0] + q.b[0]) / 2, (q.a[1] + q.b[1]) / 2], e, n: [-e[1], e[0]], angle: +q.angle, ba: bendAllowance(Math.abs(+q.angle), r, t, k) };
+    // (a bend may have its own inner radius, as a hem has)
+    const rq = q.r != null && q.r !== '' && +q.r >= 0 ? +q.r : r;
+    return { o: [(q.a[0] + q.b[0]) / 2, (q.a[1] + q.b[1]) / 2], e, n: [-e[1], e[0]], angle: +q.angle, r: rq, ba: bendAllowance(Math.abs(+q.angle), rq, t, k), ...(q.free ? { free: true } : {}) };
   });
   if (!folds.length) return null;
   const P = ensureCCW(poly);
@@ -679,11 +705,13 @@ export function foldPlan(poly, f) {
     if (!(A > 1e-3)) continue;
     const sig = folds.map(q => { let m = 0; for (const v of p) { const d = (v.X / S - q.o[0]) * q.n[0] + (v.Y / S - q.o[1]) * q.n[1]; if (Math.abs(d) > Math.abs(m)) m = d; } return m >= 0 ? 1 : -1; });
     const key = sig.join(',');
-    if (!cells.has(key)) cells.set(key, { sig, area: 0, path: null });
+    if (!cells.has(key)) cells.set(key, { sig, area: 0, path: null, at: new Set() });
     cells.get(key).area += A;
+    // (the bends this piece reaches)
+    folds.forEach((q, i) => { if (p.some(v => Math.abs(Math.abs((v.X / S - q.o[0]) * q.n[0] + (v.Y / S - q.o[1]) * q.n[1]) - q.ba / 2) < 5e-3)) cells.get(key).at.add(i); });
   }
   const list = [...cells.values()].sort((a, b) => b.area - a.area);
-  if (list.length < 2) throw new Error('Die Biegelinie liegt nicht in der Platte');
+  if (list.length < 2 && !folds.some(q => q.free)) throw new Error('Die Biegelinie liegt nicht in der Platte');
   const cross = 'Biegelinien dürfen sich in der Platte nicht kreuzen';
   list[0].path = [];
   const edges = [], queue = [list[0]], usedFold = new Set();
@@ -705,6 +733,12 @@ export function foldPlan(poly, f) {
     }
   }
   if (list.some(q => !q.path)) throw new Error(cross);
+  // a rolled edge: the bend starts at a piece and nothing follows it
+  folds.forEach((q, i) => {
+    if (usedFold.has(i) || !q.free) return;
+    const cell = list.find(c => c.at.has(i));
+    if (cell) { edges.push({ i, s: -cell.sig[i], path: cell.path }); usedFold.add(i); }
+  });
   folds.forEach((q, i) => { if (!usedFold.has(i)) throw new Error(`Biegelinie ${i + 1} liegt nicht in der Platte`); });
   return { folds, cells: list, edges, BIG };
 }
@@ -753,7 +787,7 @@ function foldSolid(R, shape, poly, holes, z0, f) {
   const turn = (sh, { i, s }) => {
     const q = plan.folds[i], m = [q.n[0] * s, q.n[1] * s], sg = Math.sign(q.angle);
     const os = [q.o[0] - m[0] * q.ba / 2, q.o[1] - m[1] * q.ba / 2];
-    return sh.translate(-m[0] * q.ba, -m[1] * q.ba, 0).rotate(q.angle, [os[0], os[1], z0 + (sg > 0 ? t + r : -r)], [m[1], -m[0], 0]);
+    return sh.translate(-m[0] * q.ba, -m[1] * q.ba, 0).rotate(q.angle, [os[0], os[1], z0 + (sg > 0 ? t + q.r : -q.r)], [m[1], -m[0], 0]);
   };
   const place = (sh, path) => { for (let j = path.length - 1; j >= 0; j--) sh = turn(sh, path[j]); return sh; };
   const parts = [];
@@ -776,7 +810,7 @@ function foldSolid(R, shape, poly, holes, z0, f) {
   const loops = [P, ...holes.filter(h => h.length >= 3)];
   for (const ed of plan.edges) {
     const q = plan.folds[ed.i], m = [q.n[0] * ed.s, q.n[1] * ed.s], w = [m[1], -m[0]], th = Math.abs(q.angle) * DEG, sg = Math.sign(q.angle);
-    const os = [q.o[0] - m[0] * q.ba / 2, q.o[1] - m[1] * q.ba / 2], cv = sg > 0 ? t + r : -r;
+    const os = [q.o[0] - m[0] * q.ba / 2, q.o[1] - m[1] * q.ba / 2], r = q.r, cv = sg > 0 ? t + r : -r;
     const pt = (rho, a) => [rho * Math.sin(a), cv - sg * rho * Math.cos(a)];
     const spansAt = d => lineSpans(loops, [os[0] + m[0] * d, os[1] + m[1] * d], w);
     const s0 = spansAt(0.02 * q.ba), s1 = spansAt(0.5 * q.ba), s2 = spansAt(0.98 * q.ba);
@@ -1031,6 +1065,12 @@ export function flatPattern(poly, f, holes = []) {
         rects.push(ensureCCW([...arcPts(a, i0, i1, rho(-dip)), ...(sB ? sB.slice(1, -1) : []), ...arcPts(a, o1, o0, rho(d)), ...(sA ? sA.slice(1, -1).reverse() : [])]));
       }
       for (const q of flangeHoles(fl)) { const at = chainAt(t, r, k, chain, +q.lv || 0, +q.d || 0); if (at) flHoles.push(flatHole(arcEdge(a, +q.s || 0), at, q, 0)); }
+      const tpa = tabPlan(fl, { L: a.L }, sp.gA, sp.gB);
+      if (tpa) for (const s of tpa.at) {
+        const thc = a.a0 + (Math.sign(a.sweep) * s) / a.R, hw = tpa.w / 2 / a.R;
+        rects.push(ensureCCW([...arcPts(a, thc - hw, thc + hw, rho(d - 0.01)), ...arcPts(a, thc + hw, thc - hw, rho(d + tpa.len))]));
+        lapOk += tpa.w * 0.02; tabs++;
+      }
       continue;
     }
     const [gA, gB] = flangeGaps(fl, en, gap, 0, joins.get(fl.edge));
@@ -1098,7 +1138,7 @@ export function flatPattern(poly, f, holes = []) {
       const mid = at(0);
       if (!mid.length) return;
       bends.push(...at(-q.ba / 2), ...at(q.ba / 2));
-      table.push({ edge: -1, line: i, level: 0, angle: q.angle, radius: r, allowance: q.ba, length: mid.reduce((a, sg) => a + Math.hypot(sg[1][0] - sg[0][0], sg[1][1] - sg[0][1]), 0), flange: 0, centre: [mid[0][0], mid[mid.length - 1][1]] });
+      table.push({ edge: -1, line: i, level: 0, angle: q.angle, radius: q.r, allowance: q.ba, length: mid.reduce((a, sg) => a + Math.hypot(sg[1][0] - sg[0][0], sg[1][1] - sg[0][1]), 0), flange: 0, centre: [mid[0][0], mid[mid.length - 1][1]] });
     });
   }
   const cuts = [...reliefs, ...holes.map((p, i) => (collars.has(i) ? circle(collars.get(i).c, collars.get(i).flat) : pressed.get(i)?.kind === 'emboss' ? [] : p)).filter(p => p.length >= 3), ...flHoles];

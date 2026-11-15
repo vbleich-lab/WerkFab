@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "قطع الشقوق",
+ "Schlitze schneiden: {0}": "قطع الشقوق: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "تم قطع {0} شقوق في «{1}».",
+ "Schlitze schneiden in": "قطع الشقوق في",
+ "– Körper wählen –": "– اختر جسماً –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "يقطع الشقوق مباشرة في الجسم المحدد – بعمق يساوي طول الألسنة. يظهر الرسم التخطيطي والقطع بعد ذلك في الخط الزمني ويمكن تعديلهما.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "يجب أن يكون الجسم متساوي السماكة في كل موضع – مرسوماً أو مبثوقاً أو من ملف STEP. يتم التعرف على سماكة الصفيحة (المسافة بين أكبر وجه والوجه المقابل له)، والجدران المستوية والثنيات بينها بزاويتها ونصف قطرها الداخلي، مستديرة أو حادة. وينتج عن ذلك التفريد؛ وهو يظهر كصفيحة معدنية على شكل رسم تخطيطي بخطوط ثني ويمكن تعديله وفرده وترتيبه كأي صفيحة. يحدد معامل K الأطوال المفرودة. إذا كان أكبر وجه متجهاً إلى الأعلى أو الأسفل فإن الصفيحة تقع تماماً داخل الجسم، وإلا فتقع مسطحة على المستوى XY. تُعتمد الحواف المطوية (180°) والجدران المستديرة بين جدارين مستويين كثنية بنصف قطر خاص بها. لا يتم التعرف على الحواف الملفوفة ذات النهايات الحرة والأنابيب والتشكيلات مثل النتوءات المطبوعة.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "ليست كل الجدران متصلة عبر ثنية يمكن التعرف عليها (حافة ملفوفة؟) – وهي مفقودة",
+ "bis {0}": "إلى {0}",
+ ", Innenradius {0}{1} mm": "، نصف القطر الداخلي {0}{1} مم",
+ "Updates automatisch laden": "تنزيل التحديثات تلقائياً",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "ينزّل الإصدار الجديد في الخلفية فور العثور عليه ويثبّته عند الإغلاق – فقط في تطبيق Windows المثبّت وفي Linux AppImage. وإلا يتم السؤال أولاً.",
+ "Version {0} wird geladen …": "جارٍ تنزيل الإصدار {0} …",
+ "Suche nach einer neuen Version …": "جارٍ البحث عن إصدار جديد …"
+}

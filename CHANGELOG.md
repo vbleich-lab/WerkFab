@@ -1,5 +1,30 @@
 # Änderungen
 
+## v1.0.0-rc.14 – 2026-11-15
+
+### Bauteilkatalog
+- **Bauteilkatalog**: neuer Befehl (Reiter VOLUMENKÖRPER, Gruppe EINFÜGEN). Alle Normteile in einem Fenster – nach Art geordnet, jede Familie mit gezeichneter Ansicht, daneben die Tabelle ihrer Größen mit den Richtmaßen. Die Suche findet nach Name, Norm oder Maß („Senkschraube“, „ISO 4762“, „M8“, „6204“, „80x40“). „Weiter: einfügen …“ führt zum gewohnten Einfügen – an Bohrungen, auf einer Fläche oder am Ursprung.
+- **Rohre und Profile**: neu im Katalog – Rundrohr (EN 10220 / ISO 4200, Ø 10,2 bis 219,1 mm mit den Vorzugswanddicken), Quadrat- und Rechteckrohr (EN 10219, mit den Eckradien der Norm) und Rundstahl (EN 10060), jeweils auf beliebige Länge zugeschnitten. 29 Familien mit 522 Größen insgesamt. Es sind Nennmaße; nicht jede Paarung führt jeder Händler.
+
+### KI-Agenten
+- **KI-Agenten verbinden**: die Desktop-App öffnet auf Wunsch einen Anschluss für KI-Agenten nach dem Model Context Protocol (MCP) – Voreinstellungen → KI-Agenten. Dort stehen Adresse, Schlüssel, der fertige Befehl für Claude Code und der JSON-Eintrag für andere Programme. Der Agent arbeitet am geöffneten Entwurf: Zeitachse lesen und ändern, Parameter setzen, Körper mit Volumen, Abmessungen und Fehlern abfragen, Normteile aus dem Katalog einfügen, ein Bild der Ansicht holen, STEP oder STL ausgeben, Schritte zurücknehmen. Der Anschluss ist ab Werk aus, hört nur auf diesem Rechner (127.0.0.1), verlangt den Schlüssel und weist Webseiten ab; auf Dateien, Einstellungen und andere Entwürfe hat ein Agent keinen Zugriff.
+- **Befehlsskript**: Datei → „Befehlsskript ausführen (.json)“ spielt dieselben Befehle aus einer Datei ab – auch im Browser. Schlägt ein Schritt fehl, werden alle zurückgenommen.
+
+### Konstruktion
+- **Konfigurationen**: im Parameter-Fenster lassen sich die Werte aller Parameter unter einem Namen merken („kurz“, „lang“) und mit einem Klick wieder anwenden – ein Entwurf, mehrere Varianten.
+- **glTF-Export**: Datei → „Als glTF exportieren (.glb)“ gibt die sichtbaren Körper mit Namen, Farben und Oberfläche aus (in Metern, Y oben) – für Betrachter, Renderer und Webseiten.
+
+### Blech
+- **Gerollter Rand**: „Körper → Blech“ erkennt jetzt auch Ränder, die frei enden – eingerollte Kanten und offene Wulste bis 350°. Winkel und Radius werden aus der Rundung gelesen, die gestreckte Länge kommt in den Zuschnitt, das Blech rollt den Rand wieder ein.
+- **Radius je Biegelinie**: jede Biegelinie hat im Blech-Fenster ein Feld R für ihren eigenen Innenradius (leer = der des Blechs).
+- **Schlitze gleich schneiden**: bei der Laschen-Schlitz-Verbindung lässt sich ein Körper wählen – „Schlitze schneiden“ legt die Skizze an und schneidet die Schlitze so tief in diesen Körper, wie die Zungen lang sind.
+- **Zungen an gebogenen Kanten**: auch Laschen an Bogen- und Kreiskanten (Rand einer runden Platte) bekommen Zungen; die Schlitze dazu sind um die Wölbung der Zunge breiter.
+- **Körper → Blech mit Säumen**: Säume (180°) werden erkannt und als Biegung mit eigenem Radius übernommen, ebenso gerundete Wände zwischen zwei ebenen Wänden. Jede Biegung behält ihren Radius – Biegelinien können dafür einen eigenen Innenradius tragen.
+
+### Bedienung
+- **Update-Suche beim Start**: das Programm sucht gleich nach dem Start (statt nach 8 Sekunden) nach einer neuen Version und sagt in der Statuszeile, dass es gesucht hat und ob es aktuell ist. Neu in den Voreinstellungen: „Updates automatisch laden“ – eine gefundene Version wird ohne Nachfrage im Hintergrund geladen und beim Beenden installiert (installierte Windows-App, Linux-AppImage). „Nach Updates suchen“ schaltet die Suche wie bisher ganz ab.
+- **Symbolgrößen**: „Klein“ und „Groß“ zeichnen die Linien auf ganzen Pixeln (Groß jetzt 36 statt 28 Pixel – genau das Anderthalbfache).
+
 ## v1.0.0-rc.13 – 2026-11-14
 
 ### Blech

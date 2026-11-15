@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Cortar rasgos",
+ "Schlitze schneiden: {0}": "Cortar rasgos: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} rasgos cortados em “{1}”.",
+ "Schlitze schneiden in": "Cortar rasgos em",
+ "– Körper wählen –": "– escolher um corpo –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Corta os rasgos diretamente no corpo escolhido, tão fundo quanto as linguetas são compridas. O esboço e o corte aparecem depois na linha do tempo e podem ser alterados.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "O corpo deve ter a mesma espessura em toda parte – desenhado, extrudado ou de um arquivo STEP. São reconhecidas a espessura da chapa (distância da maior face até sua face oposta), as paredes planas e as dobras entre elas com ângulo e raio interno, arredondadas ou de aresta viva. Disso resulta a planificação; como chapa, ela é fornecida como esboço com linhas de dobra e pode ser alterada, desdobrada e aninhada como qualquer chapa. O fator K determina os comprimentos desenvolvidos. Se a maior face aponta para cima ou para baixo, a chapa fica exatamente dentro do corpo; caso contrário, plana no plano XY. Bainhas (180°) e paredes arredondadas entre duas paredes planas são adotadas como dobra com raio próprio. Não são reconhecidas bordas enroladas de extremidade livre, tubos e conformações como nervuras.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "nem todas as paredes estão ligadas por uma dobra reconhecível (borda enrolada?) – elas estão faltando",
+ "bis {0}": "até {0}",
+ ", Innenradius {0}{1} mm": ", raio interno {0}{1} mm",
+ "Updates automatisch laden": "Baixar atualizações automaticamente",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Baixa uma nova versão em segundo plano assim que a encontra e a instala ao sair – somente no aplicativo instalado do Windows e no AppImage do Linux. Caso contrário, o programa pergunta antes.",
+ "Version {0} wird geladen …": "Baixando a versão {0} …",
+ "Suche nach einer neuen Version …": "Procurando uma nova versão …"
+}

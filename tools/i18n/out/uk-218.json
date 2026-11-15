@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Вирізати прорізи",
+ "Schlitze schneiden: {0}": "Вирізати прорізи: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} прорізів вирізано в «{1}».",
+ "Schlitze schneiden in": "Вирізати прорізи в",
+ "– Körper wählen –": "– виберіть тіло –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Вирізає прорізи одразу у вибраному тілі – на таку глибину, яка довжина язичків. Ескіз і виріз потім стоять на часовій шкалі й можуть бути змінені.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Тіло має бути скрізь однакової товщини – накреслене, видавлене або з файлу STEP. Розпізнаються товщина листа (відстань від найбільшої грані до протилежної), плоскі стінки та згини між ними з кутом і внутрішнім радіусом, закруглені або гострокутні. З цього утворюється розгортка; як лист вона є ескізом із лініями згину й може змінюватися, розгортатися та розкладатися, як будь-який лист. К-фактор визначає розгорнуті довжини. Якщо найбільша грань дивиться вгору або вниз, лист лежить точно в тілі, інакше – плоско на площині XY. Підгини (180°) і закруглені стінки між двома плоскими стінками переймаються як згин із власним радіусом. Не розпізнаються вільно закінчені вальцьовані краї, труби та формування, як-от рифи.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "не всі стінки з’єднані розпізнаваним згином (вальцьований край?) – вони відсутні",
+ "bis {0}": "до {0}",
+ ", Innenradius {0}{1} mm": ", внутрішній радіус {0}{1} мм",
+ "Updates automatisch laden": "Завантажувати оновлення автоматично",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Завантажує нову версію у фоновому режимі одразу після її виявлення й установлює під час закриття – лише в установленому застосунку Windows і в Linux AppImage. Інакше спочатку запитує.",
+ "Version {0} wird geladen …": "Завантаження версії {0} …",
+ "Suche nach einer neuen Version …": "Пошук нової версії …"
+}

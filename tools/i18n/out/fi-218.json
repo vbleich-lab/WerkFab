@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Leikkaa raot",
+ "Schlitze schneiden: {0}": "Leikkaa raot: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} rakoa leikattu kappaleeseen „{1}“.",
+ "Schlitze schneiden in": "Leikkaa raot kappaleeseen",
+ "– Körper wählen –": "– valitse kappale –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Leikkaa raot suoraan valittuun kappaleeseen – yhtä syvälle kuin kielekkeet ovat pitkiä. Luonnos ja leikkaus ovat sen jälkeen aikajanalla, ja niitä voi muuttaa.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Kappaleen on oltava joka kohdasta yhtä paksu – piirretty, pursotettu tai STEP-tiedostosta. Tunnistetaan levyn paksuus (suurimman pinnan etäisyys vastapintaansa), tasomaiset seinämät ja niiden väliset taivutukset kulmineen ja sisäsäteineen, pyöristetyt tai teräväkulmaiset. Näistä muodostuu levityskuvio; levynä se on luonnos taivutusviivoineen, ja sitä voi muokata, levittää ja sijoitella kuten mitä tahansa levyä. K-kerroin määrää levitetyt pituudet. Jos suurin pinta osoittaa ylös tai alas, levy on täsmälleen kappaleen kohdalla, muuten tasaisesti XY-tasolla. Taitokset (180°) ja kahden tasomaisen seinämän väliset pyöristetyt seinämät otetaan mukaan taivutuksena, jolla on oma säteensä. Tunnistamatta jäävät vapaasti päättyvät rullatut reunat, putket ja muotoilut kuten jäykistepainaumat.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "kaikki seinämät eivät ole yhteydessä tunnistettavan taivutuksen kautta (rullattu reuna?) – ne puuttuvat",
+ "bis {0}": "– {0}",
+ ", Innenradius {0}{1} mm": ", sisäsäde {0}{1} mm",
+ "Updates automatisch laden": "Lataa päivitykset automaattisesti",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Lataa uuden version taustalla heti sen löydyttyä ja asentaa sen suljettaessa – vain asennetussa Windows-sovelluksessa ja Linux-AppImagessa. Muuten kysytään ensin.",
+ "Version {0} wird geladen …": "Ladataan versiota {0} …",
+ "Suche nach einer neuen Version …": "Etsitään uutta versiota …"
+}

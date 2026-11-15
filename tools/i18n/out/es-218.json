@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Cortar ranuras",
+ "Schlitze schneiden: {0}": "Cortar ranuras: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} ranuras cortadas en «{1}».",
+ "Schlitze schneiden in": "Cortar ranuras en",
+ "– Körper wählen –": "– elegir un cuerpo –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Corta las ranuras directamente en el cuerpo elegido, con tanta profundidad como largas son las lengüetas. El boceto y el corte aparecen después en la línea de tiempo y se pueden modificar.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "El cuerpo debe tener el mismo espesor en todas partes – dibujado, extruido o de un archivo STEP. Se reconocen el espesor de chapa (distancia de la cara mayor a su cara opuesta), las paredes planas y los plegados entre ellas con ángulo y radio interior, redondos o de arista viva. De ello resulta el desarrollo; como chapa se presenta como un boceto con líneas de plegado y puede modificarse, desplegarse y anidarse como cualquier chapa. El factor K determina las longitudes desarrolladas. Si la cara mayor apunta hacia arriba o hacia abajo, la chapa queda exactamente dentro del cuerpo; si no, plana sobre el plano XY. Los dobladillos (180°) y las paredes redondeadas entre dos paredes planas se adoptan como un plegado con su propio radio. No se reconocen los bordes enrollados con extremo libre, los tubos ni conformados como nervaduras.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "no todas las paredes están unidas por un plegado reconocible (¿borde enrollado?) – faltan",
+ "bis {0}": "a {0}",
+ ", Innenradius {0}{1} mm": ", radio interior {0}{1} mm",
+ "Updates automatisch laden": "Descargar actualizaciones automáticamente",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Descarga una nueva versión en segundo plano en cuanto la encuentra y la instala al salir – solo en la aplicación de Windows instalada y en el AppImage de Linux. En los demás casos, el programa pregunta antes.",
+ "Version {0} wird geladen …": "Descargando la versión {0} …",
+ "Suche nach einer neuen Version …": "Buscando una nueva versión …"
+}

@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Cortar ranuras",
+ "Schlitze schneiden: {0}": "Cortar ranuras: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} ranuras cortadas en «{1}».",
+ "Schlitze schneiden in": "Cortar ranuras en",
+ "– Körper wählen –": "– seleccionar un corpo –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Corta as ranuras directamente no corpo seleccionado, tan fondas como son de longas as lingüetas. O esbozo e o corte quedan despois na liña do tempo e pódense modificar.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "O corpo debe ter o mesmo grosor en todas partes – debuxado, extrudido ou dun ficheiro STEP. Recoñécense o grosor da chapa (distancia da cara máis grande á súa cara oposta), as paredes planas e as dobras entre elas con ángulo e raio interior, redondas ou de aresta viva. Diso resulta o desenvolvemento; como chapa existe como esbozo con liñas de dobra e pódese modificar, desenvolver e aniñar como calquera chapa. O factor K determina as lonxitudes estendidas. Se a cara máis grande mira cara arriba ou cara abaixo, a chapa queda exactamente no corpo, se non, plana no plano XY. Os remates (180°) e as paredes arredondadas entre dúas paredes planas tómanse como unha dobra con raio propio. Non se recoñecen os bordos enrolados que acaban libres, os tubos nin conformados como nervaduras.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "non todas as paredes están unidas por unha dobra recoñecible (bordo enrolado?) – faltan",
+ "bis {0}": "ata {0}",
+ ", Innenradius {0}{1} mm": ", raio interior {0}{1} mm",
+ "Updates automatisch laden": "Descargar actualizacións automaticamente",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Descarga unha nova versión en segundo plano en canto a atopa e instálaa ao pechar – só na aplicación de Windows instalada e no AppImage de Linux. Se non, pregunta antes.",
+ "Version {0} wird geladen …": "Descargando a versión {0} …",
+ "Suche nach einer neuen Version …": "Buscando unha nova versión …"
+}

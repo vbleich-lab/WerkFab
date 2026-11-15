@@ -74,10 +74,13 @@ async function ownVersion() {
   return null;
 }
 
-let wired = false, manual = false, status = () => {};
+let wired = false, manual = false, say = false, status = () => {};
 
 function onState(s) {
-  if (s.state === 'available') {
+  if (s.state === 'available' && getSettings().updateAuto) {
+    note(`Version ${s.version} wird geladen …`);
+    window.werkfabApp.download();
+  } else if (s.state === 'available') {
     note(`Version ${s.version} ist verfügbar.`, [
       ['Jetzt laden', () => { note('Update wird geladen …'); window.werkfabApp.download(); }, 'primary'],
       ['Später', hide],
@@ -88,13 +91,16 @@ function onState(s) {
       ['Neu starten und installieren', () => window.werkfabApp.install(), 'primary'],
       ['Beim Beenden installieren', hide],
     ]);
-  } else if (s.state === 'none') { if (manual) status('WerkFab ist aktuell.'); }
+  } else if (s.state === 'none') { if (manual || say) status('WerkFab ist aktuell.'); say = false; }
   else if (s.state === 'error') { if (manual) status(`Update-Prüfung fehlgeschlagen: ${s.message}`); hide(); }
 }
 
-/** Looks for a new version now. `byHand`: also say so when there is none or the check fails. */
-export async function checkForUpdates(byHand = false) {
-  manual = byHand;
+/**
+ * Looks for a new version now. `byHand`: also say so when the check fails. `tell`: say that the program is up to date
+ * (by hand always; the check at the start says it once, so one sees that it has looked).
+ */
+export async function checkForUpdates(byHand = false, tell = byHand) {
+  manual = byHand; say = tell;
   const app = window.werkfabApp;
   let info = null;
   try { info = app ? await app.info() : null; } catch { /* old shell */ }
@@ -114,16 +120,16 @@ export async function checkForUpdates(byHand = false) {
         ['Download-Seite öffnen', () => { window.open(neu.url, '_blank', 'noopener'); hide(); }, 'primary'],
         ['Später', hide],
       ]);
-    } else if (byHand) status(`WerkFab ist aktuell (Version ${current}).`);
+    } else if (tell) status(`WerkFab ist aktuell (Version ${current}).`);
   } catch (e) {
     if (byHand) status(`Update-Prüfung fehlgeschlagen: ${e.message || e}`);
   }
 }
 
-/** Called once after the start: checks a little later, unless switched off or running as the online demo. */
+/** Called once after the start: checks right after it, unless switched off or running as the online demo. */
 export function initUpdates(statusFn) {
   status = statusFn || status;
   if (getSettings().updateCheck === false) return;
   if (/\.github\.io$/i.test(location.hostname)) return; // the online demo is always the current version
-  setTimeout(() => checkForUpdates(false), 8000);
+  setTimeout(() => { status('Suche nach einer neuen Version …'); checkForUpdates(false, true); }, 2500);
 }

@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Sleuven snijden",
+ "Schlitze schneiden: {0}": "Sleuven snijden: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} sleuven in „{1}” gesneden.",
+ "Schlitze schneiden in": "Sleuven snijden in",
+ "– Körper wählen –": "– lichaam kiezen –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Snijdt de sleuven meteen in het gekozen lichaam – zo diep als de tongen lang zijn. Schets en snede staan daarna in de tijdlijn en kunnen worden gewijzigd.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Het lichaam moet overal even dik zijn – getekend, geëxtrudeerd of uit een STEP-bestand. Herkend worden de plaatdikte (afstand van het grootste vlak tot het tegenoverliggende vlak), de vlakke wanden en de buigingen daartussen met hoek en binnenradius, rond of scherp. Hieruit ontstaat de uitslag; als plaatwerk ligt deze als schets met buiglijnen vast en kan hij net als elk plaatwerk worden gewijzigd, uitgeslagen en genest. De K-factor bepaalt de uitgeslagen lengtes. Wijst het grootste vlak omhoog of omlaag, dan ligt het plaatwerk precies in het lichaam, anders plat op het XY-vlak. Zomen (180°) en afgeronde wanden tussen twee vlakke wanden worden overgenomen als buiging met eigen radius. Niet herkend worden vrij eindigende gerolde randen, buizen en vormgevingen zoals sikken.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "niet alle wanden zijn via een herkenbare buiging verbonden (gerolde rand?) – ze ontbreken",
+ "bis {0}": "tot {0}",
+ ", Innenradius {0}{1} mm": ", binnenradius {0}{1} mm",
+ "Updates automatisch laden": "Updates automatisch downloaden",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Downloadt een nieuwe versie op de achtergrond zodra die gevonden is en installeert haar bij het afsluiten – alleen in de geïnstalleerde Windows-app en in de Linux-AppImage. Anders vraagt het programma eerst.",
+ "Version {0} wird geladen …": "Versie {0} wordt gedownload …",
+ "Suche nach einer neuen Version …": "Zoeken naar een nieuwe versie …"
+}

@@ -9,6 +9,7 @@ export const DEFAULTS = {
   startWorkspace: 'design', // design | cam
   undoLimit: 200,
   updateCheck: true,        // ask GitHub for a new version at start
+  updateAuto: false,        // load a found version without asking (installed app only)
   toolbarLabels: true,
   hoverHighlight: true,
   accent: 'blue',           // blue | teal | green | orange | violet | red | pink | yellow | custom

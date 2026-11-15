@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Izgriezt spraugas",
+ "Schlitze schneiden: {0}": "Izgriezt spraugas: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} spraugas izgrieztas objektā „{1}“.",
+ "Schlitze schneiden in": "Izgriezt spraugas objektā",
+ "– Körper wählen –": "– izvēlieties ķermeni –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Izgriež spraugas uzreiz izvēlētajā ķermenī – tik dziļi, cik garas ir mēlītes. Skice un griezums pēc tam atrodas laika joslā, un tos var mainīt.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Ķermenim visur jābūt vienāda biezuma – uzzīmētam, izspiestam vai no STEP faila. Tiek atpazīts skārda biezums (lielākās skaldnes attālums līdz tai pretējai skaldnei), plakanās sienas un starp tām esošās lieces ar leņķi un iekšējo rādiusu, noapaļotas vai asām malām. No tā rodas izklājums; kā skārds tas ir skice ar lieces līnijām, un to var mainīt, izklāt un izvietot kā jebkuru skārdu. K-faktors nosaka izklāto garumus. Ja lielākā skaldne vērsta uz augšu vai uz leju, skārds atrodas tieši ķermenī, citādi plakaniski XY plaknē. Malas locījumi (180°) un noapaļotas sienas starp divām plakanām sienām tiek pārņemtas kā liece ar savu rādiusu. Netiek atpazītas brīvi beidzošās velmētās malas, caurules un formējumi, piemēram, ribas.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "ne visas sienas ir savienotas ar atpazīstamu lieci (velmēta mala?) – to trūkst",
+ "bis {0}": "līdz {0}",
+ ", Innenradius {0}{1} mm": ", iekšējais rādiuss {0}{1} mm",
+ "Updates automatisch laden": "Lejupielādēt atjauninājumus automātiski",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Jaunu versiju lejupielādē fonā uzreiz pēc tās atrašanas un instalē beidzot darbu – tikai instalētajā Windows lietotnē un Linux AppImage. Citādi vispirms tiek jautāts.",
+ "Version {0} wird geladen …": "Tiek lejupielādēta versija {0} …",
+ "Suche nach einer neuen Version …": "Notiek jaunas versijas meklēšana …"
+}

@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Couper les fentes",
+ "Schlitze schneiden: {0}": "Couper les fentes : {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} fentes coupées dans « {1} ».",
+ "Schlitze schneiden in": "Couper les fentes dans",
+ "– Körper wählen –": "– choisir un corps –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Coupe les fentes directement dans le corps choisi – aussi profondément que les languettes sont longues. L'esquisse et la coupe figurent ensuite dans la chronologie et peuvent être modifiées.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Le corps doit avoir partout la même épaisseur – dessiné, extrudé ou issu d'un fichier STEP. Sont reconnus l'épaisseur de tôle (distance de la plus grande face à sa face opposée), les parois planes et les pliages entre elles avec angle et rayon intérieur, arrondis ou à arête vive. Le développé en découle ; en tant que tôle, il se présente comme une esquisse avec lignes de pliage et peut être modifié, déplié et imbriqué comme toute tôle. Le facteur K détermine les longueurs développées. Si la plus grande face est orientée vers le haut ou le bas, la tôle se trouve exactement dans le corps, sinon à plat sur le plan XY. Les ourlets (180°) et les parois arrondies entre deux parois planes sont repris comme pliage avec leur propre rayon. Ne sont pas reconnus les bords roulés à extrémité libre, les tubes et les formes embouties comme les nervures.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "toutes les parois ne sont pas reliées par un pliage reconnaissable (bord roulé ?) – elles manquent",
+ "bis {0}": "à {0}",
+ ", Innenradius {0}{1} mm": ", rayon intérieur {0}{1} mm",
+ "Updates automatisch laden": "Télécharger les mises à jour automatiquement",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Télécharge une nouvelle version en arrière-plan dès qu'elle est trouvée et l'installe à la fermeture – uniquement dans l'application Windows installée et dans l'AppImage Linux. Sinon, le programme demande d'abord.",
+ "Version {0} wird geladen …": "Téléchargement de la version {0} …",
+ "Suche nach einer neuen Version …": "Recherche d'une nouvelle version …"
+}

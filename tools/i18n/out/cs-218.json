@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Vyříznout štěrbiny",
+ "Schlitze schneiden: {0}": "Vyříznout štěrbiny: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} štěrbin vyříznuto do „{1}“.",
+ "Schlitze schneiden in": "Vyříznout štěrbiny do",
+ "– Körper wählen –": "– zvolte těleso –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Vyřízne štěrbiny rovnou do zvoleného tělesa – tak hluboko, jak jsou jazýčky dlouhé. Skica a řez pak jsou v časové ose a lze je upravit.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Těleso musí mít všude stejnou tloušťku – nakreslené, vysunuté nebo ze souboru STEP. Rozpoznává se tloušťka plechu (vzdálenost největší plochy od protilehlé plochy), rovné stěny a ohyby mezi nimi s úhlem a vnitřním poloměrem, oblé nebo ostrohranné. Z toho vznikne rozvinutý tvar; jako plech je k dispozici jako skica s ohybovými čarami a lze jej jako každý plech upravovat, rozvíjet a rozmísťovat. K-faktor určuje rozvinuté délky. Pokud největší plocha směřuje nahoru nebo dolů, leží plech přesně v tělese, jinak naplocho v rovině XY. Lemy (180°) a oblé stěny mezi dvěma rovnými stěnami se převezmou jako ohyb s vlastním poloměrem. Nerozpoznají se volně končící válcované okraje, trubky a tvarování, například prolisy.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "ne všechny stěny jsou spojeny rozpoznatelným ohybem (válcovaný okraj?) – chybějí",
+ "bis {0}": "až {0}",
+ ", Innenradius {0}{1} mm": ", vnitřní poloměr {0}{1} mm",
+ "Updates automatisch laden": "Stahovat aktualizace automaticky",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Stáhne novou verzi na pozadí hned po jejím nalezení a nainstaluje ji při ukončení – pouze v nainstalované aplikaci pro Windows a v Linux AppImage. Jinak se předem zeptá.",
+ "Version {0} wird geladen …": "Stahuje se verze {0} …",
+ "Suche nach einer neuen Version …": "Hledá se nová verze …"
+}

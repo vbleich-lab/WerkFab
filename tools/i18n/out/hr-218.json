@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Izreži utore",
+ "Schlitze schneiden: {0}": "Izreži utore: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} utora izrezano u „{1}“.",
+ "Schlitze schneiden in": "Izreži utore u",
+ "– Körper wählen –": "– odaberite tijelo –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Izrezuje utore odmah u odabrano tijelo – onoliko duboko koliko su jezičci dugi. Skica i rez zatim se nalaze na vremenskoj crti i mogu se mijenjati.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Tijelo mora posvuda biti jednake debljine – nacrtano, ekstrudirano ili iz STEP datoteke. Prepoznaju se debljina lima (udaljenost najveće plohe od njoj suprotne plohe), ravne stijenke i savijanja među njima s kutom i unutarnjim polumjerom, zaobljena ili oštrobridna. Iz toga nastaje razvijeni oblik; kao lim postoji kao skica s crtama savijanja i može se mijenjati, razvijati i slagati kao svaki lim. K-faktor određuje razvijene duljine. Ako najveća ploha gleda prema gore ili dolje, lim leži točno u tijelu, inače ravno na ravnini XY. Pregibi (180°) i zaobljene stijenke između dviju ravnih stijenki preuzimaju se kao savijanje s vlastitim polumjerom. Ne prepoznaju se slobodno završeni valjani rubovi, cijevi i oblikovanja poput ukruta.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "nisu sve stijenke povezane prepoznatljivim savijanjem (valjani rub?) – nedostaju",
+ "bis {0}": "do {0}",
+ ", Innenradius {0}{1} mm": ", unutarnji polumjer {0}{1} mm",
+ "Updates automatisch laden": "Automatski preuzimaj ažuriranja",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Novu verziju preuzima u pozadini čim je pronađe i instalira je pri zatvaranju – samo u instaliranoj Windows aplikaciji i u Linux AppImageu. Inače se prije pita.",
+ "Version {0} wird geladen …": "Preuzima se verzija {0} …",
+ "Suche nach einer neuen Version …": "Traži se nova verzija …"
+}

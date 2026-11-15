@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "Исеци уторе",
+ "Schlitze schneiden: {0}": "Исеци уторе: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} утора исечено у „{1}“.",
+ "Schlitze schneiden in": "Исеци уторе у",
+ "– Körper wählen –": "– изаберите тело –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "Исеца уторе одмах у изабрано тело – онолико дубоко колико су језичци дугачки. Скица и пресек се затим налазе на временској линији и могу се мењати.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "Тело мора свуда бити једнаке дебљине – нацртано, екструдирано или из STEP датотеке. Препознају се дебљина лима (удаљеност највеће површи од њој супротне површи), равни зидови и савијања међу њима са углом и унутрашњим полупречником, заобљена или оштроивична. Из тога настаје развијени облик; као лим постоји као скица са линијама савијања и може се мењати, развијати и слагати као сваки лим. К-фактор одређује развијене дужине. Ако највећа површ гледа нагоре или надоле, лим лежи тачно у телу, иначе равно на равни XY. Преклопи (180°) и заобљени зидови између два равна зида преузимају се као савијање са сопственим полупречником. Не препознају се слободно завршени ваљани ивични делови, цеви и обликовања попут укрута.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "нису сви зидови повезани препознатљивим савијањем (ваљана ивица?) – недостају",
+ "bis {0}": "до {0}",
+ ", Innenradius {0}{1} mm": ", унутрашњи полупречник {0}{1} mm",
+ "Updates automatisch laden": "Аутоматски преузимај ажурирања",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "Нову верзију преузима у позадини чим је пронађе и инсталира је при затварању – само у инсталираној Windows апликацији и у Linux AppImage-у. Иначе се претходно пита.",
+ "Version {0} wird geladen …": "Преузима се верзија {0} …",
+ "Suche nach einer neuen Version …": "Тражи се нова верзија …"
+}

@@ -1,0 +1,16 @@
+{
+ "Schlitze schneiden": "ჭრილების გაჭრა",
+ "Schlitze schneiden: {0}": "ჭრილების გაჭრა: {0}",
+ "{0} Schlitze in „{1}“ geschnitten.": "{0} ჭრილი გაიჭრა „{1}“-ში.",
+ "Schlitze schneiden in": "ჭრილების გაჭრა:",
+ "– Körper wählen –": "– აირჩიეთ სხეული –",
+ "Schneidet die Schlitze gleich in den gewählten Körper – so tief, wie die Zungen lang sind. Skizze und Schnitt stehen danach in der Zeitachse und lassen sich ändern.": "ჭრის ჭრილებს პირდაპირ არჩეულ სხეულში – იმდენად ღრმად, რამდენადაც ენები გრძელია. ესკიზი და ჭრა ამის შემდეგ დროის ღერძზე დგას და შეიძლება შეიცვალოს.",
+ "Der Körper muss überall gleich dick sein – gezeichnet, extrudiert oder aus einer STEP-Datei. Erkannt werden die Blechdicke (Abstand der größten Fläche zu ihrer Gegenfläche), die ebenen Wände und die Biegungen dazwischen mit Winkel und Innenradius, rund oder scharfkantig. Daraus entsteht die Abwicklung; als Blech liegt sie als Skizze mit Biegelinien vor und lässt sich wie jedes Blech ändern, abwickeln und schachteln. Der K-Faktor bestimmt die gestreckten Längen. Zeigt die größte Fläche nach oben oder unten, liegt das Blech genau im Körper, sonst flach auf der XY-Ebene. Säume (180°) und gerundete Wände zwischen zwei ebenen Wänden werden als Biegung mit eigenem Radius übernommen. Nicht erkannt werden frei endende gerollte Ränder, Rohre und Umformungen wie Sicken.": "სხეულს ყველგან ერთნაირი სისქე უნდა ჰქონდეს – დახაზული, ამოწეული ან STEP ფაილიდან. ამოიცნობა ფურცლის სისქე (უდიდესი წახნაგის მანძილი მის მოპირდაპირე წახნაგამდე), ბრტყელი კედლები და მათ შორის ღუნვები კუთხითა და შიდა რადიუსით, მომრგვალებული ან მკვეთრკიდიანი. აქედან იქმნება გაშლა; ფურცლის სახით იგი ესკიზია ღუნვის ხაზებით და შეიძლება შეიცვალოს, გაიშალოს და განლაგდეს ნებისმიერი ფურცლის მსგავსად. K-ფაქტორი განსაზღვრავს გაშლილ სიგრძეებს. თუ უდიდესი წახნაგი ზევით ან ქვევით არის მიმართული, ფურცელი ზუსტად სხეულშია, სხვა შემთხვევაში – ბრტყლად XY სიბრტყეზე. კიდის მოკეცვები (180°) და მომრგვალებული კედლები ორ ბრტყელ კედელს შორის გადაიტანება ღუნვად საკუთარი რადიუსით. არ ამოიცნობა თავისუფლად დამთავრებული დახვეული კიდეები, მილები და ფორმირებები, როგორიცაა გამაგრების ღარები.",
+ "nicht alle Wände hängen über eine erkennbare Biegung zusammen (gerollter Rand?) – sie fehlen": "ყველა კედელი არ არის დაკავშირებული ამოცნობადი ღუნვით (დახვეული კიდე?) – ისინი აკლია",
+ "bis {0}": "{0}-მდე",
+ ", Innenradius {0}{1} mm": ", შიდა რადიუსი {0}{1} მმ",
+ "Updates automatisch laden": "განახლებების ავტომატური ჩამოტვირთვა",
+ "Lädt eine neue Version gleich nach dem Fund im Hintergrund und installiert sie beim Beenden – nur in der installierten Windows-App und im Linux-AppImage. Sonst wird vorher gefragt.": "ახალ ვერსიას აღმოჩენისთანავე ფონურად ჩამოტვირთავს და დახურვისას დააინსტალირებს – მხოლოდ დაინსტალირებულ Windows აპსა და Linux AppImage-ში. სხვა შემთხვევაში წინასწარ იკითხავს.",
+ "Version {0} wird geladen …": "იტვირთება ვერსია {0} …",
+ "Suche nach einer neuen Version …": "ახალი ვერსიის ძიება …"
+}
