@@ -48,6 +48,15 @@ function motionMatrix(j, value, value2 = 0, value3 = 0) {
   return new THREE.Matrix4();
 }
 
+// The frame of a joint in its parent's coordinates: origin o, axis n and the two directions u, w across it
+export function jointFrame(j) {
+  const n = j.pO ? new THREE.Vector3(...j.pO.n).normalize() : new THREE.Vector3(...(AXES[j.axis] || AXES.z));
+  const o = new THREE.Vector3(...(j.pO ? j.pO.p : j.origin || [0, 0, 0]).map(Number));
+  const u = new THREE.Vector3().crossVectors(n, Math.abs(n.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0)).normalize();
+  return { o, n, u, w: new THREE.Vector3().crossVectors(n, u) };
+}
+export const jointMotion = (asm, j, values = {}) => motionMatrix(j, ...jointValues(asm, j, values));
+
 // World matrix of a body: parent chain × joint motion × own placement.
 // values: optional { jointId: value } override (motion studies).
 export function bodyMatrix(asm, bodyId, values = {}, seen = new Set()) {

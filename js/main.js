@@ -7,6 +7,7 @@ import { LANGS, lang as uiLang, langChoice, setLanguage, t as tr, tHtml, deText,
 import { initUpdates, checkForUpdates } from './update.js';
 import { AGENT_TOOLS, agentCall } from './agent.js';
 import { exportGLB } from './gltf.js';
+import { meshMass, stlBinary, urdfNames, buildUrdf, URDF_CHAIN } from './urdf.js';
 import { setActiveKernel, activeKernelId, getKernel } from './kern/index.js';
 import './kern/rust.js';
 import { THREAD_SIZES, meshBody } from './model.js';
@@ -19,8 +20,8 @@ import { allMachines, findMachine, copyMachine, newMachine, machineChecks, KIN_T
 import { StockSim, defaultFluteLen, defaultHolderDia, defaultStickout } from './sim.js';
 import { exampleProject, exampleTurning } from './example.js';
 import { describeEntity, entityPolys, translateEntity, rotateEntity, scaleEntity, mirrorEntity as mirrorAbout } from './profiles.js';
-import { meshInertia } from './mesh.js';
-import { applyCorners, cornerPlan, curveCorner, filletCurves } from './sketchcorner.js';
+import { meshInertia, zipStore } from './mesh.js';
+import { applyCorners, cornerPlan, curveCorner, filletCurves, chamferCurves, unbridge, bridgeRadius } from './sketchcorner.js';
 import { offsetEntities } from './sketchoffset.js';
 import { parseDXF, writeDXF } from './dxf.js';
 import { inkFromRGBA, traceImage, toSketch, toSVG, toEntities, quantize, inkOfColors, simplify as simplifyLine } from './trace.js';
@@ -33,7 +34,7 @@ import { ICONS } from './icons.js';
 import { getSettings, saveSettings, resetSettings, DEFAULTS, MOUSE_PRESETS, ACCENTS, DESIGNS, UI_FONTS, LOOK_KEYS, getProfiles, saveProfile, deleteProfile } from './settings.js';
 import { getBlob, putBlob, loadBlobs, withBlobs, takeBlobs, igesToStep, stepToIges, meshToStep, onFullKernel, requestFullKernel, parseToolLibrary, convertCps } from './interop.js';
 import { makeDrawing, SHEETS, VIEWS as DRAW_VIEWS } from './drawing.js';
-import { bodyMatrix, hasAssembly, transformShape, JOINT_TYPES, JOINT_DOF, jointValues } from './assembly.js';
+import { bodyMatrix, hasAssembly, transformShape, JOINT_TYPES, JOINT_DOF, jointValues, jointFrame, jointMotion } from './assembly.js';
 import { STD_FAMILIES, STD_LENGTHS, stdFamily, stdPartName, stdPartSteps, boltSizeFor, boltStack, boltHole } from './stdparts.js';
 import { unfoldFaces } from './unfold.js';
 import { flatPattern, polyEdges, polyArcs, bendAllowance, sheetChecks, SHEET_RULES, nestParts, pressForce, SHEET_RM, holeCircle, collarPlan, cutProgram, CUT_CONTROLS, shellPattern, transitionPattern, tabSlots } from './sheetmetal.js';
@@ -3177,6 +3178,83 @@ function exportGltfFile() {
   catch (err) { status(err.message); }
 }
 
+// URDF: the assembly as a robot description – a link per visible body (mesh in metres, mass and inertia from the
+// material), a joint per joint. The pose of the export is the zero pose; all link frames are parallel to the world
+// there, a moved link has its frame in its joint. → { files: [[name, bytes]], links, joints, name }
+function urdfExport() {
+  const list = [...getModel().bodies, ...getMeshes().bodies].filter(x => !state.hiddenBodies.has(x.id) && x.geometry?.attributes?.position?.count);
+  if (!list.length) return null;
+  const asm = state.project.assembly, on = hasAssembly(asm), vals = motionValues;
+  const world = id => (on ? bodyMatrix(asm, id, vals) : new THREE.Matrix4());
+  const names = urdfNames(['base_link', ...list.map(bodyName)]), nameOf = new Map(list.map((b, i) => [b.id, names[i + 1]]));
+  const robot = urdfNames([state.project.name || 'werkfab'])[0];
+  const jointOf = b => (on ? (asm.joints || []).find(q => q.child === b.id && !q.suppressed && (!q.parent || nameOf.has(q.parent))) : null);
+  // where the frame of each link is (world, mm): in its joint, or in the origin
+  const frame = new Map(list.map(b => {
+    const j = jointOf(b);
+    if (!j) return [b.id, new THREE.Vector3()];
+    const P = j.parent ? world(j.parent) : new THREE.Matrix4();
+    return [b.id, jointFrame(j).o.applyMatrix4(jointMotion(asm, j, vals)).applyMatrix4(P)];
+  }));
+  const files = [], links = [{ name: 'base_link' }], joints = [], jn = urdfNames((asm?.joints || []).map(j => j.name || 'joint')), jname = new Map((asm?.joints || []).map((j, i) => [j.id, jn[i]]));
+  const first = new Map(); // joint id → { name, conv } of the URDF joint that carries its first value
+  const DEG = Math.PI / 180;
+  let defaulted = 0;
+  for (const b of list) {
+    const name = nameOf.get(b.id), O = frame.get(b.id), meta = bodyMeta(b.id);
+    const g = b.geometry.clone().applyMatrix4(world(b.id)), pos = g.attributes.position.array, idx = g.index?.array || null;
+    files.push([`meshes/${name}.stl`, stlBinary(pos, idx, O.toArray(), 0.001)]);
+    const mp = meshMass(pos, idx);
+    if (!meta.material) defaulted++;
+    const rho = (MATERIALS[meta.material || 'alu']?.density || 2.7) * 1e-6; // kg/mm³
+    const look = APPEARANCES[meta.appearance] || (meta.material ? APPEARANCES[MATERIAL_LOOK[meta.material]] : null) || APPEARANCES.alu_satin, c = new THREE.Color(meta.color || look.color);
+    links.push({ name, mesh: `meshes/${name}.stl`, color: [c.r, c.g, c.b].map(v => +v.toFixed(4)),
+      ...(mp.volume > 1e-6 ? { mass: mp.volume * rho, com: mp.com.map((v, k) => (v - O.getComponent(k)) * 0.001), inertia: mp.inertia.map(v => v * rho * 1e-6) } : {}) });
+    g.dispose();
+  }
+  for (const b of list) {
+    const child = nameOf.get(b.id), O = frame.get(b.id), j = jointOf(b);
+    if (!j) { joints.push({ name: `${child}_fixed`, type: 'fixed', parent: 'base_link', child, xyz: [0, 0, 0] }); continue; }
+    const parent = j.parent ? nameOf.get(j.parent) : 'base_link', Op = j.parent ? frame.get(j.parent) : new THREE.Vector3();
+    const xyz = O.clone().sub(Op).multiplyScalar(0.001).toArray(), base = jname.get(j.id), chain = URDF_CHAIN[j.type] || [];
+    if (!chain.length) { joints.push({ name: base, type: 'fixed', parent, child, xyz }); continue; }
+    const fr = jointFrame(j), cur = jointValues(asm, j, vals), R = new THREE.Matrix4().extractRotation(j.parent ? world(j.parent) : new THREE.Matrix4());
+    let from = parent;
+    chain.forEach((d, q) => {
+      const last = q === chain.length - 1, to = last ? child : `${child}_${base}_${q + 1}`, nm = chain.length === 1 ? base : `${base}_${q + 1}`;
+      if (!last) links.push({ name: to });
+      const axis = fr[d.axis].clone().transformDirection(R).toArray().map(v => +v.toFixed(9));
+      if (d.rot) R.multiply(new THREE.Matrix4().makeRotationAxis(fr[d.axis], cur[d.k] * DEG));
+      const conv = d.rot ? DEG : 0.001, lim = d.k === 0 && j.limits !== false && Number.isFinite(+j.min) && Number.isFinite(+j.max) && +j.max > +j.min;
+      const jj = { name: nm, parent: from, child: to, xyz: q === 0 ? xyz : [0, 0, 0], axis,
+        type: d.rot ? (lim ? 'revolute' : 'continuous') : 'prismatic',
+        lower: (lim ? Math.min(+j.min - cur[d.k], 0) : -1000) * conv, upper: (lim ? Math.max(+j.max - cur[d.k], 0) : 1000) * conv };
+      if (d.k === 0) {
+        first.set(j.id, { name: nm, conv });
+        if (j.link?.from) jj.link = { from: j.link.from, ratio: +j.link.ratio || 1, conv };
+      }
+      joints.push(jj);
+      from = to;
+    });
+  }
+  // a linked joint follows its driver (the offset is part of the zero pose)
+  for (const jj of joints) {
+    if (!jj.link) continue;
+    const drv = first.get(jj.link.from);
+    if (drv && drv.name !== jj.name) jj.mimic = { joint: drv.name, multiplier: (jj.link.ratio * jj.link.conv) / drv.conv };
+    delete jj.link;
+  }
+  files.unshift([`${robot}.urdf`, new TextEncoder().encode(buildUrdf(robot, links, joints))]);
+  return { files, robot, links: list.length, joints: joints.filter(q => q.type !== 'fixed').length, defaulted };
+}
+function exportUrdfFile() {
+  let r;
+  try { r = urdfExport(); } catch (err) { console.warn(err); return status(`URDF: ${err.message}`); }
+  if (!r) return status('Kein Körper zum Exportieren.');
+  download(`${safeName()}-urdf.zip`, zipStore(r.files), 'application/zip');
+  status(`URDF exportiert: ${r.links} Körper, ${r.joints} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung${r.defaulted ? `; ${r.defaulted} Körper ohne Werkstoff als Aluminium gerechnet` : ''}`);
+}
+
 // A command script: a JSON file with the steps an agent would send, run one after the other –
 // [{ "tool": "add_features", "args": { … } }, …] or { "steps": [ … ] }. The tools: Einstellungen → KI-Agenten.
 function runScriptFile() {
@@ -4286,19 +4364,64 @@ const agentApi = {
     commit(pp => pp.cam.ops.push(op));
     return op.id;
   },
+  // the simulation of a setup run to a share of its time: picture of the stock, collisions, part against stock
+  async simulate(setupId, at, view) {
+    const m = await agentApi.settled();
+    const p = state.project, sid = setupId || p.cam.setups[0]?.id, g = getCam().setups.get(sid);
+    if (!g) throw new Error(`No setup "${sid}"`);
+    if (!g.stock) throw new Error(g.error || 'The setup has no stock');
+    const keep = { ws: state.workspace, sel: state.sel, cam: state.camSetup, cmp: $('#simCompare').checked };
+    try {
+      if (sim.open) openSim();
+      state.workspace = 'cam'; state.sel = null; state.camSetup = sid;
+      renderAll();
+      openSim();
+      if (!sim.open) throw new Error('The simulation could not be started');
+      if (!sim.segs) buildSim();
+      $('#simCompare').checked = true;
+      applySimCompare();
+      const f = Number.isFinite(+at) && at !== null && at !== undefined ? Math.min(1, Math.max(0, +at)) : 1;
+      seek(sim.total * f);
+      const st = sim.turn ? turnSim.compareStats() : stockSim.compareStats(), pct = v => +(100 * v).toFixed(1);
+      if (view !== 'current') vp.setView(view || 'iso', m.box.isEmpty() ? null : m.box);
+      await new Promise(r => setTimeout(r, 500));
+      const image = thumbnail(vp.renderer, vp.scene, vp.camera, isDark() ? '#2a323b' : '#e4e9ee', 960, 640);
+      const hits = sim.collisions || [];
+      return { image, setup: sid, at: f, time: +(sim.t || 0).toFixed(1), totalTime: +(sim.total || 0).toFixed(1),
+        collisions: { count: hits.length, first: hits.slice(0, 20).map(c => ({ kind: c.type, operation: c.op, at: [c.p.x, c.p.y, c.p.z].map(q => +q.toFixed(2)) })) },
+        ...(st ? { compare: { onSizePercent: pct(st.ok), materialLeftPercent: pct(st.left), tooDeepPercent: pct(st.gouge), deepestCutIntoPart: +(-st.worst).toFixed(3) } } : {}),
+        notice: 'compare: share of the top view where the stock is on size, still has material, or is cut deeper than the part (a gouge). Collisions: rapid in material, shank or holder touching material.' };
+    } finally {
+      if (sim.open) openSim();
+      $('#simCompare').checked = keep.cmp;
+      state.workspace = keep.ws; state.sel = keep.sel; state.camSetup = keep.cam;
+      renderAll();
+    }
+  },
+  deleteSetups(ids) {
+    const p = state.project, gone = p.cam.setups.filter(s => ids.includes(s.id));
+    if (!gone.length) throw new Error('None of these ids is a setup');
+    if (gone.length >= p.cam.setups.length) throw new Error('A design keeps at least one setup');
+    const ops = p.cam.ops.filter(o => ids.includes(o.setup)).length;
+    if (state.sel?.kind === 'setup' && ids.includes(state.sel.id)) state.sel = null;
+    if (ids.includes(state.camSetup)) state.camSetup = null;
+    commit(pp => { pp.cam.setups = pp.cam.setups.filter(s => !ids.includes(s.id)); pp.cam.ops = pp.cam.ops.filter(o => !ids.includes(o.setup)); });
+    return { deleted: gone.length, operationsDeleted: ops };
+  },
   // the collision check of the NC window as data
-  check(setupId, postId) {
+  check(setupId, postId, part) {
     const p = state.project, sid = setupId || p.cam.setups[0]?.id, g = getCam().setups.get(sid);
     if (!g) throw new Error(`No setup "${sid}"`);
     if (!g.stock) throw new Error(g.error || 'The setup has no stock');
     if (postId && !allPosts(p).some(x => x.id === postId)) throw new Error(`No post processor "${postId}"`);
-    const r = postProcess(resolved(), g, g.machine, postId ? { postId } : {}), rep = ncReport(g, r, postId), lines = r.code.split('\n'), by = {};
+    const r = postProcess(resolved(), g, g.machine, postId ? { postId } : {}), rep = ncReport(g, r, postId, { part: part !== false }), lines = r.code.split('\n'), by = {};
     for (const is of rep.issues) (by[is.kind] ||= []).push(is.k);
     const skipped = g.ops.filter(o => o.enabled !== false && g.results.get(o.id)?.error).map(o => ({ id: o.id, name: o.name, error: g.results.get(o.id).error }));
     return { setup: sid, post: findPost(p, postId || p.post.flavor).id, lines: r.lines, time: +(+r.time || 0).toFixed(1), clean: !rep.issues.length && !skipped.length && !(r.warnings || []).length,
       issues: Object.entries(by).map(([kind, ks]) => ({ kind, text: NC_ISSUE[kind] || kind, count: ks.length, lines: ks.slice(0, 20).map(k => ({ line: k + 1, code: (lines[k] || '').trim() })) })),
+      ...(rep.partDeep > 0 ? { deepestCutIntoPart: +rep.partDeep.toFixed(3) } : {}),
       warnings: r.warnings || [], skipped, machine: [rep.info, rep.why].filter(Boolean), machineLimits: machineChecks(g.machine, g.stock, g.setup, p.cam.tools),
-      notice: 'Checked line by line against the remaining stock, the clamping and the machine as modelled here. This does not replace a dry run on the machine.' };
+      notice: 'Checked line by line against the remaining stock, the clamping, the machine and the finished part as modelled here. This does not replace a dry run on the machine.' };
   },
   addSetup(copyOf, fields) {
     const id = uid('S');
@@ -9347,6 +9470,8 @@ const sketchChamfer = () => sketchCornerTool('chamfer');
 function sketchCornerTool(kind) {
   const rsk = resolved().features.find(f => f.id === state.sketchId);
   const picks = sketcher.selection.filter(r => { const [id, k] = r.split(':'), e = rsk.entities.find(x => x.id === id); return k && k[0] === 'p' && (e?.type === 'rect' || (e?.type === 'poly' && !e.curve) || curveCorner(rsk.entities, r)); });
+  // (a rounding arc or chamfer line picked as a whole: change or remove it)
+  for (const r of sketcher.selection) { const id = r.split(':')[0]; if (!picks.some(q => q.split(':')[0] === id) && bridgeRadius(rsk.entities, id) != null) picks.push(`${id}:b`); }
   if (picks.length) return sketchCorner(kind, picks);
   sketcher.setTool(kind);
   status(`${kind === 'fillet' ? 'Abrunden' : 'Fase'}: Ecke anklicken – Linienzug, Rechteck oder Treffpunkt zweier Linien. Das Werkzeug bleibt aktiv, Esc beendet.`);
@@ -9356,31 +9481,62 @@ async function sketchCorner(kind, picks) {
   const what = kind === 'fillet' ? 'Abrunden' : 'Fase';
   if (!picks?.length) return;
   const scope = paramScope(state.project);
-  const last = sketcher.cornerVal[kind];
-  const txt = await askValue(kind === 'fillet' ? 'Radius der Abrundung (mm, 0 = entfernen):' : 'Fasenabstand (mm, ungleich: „2; 3“, 0 = entfernen):', Array.isArray(last) ? last.join('; ') : String(last));
+  const bridges = picks.filter(r => r.endsWith(':b'));
+  const bR = bridges.length === 1 && kind === 'fillet' ? bridgeRadius(rsk.entities, bridges[0].split(':')[0]) : null;
+  const last = bR > 0 ? +bR.toFixed(4) : sketcher.cornerVal[kind];
+  const txt = await askValue(kind === 'fillet' ? 'Radius der Abrundung (mm, 0 = entfernen):' : 'Fasenabstand (mm, ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen):', Array.isArray(last) ? last.join('; ') : String(last));
   if (txt == null || txt === '') return;
   // (a name of a parameter may hold an x: split at ";" – or at "×" / "x" only between plain numbers)
   const parts = /^[\d.,\s]+[×x][\d.,\s]+$/.test(String(txt)) ? String(txt).split(/[×x]/) : String(txt).split(';');
-  const typed = parts.map(v => v.trim().replace(/,/g, '.')).filter(Boolean), vals = typed.map(v => evalExpr(v, scope));
+  const typed = parts.map(v => v.trim().replace(/,/g, '.')).filter(Boolean);
+  // „2; 30°“: a distance and the angle against the edge it lies on – the other distance is d · tan(angle)
+  if (kind === 'chamfer' && typed.length > 1 && /(°|deg)$/i.test(typed[1])) {
+    const ang = evalExpr(typed[1].replace(/\s*(°|deg)$/i, ''), scope);
+    if (!(ang > 0 && ang < 90)) return status('Fase: der Winkel muss zwischen 0° und 90° liegen.');
+    const tan = +Math.tan((ang * Math.PI) / 180).toFixed(9);
+    typed[1] = /[A-Za-z_]/.test(typed[0]) ? `(${typed[0]})*${tan}` : String(+(evalExpr(typed[0], scope) * tan).toFixed(6));
+  }
+  const vals = typed.map(v => evalExpr(v, scope));
   if (!vals.length || vals.some(v => !Number.isFinite(v) || v < 0)) return status(`${what}: ungültiger Wert oder unbekannter Parameter`);
   const value = kind === 'chamfer' && vals.length > 1 ? vals.slice(0, 2) : vals[0];
   // what is stored: the number, or the formula where the entry names a parameter
   const keep = typed.map((s, i) => (/[A-Za-z_]/.test(s) ? '=' + s : vals[i]));
   const stored = kind === 'chamfer' && keep.length > 1 && Math.abs(vals[1] - vals[0]) > 1e-12 ? keep.slice(0, 2) : keep[0];
   const pkey = p => `${(+p[0]).toFixed(6)},${(+p[1]).toFixed(6)}`, cpts = e => (e.type === 'rect' ? [[+e.x, +e.y], [+e.x + +e.w, +e.y], [+e.x + +e.w, +e.y + +e.h], [+e.x, +e.y + +e.h]] : e.pts || []);
-  // corners where an arc ends: both curves are cut back and a new arc joins them
+  // a rounding or chamfer that is an entity of its own (at an arc): it goes and the corner is back – then, with a
+  // value, the corner is rounded or chamfered anew
+  let restored = 0;
+  for (const ref of bridges) {
+    const cur = resolved().features.find(f => f.id === state.sketchId), plan = unbridge(cur.entities, ref.split(':')[0]);
+    picks = picks.filter(r => r !== ref);
+    if (!plan) continue;
+    commitSketch(state.sketchId, sk => {
+      for (const m of plan.moves) { const x = sk.entities.find(q => q.id === m.id); if (x) x.pts = m.pts.map((p, i) => (near2(p, cur.entities.find(q => q.id === m.id).pts[i]) ? x.pts[i] : p)); }
+      sk.entities = sk.entities.filter(q => q.id !== plan.remove);
+      sk.constraints = (sk.constraints || []).filter(c => !c.refs.some(r => r.split(':')[0] === plan.remove));
+      sk.constraints.push({ id: uid('c'), type: 'coincident', refs: plan.join });
+    });
+    restored++;
+    if (vals[0] > 0) picks.push(plan.join[0]);
+  }
+  if (bridges.length && !restored && !picks.length) return status(`${what}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.`);
+  if (restored && !picks.length) { sketcher.selection = []; return status(`${what}: ${restored} Ecke(n) wiederhergestellt.`); }
+  if (restored) rsk = resolved().features.find(f => f.id === state.sketchId);
+  // corners where an arc ends: both curves are cut back and a new arc (or the line of a chamfer) joins them
   const curved = picks.filter(r => curveCorner(rsk.entities, r));
   if (curved.length) {
     let made = 0, failed = 0;
-    if (kind === 'chamfer' || !(vals[0] > 0)) failed = curved.length;
+    if (!(vals[0] > 0)) failed = curved.length;
     else for (const ref of curved) {
-      const cur = resolved().features.find(f => f.id === state.sketchId), plan = curveCorner(cur.entities, ref) ? filletCurves(cur.entities, ref, vals[0], uid('e'), () => uid('c')) : null;
+      const cur = resolved().features.find(f => f.id === state.sketchId);
+      const plan = !curveCorner(cur.entities, ref) ? null : kind === 'fillet' ? filletCurves(cur.entities, ref, vals[0], uid('e'), () => uid('c')) : chamferCurves(cur.entities, ref, vals[0], vals[1] ?? vals[0], uid('e'), () => uid('c'));
       if (!plan) { failed++; continue; }
       commitSketch(state.sketchId, sk => {
         for (const m of plan.moves) { const x = sk.entities.find(q => q.id === m.id); if (x) x.pts = m.pts.map((p, i) => (near2(p, cur.entities.find(q => q.id === m.id).pts[i]) ? x.pts[i] : p)); }
         sk.entities.push(plan.arc);
         sk.constraints = (sk.constraints || []).filter(c => !(c.type === 'coincident' && c.refs.length === 2 && plan.drop.includes(c.refs[0]) && plan.drop.includes(c.refs[1])));
-        sk.constraints.push(...plan.cons, { id: uid('c'), type: 'dim', kind: 'radius', refs: [`${plan.arc.id}:o`], value: keep[0], sign: 1, lp: [+(vals[0] * 0.8).toFixed(3), +(vals[0] * 0.8).toFixed(3)] });
+        sk.constraints.push(...plan.cons);
+        if (kind === 'fillet') sk.constraints.push({ id: uid('c'), type: 'dim', kind: 'radius', refs: [`${plan.arc.id}:o`], value: keep[0], sign: 1, lp: [+(vals[0] * 0.8).toFixed(3), +(vals[0] * 0.8).toFixed(3)] });
       });
       made++;
     }
@@ -9388,10 +9544,12 @@ async function sketchCorner(kind, picks) {
     if (!picks.length) {
       sketcher.selection = [];
       if (made && vals[0] > 0) sketcher.cornerVal[kind] = value;
-      return status(made ? `${what}: ${made} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt${failed ? `, ${failed} ohne Platz für diesen Radius` : ''}` : kind === 'chamfer' ? 'Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.' : vals[0] > 0 ? `${what}: dieser Radius passt nicht zwischen die beiden Kurven.` : `${what}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.`);
+      return status(made ? (kind === 'fillet' ? `${what}: ${made} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt${failed ? `, ${failed} ohne Platz für diesen Radius` : ''}` : `Fase: ${made} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt${failed ? `, ${failed} ohne Platz für diesen Abstand` : ''}`)
+        : vals[0] > 0 ? (kind === 'fillet' ? `${what}: dieser Radius passt nicht zwischen die beiden Kurven.` : 'Fase: dieser Abstand ist länger als eine der beiden Kurven.') : `${what}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.`);
     }
     rsk = resolved().features.find(f => f.id === state.sketchId);
   }
+  if (!picks.length) return;
   const picked = new Set(picks.map(r => { const [id, s] = r.split(':'), e = rsk.entities.find(x => x.id === id), q = e && cpts(e)[+s.slice(1)]; return q ? pkey(q) : ''; }));
   // formulas other corners already have (by where the corner lies: points are renumbered when lines are joined)
   const rawSk = state.project.features.find(f => f.id === state.sketchId), formulas = new Map();
@@ -10768,6 +10926,7 @@ function menuAction(act) {
   } else if (act === 'example') loadExample();
   else if (act === 'example-turn') loadExample(true);
   else if (act === 'gltf') exportGltfFile();
+  else if (act === 'urdf') exportUrdfFile();
   else if (act === 'script') runScriptFile();
   else if (act === 'step' || act === 'stl' || act === 'iges') {
     const bodies = getModel().bodies.filter(x => !state.hiddenBodies.has(x.id));
@@ -12856,7 +13015,8 @@ function hhPocketMoves(c, pos, top, zr, rT) {
 
 // Collision check of the NC program against the finished part (setup frame): holder or shank touching the
 // part, rapid moves through it. Every move is sampled along its length.
-function ncCollisions(g, pts) {
+const PART_CHECK_TOOLS = ['flat', 'facemill', 'ball', 'torus'];
+function ncCollisions(g, pts, opt) {
   // Collision check against the material that is still there at each line: the stock is cut away move by move
   // (flat or ball end), and before every move the holder, the shank and rapids are tested against it.
   const s = g.stock;
@@ -12884,6 +13044,27 @@ function ncCollisions(g, pts) {
     fxBodies.forEach(b => b.geometry.dispose());
     for (const v of fh) if (v > fxTop) fxTop = v;
   }
+  // the finished part on the same grid (asked for by opt.part): per cell the lowest height of the cell and its
+  // neighbours, so a cutter along a wall does not count – what goes deeper than that cuts into the part
+  let ph = null, partHit = false, partDeep = 0;
+  if (opt?.part) {
+    const pb = setupBodies(getModel().bodies, g.setup || {}).filter(b => b.geometry && !fxIds.has(b.id)).map(b => ({ geometry: b.geometry.clone().applyMatrix4(g.T) }));
+    if (pb.length) {
+      const hm = buildHeightmap(pb, { minX: x0, minY: y0, maxX: x0 + (nx - 1) * res, maxY: y0 + (ny - 1) * res, top: s.top }, res);
+      pb.forEach(b => b.geometry.dispose());
+      if (hm.nx === nx && hm.ny === ny) {
+        ph = new Float32Array(nx * ny);
+        for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+          let m = Infinity;
+          for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+            const ii = i + di, jj = j + dj, v = ii < 0 || jj < 0 || ii >= nx || jj >= ny ? -Infinity : hm.h[jj * nx + ii];
+            if (!(v >= m)) m = Number.isFinite(v) ? v : -Infinity;
+          }
+          ph[j * nx + i] = m;
+        }
+      }
+    }
+  }
   const fxAbove = (x, y, r, z) => !disc(x, y, r, idx => !(fh[idx] > z));
   const fxHit = (x, y, z, R, shaft, flute, holder, stick) => z <= fxTop + 0.05 && (fxAbove(x, y, R, z + 0.05) || (z + flute <= fxTop && fxAbove(x, y, shaft / 2, z + flute)) || (z + stick <= fxTop && fxAbove(x, y, holder / 2, z + stick)));
   const disc = (x, y, r, fn) => {
@@ -12904,15 +13085,20 @@ function ncCollisions(g, pts) {
     return z;
   };
   const inTool = (x, y, R, z, ball) => !disc(x, y, R * 0.98, (idx, d2) => h[idx] <= edgeZ(z, R, d2, ball) + 0.05 || h[idx] <= lo[idx]);
-  const cut = (x, y, z, R, ball) => disc(x, y, R, (idx, d2) => { const t = edgeZ(z, R, d2, ball); if (h[idx] > t) h[idx] = t; });
+  const cut = (x, y, z, R, ball, chk) => disc(x, y, R, (idx, d2) => {
+    const t = edgeZ(z, R, d2, ball);
+    if (chk && t < ph[idx] - 0.1) { partHit = true; if (ph[idx] - t > partDeep) partDeep = ph[idx] - t; }
+    if (h[idx] > t) h[idx] = t;
+  });
   const o = originOf(g.setup, s);
   const tools = new Map(state.project.cam.tools.map(t => [+t.number, t]));
   const out = [];
   let prev = null;
   // a probe cycle carries all its moves: each one is checked on its own (same line)
   pts.forEach((p, k) => (p?.seq ? p.seq.forEach(q => step({ ...q, tool: p.tool }, k)) : step(p, k)));
-  const once = new Set();
-  return out.filter(is => !once.has(is.k + is.kind) && once.add(is.k + is.kind));
+  const once = new Set(), found = out.filter(is => !once.has(is.k + is.kind) && once.add(is.k + is.kind));
+  found.partDeep = partDeep;
+  return found;
   function step(p, k) {
     if (!p) return;
     // turned part (A ≠ 0°): the height field does not apply – the next 3-axis move starts afresh
@@ -12951,6 +13137,8 @@ function ncCollisions(g, pts) {
       return;
     }
     const chain = [a, ...(p.arc || []).map(q => ({ x: q.x + o.x, y: q.y + o.y, z: q.z + o.z })), b];
+    const chk = !!ph && PART_CHECK_TOOLS.includes(t.type);
+    partHit = false;
     for (let c = 1; c < chain.length; c++) {
       const A = chain[c - 1], B = chain[c];
       const n = Math.min(4000, Math.max(1, Math.ceil(Math.hypot(B.x - A.x, B.y - A.y, B.z - A.z) / Math.max(res, R / 3))));
@@ -12960,9 +13148,10 @@ function ncCollisions(g, pts) {
         if (!kinds.has('shank') && shaft / 2 >= R - 1e-6 && z + flute < top && above(x, y, shaft / 2, z + flute + 0.05)) kinds.add('shank');
         if (p.rapid && !kinds.has('rapid') && z < top && inTool(x, y, R, z, ball)) kinds.add('rapid');
         if (fh && !kinds.has('fixture') && fxHit(x, y, z, R, shaft, flute, holder, stick)) kinds.add('fixture');
-        cut(x, y, z, R, ball);
+        cut(x, y, z, R, ball, chk);
       }
     }
+    if (partHit) kinds.add('part');
     for (const kind of kinds) out.push({ k, kind, at: { x: p.x, y: p.y, z: p.z } });
   }
 }
@@ -13281,24 +13470,25 @@ function ncRotaryCheck(g, pts) {
   });
   return out;
 }
-const NC_ISSUE = { tablecut: 'Werkzeug schneidet durch das Rohteil in den Maschinentisch (Opferplatte oder Spannmittel unterlegen)', limit: 'Schwenkwinkel liegt außerhalb der Achsgrenzen der Maschine (Werkstück anders aufspannen)', table: 'Werkzeug, Halter oder Spindelnase fährt in den Maschinentisch', bar: 'Bohrstange berührt die Bohrungswand (Bohrstange zu dick oder Bohrung zu klein)', flank: 'Nebenschneide schneidet – Bahn taucht steiler ein, als Eckenwinkel und Einstellwinkel der Wendeplatte erlauben', chuck: 'Werkzeug fährt ins Spannfutter (unter das Rohteil-Ende)', contour: 'Fertigkontur verletzt (Werkzeug schneidet zu tief)', back: 'Drehmeißel schneidet rückwärts (+Z) ins Material', side: 'Stechmeißel schneidet seitlich (Z-Bewegung im Material)', holder: 'Halter berührt das Material', shank: 'Schaft berührt das Material (Schneidenlänge zu kurz)', rapid: 'Eilgang ins Material', fixture: 'Werkzeug oder Halter fährt in ein Spannmittel', probe: 'Taster stößt außerhalb einer Messbewegung an (geschützte Bewegung bricht ab)' };
+const NC_ISSUE = { tablecut: 'Werkzeug schneidet durch das Rohteil in den Maschinentisch (Opferplatte oder Spannmittel unterlegen)', limit: 'Schwenkwinkel liegt außerhalb der Achsgrenzen der Maschine (Werkstück anders aufspannen)', table: 'Werkzeug, Halter oder Spindelnase fährt in den Maschinentisch', bar: 'Bohrstange berührt die Bohrungswand (Bohrstange zu dick oder Bohrung zu klein)', flank: 'Nebenschneide schneidet – Bahn taucht steiler ein, als Eckenwinkel und Einstellwinkel der Wendeplatte erlauben', chuck: 'Werkzeug fährt ins Spannfutter (unter das Rohteil-Ende)', contour: 'Fertigkontur verletzt (Werkzeug schneidet zu tief)', back: 'Drehmeißel schneidet rückwärts (+Z) ins Material', side: 'Stechmeißel schneidet seitlich (Z-Bewegung im Material)', part: 'Bahn schneidet ins fertige Teil (tiefer als das Modell an dieser Stelle)', holder: 'Halter berührt das Material', shank: 'Schaft berührt das Material (Schneidenlänge zu kurz)', rapid: 'Eilgang ins Material', fixture: 'Werkzeug oder Halter fährt in ein Spannmittel', probe: 'Taster stößt außerhalb einer Messbewegung an (geschützte Bewegung bricht ab)' };
 
 // The checks of the NC window for one posted program (r = result of postProcess, g = its setup): every line against
 // the stock that is left, the clamping, the machine → { issues: [{ kind, k (line index) }], info, why }
-function ncReport(g, r, postId) {
-  let issues = [], info = null, why = null;
+function ncReport(g, r, postId, opt) {
+  let issues = [], info = null, why = null, partDeep = 0;
   if (!g?.stock) return { issues, info, why };
   if (g.kind === 'turn') return { issues: ncLatheCheck(g, parseNcLathe(r.code)), info, why };
   const tools = state.project.cam.tools, fam = String(postId || state.project.post.flavor);
   const hh = fam.startsWith('heidenhain') || /^\s*\d*\s*BEGIN PGM\b/m.test(r.code);
   const pts = parseNcPositions(r.code, hh, n => (+tools.find(t => +t.number === +n)?.dia || 0) / 2);
-  issues = ncCollisions(g, pts);
+  issues = ncCollisions(g, pts, opt);
+  partDeep = issues.partDeep || 0;
   if (hh) issues.push(...ncHeidenhainCheck(r.code));
   try { const mc = ncMachineCheck(g, pts); issues.push(...mc.issues); info = mc.info; why = mc.why; } catch (e) { console.warn(e); }
   const nA = pts.filter(p => p?.a != null && Math.abs((((p.a % 360) + 540) % 360) - 180) < 179.999).length;
-  if (nA && [...(g.results?.values() || [])].some(x => x?.rotary && !x.error)) issues = issues.filter(is => !['holder', 'shank', 'rapid', 'contour', 'probe'].includes(is.kind));
+  if (nA && [...(g.results?.values() || [])].some(x => x?.rotary && !x.error)) issues = issues.filter(is => !['holder', 'shank', 'rapid', 'contour', 'probe', 'part'].includes(is.kind));
   if (nA) try { issues.push(...ncRotaryCheck(g, pts)); } catch (e) { console.warn(e); }
-  return { issues, info, why };
+  return { issues, info, why, partDeep: issues.some(is => is.kind === 'part') ? partDeep : 0 };
 }
 
 // Heidenhain Klartext: syntax check of the program as the control reads it (line by line, before it runs)
@@ -13789,3 +13979,4 @@ function openPostDialog(saved = null) {
   // steps waiting for the full kernel (delete face, fillet with radius points) are computed as soon as it is there
   onFullKernel(() => { clearTimelineCache(); model.key = null; renderAll(); });
 })();
+

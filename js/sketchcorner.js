@@ -238,6 +238,11 @@ export function cornerAt(entities, p, tol) {
       for (const k of [0, 2]) if (curveCorner(entities, `${e.id}:p${k}`)) consider(`${e.id}:p${k}`, [+e.pts[k][0], +e.pts[k][1]]);
     }
   }
+  // a rounding or chamfer that is an entity of its own: picked at its middle, to change or remove it
+  for (const e of entities) {
+    if (e.cons || !(isArcE(e) || (e.chamfer && plainOpen(e) && e.pts.length === 2)) || !bridge(entities, e.id)) continue;
+    consider(`${e.id}:b`, e.pts.length === 3 ? [+e.pts[1][0], +e.pts[1][1]] : [(+e.pts[0][0] + +e.pts[1][0]) / 2, (+e.pts[0][1] + +e.pts[1][1]) / 2]);
+  }
   return best;
 }
 
@@ -343,8 +348,106 @@ export function filletCurves(entities, ref, r, arcId, newId) {
   return { moves: [cut(A, ta), cut(B, tb)], arc, drop: [`${A.e.id}:p${A.k}`, `${B.e.id}:p${B.k}`], cons, r, centre: O };
 }
 
+/**
+ * A chamfer where a line meets an arc or two arcs meet: both are cut back by d1 / d2 (measured along the curve) and
+ * a straight line (id lineId, marked chamfer) joins the two points. Same result shape as filletCurves.
+ */
+export function chamferCurves(entities, ref, d1, d2, lineId, newId) {
+  const pair = curvePair(entities, ref);
+  if (!pair || !(d1 > 0) || !(d2 > 0)) return null;
+  const r6 = p => [+p[0].toFixed(6), +p[1].toFixed(6)];
+  const at = (X, d) => {
+    if (X.kind === 'L') return d < X.L - 1e-9 ? { T: [X.P[0] + X.d[0] * d, X.P[1] + X.d[1] * d], da: 0 } : null;
+    const da = (Math.sign(X.sw) * d) / X.R;
+    return Math.abs(da) < Math.abs(X.sw) - 1e-9 ? { T: [X.c[0] + X.R * Math.cos(X.a0 + da), X.c[1] + X.R * Math.sin(X.a0 + da)], da } : null;
+  };
+  const [A, B] = pair, ta = at(A, d1), tb = at(B, d2);
+  if (!ta || !tb) return null;
+  const cut = (X, t) => {
+    const pts = X.e.pts.map(p => [p[0], p[1]]);
+    pts[X.k] = r6(t.T);
+    if (X.kind === 'A') { const am = X.a0 + (t.da + X.sw) / 2; pts[1] = r6([X.c[0] + X.R * Math.cos(am), X.c[1] + X.R * Math.sin(am)]); }
+    return { id: X.e.id, pts };
+  };
+  return { moves: [cut(A, ta), cut(B, tb)], arc: { id: lineId, type: 'poly', closed: false, chamfer: true, pts: [r6(ta.T), r6(tb.T)] }, drop: [`${A.e.id}:p${A.k}`, `${B.e.id}:p${B.k}`],
+    cons: [{ id: newId(), type: 'coincident', refs: [`${lineId}:p0`, `${A.e.id}:p${A.k}`] }, { id: newId(), type: 'coincident', refs: [`${lineId}:p1`, `${B.e.id}:p${B.k}`] }] };
+}
+
+// An arc that rounds a corner (it ends on two other curves and runs on tangentially from both), or a line made
+// as a chamfer between two curves: the curve at each of its ends → { e, X, Y, r? } or null
+function bridge(entities, id) {
+  const e = entities.find(x => x.id === id);
+  if (!e || e.cons) return null;
+  const arc = isArcE(e), line = !arc && plainOpen(e) && e.pts.length === 2 && e.chamfer;
+  if (!arc && !line) return null;
+  const ends = [0, e.pts.length - 1].map(k => {
+    const P = e.pts[k].map(Number), hit = [];
+    for (const x of entities) {
+      if (x === e || x.cons) continue;
+      if (isArcE(x)) { for (const q of [0, 2]) if (near(x.pts[q].map(Number), P)) hit.push([x, q]); }
+      else if (plainOpen(x)) { for (const q of [0, x.pts.length - 1]) if (near(x.pts[q].map(Number), P)) hit.push([x, q]); }
+    }
+    return hit.length === 1 ? curveEnd(...hit[0]) : null;
+  });
+  if (!ends[0] || !ends[1] || ends[0].e === ends[1].e) return null;
+  if (!arc) return { e, X: ends[0], Y: ends[1] };
+  // (tangent: the neighbour leaves the end along the tangent of the arc there)
+  const ci = circle3(e.pts[0].map(Number), e.pts[1].map(Number), e.pts[2].map(Number));
+  if (!ci) return null;
+  const dir = X => (X.kind === 'L' ? X.d : [-(X.P[1] - X.c[1]) / X.R, (X.P[0] - X.c[0]) / X.R]);
+  for (const X of ends) { const d = dir(X), rad = [(X.P[0] - ci.c[0]) / ci.r, (X.P[1] - ci.c[1]) / ci.r]; if (Math.abs(d[0] * rad[0] + d[1] * rad[1]) > 2e-3) return null; }
+  return { e, X: ends[0], Y: ends[1], r: ci.r };
+}
+/** The radius of the rounding arc id (0 for a chamfer line), or null when the entity is neither. */
+export function bridgeRadius(entities, id) { const b = bridge(entities, id); return b ? b.r || 0 : null; }
+
+/**
+ * Takes a rounding or chamfer between two curves away again: the two curves run on to where they meet and the
+ * arc or line between them goes. Returns { moves, remove (its id), join (the two end refs, coincident again) } or
+ * null when the curves do not meet.
+ */
+export function unbridge(entities, id) {
+  const b = bridge(entities, id);
+  if (!b) return null;
+  const { X, Y } = b, M = b.e.pts.length === 3 ? b.e.pts[1].map(Number) : [(+b.e.pts[0][0] + +b.e.pts[1][0]) / 2, (+b.e.pts[0][1] + +b.e.pts[1][1]) / 2], cand = [];
+  if (X.kind === 'L' && Y.kind === 'L') {
+    const den = X.d[0] * Y.d[1] - X.d[1] * Y.d[0];
+    if (Math.abs(den) > 1e-9) { const w = sub(Y.P, X.P), u = (w[0] * Y.d[1] - w[1] * Y.d[0]) / den; cand.push([X.P[0] + X.d[0] * u, X.P[1] + X.d[1] * u]); }
+  } else if (X.kind === 'L' || Y.kind === 'L') {
+    const [l, c] = X.kind === 'L' ? [X, Y] : [Y, X], w = sub(l.P, c.c), bb = w[0] * l.d[0] + w[1] * l.d[1], disc = bb * bb - (w[0] * w[0] + w[1] * w[1] - c.R * c.R);
+    if (disc >= 0) for (const u of [-bb - Math.sqrt(disc), -bb + Math.sqrt(disc)]) cand.push([l.P[0] + l.d[0] * u, l.P[1] + l.d[1] * u]);
+  } else {
+    const w = sub(Y.c, X.c), D = len(w);
+    if (D > 1e-12 && D <= X.R + Y.R && D >= Math.abs(X.R - Y.R)) {
+      const a = (X.R * X.R - Y.R * Y.R + D * D) / (2 * D), hh = Math.sqrt(Math.max(0, X.R * X.R - a * a)), m = [X.c[0] + (w[0] * a) / D, X.c[1] + (w[1] * a) / D];
+      cand.push([m[0] - (w[1] * hh) / D, m[1] + (w[0] * hh) / D], [m[0] + (w[1] * hh) / D, m[1] - (w[0] * hh) / D]);
+    }
+  }
+  // (the corner lies beyond the end of both curves – not somewhere along them)
+  const beyond = (C, P) => (C.kind === 'L' ? (P[0] - C.P[0]) * C.d[0] + (P[1] - C.P[1]) * C.d[1] < 1e-7 : !C.at(P));
+  const ok = cand.filter(P => beyond(X, P) && beyond(Y, P)).sort((p, q) => len(sub(p, M)) - len(sub(q, M)));
+  if (!ok.length) return null;
+  // (to 5 places: the corner comes back to where it was, not a rounding error beside it)
+  const r6 = p => [+p[0].toFixed(5) + 0, +p[1].toFixed(5) + 0], P = r6(ok[0]);
+  const grow = C => {
+    const pts = C.e.pts.map(p => [p[0], p[1]]);
+    pts[C.k] = r6(P);
+    if (C.kind === 'A') {
+      const aP = Math.atan2(P[1] - C.c[1], P[0] - C.c[0]), da = C.sw > 0 ? -norm(C.a0 - aP) : norm(aP - C.a0), am = C.a0 + (da + C.sw) / 2;
+      pts[1] = r6([C.c[0] + C.R * Math.cos(am), C.c[1] + C.R * Math.sin(am)]);
+    }
+    return { id: C.e.id, pts };
+  };
+  return { moves: [grow(X), grow(Y)], remove: b.e.id, join: [`${X.e.id}:p${X.k}`, `${Y.e.id}:p${Y.k}`], P: r6(P) };
+}
+
 // outline of the entity with the corner at ref changed (for the preview while hovering)
 export function cornerPreview(entities, ref, kind, value) {
+  if (String(ref).endsWith(':b')) return null;
+  if (curveCorner(entities, ref) && kind === 'chamfer') {
+    const v = Array.isArray(value) ? value.map(Number) : [+value, +value], f = chamferCurves(entities, ref, v[0], v[1] ?? v[0], 'tmp', () => 'tmp');
+    return f ? { pts: f.arc.pts, closed: false } : null;
+  }
   if (curveCorner(entities, ref)) {
     const f = kind === 'fillet' ? filletCurves(entities, ref, Array.isArray(value) ? +value[0] : +value, 'tmp', () => 'tmp') : null;
     return f ? { pts: [f.arc.pts[0], ...arcSegPts({ a: f.arc.pts[0], m: f.arc.pts[1], b: f.arc.pts[2], c: f.centre, r: f.r })], closed: false } : null;

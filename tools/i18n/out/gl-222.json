@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: as dúas curvas xa non se atopan – a esquina non se pode restaurar.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: {1} esquina(s) restaurada(s).",
+ ", {0} ohne Platz für diesen Abstand": ", {0} sen espazo para esta distancia",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Chafrán: {0} esquina(s) nun arco – ambas as curvas acurtadas, liña inserida{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Chafrán: esta distancia é maior que unha das dúas curvas.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: aquí non hai nada que eliminar – fai clic no propio empalme ou chafrán e introduce 0."
+}

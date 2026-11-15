@@ -819,5 +819,17 @@
  "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · 厚度 {2} · r {3}",
  "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "槽钢 UPE，平行翼缘 (DIN 1026-2)",
  "I-Träger IPN (DIN 1025-1)": "工字钢 IPN (DIN 1025-1)",
- "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · 腹板 {2} · 翼缘 {3}（斜度 14 %）"
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · 腹板 {2} · 翼缘 {3}（斜度 14 %）",
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}：两条曲线不再相交——无法恢复该角。",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}：已恢复 {1} 个角。",
+ ", {0} ohne Platz für diesen Abstand": "，{0} 处放不下该距离",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "倒角：圆弧处 {0} 个角——两条曲线已缩短，并插入直线{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "倒角：该距离超过了其中一条曲线的长度。",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}：此处没有可移除的内容——请点击圆角或倒角本身并输入 0。",
+ "; {0} Körper ohne Werkstoff als Aluminium gerechnet": "；{0} 个未指定材料的实体按铝计算",
+ "URDF exportiert: {0} Körper, {1} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{2}": "已导出 URDF：{0} 个实体，{1} 个活动关节——单位为米，当前姿态为零位{2}",
+ "Fasenabstand (mm, ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen):": "倒角距离（mm，不等距：“2; 3”，带角度：“2; 30°”，0 = 移除）：",
+ "Fase: der Winkel muss zwischen 0° und 90° liegen.": "倒角：角度必须在 0° 到 90° 之间。",
+ "Bahn schneidet ins fertige Teil (tiefer als das Modell an dieser Stelle)": "刀路切入成品零件（比该处的模型更深）",
+ "Als URDF exportieren (.zip, Baugruppe mit Gelenken)": "导出为 URDF（.zip，带关节的装配体）"
 }

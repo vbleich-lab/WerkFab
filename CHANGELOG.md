@@ -1,5 +1,20 @@
 # Änderungen
 
+## v1.0.0-rc.16 – 2026-11-15
+
+### Skizze
+- **Fase zwischen Linie und Bogen**: das Skizzenwerkzeug „Fase“ arbeitet jetzt auch dort, wo eine Linie auf einen Bogen trifft oder zwei Bögen zusammenstoßen. Beide Kurven werden um den Abstand gekürzt (am Bogen entlang des Bogens gemessen), eine Linie verbindet die Enden. Die Vorschau zeigt sie schon beim Überfahren der Ecke.
+- **Rundung und Fase am Bogen ändern oder entfernen**: wer mit „Abrunden“ oder „Fase“ eine solche Rundung oder Fase selbst anklickt, bekommt ihren Wert vorgeschlagen und kann ihn ändern, aus der Fase eine Rundung machen (und umgekehrt) oder mit 0 die ursprüngliche Ecke wiederherstellen – beide Kurven laufen wieder bis zum Schnittpunkt.
+- **Fase mit Abstand und Winkel**: neben „2; 3“ für zwei Abstände nimmt das Werkzeug „Fase“ jetzt auch „2; 30°“ – ein Abstand und der Winkel gegen die Kante, auf der er liegt. Ist der Abstand ein Parameter, bleibt die Fase als Formel an ihm hängen.
+
+### KI-Agenten
+- **Simulation als Bild**: ein Agent kann die Abtragssimulation eines Setups laufen lassen (bis zum Ende oder zu einem Anteil der Laufzeit) und bekommt ein Bild des Rohteils zurück, dazu die Kollisionen (Eilgang im Material, Schaft, Halter) und den Vergleich mit dem Teil: Anteil auf Maß, Restmaterial, zu tief geschnitten und der tiefste Schnitt ins Teil in Millimetern. Damit erkennt er auch eine Bahn, die ins fertige Teil schneidet.
+- **Setups löschen**: Setups lassen sich samt ihren Operationen entfernen; das letzte Setup bleibt.
+- **Prüfung gegen das fertige Teil**: die Programmprüfung für Agenten meldet jetzt auch Bahnen, die tiefer schneiden als das Modell an dieser Stelle – mit den Zeilen und dem tiefsten Schnitt in Millimetern. Geprüft werden Schaft-, Plan-, Kugel- und Torusfräser in 3-Achs-Bewegungen; seitlich ab etwa einer Rasterzelle (0,3 mm, bei großen Teilen mehr). Ein Schnitt, der nicht im Modell steht (Gravur, Eckenfreistich, Tasche nur aus einer Skizze), wird ebenfalls gemeldet – die Prüfung lässt sich dafür abschalten.
+
+### Baugruppe
+- **URDF-Export**: Datei → „Als URDF exportieren“ schreibt die Baugruppe als Roboterbeschreibung in ein Zip – jeder sichtbare Körper ein Glied mit Netz (STL, in Metern), Farbe, Masse, Schwerpunkt und Trägheit aus dem Werkstoff, jedes Gelenk ein Gelenk mit Achse und Grenzen. Dreh- und Schiebegelenke gehen direkt über, zylindrische, planare und Kugelgelenke als Kette aus Dreh- und Schiebegelenken; eine Bewegungsverknüpfung wird zu „mimic“. Die Stellung beim Export ist die Nullstellung. Körper ohne Werkstoff zählen als Aluminium; die Netze sind über relative Pfade eingebunden.
+
 ## v1.0.0-rc.15 – 2026-11-15
 
 ### Skizze

@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: две кривые больше не пересекаются – угол восстановить нельзя.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: восстановлено углов: {1}.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} без места для этого расстояния",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Фаска: углов у дуги – {0}; обе кривые укорочены, линия добавлена{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Фаска: это расстояние больше длины одной из двух кривых.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: здесь нечего удалять – щёлкните по самому скруглению или фаске и введите 0."
+}

@@ -814,5 +814,17 @@
  "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · thickness {2} · r {3}",
  "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "Channel UPE, parallel flanges (DIN 1026-2)",
  "I-Träger IPN (DIN 1025-1)": "I-beam IPN (DIN 1025-1)",
- "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · web {2} · flange {3} (14 % slope)"
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · web {2} · flange {3} (14 % slope)",
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: the two curves no longer meet – the corner cannot be restored.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: {1} corner(s) restored.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} with no room for this distance",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Chamfer: {0} corner(s) at an arc – both curves shortened, line added{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Chamfer: this distance is longer than one of the two curves.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: nothing to remove here – click the fillet or chamfer itself and enter 0.",
+ "; {0} Körper ohne Werkstoff als Aluminium gerechnet": "; {0} bodies without a material counted as aluminium",
+ "URDF exportiert: {0} Körper, {1} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{2}": "URDF exported: {0} bodies, {1} moving joints – in metres, the present pose is the zero pose{2}",
+ "Fasenabstand (mm, ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen):": "Chamfer distance (mm, unequal: \"2; 3\", with an angle: \"2; 30°\", 0 = remove):",
+ "Fase: der Winkel muss zwischen 0° und 90° liegen.": "Chamfer: the angle must lie between 0° and 90°.",
+ "Bahn schneidet ins fertige Teil (tiefer als das Modell an dieser Stelle)": "Path cuts into the finished part (deeper than the model at this place)",
+ "Als URDF exportieren (.zip, Baugruppe mit Gelenken)": "Export as URDF (.zip, assembly with joints)"
 }

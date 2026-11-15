@@ -124,7 +124,8 @@ function setupAgent(win) {
       const r = await ask(String(m.params?.name || ''), m.params?.arguments || {});
       if (!r.ok) return ok({ content: [{ type: 'text', text: String(r.error) }], isError: true });
       const img = r.result && typeof r.result.image === 'string' && /^data:(image\/[a-z]+);base64,(.*)$/s.exec(r.result.image);
-      if (img) return ok({ content: [{ type: 'image', data: img[2], mimeType: img[1] }] });
+      // (a picture, and what else the tool says about it as text)
+      if (img) { const { image, ...rest } = r.result; return ok({ content: [{ type: 'image', data: img[2], mimeType: img[1] }, ...(Object.keys(rest).length ? [{ type: 'text', text: JSON.stringify(rest, null, 1) }] : [])] }); }
       return ok({ content: [{ type: 'text', text: typeof r.result === 'string' ? r.result : JSON.stringify(r.result) }] });
     }
     return { jsonrpc: '2.0', id: m.id, error: { code: -32601, message: 'Method not found' } };

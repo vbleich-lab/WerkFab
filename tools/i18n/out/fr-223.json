@@ -1,0 +1,8 @@
+{
+ "; {0} Körper ohne Werkstoff als Aluminium gerechnet": "; {0} corps sans matériau comptés comme aluminium",
+ "URDF exportiert: {0} Körper, {1} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{2}": "URDF exporté : {0} corps, {1} liaisons mobiles – en mètres, la position actuelle est la position zéro{2}",
+ "Fasenabstand (mm, ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen):": "Distance du chanfrein (mm, inégale : « 2; 3 », avec angle : « 2; 30° », 0 = supprimer) :",
+ "Fase: der Winkel muss zwischen 0° und 90° liegen.": "Chanfrein : l'angle doit être compris entre 0° et 90°.",
+ "Bahn schneidet ins fertige Teil (tiefer als das Modell an dieser Stelle)": "La trajectoire entame la pièce finie (plus profonde que le modèle à cet endroit)",
+ "Als URDF exportieren (.zip, Baugruppe mit Gelenken)": "Exporter en URDF (.zip, assemblage avec liaisons)"
+}

@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: abas līknes vairs nesatiekas – stūri nevar atjaunot.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: atjaunoti stūri: {1}.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} bez vietas šim attālumam",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Nošķēlums: {0} stūri(-u) uz loka – abas līknes saīsinātas, līnija ievietota{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Nošķēlums: šis attālums ir garāks par vienu no abām līknēm.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: šeit nav ko noņemt – noklikšķiniet uz paša noapaļojuma vai nošķēluma un ievadiet 0."
+}

@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0} : les deux courbes ne se rejoignent plus – le coin ne peut pas être rétabli.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0} : {1} coin(s) rétabli(s).",
+ ", {0} ohne Platz für diesen Abstand": ", {0} sans place pour cette distance",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Chanfrein : {0} coin(s) sur un arc – les deux courbes sont raccourcies, ligne insérée{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Chanfrein : cette distance est plus longue que l'une des deux courbes.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0} : il n'y a rien à supprimer ici – cliquez sur le congé ou le chanfrein lui-même et saisissez 0."
+}

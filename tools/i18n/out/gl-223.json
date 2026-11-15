@@ -1,0 +1,8 @@
+{
+ "; {0} Körper ohne Werkstoff als Aluminium gerechnet": "; {0} corpos sen material calculados como aluminio",
+ "URDF exportiert: {0} Körper, {1} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{2}": "URDF exportado: {0} corpos, {1} articulacións móbiles – en metros, a posición actual é a posición cero{2}",
+ "Fasenabstand (mm, ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen):": "Distancia do chafrán (mm, desigual: „2; 3“, con ángulo: „2; 30°“, 0 = eliminar):",
+ "Fase: der Winkel muss zwischen 0° und 90° liegen.": "Chafrán: o ángulo debe estar entre 0° e 90°.",
+ "Bahn schneidet ins fertige Teil (tiefer als das Modell an dieser Stelle)": "A traxectoria corta na peza acabada (máis fondo que o modelo neste punto)",
+ "Als URDF exportieren (.zip, Baugruppe mit Gelenken)": "Exportar como URDF (.zip, montaxe con articulacións)"
+}

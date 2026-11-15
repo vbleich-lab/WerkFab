@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: обидві криві більше не перетинаються – кут не можна відновити.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: відновлено кутів: {1}.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} без місця для цієї відстані",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Фаска: кутів на дузі: {0} – обидві криві вкорочено, лінію вставлено{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Фаска: ця відстань більша за довжину однієї з двох кривих.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: тут нічого видаляти – клацніть саме скруглення або фаску та введіть 0."
+}

@@ -1,0 +1,8 @@
+{
+ "; {0} Körper ohne Werkstoff als Aluminium gerechnet": "; 材料のないボディ{0}個はアルミニウムとして計算しました",
+ "URDF exportiert: {0} Körper, {1} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{2}": "URDFをエクスポートしました：ボディ{0}個、可動ジョイント{1}個（単位メートル、現在の姿勢がゼロ姿勢）{2}",
+ "Fasenabstand (mm, ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen):": "面取り距離（mm、不等：「2; 3」、角度指定：「2; 30°」、0＝削除）：",
+ "Fase: der Winkel muss zwischen 0° und 90° liegen.": "面取り：角度は0°から90°の間でなければなりません。",
+ "Bahn schneidet ins fertige Teil (tiefer als das Modell an dieser Stelle)": "パスが完成品に食い込んでいます（この位置でモデルより深い）",
+ "Als URDF exportieren (.zip, Baugruppe mit Gelenken)": "URDFとしてエクスポート（.zip、ジョイント付きアセンブリ）"
+}

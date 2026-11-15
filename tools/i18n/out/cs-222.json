@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: obě křivky se již nesetkávají – roh nelze obnovit.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: obnoveno rohů: {1}.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} bez místa pro tuto vzdálenost",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Zkosení: {0} roh(ů) na oblouku – obě křivky zkráceny, úsečka vložena{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Zkosení: tato vzdálenost je delší než jedna z obou křivek.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: zde není co odstranit – klikněte na samotné zaoblení nebo zkosení a zadejte 0."
+}

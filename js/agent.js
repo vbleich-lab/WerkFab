@@ -40,8 +40,9 @@ defaults the app would choose (tool by type, the last fitting sketch) – then r
 fields with update_operation. Operation types: ${Object.keys(OP_TYPES).join(', ')}.
 Tool types: ${Object.keys(TOOL_TYPES).join(', ')}. A 2D operation follows a sketch ("sketch": id, "entities": "all"
 or a list of entity ids; "geomSource": "sketch") or faces picked in the model ("geomSource": "model"); "depth" is how deep it cuts below the top of the sketch plane. get_nc_program posts a setup
-with the post processor of the design or another one from the list in get_cam; check_nc_program reports collisions
-and machine limits of that program. add_setup adds another clamping (e.g. the part turned over).
+with the post processor of the design or another one from the list in get_cam; check_nc_program reports collisions,
+machine limits and cuts into the finished part of that program. add_setup adds another clamping (e.g. the part turned over). simulate runs the material removal and returns a picture
+of the stock, the collisions and how the stock compares with the part (on size, material left, cut too deep).
 An NC program is a draft: tell the user to check it in the simulation and with a dry run before cutting.
 The user watches the same window: keep the design tidy, name features, and do not delete what you did not make
 unless asked.`;
@@ -68,7 +69,9 @@ export const AGENT_TOOLS = [
   { name: 'delete_operations', description: 'Remove operations by id.', inputSchema: obj({ ids: { type: 'array', items: { type: 'string' } } }, ['ids']) },
   { name: 'update_setup', description: 'Change fields of a setup ("patch" is merged; null removes a field) – e.g. name, stock margins, origin, safeZ. Read the fields with get_cam full first.', inputSchema: obj({ id: { type: 'string' }, patch: { type: 'object' } }, ['id', 'patch']) },
   { name: 'add_setup', description: 'Add a setup (a clamping of the part). It starts as a copy of the setup "copy_of" (default: the last one); "fields" are merged in – e.g. name, orientation ("top", "bottom", "front", "back", "left", "right"), stock margins, origin. Returns get_cam.', inputSchema: obj({ copy_of: { type: 'string' }, fields: { type: 'object' } }) },
-  { name: 'check_nc_program', description: 'Post a setup and check the program line by line: holder and shank against the remaining stock and the clamping, rapids through material, machine travels and limits. It does not tell whether a path cuts into the finished part – compare the result with the model. Returns the issues by kind with the lines they are on; "clean": true when nothing was found. Optional: setup (id), post (id).', inputSchema: obj({ setup: { type: 'string' }, post: { type: 'string' } }) },
+  { name: 'delete_setups', description: 'Remove setups by id, together with their operations. The last setup stays.', inputSchema: obj({ ids: { type: 'array', items: { type: 'string' } } }, ['ids']) },
+  { name: 'simulate', description: 'Run the material removal simulation of a setup and return a picture of the stock (PNG) with what was found: collisions (rapid in material, shank, holder) and the comparison with the part – share on size, material left, cut too deep (gouge) and the deepest cut into the part in mm. Optional: setup (id), at (0…1 of the run time, default 1 = the end), view (iso, top, front, right, current).', inputSchema: obj({ setup: { type: 'string' }, at: { type: 'number' }, view: { type: 'string', enum: ['iso', 'top', 'front', 'right', 'current'] } }) },
+  { name: 'check_nc_program', description: 'Post a setup and check the program line by line: holder and shank against the remaining stock and the clamping, rapids through material, machine travels and limits, and paths that cut into the finished part (kind "part", with deepestCutIntoPart in mm; end mills, face mills, ball and bull nose cutters on 3-axis moves; sideways from about one grid cell, 0.3 mm or more on large parts). A cut that is not in the model – an engraving, a dog-bone relief, a pocket milled from a sketch only – is reported as "part" too: set against_part to false to leave that check out. Returns the issues by kind with the lines they are on; "clean": true when nothing was found. Optional: setup (id), post (id), against_part (default true).', inputSchema: obj({ setup: { type: 'string' }, post: { type: 'string' }, against_part: { type: 'boolean' } }) },
   { name: 'get_nc_program', description: 'The NC program of a setup as text, with line count, run time and warnings. Optional: setup (id, default the first), post (id of a post processor from get_cam). A draft – it must be verified before cutting.', inputSchema: obj({ setup: { type: 'string' }, post: { type: 'string' } }) },
   { name: 'undo', description: 'Take back the last change.', inputSchema: obj() },
   { name: 'redo', description: 'Do the last undone change again.', inputSchema: obj() },
@@ -206,7 +209,9 @@ export async function agentCall(name, a, api) {
       await api.settled();
       return api.cam(false);
     }
-    case 'check_nc_program': { await api.settled(); return api.check(a.setup || null, a.post || null); }
+    case 'delete_setups': { const r = api.deleteSetups(a.ids || []); await api.settled(); return { ...r, ...api.cam(false) }; }
+    case 'simulate': return api.simulate(a.setup || null, a.at, a.view || 'iso');
+    case 'check_nc_program': { await api.settled(); return api.check(a.setup || null, a.post || null, a.against_part); }
     case 'get_nc_program': { await api.settled(); return api.nc(a.setup || null, a.post || null); }
     case 'undo': api.undo(); return errorsNow();
     case 'redo': api.redo(); return errorsNow();

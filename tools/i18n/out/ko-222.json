@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: 두 곡선이 더 이상 만나지 않아 모서리를 복원할 수 없습니다.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: 코너 {1}개를 복원했습니다.",
+ ", {0} ohne Platz für diesen Abstand": ", {0}은(는) 이 거리를 둘 공간이 없음",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "모따기: 호의 코너 {0}개 – 두 곡선을 줄이고 선을 삽입했습니다{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "모따기: 이 거리가 두 곡선 중 하나보다 깁니다.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: 여기에는 제거할 것이 없습니다. 모깎기 또는 모따기 자체를 클릭하고 0을 입력하십시오."
+}

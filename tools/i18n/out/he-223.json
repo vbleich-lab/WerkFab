@@ -1,0 +1,8 @@
+{
+ "; {0} Körper ohne Werkstoff als Aluminium gerechnet": "; {0} גופים ללא חומר חושבו כאלומיניום",
+ "URDF exportiert: {0} Körper, {1} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{2}": "URDF יוצא: {0} גופים, {1} מפרקים נעים – במטרים, המצב הנוכחי הוא מצב האפס{2}",
+ "Fasenabstand (mm, ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen):": "מרחק פאזה (מ\"מ, לא שווה: „2; 3“, עם זווית: „2; 30°“, 0 = הסרה):",
+ "Fase: der Winkel muss zwischen 0° und 90° liegen.": "פאזה: הזווית חייבת להיות בין 0° ל-90°.",
+ "Bahn schneidet ins fertige Teil (tiefer als das Modell an dieser Stelle)": "המסלול חותך לתוך החלק המוגמר (עמוק יותר מהמודל במקום זה)",
+ "Als URDF exportieren (.zip, Baugruppe mit Gelenken)": "ייצוא כ-URDF (.zip, הרכבה עם מפרקים)"
+}

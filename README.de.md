@@ -13,7 +13,7 @@ WerkFab ist ein parametrisches 3D-CAD mit integriertem CAM. Teile werden über S
 > [!CAUTION]
 > **Jedes NC-Programm muss vor dem ersten Einsatz geprüft werden – an der Maschine im Probelauf (Einzelsatz, reduzierter Eilgang, ohne Werkstück oder mit Abstand in Z) oder in einem externen NC-Simulator.** Die Simulation in WerkFab ersetzt diese Prüfung nicht. WerkFab ist freie Software ohne jede Gewährleistung; für Schäden an Maschine, Werkzeug, Werkstück oder Personen wird nicht gehaftet (siehe [Sicherheit](#sicherheit-nc-programme-immer-vorher-simulieren)).
 
-> **Status: Release Candidate 15 (v1.0.0-rc.15).** Der Funktionsumfang ist vollständig für 1.0.
+> **Status: Release Candidate 16 (v1.0.0-rc.16).** Der Funktionsumfang ist vollständig für 1.0.
 
 ![Konstruktion über die Zeitachse, danach Fräsbahnen und Simulation mit Materialabtrag](docs/media/demo.gif)
 
@@ -90,10 +90,10 @@ WerkFab ist ein parametrisches 3D-CAD mit integriertem CAM. Teile werden über S
 - **Aussehen**: zehn Designs (hell, dunkel, hoher Kontrast), frei wählbare Akzentfarbe, Farbe und Größe der Symbole, Dichte, Eckenform, Schrift, Deckkraft der Fenster, Größe der Oberfläche und benannte Profile aller Einstellungen
 - **Updates**: Das Programm sieht beim Start auf GitHub nach einer neuen Version. Die installierte Windows-App und das Linux-AppImage laden und installieren sie auf Wunsch selbst; der Windows-Ordner ohne Installation, macOS und die Browser-Version zeigen einen Hinweis mit der Download-Seite. Diese Abfrage ist die einzige Verbindung ins Netz, die WerkFab von sich aus aufbaut, und sie lässt sich abschalten (Voreinstellungen → Allgemein → Updates).
 - **Bauteilkatalog**: Normteile, Rundrohre, Quadrat- und Rechteckrohre, I-Träger (IPE, IPN, HEA, HEB), U-Stahl (UPN, UPE), T-Stahl, Winkel-, Flach-, Vierkant- und Rundstahl – durchsuchbar nach Name, Norm oder Maß, mit gezeichneter Ansicht und Größentabelle
-- **KI-Agenten**: die Desktop-App öffnet auf Wunsch einen lokalen Anschluss nach dem Model Context Protocol (MCP) – Voreinstellungen → KI-Agenten zeigt Adresse, Schlüssel und den Befehl zum Verbinden. Ein Agent liest und ändert den geöffneten Entwurf, fügt Katalogteile ein, legt Werkzeuge und Fertigungsoperationen an, gibt das NC-Programm aus (ein Entwurf, der zu prüfen bleibt) und lässt es auf Kollisionen prüfen, fragt Körper, Volumen und Fehler ab, holt ein Bild der Ansicht und gibt STEP oder STL aus. Ab Werk aus, nur auf diesem Rechner, nur mit Schlüssel; kein Zugriff auf Dateien oder Einstellungen. Dieselben Befehle laufen auch aus einem JSON-Skript (Datei → Befehlsskript ausführen)
+- **KI-Agenten**: die Desktop-App öffnet auf Wunsch einen lokalen Anschluss nach dem Model Context Protocol (MCP) – Voreinstellungen → KI-Agenten zeigt Adresse, Schlüssel und den Befehl zum Verbinden. Ein Agent liest und ändert den geöffneten Entwurf, fügt Katalogteile ein, legt Werkzeuge und Fertigungsoperationen an, gibt das NC-Programm aus (ein Entwurf, der zu prüfen bleibt) und lässt es auf Kollisionen und auf Schnitte ins fertige Teil prüfen, lässt die Abtragssimulation laufen und bekommt ihr Bild mit dem Vergleich zum Teil, fragt Körper, Volumen und Fehler ab, holt ein Bild der Ansicht und gibt STEP oder STL aus. Ab Werk aus, nur auf diesem Rechner, nur mit Schlüssel; kein Zugriff auf Dateien oder Einstellungen. Dieselben Befehle laufen auch aus einem JSON-Skript (Datei → Befehlsskript ausführen)
 - **Konfigurationen**: benannte Sätze von Parameterwerten – ein Entwurf, mehrere Varianten
 - Markierungsmenü (Rechtsklick), ViewCube, Tastenkürzel (z. B. Q Drücken/Ziehen, F Verrundung, M Verschieben, I Messen, X Konstruktionslinie)
-- Mehrere Dokumente in Tabs, Versionsstände beim Speichern; Import von STEP, IGES, STL, OBJ und DXF, Export als STEP, IGES, STL und glTF, Werkzeugbibliotheken und Postprozessoren (.cps)
+- Mehrere Dokumente in Tabs, Versionsstände beim Speichern; Import von STEP, IGES, STL, OBJ und DXF, Export als STEP, IGES, STL und glTF, Baugruppen mit ihren Gelenken als URDF (Roboterbeschreibung mit Netzen, Massen und Trägheit), Werkzeugbibliotheken und Postprozessoren (.cps)
 
 ---
 

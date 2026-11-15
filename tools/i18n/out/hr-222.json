@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: obje se krivulje više ne sijeku – kut se ne može vratiti.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: vraćeno kutova: {1}.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} bez mjesta za ovaj razmak",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Skošenje: {0} kut(ova) na luku – obje krivulje skraćene, linija umetnuta{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Skošenje: ovaj razmak dulji je od jedne od dviju krivulja.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: ovdje nema ničega za uklanjanje – kliknite na samo zaobljenje ili skošenje i unesite 0."
+}

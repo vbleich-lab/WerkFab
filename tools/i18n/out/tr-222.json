@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: iki eğri artık birleşmiyor – köşe geri yüklenemez.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: {1} köşe geri yüklendi.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} bu mesafe için yer yok",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Pah: bir yayda {0} köşe – iki eğri kısaltıldı, çizgi eklendi{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Pah: bu mesafe iki eğriden birinden daha uzun.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: burada kaldırılacak bir şey yok – radyusun veya pahın kendisine tıklayıp 0 girin."
+}

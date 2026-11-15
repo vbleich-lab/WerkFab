@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: de to kurvene møtes ikke lenger – hjørnet kan ikke gjenopprettes.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: {1} hjørne(r) gjenopprettet.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} uten plass til denne avstanden",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Fas: {0} hjørne(r) ved en bue – begge kurver forkortet, linje satt inn{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Fas: denne avstanden er lengre enn en av de to kurvene.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: det er ingenting å fjerne her – klikk på selve avrundingen eller fasen og skriv inn 0."
+}

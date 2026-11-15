@@ -1,0 +1,8 @@
+{
+ "; {0} Körper ohne Werkstoff als Aluminium gerechnet": "; {0} legemer uden materiale regnet som aluminium",
+ "URDF exportiert: {0} Körper, {1} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{2}": "URDF eksporteret: {0} legemer, {1} bevægelige led – i meter, den nuværende stilling er nulstillingen{2}",
+ "Fasenabstand (mm, ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen):": "Affasningsafstand (mm, ulige: „2; 3“, med vinkel: „2; 30°“, 0 = fjern):",
+ "Fase: der Winkel muss zwischen 0° und 90° liegen.": "Affasning: vinklen skal ligge mellem 0° og 90°.",
+ "Bahn schneidet ins fertige Teil (tiefer als das Modell an dieser Stelle)": "Banen skærer ind i den færdige del (dybere end modellen på dette sted)",
+ "Als URDF exportieren (.zip, Baugruppe mit Gelenken)": "Eksportér som URDF (.zip, samling med led)"
+}

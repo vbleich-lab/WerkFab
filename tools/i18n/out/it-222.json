@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: le due curve non si incontrano più – l'angolo non può essere ripristinato.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: {1} angolo/i ripristinato/i.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} senza spazio per questa distanza",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Smusso: {0} angolo/i su un arco – entrambe le curve accorciate, linea inserita{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Smusso: questa distanza è maggiore di una delle due curve.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: qui non c'è nulla da rimuovere – fare clic sul raccordo o sullo smusso stesso e immettere 0."
+}

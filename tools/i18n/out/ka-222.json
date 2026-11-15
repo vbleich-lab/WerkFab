@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: ორივე მრუდი აღარ იკვეთება – კუთხის აღდგენა შეუძლებელია.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: აღდგენილია კუთხე: {1}.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} ამ მანძილისთვის ადგილის გარეშე",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "ფასკა: {0} კუთხე რკალზე – ორივე მრუდი დამოკლებულია, ხაზი ჩასმულია{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "ფასკა: ეს მანძილი ორიდან ერთ-ერთ მრუდზე გრძელია.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: აქ მოსაშორებელი არაფერია – დააწკაპუნეთ თვით მომრგვალებაზე ან ფასკაზე და შეიყვანეთ 0."
+}

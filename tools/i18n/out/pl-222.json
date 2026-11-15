@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: obie krzywe już się nie spotykają – narożnika nie można przywrócić.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: przywrócono narożniki: {1}.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} bez miejsca na tę odległość",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Fazowanie: narożniki przy łuku: {0} – obie krzywe skrócone, dodano linię{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Fazowanie: ta odległość jest większa niż jedna z obu krzywych.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: nie ma tu nic do usunięcia – kliknij samo zaokrąglenie lub fazę i wpisz 0."
+}

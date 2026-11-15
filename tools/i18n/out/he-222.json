@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: שני העקומים כבר אינם נפגשים – לא ניתן לשחזר את הפינה.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: {1} פינות שוחזרו.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} ללא מקום למרחק זה",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "פאזה: {0} פינות בקשת – שני העקומים קוצרו, קו נוסף{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "פאזה: מרחק זה ארוך מאחד משני העקומים.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: אין כאן מה להסיר – יש ללחוץ על העיגול או הפאזה עצמם ולהזין 0."
+}

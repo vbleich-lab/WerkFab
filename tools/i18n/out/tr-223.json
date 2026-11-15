@@ -1,0 +1,8 @@
+{
+ "; {0} Körper ohne Werkstoff als Aluminium gerechnet": "; malzemesiz {0} gövde alüminyum olarak hesaplandı",
+ "URDF exportiert: {0} Körper, {1} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{2}": "URDF dışa aktarıldı: {0} gövde, {1} hareketli mafsal – metre cinsinden, mevcut konum sıfır konumudur{2}",
+ "Fasenabstand (mm, ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen):": "Pah mesafesi (mm, eşit olmayan: \"2; 3\", açılı: \"2; 30°\", 0 = kaldır):",
+ "Fase: der Winkel muss zwischen 0° und 90° liegen.": "Pah: açı 0° ile 90° arasında olmalıdır.",
+ "Bahn schneidet ins fertige Teil (tiefer als das Modell an dieser Stelle)": "Takım yolu bitmiş parçayı kesiyor (bu noktada modelden daha derin)",
+ "Als URDF exportieren (.zip, Baugruppe mit Gelenken)": "URDF olarak dışa aktar (.zip, mafsallı montaj)"
+}

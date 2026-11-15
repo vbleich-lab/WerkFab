@@ -127,8 +127,33 @@ const sq = { id: 'S', type: 'poly', closed: true, pts: [[0, 0], [20, 0], [20, 10
   ok('Bogen–Bogen: Rundung berührt beide Kreise, beide Bögen sind gekürzt', g && [[40, 20, 20], [60, 30, 10]].every(([x, y, R]) => Math.min(Math.abs(d2(g.centre, [x, y]) - (R + 2)), Math.abs(d2(g.centre, [x, y]) - (R - 2))) < 1e-6)
     && Math.abs(d2(gA.pts[2], [40, 20]) - 20) < 1e-5 && Math.abs(d2(gB.pts[0], [60, 30]) - 10) < 1e-5 && near(gA.pts[0], [40, 0]) && near(gB.pts[2], [70, 30]) && d2(gA.pts[2], [60, 20]) > 0.1 && d2(gA.pts[2], [60, 20]) < 6 && g.arc.pts.every(p => Math.abs(d2(p, g.centre) - 2) < 1e-5), J(g?.centre));
   const pv = cornerPreview(ents, 'L:p1', 'fillet', 5);
-  ok('Vorschau an der Ecke Linie–Bogen', pv && !pv.closed && pv.pts.length > 3 && pv.pts.every(p => Math.abs(d2(p, O) - 5) < 1e-4) && cornerPreview(ents, 'L:p1', 'chamfer', 5) === null);
+  ok('Vorschau an der Ecke Linie–Bogen', pv && !pv.closed && pv.pts.length > 3 && pv.pts.every(p => Math.abs(d2(p, O) - 5) < 1e-4) && cornerPreview(ents, 'L:p1', 'chamfer', 5)?.pts.length === 2);
   // the line of a polyline whose other corner is rounded keeps that rounding
   const e2 = [{ id: 'P', type: 'poly', closed: false, pts: [[10, -30], [40, -30], [40, 0]], radii: { 1: 28 } }, ents[1]];
   ok('Linie–Bogen: die Rundung am anderen Ende der Linie begrenzt den Platz', filletCurves(e2, 'P:p2', 5, 'N', newId) === null && filletCurves(e2, 'P:p2', 1, 'N', newId) !== null);
+}
+
+// ---- a chamfer at an arc; taking a rounding or chamfer at an arc away again ----
+{
+  const { filletCurves, chamferCurves, unbridge, bridgeRadius, cornerAt, cornerPreview } = await import('../js/sketchcorner.js');
+  const q = Math.SQRT1_2, d2 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const base = () => [
+    { id: 'L', type: 'poly', closed: false, pts: [[40, -30], [40, 0]] },
+    { id: 'A', type: 'poly', curve: 'arc', closed: false, pts: [[40, 0], [40 + 20 * q, 20 - 20 * q], [60, 20]] },
+    { id: 'B', type: 'poly', curve: 'arc', closed: false, pts: [[60, 20], [60 + 10 * q, 30 - 10 * q], [70, 30]] },
+  ];
+  const apply = (ents, plan) => [...ents.map(e => { const m = plan.moves.find(x => x.id === e.id); return m ? { ...e, pts: m.pts } : e; }), plan.arc];
+  const c = chamferCurves(base(), 'L:p1', 3, 3, 'C', newId);
+  ok('Fase Linie–Bogen: 3 mm auf der Linie, 3 mm Bogenlänge auf dem Bogen, Linie dazwischen', c && near(c.arc.pts[0], [40, -3], 1e-5) && near(c.arc.pts[1], [40 + 20 * Math.sin(0.15), 20 - 20 * Math.cos(0.15)], 1e-5) && c.arc.chamfer && c.cons.length === 2 && chamferCurves(base(), 'L:p1', 3, 40, 'C', newId) === null, J(c?.arc.pts));
+  const c2 = chamferCurves(base(), 'L:p1', 2, 5, 'C', newId);
+  ok('Fase Linie–Bogen ungleich und in der Vorschau', near(c2.arc.pts[0], [40, -2], 1e-5) && Math.abs(d2(c2.arc.pts[1], [40, 20]) - 20) < 1e-5 && near(cornerPreview(base(), 'L:p1', 'chamfer', [2, 5]).pts[1], c2.arc.pts[1], 1e-6));
+  const ec = apply(base(), c), uc = unbridge(ec, 'C');
+  ok('Fase am Bogen entfernen: Linie und Bogen laufen wieder bis zur Ecke', bridgeRadius(ec, 'C') === 0 && uc && uc.remove === 'C' && near(uc.P, [40, 0], 1e-5) && near(uc.moves.find(m => m.id === 'L').pts[1], [40, 0], 1e-5) && near(uc.moves.find(m => m.id === 'A').pts[0], [40, 0], 1e-5) && near(uc.moves.find(m => m.id === 'A').pts[1], [40 + 20 * q, 20 - 20 * q], 1e-4) && cornerAt(ec, [41.5, -1.4], 1.5)?.ref === 'C:b', J(uc?.moves));
+  const f = filletCurves(base(), 'L:p1', 5, 'N', newId), ef = apply(base(), f), uf = unbridge(ef, 'N');
+  ok('Abrundung am Bogen entfernen: Radius wird erkannt, die Ecke kommt zurück', Math.abs(bridgeRadius(ef, 'N') - 5) < 1e-4 && uf && near(uf.P, [40, 0], 1e-4) && near(uf.moves.find(m => m.id === 'A').pts[2], [60, 20]) && cornerAt(ef, f.arc.pts[1], 1)?.ref === 'N:b' && cornerPreview(ef, 'N:b', 'fillet', 3) === null, J(uf?.P));
+  const g = filletCurves(base(), 'A:p2', 2, 'N', newId), eg = apply(base(), g), ug = unbridge(eg, 'N');
+  ok('Abrundung zwischen zwei Bögen entfernen', ug && near(ug.P, [60, 20], 1e-4) && near(ug.moves.find(m => m.id === 'B').pts[2], [70, 30]) && near(ug.moves.find(m => m.id === 'A').pts[0], [40, 0]), J(ug?.P));
+  // an arc drawn by hand between two lines that it does not leave tangentially is no rounding; neither is a plain line
+  const hand = [{ id: 'P', type: 'poly', closed: false, pts: [[0, 0], [10, 0]] }, { id: 'Q', type: 'poly', curve: 'arc', closed: false, pts: [[10, 0], [15, 3], [20, 0]] }, { id: 'R', type: 'poly', closed: false, pts: [[20, 0], [30, 0]] }, { id: 'S', type: 'poly', closed: false, pts: [[30, 0], [30, 9]] }];
+  ok('Kein Entfernen an einem gezeichneten Bogen oder einer gewöhnlichen Linie', bridgeRadius(hand, 'Q') === null && bridgeRadius(hand, 'R') === null && unbridge(hand, 'Q') === null);
 }

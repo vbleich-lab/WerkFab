@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: molemmat käyrät eivät enää kohtaa – kulmaa ei voi palauttaa.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: {1} kulma(a) palautettu.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} ilman tilaa tälle etäisyydelle",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Viiste: {0} kulma(a) kaaressa – molemmat käyrät lyhennetty, viiva lisätty{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Viiste: tämä etäisyys on pidempi kuin toinen käyristä.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: tässä ei ole mitään poistettavaa – napsauta itse pyöristystä tai viistettä ja anna 0."
+}

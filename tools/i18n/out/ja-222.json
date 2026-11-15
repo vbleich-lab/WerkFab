@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: 2本の曲線が交わらなくなったため、コーナーを元に戻せません。",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: {1}個のコーナーを元に戻しました。",
+ ", {0} ohne Platz für diesen Abstand": "、{0}はこの距離に必要な余裕がありません",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "面取り: 円弧上の{0}個のコーナー – 両方の曲線を短縮し、線を挿入しました{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "面取り: この距離は2本の曲線のどちらかより長くなっています。",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: ここには削除するものがありません。フィレットまたは面取り自体をクリックして0を入力してください。"
+}

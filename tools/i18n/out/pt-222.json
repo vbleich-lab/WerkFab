@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: as duas curvas não se encontram mais – o canto não pode ser restaurado.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: {1} canto(s) restaurado(s).",
+ ", {0} ohne Platz für diesen Abstand": ", {0} sem espaço para esta distância",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Chanfro: {0} canto(s) em um arco – ambas as curvas encurtadas, linha inserida{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Chanfro: esta distância é maior que uma das duas curvas.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: não há nada a remover aqui – clique na concordância ou no chanfro e digite 0."
+}

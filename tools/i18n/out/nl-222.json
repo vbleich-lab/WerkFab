@@ -1,0 +1,8 @@
+{
+ "{0}: die beiden Kurven treffen sich nicht mehr – die Ecke lässt sich nicht wiederherstellen.": "{0}: de twee krommen raken elkaar niet meer – de hoek kan niet worden hersteld.",
+ "{0}: {1} Ecke(n) wiederhergestellt.": "{0}: {1} hoek(en) hersteld.",
+ ", {0} ohne Platz für diesen Abstand": ", {0} zonder ruimte voor deze afstand",
+ "Fase: {0} Ecke(n) an einem Bogen – beide Kurven gekürzt, Linie eingefügt{1}": "Afschuining: {0} hoek(en) aan een boog – beide krommen ingekort, lijn toegevoegd{1}",
+ "Fase: dieser Abstand ist länger als eine der beiden Kurven.": "Afschuining: deze afstand is langer dan een van de twee krommen.",
+ "{0}: hier ist nichts zu entfernen – die Abrundung oder Fase selbst anklicken und 0 eingeben.": "{0}: hier valt niets te verwijderen – klik op de afronding of afschuining zelf en voer 0 in."
+}

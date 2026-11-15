@@ -1,0 +1,8 @@
+{
+ "; {0} Körper ohne Werkstoff als Aluminium gerechnet": "; {0} brył bez materiału policzono jako aluminium",
+ "URDF exportiert: {0} Körper, {1} bewegliche Gelenke – in Metern, die jetzige Stellung ist die Nullstellung{2}": "Wyeksportowano URDF: {0} brył, {1} przegubów ruchomych – w metrach, bieżące położenie jest położeniem zerowym{2}",
+ "Fasenabstand (mm, ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen):": "Odległość fazy (mm, nierówna: „2; 3”, z kątem: „2; 30°”, 0 = usuń):",
+ "Fase: der Winkel muss zwischen 0° und 90° liegen.": "Fazowanie: kąt musi mieścić się między 0° a 90°.",
+ "Bahn schneidet ins fertige Teil (tiefer als das Modell an dieser Stelle)": "Ścieżka wcina się w gotowy detal (głębiej niż model w tym miejscu)",
+ "Als URDF exportieren (.zip, Baugruppe mit Gelenken)": "Eksportuj jako URDF (.zip, złożenie z przegubami)"
+}
