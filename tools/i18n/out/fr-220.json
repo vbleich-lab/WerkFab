@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "Agent IA : opération créée",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "Un agent connecté travaille sur la conception ouverte : il lit et modifie la chronologie, interroge les corps, les volumes et les erreurs, récupère des pièces normalisées dans le catalogue de pièces, se fait donner une image de la vue, exporte en STEP ou STL, crée des outils et des opérations de fabrication et génère le programme NC – qu'il reste à vérifier avant la première coupe. Il n'a aucun accès aux fichiers, aux préférences ni aux autres conceptions. Chaque modification est une étape que Ctrl+Z annule.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · âme {2} · aile {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "Carré en acier (EN 10059)",
+ "Flachstahl (EN 10058)": "Plat en acier (EN 10058)",
+ "Breite {0} · Dicke {1}": "Largeur {0} · épaisseur {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "Cornière à ailes égales (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "Aile {0} · épaisseur {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "Profilé en U UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · âme {2} · aile {3} (inclinaison 8 %)",
+ "I-Träger IPE (DIN 1025-5)": "Poutrelle en I IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "Poutrelle à larges ailes HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "Poutrelle à larges ailes HEB (DIN 1025-2)"
+}

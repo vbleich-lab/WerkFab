@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "AI აგენტი: ოპერაცია შეიქმნა",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "დაკავშირებული აგენტი მუშაობს გახსნილ პროექტზე: კითხულობს და ცვლის დროის ღერძს, ითხოვს სხეულებს, მოცულობასა და შეცდომებს, იღებს სტანდარტულ დეტალებს დეტალების კატალოგიდან, იღებს ხედის სურათს, ექსპორტს უკეთებს STEP-ს ან STL-ს, ქმნის ხელსაწყოებსა და წარმოების ოპერაციებს და გამოიტანს NC პროგრამას – რომელიც პირველ ჭრამდე მაინც უნდა შემოწმდეს. ფაილებზე, პარამეტრებსა და სხვა პროექტებზე წვდომა არ აქვს. ყოველი ცვლილება ერთი ნაბიჯია, რომელსაც Ctrl+Z აუქმებს.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · ლარტყა {2} · თაროს სისქე {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "კვადრატული ფოლადი (EN 10059)",
+ "Flachstahl (EN 10058)": "ბრტყელი ფოლადი (EN 10058)",
+ "Breite {0} · Dicke {1}": "სიგანე {0} · სისქე {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "თანაბარწახნაგა კუთხოვანა (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "წახნაგი {0} · სისქე {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "შველერი UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · ლარტყა {2} · თაროს სისქე {3} (დახრა 8 %)",
+ "I-Träger IPE (DIN 1025-5)": "ორტესებრი ძელი IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "განიერთაროიანი ძელი HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "განიერთაროიანი ძელი HEB (DIN 1025-2)"
+}

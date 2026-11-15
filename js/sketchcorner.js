@@ -231,15 +231,124 @@ export function cornerAt(entities, p, tol) {
         if (e.closed || (k > 0 && k < n - 1)) return consider(`${e.id}:p${k}`, q);
         if (e.closed) return;
         const joined = entities.some(x => x !== e && !x.cons && plainOpen(x) && (near(x.pts[0].map(Number), q) || near(x.pts[x.pts.length - 1].map(Number), q)));
-        if (joined) consider(`${e.id}:p${k}`, q);
+        if (joined || curveCorner(entities, `${e.id}:p${k}`)) consider(`${e.id}:p${k}`, q);
       });
+    } else if (isArcE(e)) {
+      // the end of an arc where a line or another arc ends
+      for (const k of [0, 2]) if (curveCorner(entities, `${e.id}:p${k}`)) consider(`${e.id}:p${k}`, [+e.pts[k][0], +e.pts[k][1]]);
     }
   }
   return best;
 }
 
+// ---- a rounding between a line and an arc, or between two arcs ----
+const isArcE = e => e?.type === 'poly' && e.curve === 'arc' && e.pts.length === 3;
+const norm = x => ((x % TAU) + TAU) % TAU;
+function circle3(a, m, b) {
+  const d = 2 * (a[0] * (m[1] - b[1]) + m[0] * (b[1] - a[1]) + b[0] * (a[1] - m[1]));
+  if (Math.abs(d) < 1e-12) return null;
+  const A = a[0] * a[0] + a[1] * a[1], M = m[0] * m[0] + m[1] * m[1], B = b[0] * b[0] + b[1] * b[1];
+  const c = [(A * (m[1] - b[1]) + M * (b[1] - a[1]) + B * (a[1] - m[1])) / d, (A * (b[0] - m[0]) + M * (a[0] - b[0]) + B * (m[0] - a[0])) / d];
+  return { c, r: len(sub(a, c)) };
+}
+// the curve that ends at P, seen from P: a line (direction d, length L) or an arc (circle, its sweep away from P)
+function curveEnd(e, k) {
+  const P = [+e.pts[k][0], +e.pts[k][1]];
+  if (isArcE(e)) {
+    const E = e.pts[2 - k].map(Number), M = e.pts[1].map(Number), ci = circle3(P, M, E);
+    if (!ci) return null;
+    const ang = p => Math.atan2(p[1] - ci.c[1], p[0] - ci.c[0]), a0 = ang(P);
+    let sw = norm(ang(E) - a0);
+    if (norm(ang(M) - a0) > sw) sw -= TAU;
+    return { kind: 'A', e, k, P, c: ci.c, R: ci.r, a0, sw, E, ref: `${e.id}:o`,
+      // how far along the arc a point lies (mm from P), null when it is not on the arc
+      at(T) { const da = sw > 0 ? norm(ang(T) - a0) : -norm(a0 - ang(T)); return Math.abs(da) > 1e-9 && Math.abs(da) < Math.abs(sw) - 1e-9 ? { s: Math.abs(da) * ci.r, da } : null; } };
+  }
+  const n = e.pts.length, Q = e.pts[k === 0 ? 1 : n - 2].map(Number), L = len(sub(Q, P));
+  if (L < 1e-9) return null;
+  // (a rounded or chamfered neighbour corner takes its share of the line)
+  const nb = k === 0 ? 1 : n - 2, plan = n > 2 && (e.radii?.[nb] != null || e.chamfers?.[nb] != null) ? cornerPlan(e).corner[nb] : null;
+  const free = plan ? len(sub(k === 0 ? plan.in : plan.out, P)) : L;
+  return { kind: 'L', e, k, P, d: [(Q[0] - P[0]) / L, (Q[1] - P[1]) / L], L: free, ref: `${e.id}:l${k === 0 ? 0 : n - 2}` };
+}
+// the two curves that end at the point of ref, when at least one of them is an arc
+function curvePair(entities, ref) {
+  const [id, s] = String(ref).split(':'), e0 = entities.find(x => x.id === id), k0 = +String(s || '').slice(1);
+  if (!e0 || !s || s[0] !== 'p' || !e0.pts?.[k0] || e0.cons) return null;
+  const P = e0.pts[k0].map(Number), ends = [];
+  for (const e of entities) {
+    if (e.cons) continue;
+    if (isArcE(e)) { for (const k of [0, 2]) if (near(e.pts[k].map(Number), P)) ends.push([e, k]); }
+    else if (plainOpen(e)) { for (const k of [0, e.pts.length - 1]) if (near(e.pts[k].map(Number), P)) ends.push([e, k]); }
+  }
+  if (ends.length !== 2 || ends[0][0] === ends[1][0] || !ends.some(q => isArcE(q[0]))) return null;
+  const a = curveEnd(...ends[0]), b = curveEnd(...ends[1]);
+  return a && b ? [a, b] : null;
+}
+export const curveCorner = (entities, ref) => !!curvePair(entities, ref);
+
+/**
+ * Rounds the corner where a line meets an arc or two arcs meet: both are cut back to where the rounding touches
+ * them and a new arc (id arcId) joins them. Returns { moves: [{ id, pts }] (the new points of the two curves),
+ * arc (the new entity), drop (refs of the two ends that no longer coincide), cons (constraints that hold the
+ * rounding: ends on the curves, tangent to both) } – or null where no rounding of this radius fits.
+ */
+export function filletCurves(entities, ref, r, arcId, newId) {
+  const pair = curvePair(entities, ref);
+  if (!pair || !(r > 0)) return null;
+  const [A, B] = pair, P = A.P, cand = [];
+  // where the centre may lie: r beside each curve
+  const loci = X => X.kind === 'L' ? [1, -1].map(s => ({ o: [P[0] - X.d[1] * s * r, P[1] + X.d[0] * s * r], d: X.d })) : [1, -1].filter(s => X.R + s * r > 1e-9).map(s => ({ c: X.c, R: X.R + s * r }));
+  const meet = (p, q) => {
+    if (p.d && q.d) { const den = p.d[0] * q.d[1] - p.d[1] * q.d[0]; if (Math.abs(den) < 1e-12) return []; const w = sub(q.o, p.o), u = (w[0] * q.d[1] - w[1] * q.d[0]) / den; return [[p.o[0] + p.d[0] * u, p.o[1] + p.d[1] * u]]; }
+    if (p.d || q.d) {
+      const [l, c] = p.d ? [p, q] : [q, p], w = sub(l.o, c.c), b = w[0] * l.d[0] + w[1] * l.d[1], disc = b * b - (w[0] * w[0] + w[1] * w[1] - c.R * c.R);
+      if (disc < 0) return [];
+      return [-b - Math.sqrt(disc), -b + Math.sqrt(disc)].map(u => [l.o[0] + l.d[0] * u, l.o[1] + l.d[1] * u]);
+    }
+    const w = sub(q.c, p.c), D = len(w);
+    if (D < 1e-12 || D > p.R + q.R || D < Math.abs(p.R - q.R)) return [];
+    const a = (p.R * p.R - q.R * q.R + D * D) / (2 * D), hh = Math.sqrt(Math.max(0, p.R * p.R - a * a)), m = [p.c[0] + (w[0] * a) / D, p.c[1] + (w[1] * a) / D];
+    return [[m[0] - (w[1] * hh) / D, m[1] + (w[0] * hh) / D], [m[0] + (w[1] * hh) / D, m[1] - (w[0] * hh) / D]];
+  };
+  // where the rounding with the centre O touches a curve, and how far that is from P along it
+  const touch = (X, O) => {
+    if (X.kind === 'L') { const u = (O[0] - P[0]) * X.d[0] + (O[1] - P[1]) * X.d[1]; return u > 1e-9 && u <= X.L + 1e-9 ? { T: [P[0] + X.d[0] * u, P[1] + X.d[1] * u], s: u } : null; }
+    const w = sub(O, X.c), l = len(w);
+    if (l < 1e-12) return null;
+    const T = [X.c[0] + (w[0] / l) * X.R, X.c[1] + (w[1] / l) * X.R], at = X.at(T);
+    return at ? { T, s: at.s, da: at.da } : null;
+  };
+  for (const p of loci(A)) for (const q of loci(B)) for (const O of meet(p, q)) {
+    const ta = touch(A, O), tb = touch(B, O);
+    if (ta && tb && len(sub(ta.T, tb.T)) > 1e-7) cand.push({ O, ta, tb, s: ta.s + tb.s });
+  }
+  if (!cand.length) return null;
+  cand.sort((x, y) => x.s - y.s);
+  const { O, ta, tb } = cand[0], r6 = p => [+p[0].toFixed(6), +p[1].toFixed(6)];
+  let mid = [ta.T[0] + tb.T[0] - 2 * O[0], ta.T[1] + tb.T[1] - 2 * O[1]];
+  if (len(mid) < 1e-9) mid = sub(P, O);
+  const M = [O[0] + (mid[0] / len(mid)) * r, O[1] + (mid[1] / len(mid)) * r];
+  const cut = (X, t) => {
+    const pts = X.e.pts.map(p => [p[0], p[1]]);
+    pts[X.k] = r6(t.T);
+    if (X.kind === 'A') { const am = X.a0 + (t.da + X.sw) / 2; pts[1] = r6([X.c[0] + X.R * Math.cos(am), X.c[1] + X.R * Math.sin(am)]); }
+    return { id: X.e.id, pts };
+  };
+  const arc = { id: arcId, type: 'poly', curve: 'arc', closed: false, pts: [r6(ta.T), r6(M), r6(tb.T)] };
+  const cons = [
+    { id: newId(), type: 'coincident', refs: [`${arcId}:p0`, `${A.e.id}:p${A.k}`] }, { id: newId(), type: 'coincident', refs: [`${arcId}:p2`, `${B.e.id}:p${B.k}`] },
+    { id: newId(), type: 'tangent', refs: [A.ref, `${arcId}:o`] }, { id: newId(), type: 'tangent', refs: [B.ref, `${arcId}:o`] },
+  ];
+  return { moves: [cut(A, ta), cut(B, tb)], arc, drop: [`${A.e.id}:p${A.k}`, `${B.e.id}:p${B.k}`], cons, r, centre: O };
+}
+
 // outline of the entity with the corner at ref changed (for the preview while hovering)
 export function cornerPreview(entities, ref, kind, value) {
+  if (curveCorner(entities, ref)) {
+    const f = kind === 'fillet' ? filletCurves(entities, ref, Array.isArray(value) ? +value[0] : +value, 'tmp', () => 'tmp') : null;
+    return f ? { pts: [f.arc.pts[0], ...arcSegPts({ a: f.arc.pts[0], m: f.arc.pts[1], b: f.arc.pts[2], c: f.centre, r: f.r })], closed: false } : null;
+  }
   const res = applyCorners(entities, [], [ref], kind, value, () => 'tmp');
   if (!res.done) return null;
   const [id] = ref.split(':');

@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: valor no válido o parámetro desconocido",
+ ", {0} ohne Platz für diesen Radius": ", {0} sin espacio para este radio",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: {1} esquina(s) en un arco – ambas curvas recortadas, arco insertado con cota de radio{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "Chaflán: solo entre líneas rectas – en un arco utilice un empalme.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: este radio no cabe entre las dos curvas.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: un empalme en un arco es un arco independiente – selecciónelo y elimínelo.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "Ángulo de lados desiguales (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "Lados {0} × {1} · espesor {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "Perfil en T de lados iguales (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · espesor {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "Perfil en U UPE, alas paralelas (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "Viga en I IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · alma {2} · ala {3} (inclinación 14 %)"
+}

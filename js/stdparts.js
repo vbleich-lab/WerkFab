@@ -64,6 +64,54 @@ const SHS = { 20: [2], 25: [2, 2.5], 30: [2, 2.5, 3], 40: [2, 2.5, 3, 4], 50: [2
 const RHS = { '40×20': [2, 2.5, 3], '50×25': [2, 2.5, 3], '50×30': [2, 2.5, 3, 4], '60×40': [2, 3, 4, 5], '80×40': [2, 3, 4, 5], '80×60': [3, 4, 5], '100×50': [3, 4, 5, 6], '100×60': [3, 4, 5, 6], '120×60': [3, 4, 5, 6], '120×80': [4, 5, 6, 8], '150×100': [4, 5, 6, 8], '200×100': [5, 6, 8, 10] };
 const HOLLOW = Object.fromEntries([...Object.entries(SHS).flatMap(([a, ts]) => ts.map(t => [`${a}×${a}×${num(t)}`, [+a, +a, t]])), ...Object.entries(RHS).flatMap(([k, ts]) => ts.map(t => [`${k}×${num(t)}`, [...k.split('×').map(Number), t]]))]);
 const hollow = (z, L) => { const [w, hh, t] = HOLLOW[z], ro = (t > 6 ? 2.5 : 2) * t; return [{ k: 'prism', shape: 'rect', w, h: hh, rr: ro, z: 0, dist: L, op: 'new' }, { k: 'prism', shape: 'rect', w: w - 2 * t, h: hh - 2 * t, rr: ro - t, z: -0.01, dist: L + 0.02, op: 'cut' }]; };
+// Rolled sections. Dimensions as tabulated in the standards; the tests compare every cross-section with the
+// area (or the mass per metre) the tables give, so a wrong radius or thickness shows.
+// I-beams: h, b, web s, flange t, root radius r
+const IPE = { 80: [80, 46, 3.8, 5.2, 5], 100: [100, 55, 4.1, 5.7, 7], 120: [120, 64, 4.4, 6.3, 7], 140: [140, 73, 4.7, 6.9, 7], 160: [160, 82, 5, 7.4, 9], 180: [180, 91, 5.3, 8, 9], 200: [200, 100, 5.6, 8.5, 12], 220: [220, 110, 5.9, 9.2, 12], 240: [240, 120, 6.2, 9.8, 15], 270: [270, 135, 6.6, 10.2, 15], 300: [300, 150, 7.1, 10.7, 15], 330: [330, 160, 7.5, 11.5, 18], 360: [360, 170, 8, 12.7, 18], 400: [400, 180, 8.6, 13.5, 21], 450: [450, 190, 9.4, 14.6, 21], 500: [500, 200, 10.2, 16, 21], 550: [550, 210, 11.1, 17.2, 24], 600: [600, 220, 12, 19, 24] };
+const heR = n => (n <= 140 ? 12 : n <= 180 ? 15 : n <= 220 ? 18 : n <= 240 ? 21 : n <= 280 ? 24 : 27);
+const HEA = Object.fromEntries([[100, 96, 100, 5, 8], [120, 114, 120, 5, 8], [140, 133, 140, 5.5, 8.5], [160, 152, 160, 6, 9], [180, 171, 180, 6, 9.5], [200, 190, 200, 6.5, 10], [220, 210, 220, 7, 11], [240, 230, 240, 7.5, 12], [260, 250, 260, 7.5, 12.5], [280, 270, 280, 8, 13], [300, 290, 300, 8.5, 14], [320, 310, 300, 9, 15.5], [340, 330, 300, 9.5, 16.5], [360, 350, 300, 10, 17.5], [400, 390, 300, 11, 19], [450, 440, 300, 11.5, 21], [500, 490, 300, 12, 23], [550, 540, 300, 12.5, 24], [600, 590, 300, 13, 25]].map(([n, ...q]) => [n, [...q, heR(n)]]));
+const HEB = Object.fromEntries([[100, 100, 100, 6, 10], [120, 120, 120, 6.5, 11], [140, 140, 140, 7, 12], [160, 160, 160, 8, 13], [180, 180, 180, 8.5, 14], [200, 200, 200, 9, 15], [220, 220, 220, 9.5, 16], [240, 240, 240, 10, 17], [260, 260, 260, 10, 17.5], [280, 280, 280, 10.5, 18], [300, 300, 300, 11, 19], [320, 320, 300, 11.5, 20.5], [340, 340, 300, 12, 21.5], [360, 360, 300, 12.5, 22.5], [400, 400, 300, 13.5, 24], [450, 450, 300, 14, 26], [500, 500, 300, 14.5, 28], [550, 550, 300, 15, 29], [600, 600, 300, 15.5, 30]].map(([n, ...q]) => [n, [...q, heR(n)]]));
+// channels with sloped flanges (DIN 1026-1, up to 300: slope 8 %, flange thickness t measured at b / 2, root radius t, toe radius t / 2): h, b, web s, flange t
+const UPN = { 50: [50, 38, 5, 7], 65: [65, 42, 5.5, 7.5], 80: [80, 45, 6, 8], 100: [100, 50, 6, 8.5], 120: [120, 55, 7, 9], 140: [140, 60, 7, 10], 160: [160, 65, 7.5, 10.5], 180: [180, 70, 8, 11], 200: [200, 75, 8.5, 11.5], 220: [220, 80, 9, 12.5], 240: [240, 85, 9.5, 13], 260: [260, 90, 10, 14], 280: [280, 95, 10, 15], 300: [300, 100, 10, 16] };
+// equal leg angles EN 10056-1: leg a → [root radius, thicknesses]; the toe radius is half the root radius
+const ANGLES = { 20: [3.5, [3]], 25: [3.5, [3, 4]], 30: [5, [3, 4]], 35: [5, [4]], 40: [6, [4, 5]], 45: [7, [4.5]], 50: [7, [4, 5, 6]], 60: [8, [5, 6, 8]], 65: [9, [7]], 70: [9, [6, 7]], 75: [9, [6, 8]], 80: [10, [8, 10]], 90: [11, [7, 8, 9, 10]], 100: [12, [8, 10, 12]], 120: [13, [10, 12]], 130: [14, [12]], 150: [16, [10, 12, 15]], 160: [17, [15]], 180: [18, [16, 18]], 200: [18, [16, 18, 20, 24]] };
+const ANGLE = Object.fromEntries(Object.entries(ANGLES).flatMap(([a, [r, ts]]) => ts.map(t => [`${a}×${a}×${num(t)}`, [+a, t, r]])));
+// flat bars EN 10058 (preferred widths and thicknesses; not every pair is rolled) and square bars EN 10059
+const FLAT_W = [10, 12, 15, 16, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 120, 150], FLAT_T = [5, 6, 8, 10, 12, 15, 20, 25, 30, 35, 40, 50, 60];
+const FLAT = Object.fromEntries(FLAT_W.flatMap(w => FLAT_T.filter(t => t < w && t >= w / 30).map(t => [`${w}×${t}`, [w, t]])));
+const SQUARES = [8, 10, 12, 13, 14, 15, 16, 18, 20, 22, 24, 25, 26, 28, 30, 32, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 100, 110, 120, 130, 140, 150];
+// outlines (counter-clockwise, centred on the box of the section) with the corners that are rounded
+const beam = ([h, b, s, t, r], L) => [{ k: 'prism', shape: 'poly', z: 0, dist: L, op: 'new', radii: { 3: r, 4: r, 9: r, 10: r },
+  pts: [[-b / 2, -h / 2], [b / 2, -h / 2], [b / 2, -h / 2 + t], [s / 2, -h / 2 + t], [s / 2, h / 2 - t], [b / 2, h / 2 - t], [b / 2, h / 2], [-b / 2, h / 2], [-b / 2, h / 2 - t], [-s / 2, h / 2 - t], [-s / 2, -h / 2 + t], [-b / 2, -h / 2 + t]] }];
+const channel = ([h, b, s, t], L) => {
+  const at = x => t + 0.08 * (b / 2 - x), x0 = -b / 2;
+  return [{ k: 'prism', shape: 'poly', z: 0, dist: L, op: 'new', radii: { 2: t / 2, 3: t, 4: t, 5: t / 2 },
+    pts: [[x0, -h / 2], [x0 + b, -h / 2], [x0 + b, -h / 2 + at(b)], [x0 + s, -h / 2 + at(s)], [x0 + s, h / 2 - at(s)], [x0 + b, h / 2 - at(b)], [x0 + b, h / 2], [x0, h / 2]] }];
+};
+const angle = ([a, t, r], L) => [{ k: 'prism', shape: 'poly', z: 0, dist: L, op: 'new', radii: { 2: r / 2, 3: r, 4: r / 2 }, pts: [[0, 0], [a, 0], [a, t], [t, t], [t, a], [0, a]].map(([x, y]) => [x - a / 2, y - a / 2]) }];
+// I-beams with tapered flanges IPN (DIN 1025-1): h, b, web s, flange t (at b/4), root r1, toe r2; slope 14 %
+const IPN = { 80: [80, 42, 3.9, 5.9, 3.9, 2.3], 100: [100, 50, 4.5, 6.8, 4.5, 2.7], 120: [120, 58, 5.1, 7.7, 5.1, 3.1], 140: [140, 66, 5.7, 8.6, 5.7, 3.4], 160: [160, 74, 6.3, 9.5, 6.3, 3.8], 180: [180, 82, 6.9, 10.4, 6.9, 4.1], 200: [200, 90, 7.5, 11.3, 7.5, 4.5], 220: [220, 98, 8.1, 12.2, 8.1, 4.9], 240: [240, 106, 8.7, 13.1, 8.7, 5.2], 260: [260, 113, 9.4, 14.1, 9.4, 5.6], 280: [280, 119, 10.1, 15.2, 10.1, 6.1], 300: [300, 125, 10.8, 16.2, 10.8, 6.5], 320: [320, 131, 11.5, 17.3, 11.5, 6.9], 340: [340, 137, 12.2, 18.3, 12.2, 7.3], 360: [360, 143, 13, 19.5, 13, 7.8], 380: [380, 149, 13.7, 20.5, 13.7, 8.2], 400: [400, 155, 14.4, 21.6, 14.4, 8.6] };
+// channels with parallel flanges UPE (DIN 1026-2): h, b, web s, flange t, root r
+const UPE = { 80: [80, 50, 4, 7, 10], 100: [100, 55, 4.5, 7.5, 10], 120: [120, 60, 5, 8, 12], 140: [140, 65, 5, 9, 12], 160: [160, 70, 5.5, 9.5, 12], 180: [180, 75, 5.5, 10.5, 12], 200: [200, 80, 6, 11, 13], 220: [220, 85, 6.5, 12, 13], 240: [240, 90, 7, 12.5, 15], 270: [270, 95, 7.5, 13.5, 15], 300: [300, 100, 9.5, 15, 15], 330: [330, 105, 11, 16, 18], 360: [360, 110, 12, 17, 18], 400: [400, 115, 13.5, 18, 18] };
+// T sections with equal legs (EN 10055): b, h, thickness t, root r1, flange edge r2, web end r3; flange and web taper by 2 % (t holds at b/4 and at h/2)
+const TEE = { 30: [30, 30, 4, 4, 2, 1], 35: [35, 35, 4.5, 4.5, 2.5, 1], 40: [40, 40, 5, 5, 2.5, 1], 50: [50, 50, 6, 6, 3, 1.5], 60: [60, 60, 7, 7, 3.5, 2], 70: [70, 70, 8, 8, 4, 2], 80: [80, 80, 9, 9, 4.5, 2], 100: [100, 100, 11, 11, 5.5, 3], 120: [120, 120, 13, 13, 6.5, 3], 140: [140, 140, 15, 15, 7.5, 4] };
+// unequal angles (EN 10056-1): long leg a, short leg b, thickness t, root r1, toe r2
+const LU = { '30×20×3': [30, 20, 3, 4, 2], '30×20×4': [30, 20, 4, 4, 2], '40×20×4': [40, 20, 4, 4, 2], '40×25×4': [40, 25, 4, 4, 2], '45×30×4': [45, 30, 4, 4.5, 2.25], '50×30×5': [50, 30, 5, 5, 2.5], '60×30×5': [60, 30, 5, 5, 2.5], '60×40×5': [60, 40, 5, 6, 3], '60×40×6': [60, 40, 6, 6, 3], '65×50×5': [65, 50, 5, 6, 3], '70×50×6': [70, 50, 6, 7, 3.5], '75×50×6': [75, 50, 6, 7, 3.5], '75×50×8': [75, 50, 8, 7, 3.5], '80×40×6': [80, 40, 6, 7, 3.5], '80×40×8': [80, 40, 8, 7, 3.5], '80×60×7': [80, 60, 7, 8, 4], '100×50×6': [100, 50, 6, 8, 4], '100×50×8': [100, 50, 8, 8, 4], '100×65×7': [100, 65, 7, 10, 5], '100×65×8': [100, 65, 8, 10, 5], '100×65×10': [100, 65, 10, 10, 5], '100×75×8': [100, 75, 8, 10, 5], '100×75×10': [100, 75, 10, 10, 5], '100×75×12': [100, 75, 12, 10, 5], '120×80×8': [120, 80, 8, 11, 5.5], '120×80×10': [120, 80, 10, 11, 5.5], '120×80×12': [120, 80, 12, 11, 5.5], '125×75×8': [125, 75, 8, 11, 5.5], '125×75×10': [125, 75, 10, 11, 5.5], '125×75×12': [125, 75, 12, 11, 5.5], '135×65×8': [135, 65, 8, 11, 5.5], '135×65×10': [135, 65, 10, 11, 5.5], '150×75×9': [150, 75, 9, 12, 6], '150×75×10': [150, 75, 10, 12, 6], '150×75×12': [150, 75, 12, 12, 6], '150×75×15': [150, 75, 15, 12, 6], '150×90×10': [150, 90, 10, 12, 6], '150×90×12': [150, 90, 12, 12, 6], '150×90×15': [150, 90, 15, 12, 6], '150×100×10': [150, 100, 10, 12, 6], '150×100×12': [150, 100, 12, 12, 6], '200×100×10': [200, 100, 10, 15, 7.5], '200×100×12': [200, 100, 12, 15, 7.5], '200×100×15': [200, 100, 15, 15, 7.5], '200×150×12': [200, 150, 12, 15, 7.5], '200×150×15': [200, 150, 15, 15, 7.5] };
+const beamT = ([h, b, s, t, r1, r2], L) => {
+  // (the flange is t thick a quarter of its width from the edge and grows 14 % towards the web)
+  const te = t - 0.14 * (b / 4), tw = t + 0.14 * (b / 4 - s / 2), y = h / 2;
+  return [{ k: 'prism', shape: 'poly', z: 0, dist: L, op: 'new', radii: { 2: r2, 3: r1, 4: r1, 5: r2, 8: r2, 9: r1, 10: r1, 11: r2 },
+    pts: [[-b / 2, -y], [b / 2, -y], [b / 2, -y + te], [s / 2, -y + tw], [s / 2, y - tw], [b / 2, y - te], [b / 2, y], [-b / 2, y], [-b / 2, y - te], [-s / 2, y - tw], [-s / 2, -y + tw], [-b / 2, -y + te]] }];
+};
+const channelP = ([h, b, s, t, r], L) => { const x0 = -b / 2, y = h / 2; return [{ k: 'prism', shape: 'poly', z: 0, dist: L, op: 'new', radii: { 3: r, 4: r },
+  pts: [[x0, -y], [x0 + b, -y], [x0 + b, -y + t], [x0 + s, -y + t], [x0 + s, y - t], [x0 + b, y - t], [x0 + b, y], [x0, y]] }]; };
+const tee = ([b, h, t, r1, r2, r3], L) => {
+  const k = 0.02, wb = t / 2 + k * (h / 2 - t), wt = t / 2 - (k * h) / 2, te = t - (k * b) / 4, tw = t + k * (b / 4 - wb);
+  return [{ k: 'prism', shape: 'poly', z: 0, dist: L, op: 'new', radii: { 2: r2, 3: r1, 4: r3, 5: r3, 6: r1, 7: r2 },
+    pts: [[-b / 2, 0], [b / 2, 0], [b / 2, te], [wb, tw], [wt, h], [-wt, h], [-wb, tw], [-b / 2, te]].map(([x, yy]) => [x, yy - h / 2]) }];
+};
+const angleU = ([a, b, t, r1, r2], L) => [{ k: 'prism', shape: 'poly', z: 0, dist: L, op: 'new', radii: { 2: r2, 3: r1, 4: r2 }, pts: [[0, 0], [a, 0], [a, t], [t, t], [t, b], [0, b]].map(([x, y]) => [x - a / 2, y - b / 2]) }];
+const beamDims = ([h, b, s, t, r]) => `h ${num(h)} · b ${num(b)} · Steg ${num(s)} · Flansch ${num(t)} · r ${num(r)}`;
 // hot rolled round bars EN 10060
 const BARS = [5, 6, 8, 10, 12, 14, 15, 16, 18, 20, 22, 25, 28, 30, 32, 35, 36, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 100];
 
@@ -167,6 +215,28 @@ export const STD_FAMILIES = [
     make: hollow, dims: z => { const [w, hh, t] = HOLLOW[z]; return `${w} × ${hh} · Wand ${num(t)} · Eckradius außen ${num((t > 6 ? 2.5 : 2) * t)}`; } },
   { id: 'en10060', group: 'Rohre und Profile', name: 'Rundstahl (EN 10060)', norm: 'EN 10060', sizes: () => BARS.map(String), len: 200, seat: 'mid', stock: true,
     make: (z, L) => [{ k: 'rev', pts: [[0, 0], [+z / 2, 0], [+z / 2, L], [0, L]], op: 'new' }], dims: z => `Ø ${z}` },
+  { id: 'en10059', group: 'Rohre und Profile', name: 'Vierkantstahl (EN 10059)', norm: 'EN 10059', sizes: () => SQUARES.map(String), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => [{ k: 'prism', shape: 'rect', w: +z, h: +z, z: 0, dist: L, op: 'new' }], dims: z => `${z} × ${z}` },
+  { id: 'en10058', group: 'Rohre und Profile', name: 'Flachstahl (EN 10058)', norm: 'EN 10058', sizes: () => Object.keys(FLAT), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => [{ k: 'prism', shape: 'rect', w: FLAT[z][0], h: FLAT[z][1], z: 0, dist: L, op: 'new' }], dims: z => `Breite ${FLAT[z][0]} · Dicke ${FLAT[z][1]}` },
+  { id: 'en10056', group: 'Rohre und Profile', name: 'Winkelstahl, gleichschenklig (EN 10056-1)', norm: 'EN 10056-1', sizes: () => Object.keys(ANGLE), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => angle(ANGLE[z], L), dims: z => { const [a, t, r] = ANGLE[z]; return `Schenkel ${a} · Dicke ${num(t)} · r ${num(r)}`; } },
+  { id: 'en10056u', group: 'Rohre und Profile', name: 'Winkelstahl, ungleichschenklig (EN 10056-1)', norm: 'EN 10056-1', sizes: () => Object.keys(LU), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => angleU(LU[z], L), dims: z => { const [a, b, t, r] = LU[z]; return `Schenkel ${num(a)} × ${num(b)} · Dicke ${num(t)} · r ${num(r)}`; } },
+  { id: 'en10055', group: 'Rohre und Profile', name: 'T-Stahl, gleichschenklig (EN 10055)', norm: 'EN 10055', sizes: () => Object.keys(TEE).map(n => `T ${n}`), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => tee(TEE[z.slice(2)], L), dims: z => { const [b, h, t, r] = TEE[z.slice(2)]; return `b ${num(b)} · h ${num(h)} · Dicke ${num(t)} · r ${num(r)}`; } },
+  { id: 'upe', group: 'Rohre und Profile', name: 'U-Stahl UPE, parallele Flansche (DIN 1026-2)', norm: 'DIN 1026-2', sizes: () => Object.keys(UPE).map(n => `UPE ${n}`), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => channelP(UPE[z.slice(4)], L), dims: z => beamDims(UPE[z.slice(4)]) },
+  { id: 'ipn', group: 'Rohre und Profile', name: 'I-Träger IPN (DIN 1025-1)', norm: 'DIN 1025-1', sizes: () => Object.keys(IPN).map(n => `IPN ${n}`), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => beamT(IPN[z.slice(4)], L), dims: z => { const [h, b, s, t] = IPN[z.slice(4)]; return `h ${num(h)} · b ${num(b)} · Steg ${num(s)} · Flansch ${num(t)} (14 % geneigt)`; } },
+  { id: 'upn', group: 'Rohre und Profile', name: 'U-Stahl UPN (DIN 1026-1)', norm: 'DIN 1026-1', sizes: () => Object.keys(UPN).map(n => `UPN ${n}`), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => channel(UPN[z.slice(4)], L), dims: z => { const [h, b, s, t] = UPN[z.slice(4)]; return `h ${h} · b ${b} · Steg ${num(s)} · Flansch ${num(t)} (8 % geneigt)`; } },
+  { id: 'ipe', group: 'Rohre und Profile', name: 'I-Träger IPE (DIN 1025-5)', norm: 'DIN 1025-5', sizes: () => Object.keys(IPE).map(n => `IPE ${n}`), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => beam(IPE[z.slice(4)], L), dims: z => beamDims(IPE[z.slice(4)]) },
+  { id: 'hea', group: 'Rohre und Profile', name: 'Breitflanschträger HEA (DIN 1025-3)', norm: 'DIN 1025-3', sizes: () => Object.keys(HEA).map(n => `HEA ${n}`), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => beam(HEA[z.slice(4)], L), dims: z => beamDims(HEA[z.slice(4)]) },
+  { id: 'heb', group: 'Rohre und Profile', name: 'Breitflanschträger HEB (DIN 1025-2)', norm: 'DIN 1025-2', sizes: () => Object.keys(HEB).map(n => `HEB ${n}`), len: 200, seat: 'mid', stock: true,
+    make: (z, L) => beam(HEB[z.slice(4)], L), dims: z => beamDims(HEB[z.slice(4)]) },
 ];
 
 export const stdFamily = id => STD_FAMILIES.find(f => f.id === id);
@@ -231,7 +301,7 @@ export function stdPartSteps(famId, size, len) {
     if (s.op === 'cut' || s.k === 'thread') continue;
     if (s.k === 'rev') for (const [r, z] of s.pts) { z0 = Math.min(z0, z); z1 = Math.max(z1, z); rmax = Math.max(rmax, r); }
     else if (s.k === 'ring') { z0 = Math.min(z0, s.z - s.rad); z1 = Math.max(z1, s.z + s.rad); rmax = Math.max(rmax, s.r + s.rad); }
-    else { z0 = Math.min(z0, s.z, s.z + s.dist); z1 = Math.max(z1, s.z, s.z + s.dist); rmax = Math.max(rmax, s.shape === 'hex' ? s.s / Math.sqrt(3) : s.shape === 'rect' ? Math.hypot(s.w, s.h) / 2 + Math.abs(s.cx || 0) : s.r); }
+    else { z0 = Math.min(z0, s.z, s.z + s.dist); z1 = Math.max(z1, s.z, s.z + s.dist); rmax = Math.max(rmax, s.shape === 'poly' ? Math.max(...s.pts.map(p => Math.hypot(p[0], p[1]))) : s.shape === 'hex' ? s.s / Math.sqrt(3) : s.shape === 'rect' ? Math.hypot(s.w, s.h) / 2 + Math.abs(s.cx || 0) : s.r); }
   }
   return { steps, z0, z1, rmax, fam, L };
 }
@@ -248,7 +318,20 @@ export function stdPartVolume(steps) {
       q = Math.abs((cx / 6) * 2 * Math.PI);
     } else if (s.k === 'ring') q = Math.PI * s.rad * s.rad * 2 * Math.PI * s.r;
     else {
-      const area = s.shape === 'hex' ? (Math.sqrt(3) / 2) * s.s * s.s : s.shape === 'rect' ? s.w * s.h - (4 - Math.PI) * (s.rr || 0) ** 2 : Math.PI * s.r * s.r;
+      // an outline with rounded corners: a round on an outer corner takes away what one on an inner corner adds
+      const polyArea = () => {
+        const P = s.pts, n = P.length;
+        let a = 0;
+        for (let i = 0; i < n; i++) a += P[i][0] * P[(i + 1) % n][1] - P[(i + 1) % n][0] * P[i][1];
+        a /= 2;
+        for (const [i, r] of Object.entries(s.radii || {})) {
+          const p = P[+i], q = P[(+i - 1 + n) % n], w = P[(+i + 1) % n], u = [q[0] - p[0], q[1] - p[1]], v = [w[0] - p[0], w[1] - p[1]];
+          const th = Math.acos((u[0] * v[0] + u[1] * v[1]) / (Math.hypot(...u) * Math.hypot(...v))), piece = r * r * (1 / Math.tan(th / 2) - (Math.PI - th) / 2);
+          a += ((q[0] - p[0]) * (w[1] - p[1]) - (q[1] - p[1]) * (w[0] - p[0])) * Math.sign(a) < 0 ? -piece : piece;
+        }
+        return Math.abs(a);
+      };
+      const area = s.shape === 'poly' ? polyArea() : s.shape === 'hex' ? (Math.sqrt(3) / 2) * s.s * s.s : s.shape === 'rect' ? s.w * s.h - (4 - Math.PI) * (s.rr || 0) ** 2 : Math.PI * s.r * s.r;
       q = (area - (s.hole ? Math.PI * s.hole * s.hole : 0)) * Math.abs(s.dist);
     }
     v += s.op === 'cut' ? -q : q;

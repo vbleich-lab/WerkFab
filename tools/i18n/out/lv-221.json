@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: nederīga vērtība vai nezināms parametrs",
+ ", {0} ohne Platz für diesen Radius": ", {0} bez vietas šim rādiusam",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: {1} stūri(-u) uz loka – abas līknes saīsinātas, loks ievietots ar rādiusa izmēru{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "Nošķēlums: tikai starp taisnēm – uz loka lietojiet noapaļošanu.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: šis rādiuss neietilpst starp abām līknēm.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: noapaļojums uz loka ir atsevišķs loks – atlasiet to un dzēsiet.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "Nevienādmalu leņķtērauds (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "Mala {0} × {1} · biezums {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "T veida tērauds, vienādmalu (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · biezums {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "U veida profils UPE, paralēli plaukti (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "I veida sija IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · kakliņš {2} · plaukts {3} (slīpums 14 %)"
+}

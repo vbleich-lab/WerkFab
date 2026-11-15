@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "AIエージェント：オペレーションを作成",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "接続されたエージェントが開いている設計に対して作業します。タイムラインの読み取りと変更、ボディ・体積・エラーの照会、部品カタログからの規格部品の取得、ビューの画像の取得、STEPまたはSTLの書き出し、工具と製造オペレーションの作成、NCプログラムの出力を行います。NCプログラムは最初の切削の前に確認する必要があります。ファイル、基本設定、ほかの設計にはアクセスできません。変更はすべて1ステップとして記録され、Ctrl+Zで元に戻せます。",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · ウェブ {2} · フランジ {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "角鋼（EN 10059）",
+ "Flachstahl (EN 10058)": "平鋼（EN 10058）",
+ "Breite {0} · Dicke {1}": "幅 {0} · 厚さ {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "等辺山形鋼（EN 10056-1）",
+ "Schenkel {0} · Dicke {1} · r {2}": "脚長 {0} · 厚さ {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "溝形鋼 UPN（DIN 1026-1）",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · ウェブ {2} · フランジ {3}（8 % 傾斜）",
+ "I-Träger IPE (DIN 1025-5)": "I形鋼 IPE（DIN 1025-5）",
+ "Breitflanschträger HEA (DIN 1025-3)": "広幅H形鋼 HEA（DIN 1025-3）",
+ "Breitflanschträger HEB (DIN 1025-2)": "広幅H形鋼 HEB（DIN 1025-2）"
+}

@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: neplatná hodnota nebo neznámý parametr",
+ ", {0} ohne Platz für diesen Radius": ", {0} bez místa pro tento poloměr",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: {1} roh(ů) na oblouku – obě křivky zkráceny, oblouk vložen s kótou poloměru{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "Zkosení: pouze mezi přímkami – na oblouku prosím použijte zaoblení.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: tento poloměr se mezi obě křivky nevejde.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: zaoblení na oblouku je samostatný oblouk – vyberte jej a smažte.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "Nerovnoramenný úhelník (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "Rameno {0} × {1} · tloušťka {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "Profil T, rovnoramenný (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · tloušťka {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "Profil U UPE, rovnoběžné pásnice (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "Nosník I IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · stojina {2} · pásnice {3} (sklon 14 %)"
+}

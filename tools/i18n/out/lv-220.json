@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "MI aģents: operācija izveidota",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "Pievienotais aģents strādā ar atvērto projektu: tas lasa un maina laika joslu, vaicā ķermeņus, tilpumu un kļūdas, ņem standarta detaļas no detaļu kataloga, saņem skata attēlu, eksportē STEP vai STL, izveido instrumentus un ražošanas operācijas un izvada NC programmu – kas pirms pirmā griezuma joprojām jāpārbauda. Tam nav piekļuves failiem, iestatījumiem un citiem projektiem. Katra izmaiņa ir viens solis, ko Ctrl+Z atsauc.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · kakliņš {2} · plaukts {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "Kvadrātveida tērauds (EN 10059)",
+ "Flachstahl (EN 10058)": "Plakantērauds (EN 10058)",
+ "Breite {0} · Dicke {1}": "Platums {0} · biezums {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "Vienādmalu leņķtērauds (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "Mala {0} · biezums {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "U veida profils UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · kakliņš {2} · plaukts {3} (slīpums 8 %)",
+ "I-Träger IPE (DIN 1025-5)": "I veida sija IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "Platplauktu sija HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "Platplauktu sija HEB (DIN 1025-2)"
+}

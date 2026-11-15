@@ -496,7 +496,7 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
   const vn = stdPartVolume(nut.steps), rc = (10 - 1.0825 * 1.5) / 2, vhex = (Math.sqrt(3) / 2) * 256 * 8.4 - Math.PI * rc * rc * 8.4;
   ok('Normteile: Mutter M10 – Sechskant SW 16 × 8,4 mit Bohrung, Fasen nehmen wenig weg', vn < vhex && vn > 0.85 * vhex && near(nut.z1, 8.4), `${vn.toFixed(1)} von ${vhex.toFixed(1)} mm³`);
   const th = stdPartSteps('iso4762', 'M8', 30).steps.find(q => q.k === 'thread'), tn = stdPartSteps('iso4032', 'M8').steps.find(q => q.k === 'thread'), sp = stdPartSteps('iso8752', '6', 20), tp = stdPartSteps('iso2339', '6', 50);
-  ok('Normteile: 29 Reihen; Gewinde als eigener Schritt (Schraube außen auf d, Mutter innen auf dem Kerndurchmesser), Spannstift hohl, Kegelstift 1:50', STD_FAMILIES.length === 29 && th.size === 'M8' && near(th.r, 4) && near(th.z, -15) && near(tn.r, (8 - 1.0825 * 1.25) / 2) && !stdPartSteps('iso7089', 'M8').steps.some(q => q.k === 'thread') && stdPartVolume(sp.steps) < 0.75 * Math.PI * 9 * 20 && near(tp.rmax, 3.5) && stdPartName(stdFamily('din6885b'), '6×6', 25) === 'DIN 6885 B 6×6×25');
+  ok('Normteile: 40 Reihen; Gewinde als eigener Schritt (Schraube außen auf d, Mutter innen auf dem Kerndurchmesser), Spannstift hohl, Kegelstift 1:50', STD_FAMILIES.length === 40 && th.size === 'M8' && near(th.r, 4) && near(th.z, -15) && near(tn.r, (8 - 1.0825 * 1.25) / 2) && !stdPartSteps('iso7089', 'M8').steps.some(q => q.k === 'thread') && stdPartVolume(sp.steps) < 0.75 * Math.PI * 9 * 20 && near(tp.rmax, 3.5) && stdPartName(stdFamily('din6885b'), '6×6', 25) === 'DIN 6885 B 6×6×25');
   let e = '';
   try { stdPartSteps('iso7380', 'M24', 20); } catch (err) { e = err.message; }
   ok('Normteile: Name und fehlende Größe', stdPartName(stdFamily('iso4762'), 'M6', 20) === 'ISO 4762 M6×20' && stdPartName(stdFamily('din625'), '608', 0) === 'DIN 625 608' && /gibt es in der Norm nicht/.test(e));
@@ -841,6 +841,20 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
   ok('Zungen: Schlitze stehen am Laschenende, gleichmäßig verteilt, die Zunge zeigt nach oben', sl.length === 3 && sl.every(q => near(q.c[2], 24) && near(q.dir[2], 1) && near(q.c[1], -3)) && near(sl[1].c[0], 50) && near(sl[2].c[0] - sl[1].c[0], 92 / 3), sl.map(q => q.c.map(v => v.toFixed(2)).join('/')).join('  '));
   ok('Zungen: zu viele oder zu breite Zungen fallen weg', tabPlan({ tabs: { n: 12, w: 10, len: 2 } }, { L: 100 }, 4, 4) === null && flatPattern(poly, { ...f, flanges: [{ ...f.flanges[0], tabs: { n: 12, w: 10, len: 2 } }] }).tabs === 0);
 
+  // the plate bent up 90° on a line at x = 70: the flange on the far edge turns with its piece, its tabs point back over the plate
+  {
+    const ff = { thickness: 2, radius: 2, kfactor: 0.42, folds: [{ a: [70, 0], b: [70, 60], angle: 90 }], flanges: [{ edge: 1, on: true, h: 20, angle: 90, tabs: { n: 2, w: 10, len: 2 } }] };
+    const ba = bendAllowance(90, 2, 2, 0.42), sf = tabSlots(poly, 0, ff), s0 = tabSlots(poly, 0, { ...ff, folds: [] });
+    ok('Zungen am Blech mit Biegelinie: die Schlitze drehen mit dem gebogenen Stück', sf.length === 2 && s0.length === 2 && s0.every(q => near(q.c[0], 103) && near(q.c[2], 24))
+      && sf.every((q, i) => near(q.c[0], 70 - ba / 2 - 20, 1e-6) && near(q.c[2], 4 + 33 - ba / 2, 1e-6) && near(q.c[1], s0[i].c[1], 1e-9) && near(q.dir[0], -1, 1e-9) && near(Math.abs(q.nrm[2]), 1, 1e-9) && near(Math.abs(q.e[1]), 1, 1e-9)),
+      sf.map(q => `${q.c.map(v => v.toFixed(3)).join('/')} → ${q.dir.map(v => v.toFixed(2)).join('/')}`).join('  '));
+    // a flange on the piece that stays is not moved; one across the line is cut and each half follows its piece
+    const fs = tabSlots(poly, 0, { ...ff, flanges: [{ edge: 3, on: true, h: 20, angle: 90, tabs: { n: 2, w: 10, len: 2 } }] });
+    ok('Zungen am Blech mit Biegelinie: am Stück, das liegen bleibt, stehen sie wie ohne Biegung', fs.length === 2 && fs.every(q => near(q.c[0], -3) && near(q.c[2], 24) && near(q.dir[2], 1)));
+    const fx = tabSlots(poly, 0, { ...ff, flanges: [{ edge: 0, on: true, h: 10, angle: 90, tabs: { n: 1, w: 8, len: 2 } }] });
+    ok('Zungen am Blech mit Biegelinie: eine geteilte Lasche trägt Zungen auf beiden Stücken', fx.length === 2 && fx.some(q => near(q.dir[2], 1) && near(q.c[1], -3)) && fx.some(q => near(q.dir[0], -1) && near(q.c[1], -3) && q.c[2] > 4), fx.map(q => `${q.c.map(v => v.toFixed(2)).join('/')} → ${q.dir.map(v => v.toFixed(2)).join('/')}`).join('  '));
+  }
+
   // a prism over an outline as the faces of a body: caps, walls, the text of every edge on both faces it joins
   const prism = (out, h, holes = []) => {
     const key = (a, b) => [0, 1, 2].map(i => Math.round(((a[i] + b[i]) / 2) * 1000)).join(','), faces = [];
@@ -875,8 +889,26 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
   const q = 40 * 40 - (4 - Math.PI) * 36 - (34 * 34 - (4 - Math.PI) * 9);
   ok('Katalog: Quadratrohr 40×40×3 – Querschnitt mit runden Ecken', near(vol('en10219q', '40×40×3', 100) / 100, q, 0.05 * q / 100 + 0.5), (vol('en10219q', '40×40×3', 100) / 100).toFixed(2) + ' / ' + q.toFixed(2));
   ok('Katalog: Rechteckrohr und Rundstahl', near(vol('en10060', '20', 50), Math.PI * 100 * 50, 0.01) && vol('en10219r', '80×40×3', 10) > 0 && stdPartName(stdFamily('en10220'), '33,7×2,6', 100) === 'EN 10220 33,7×2,6×100');
+  // rolled sections against the areas (cm²) and masses (kg/m) the tables give
+  const A = (fam, size) => vol(fam, size, 100) / 100, worst = (fam, list, f = 1) => Math.max(...list.map(([z, a]) => Math.abs(A(fam, z) * f - a) / a));
+  const ipeA = [[80, 7.64], [100, 10.3], [120, 13.2], [140, 16.4], [160, 20.1], [180, 23.9], [200, 28.5], [220, 33.4], [240, 39.1], [270, 45.9], [300, 53.8], [330, 62.6], [360, 72.7], [400, 84.5], [450, 98.8], [500, 116], [550, 134], [600, 156]].map(([n, a]) => [`IPE ${n}`, a]);
+  ok('Katalog: IPE – Querschnitt jeder Größe wie in der Tabelle', worst('ipe', ipeA, 0.01) < 0.006, (100 * worst('ipe', ipeA, 0.01)).toFixed(2) + ' %');
+  const heaM = [[100, 16.7], [120, 19.9], [140, 24.7], [160, 30.4], [180, 35.5], [200, 42.3], [220, 50.5], [240, 60.3], [260, 68.2], [280, 76.4], [300, 88.3], [320, 97.6], [340, 105], [360, 112], [400, 125], [450, 140], [500, 155], [550, 166], [600, 178]].map(([n, m]) => [`HEA ${n}`, m]);
+  const hebM = [[100, 20.4], [120, 26.7], [140, 33.7], [160, 42.6], [180, 51.2], [200, 61.3], [220, 71.5], [240, 83.2], [260, 93], [280, 103], [300, 117], [320, 127], [340, 134.2], [360, 142], [400, 155], [450, 171], [500, 187], [550, 199], [600, 212]].map(([n, m]) => [`HEB ${n}`, m]);
+  ok('Katalog: HEA und HEB – Masse je Meter jeder Größe wie in der Tabelle', worst('hea', heaM, 0.00785) < 0.005 && worst('heb', hebM, 0.00785) < 0.005, (100 * worst('hea', heaM, 0.00785)).toFixed(2) + ' % / ' + (100 * worst('heb', hebM, 0.00785)).toFixed(2) + ' %');
+  const upnA = [[50, 7.12], [65, 9.03], [80, 11], [100, 13.5], [120, 17], [140, 20.4], [160, 24], [180, 28], [200, 32.2], [220, 37.4], [240, 42.3], [260, 48.3], [280, 53.3], [300, 58.8]].map(([n, a]) => [`UPN ${n}`, a]);
+  ok('Katalog: UPN – Querschnitt mit geneigten Flanschen wie in der Tabelle', worst('upn', upnA, 0.01) < 0.01, (100 * worst('upn', upnA, 0.01)).toFixed(2) + ' %');
+  const angA = [['20×20×3', 1.12], ['25×25×4', 1.85], ['30×30×3', 1.74], ['40×40×4', 3.08], ['45×45×4,5', 3.9], ['50×50×5', 4.8], ['60×60×8', 9.03], ['70×70×7', 9.4], ['80×80×10', 15.1], ['90×90×9', 15.5], ['100×100×10', 19.2], ['120×120×12', 27.5], ['130×130×12', 30], ['150×150×15', 43], ['160×160×15', 46.1], ['180×180×18', 61.9], ['200×200×24', 90.6]];
+  // IPN, T, UPE and unequal angles: the areas (cm²) of the tables they were taken from
+  const secA = {"ipn":{"IPN 80":7.57,"IPN 100":10.6,"IPN 120":14.2,"IPN 140":18.2,"IPN 160":22.8,"IPN 180":27.9,"IPN 200":33.4,"IPN 220":39.5,"IPN 240":46.1,"IPN 260":53.3,"IPN 280":61,"IPN 300":69,"IPN 320":77.7,"IPN 340":86.7,"IPN 360":97,"IPN 380":107,"IPN 400":118},"en10055":{"T 30":2.26,"T 35":2.97,"T 40":3.77,"T 50":5.66,"T 60":7.94,"T 70":10.6,"T 80":13.6,"T 100":20.9,"T 120":29.6,"T 140":39.9},"upe":{"UPE 80":10.1,"UPE 100":12.5,"UPE 120":15.4,"UPE 140":18.4,"UPE 160":21.7,"UPE 180":25.1,"UPE 200":29,"UPE 220":33.9,"UPE 240":38.5,"UPE 270":44.8,"UPE 300":56.6,"UPE 330":67.8,"UPE 360":77.9,"UPE 400":91.9},"en10056u":{"30×20×3":1.43,"30×20×4":1.86,"40×20×4":2.26,"40×25×4":2.46,"45×30×4":2.87,"50×30×5":3.78,"60×30×5":4.28,"60×40×5":4.79,"60×40×6":5.68,"65×50×5":5.54,"70×50×6":6.89,"75×50×6":7.19,"75×50×8":9.41,"80×40×6":6.89,"80×40×8":9.01,"80×60×7":9.38,"100×50×6":8.71,"100×50×8":11.4,"100×65×7":11.2,"100×65×8":12.7,"100×65×10":15.6,"100×75×8":13.5,"100×75×10":16.6,"100×75×12":19.7,"120×80×8":15.5,"120×80×10":19.1,"120×80×12":22.7,"125×75×8":15.5,"125×75×10":19.1,"125×75×12":22.7,"135×65×8":15.5,"135×65×10":19.1,"150×75×9":19.6,"150×75×10":21.7,"150×75×12":25.7,"150×75×15":31.7,"150×90×10":23.2,"150×90×12":27.5,"150×90×15":33.9,"150×100×10":24.2,"150×100×12":28.7,"200×100×10":29.2,"200×100×12":34.8,"200×100×15":43,"200×150×12":40.8,"200×150×15":50.5}};
+  for (const [fam, label, tol] of [['ipn', 'IPN mit 14 % geneigten Flanschen', 0.005], ['en10055', 'T-Stahl mit 2 % Neigung', 0.006], ['upe', 'UPE', 0.005], ['en10056u', 'ungleichschenkliger Winkelstahl', 0.005]]) {
+    const w = worst(fam, Object.entries(secA[fam]), 0.01);
+    ok(`Katalog: ${label} – Querschnitt jeder Größe wie in der Tabelle`, w < tol && Object.keys(secA[fam]).length === STD_FAMILIES.find(f => f.id === fam).sizes().length, (100 * w).toFixed(2) + ' %');
+  }
+  ok('Katalog: Winkelstahl – Querschnitt wie in der Tabelle', worst('en10056', angA, 0.01) < 0.008, (100 * worst('en10056', angA, 0.01)).toFixed(2) + ' %');
+  ok('Katalog: Flach- und Vierkantstahl', near(A('en10058', '50×8'), 400, 1e-6) && near(A('en10059', '20'), 400, 1e-6));
   const stock = STD_FAMILIES.filter(f => f.stock);
-  ok('Katalog: jede Größe der Rohre und Profile hat eine Wand, die hineinpasst', stock.length === 4 && stock.every(f => f.sizes().length > 3 && f.sizes().every(z => vol(f.id, z, 10) > 0 && f.dims(z).length >= 3)), stock.map(f => f.sizes().length).join(' '));
+  ok('Katalog: jede Größe der Rohre und Profile hat eine Wand, die hineinpasst', stock.length === 15 && stock.every(f => f.sizes().length > 3 && f.sizes().every(z => vol(f.id, z, 10) > 0 && f.dims(z).length >= 3)), stock.map(f => f.sizes().length).join(' '));
 }
 
 // ---- hems read back from a body, bend lines with their own radius, tabs on a curved edge ----

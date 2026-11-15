@@ -1,5 +1,20 @@
 # Änderungen
 
+## v1.0.0-rc.15 – 2026-11-15
+
+### Skizze
+- **Abrunden zwischen Linie und Bogen**: das Skizzenwerkzeug „Abrunden“ arbeitet jetzt auch dort, wo eine Linie auf einen Bogen trifft oder zwei Bögen zusammenstoßen. Beide Kurven werden bis zum Berührpunkt gekürzt, ein neuer Bogen verbindet sie tangential und bekommt sein Radiusmaß. Die Vorschau zeigt ihn schon beim Überfahren der Ecke.
+- **Formeln in Rundung und Fase**: wer als Radius oder Fasenabstand einen Parameter eingibt („r1“, „wand/2“), behält die Formel – ändert sich der Parameter, ändern sich die Ecken mit. Das gilt im Werkzeug und in den Feldern R und F der Punktliste. Bisher wurde nur die Zahl gemerkt, und Formeln anderer Ecken derselben Kontur gingen beim nächsten Abrunden verloren.
+
+### Bauteilkatalog
+- **Profile**: neu im Katalog – I-Träger IPE (80 bis 600) und IPN (80 bis 400, Flansche 14 % geneigt), Breitflanschträger HEA und HEB (100 bis 600), U-Stahl UPN (50 bis 300, geneigte Flansche) und UPE (80 bis 400, parallele Flansche), T-Stahl (EN 10055), gleich- und ungleichschenkliger Winkelstahl (EN 10056-1), Flachstahl (EN 10058) und Vierkantstahl (EN 10059), jeweils auf beliebige Länge. Die Querschnitte tragen die Rundungen und Neigungen der Norm; ihre Flächen stimmen mit den Tabellenwerten auf unter 1 % überein. 40 Familien mit 924 Größen insgesamt.
+
+### KI-Agenten
+- **Fertigung für Agenten**: ein verbundener Agent (und das Befehlsskript) kann jetzt auch fertigen – Setups, Werkzeuge und Operationen lesen (mit Bahnlänge, Laufzeit oder dem Grund des Fehlers), Werkzeuge anlegen, Operationen anlegen, ändern und löschen, das Setup anpassen und das NC-Programm eines Setups mit dem gewählten Postprozessor ausgeben, ein weiteres Setup anlegen (etwa das gewendete Teil) und das Programm prüfen lassen: Halter und Schaft gegen das verbliebene Rohteil und die Spannmittel, Eilgänge durchs Material, Verfahrwege und Grenzen der Maschine – mit den Zeilen, in denen etwas gefunden wurde. Eine Operation entsteht mit den Vorgaben, die auch die App wählt. Jedes NC-Programm bleibt ein Entwurf, der vor dem ersten Schnitt zu prüfen ist.
+
+### Blech
+- **Schlitze am gebogenen Blech**: „Schlitze als Skizze“ und „Schlitze schneiden“ arbeiten jetzt auch an Blechen mit Biegelinien – die Schlitze stehen dort, wo die Zungen nach dem Biegen wirklich stehen, auch an Laschen, die an einer Biegelinie geteilt sind.
+
 ## v1.0.0-rc.14 – 2026-11-15
 
 ### Bauteilkatalog

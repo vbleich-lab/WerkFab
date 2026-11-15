@@ -102,3 +102,33 @@ const sq = { id: 'S', type: 'poly', closed: true, pts: [[0, 0], [20, 0], [20, 10
   const pv = cornerPreview(ents, 'R:p2', 'fillet', 5);
   ok('Vorschau: Rechteck mit gerundeter Ecke', pv && pv.closed && pv.pts.some(p => near(p, [25, 20])) && pv.pts.some(p => near(p, [30, 15])));
 }
+
+// ---- a rounding where a line meets an arc, and where two arcs meet ----
+{
+  const { filletCurves, curveCorner, cornerAt, cornerPreview } = await import('../js/sketchcorner.js');
+  const q = Math.SQRT1_2, d2 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  // a line coming up to (40,0), there an arc (centre 40/20, R 20) leaves to the right
+  const ents = [
+    { id: 'L', type: 'poly', closed: false, pts: [[40, -30], [40, 0]] },
+    { id: 'A', type: 'poly', curve: 'arc', closed: false, pts: [[40, 0], [40 + 20 * q, 20 - 20 * q], [60, 20]] },
+    { id: 'B', type: 'poly', curve: 'arc', closed: false, pts: [[60, 20], [60 + 10 * q, 30 - 10 * q], [70, 30]] },
+  ];
+  ok('Ecke Linie–Bogen und Bogen–Bogen werden erkannt, ein freies Ende nicht', curveCorner(ents, 'L:p1') && curveCorner(ents, 'A:p0') && curveCorner(ents, 'A:p2') && !curveCorner(ents, 'L:p0') && !curveCorner(ents, 'B:p2') && cornerAt(ents, [40.3, 0.2], 1.5)?.ref != null);
+  const f = filletCurves(ents, 'L:p1', 5, 'N', newId), O = f?.centre;
+  const yO = 20 - Math.sqrt(25 * 25 - 25);
+  ok('Linie–Bogen: Mitte 5 neben der Linie und 5 außerhalb des Kreises', f && near(O, [45, yO], 1e-6) && Math.abs(d2(O, [40, 20]) - 25) < 1e-6, J(O));
+  const mL = f.moves.find(m => m.id === 'L'), mA = f.moves.find(m => m.id === 'A');
+  ok('Linie–Bogen: Linie endet am Berührpunkt, der Bogen beginnt an seinem', near(mL.pts[1], [40, yO], 1e-5) && near(mL.pts[0], [40, -30]) && Math.abs(d2(mA.pts[0], [40, 20]) - 20) < 1e-5 && Math.abs(d2(mA.pts[0], O) - 5) < 1e-5 && near(mA.pts[2], [60, 20]) && Math.abs(d2(mA.pts[1], [40, 20]) - 20) < 1e-5 && mA.pts[1][0] > mA.pts[0][0] && mA.pts[1][0] < 60, J(mA.pts));
+  ok('Linie–Bogen: neuer Bogen mit Radius 5 zwischen den Berührpunkten, Abhängigkeiten dazu', f.arc.pts.every(p => Math.abs(d2(p, O) - 5) < 1e-5) && near(f.arc.pts[0], mL.pts[1], 1e-5) && near(f.arc.pts[2], mA.pts[0], 1e-5) && f.cons.filter(c => c.type === 'tangent').length === 2 && f.cons.filter(c => c.type === 'coincident').length === 2 && J(f.drop) === J(['L:p1', 'A:p0']), J(f.arc.pts));
+  ok('Linie–Bogen: ein Radius, der nicht passt, wird abgelehnt', filletCurves(ents, 'L:p1', 60, 'N', newId) === null && filletCurves(ents, 'L:p0', 5, 'N', newId) === null);
+  // two arcs that meet with a kink at (60,20)
+  const g = filletCurves(ents, 'A:p2', 2, 'N', newId);
+  const gA = g?.moves.find(m => m.id === 'A'), gB = g?.moves.find(m => m.id === 'B');
+  ok('Bogen–Bogen: Rundung berührt beide Kreise, beide Bögen sind gekürzt', g && [[40, 20, 20], [60, 30, 10]].every(([x, y, R]) => Math.min(Math.abs(d2(g.centre, [x, y]) - (R + 2)), Math.abs(d2(g.centre, [x, y]) - (R - 2))) < 1e-6)
+    && Math.abs(d2(gA.pts[2], [40, 20]) - 20) < 1e-5 && Math.abs(d2(gB.pts[0], [60, 30]) - 10) < 1e-5 && near(gA.pts[0], [40, 0]) && near(gB.pts[2], [70, 30]) && d2(gA.pts[2], [60, 20]) > 0.1 && d2(gA.pts[2], [60, 20]) < 6 && g.arc.pts.every(p => Math.abs(d2(p, g.centre) - 2) < 1e-5), J(g?.centre));
+  const pv = cornerPreview(ents, 'L:p1', 'fillet', 5);
+  ok('Vorschau an der Ecke Linie–Bogen', pv && !pv.closed && pv.pts.length > 3 && pv.pts.every(p => Math.abs(d2(p, O) - 5) < 1e-4) && cornerPreview(ents, 'L:p1', 'chamfer', 5) === null);
+  // the line of a polyline whose other corner is rounded keeps that rounding
+  const e2 = [{ id: 'P', type: 'poly', closed: false, pts: [[10, -30], [40, -30], [40, 0]], radii: { 1: 28 } }, ents[1]];
+  ok('Linie–Bogen: die Rundung am anderen Ende der Linie begrenzt den Platz', filletCurves(e2, 'P:p2', 5, 'N', newId) === null && filletCurves(e2, 'P:p2', 1, 'N', newId) !== null);
+}

@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: nieprawidłowa wartość lub nieznany parametr",
+ ", {0} ohne Platz für diesen Radius": ", {0} – brak miejsca na ten promień",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: {1} naroży przy łuku – obie krzywe skrócone, wstawiono łuk z wymiarem promienia{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "Fazowanie: tylko między prostymi liniami – przy łuku należy użyć zaokrąglenia.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: ten promień nie mieści się między obiema krzywymi.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: zaokrąglenie przy łuku jest osobnym łukiem – należy go zaznaczyć i usunąć.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "Kątownik nierównoramienny (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "Ramiona {0} × {1} · grubość {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "Teownik równoramienny (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · grubość {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "Ceownik UPE, równoległe półki (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "Dwuteownik IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · środnik {2} · półka {3} (nachylenie 14 %)"
+}

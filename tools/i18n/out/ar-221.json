@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: قيمة غير صالحة أو معامل غير معروف",
+ ", {0} ohne Platz für diesen Radius": "، {0} دون مساحة كافية لنصف القطر هذا",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: {1} زاوية/زوايا عند قوس – تم تقصير المنحنيين وإدراج قوس مع بُعد نصف القطر{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "شطف: بين الخطوط المستقيمة فقط – عند القوس يُرجى استخدام تدوير الحواف.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: نصف القطر هذا لا يتسع بين المنحنيين.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: التدوير عند قوس هو قوس مستقل – حدّده واحذفه.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "زاوية فولاذية غير متساوية الضلعين (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "الضلع {0} × {1} · السماكة {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "مقطع T فولاذي متساوي الضلعين (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · السماكة {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "مقطع U فولاذي UPE بحواف متوازية (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "عارضة I من النوع IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · الجذع {2} · الحافة {3} (ميل 14 %)"
+}

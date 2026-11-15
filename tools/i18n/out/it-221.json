@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: valore non valido o parametro sconosciuto",
+ ", {0} ohne Platz für diesen Radius": ", {0} senza spazio per questo raggio",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: {1} angolo/i su un arco – entrambe le curve accorciate, arco inserito con quota del raggio{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "Smusso: solo tra linee rette – su un arco usare un raccordo.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: questo raggio non sta tra le due curve.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: un raccordo su un arco è un arco a sé – selezionarlo ed eliminarlo.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "Angolare a lati disuguali (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "Lati {0} × {1} · spessore {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "Profilo a T a lati uguali (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · spessore {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "Profilo a U UPE, ali parallele (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "Trave a I IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · anima {2} · ala {3} (inclinazione 14 %)"
+}

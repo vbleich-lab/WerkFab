@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: nilai tidak sah atau parameter tidak diketahui",
+ ", {0} ohne Platz für diesen Radius": ", {0} tanpa ruang untuk jejari ini",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: {1} bucu pada lengkok – kedua-dua lengkung dipendekkan, lengkok dengan dimensi jejari disisipkan{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "Chamfer: hanya antara garis lurus – pada lengkok sila gunakan fillet.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: jejari ini tidak muat di antara kedua-dua lengkung.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: fillet pada lengkok ialah lengkok tersendiri – pilih dan padamkannya.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "Sudut keluli tidak sama kaki (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "Kaki {0} × {1} · ketebalan {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "Keluli T, sama kaki (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · ketebalan {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "Keluli saluran U UPE, bebibir selari (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "Rasuk-I IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · web {2} · bebibir {3} (cerun 14 %)"
+}

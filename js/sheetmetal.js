@@ -595,12 +595,30 @@ export function sheetSolid(R, poly, z0, f, holes = []) {
 /**
  * Where the tabs of a sheet stand in space (for the slots of the part they are put through): per tab { c (the middle
  * of its root, on the middle of the sheet), e (along the edge), nrm (across the sheet), dir (the way it points), w,
- * len, t, edge, sag? (on a curved edge: how far the tab bulges over its chord) }. Nothing for a sheet with bends on
- * lines (there the flanges turn with it).
+ * len, t, edge, sag? (on a curved edge: how far the tab bulges over its chord) }. On a sheet with bends on lines
+ * every tab is turned with the piece of the plate its flange stands on.
  */
 export function tabSlots(poly, z0, f) {
   const t = +f.thickness, r = +f.radius, k = +f.kfactor, out = [];
-  if ((f.folds || []).length) return out;
+  const plan = (f.folds || []).length ? foldPlan(poly, f) : null;
+  if (plan) f = splitAtFolds(poly, f);
+  // where a point of the flat plate (and what stands on it) ends up: the bends on the way to its piece, last first
+  const fold = s => {
+    if (!plan) return s;
+    const cell = plan.cells.find(c => plan.folds.every((q, i) => ((s.root[0] - q.o[0]) * q.n[0] + (s.root[1] - q.o[1]) * q.n[1]) * c.sig[i] >= q.ba / 2 - 1e-6));
+    if (!cell) return null;
+    let { c, e, nrm, dir } = s;
+    for (let j = cell.path.length - 1; j >= 0; j--) {
+      const { i, s: sd } = cell.path[j], q = plan.folds[i], m = [q.n[0] * sd, q.n[1] * sd], sg = Math.sign(q.angle), a = q.angle * DEG, ca = Math.cos(a), sa = Math.sin(a);
+      const ax = [m[1], -m[0], 0], o = [q.o[0] - (m[0] * q.ba) / 2, q.o[1] - (m[1] * q.ba) / 2, z0 + (sg > 0 ? t + q.r : -q.r)];
+      // (Rodrigues: right-handed turn about the axis of the bend)
+      const rot = v => { const d = ax[0] * v[0] + ax[1] * v[1] + ax[2] * v[2], x = [ax[1] * v[2] - ax[2] * v[1], ax[2] * v[0] - ax[0] * v[2], ax[0] * v[1] - ax[1] * v[0]]; return v.map((p, n) => p * ca + x[n] * sa + ax[n] * d * (1 - ca)); };
+      c = rot([c[0] - m[0] * q.ba - o[0], c[1] - m[1] * q.ba - o[1], c[2] - o[2]]).map((p, n) => p + o[n]);
+      e = rot(e); nrm = rot(nrm); dir = rot(dir);
+    }
+    return { ...s, c, e, nrm, dir };
+  };
+  const push = s => { const q = fold(s); if (q) { delete q.root; out.push(q); } };
   const edges = polyEdges(poly), ends = flangeEnds(edges, f), arcs = polyArcs(poly), joins = flangeJoins(poly, f, arcs);
   for (const fl of f.flanges || []) {
     const ed = edges[fl.edge];
@@ -612,7 +630,7 @@ export function tabSlots(poly, z0, f) {
       for (const s of tpa?.at || []) {
         const pe = arcEdge(a, s), rho = a.convex ? a.R + at.pos[0] : a.R - at.pos[0], w = (tpa.w * rho) / a.R, sag = rho - Math.sqrt(Math.max(0, rho * rho - (w * w) / 4)), side = a.convex ? -1 : 1;
         // (the slot is straight: it lies on the chord of the tab and is wider by its bulge)
-        out.push({ edge: fl.edge, w, len: tpa.len, t, sag,
+        push({ edge: fl.edge, w, len: tpa.len, t, sag, root: [pe.a[0] - pe.n[0] * 1e-3, pe.a[1] - pe.n[1] * 1e-3],
           c: [pe.a[0] + pe.n[0] * (at.pos[0] + (side * sag) / 2), pe.a[1] + pe.n[1] * (at.pos[0] + (side * sag) / 2), z0 + at.pos[1]],
           e: [pe.e[0], pe.e[1], 0], nrm: [pe.n[0] * at.nrm[0], pe.n[1] * at.nrm[0], at.nrm[1]], dir: [pe.n[0] * at.dir[0], pe.n[1] * at.dir[0], at.dir[1]] });
       }
@@ -620,7 +638,7 @@ export function tabSlots(poly, z0, f) {
     }
     const tp = tabPlan(fl, ed, ...flangeGaps(fl, endsOf(ends, fl), fl.relief ?? (r + t), 0, joins.get(fl.edge)));
     if (!tp) continue;
-    for (const s of tp.at) out.push({ edge: fl.edge, w: tp.w, len: tp.len, t,
+    for (const s of tp.at) push({ edge: fl.edge, w: tp.w, len: tp.len, t, root: [ed.a[0] + ed.e[0] * s - ed.n[0] * 1e-3, ed.a[1] + ed.e[1] * s - ed.n[1] * 1e-3],
       c: [ed.a[0] + ed.e[0] * s + ed.n[0] * at.pos[0], ed.a[1] + ed.e[1] * s + ed.n[1] * at.pos[0], z0 + at.pos[1]],
       e: [ed.e[0], ed.e[1], 0], nrm: [ed.n[0] * at.nrm[0], ed.n[1] * at.nrm[0], at.nrm[1]], dir: [ed.n[0] * at.dir[0], ed.n[1] * at.dir[0], at.dir[1]] });
   }

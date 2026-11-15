@@ -4,6 +4,7 @@
 // picture. It gets no access to files, to the settings or to other designs.
 import { FEATURE_TYPES } from './model.js';
 import { STD_FAMILIES, stdFamily, stdPartName } from './stdparts.js';
+import { OP_TYPES, TOOL_TYPES } from './cam.js';
 
 const obj = (properties = {}, required = []) => ({ type: 'object', properties, required, additionalProperties: false });
 
@@ -33,6 +34,15 @@ Holes at the circle centres of a sketch:
 Working loop: add_features → get_model (bodies with volume and bounding box, and the error text of every feature
 that failed) → screenshot to look at the result. Every change is one undo step; undo takes it back.
 Standard parts, tubes and sections come from the catalogue: list_standard_parts, then insert_standard_part.
+Manufacture (CAM): get_cam shows setups (stock, origin, machine), the tool library and the operations with the
+length and time of their toolpaths or the reason they failed. add_operation creates an operation with the
+defaults the app would choose (tool by type, the last fitting sketch) – then read it with get_cam and adjust
+fields with update_operation. Operation types: ${Object.keys(OP_TYPES).join(', ')}.
+Tool types: ${Object.keys(TOOL_TYPES).join(', ')}. A 2D operation follows a sketch ("sketch": id, "entities": "all"
+or a list of entity ids; "geomSource": "sketch") or faces picked in the model ("geomSource": "model"); "depth" is how deep it cuts below the top of the sketch plane. get_nc_program posts a setup
+with the post processor of the design or another one from the list in get_cam; check_nc_program reports collisions
+and machine limits of that program. add_setup adds another clamping (e.g. the part turned over).
+An NC program is a draft: tell the user to check it in the simulation and with a dry run before cutting.
 The user watches the same window: keep the design tidy, name features, and do not delete what you did not make
 unless asked.`;
 
@@ -51,12 +61,22 @@ export const AGENT_TOOLS = [
   { name: 'export', description: 'The model as file content: format "step" (text) or "stl" (text, ASCII). Large models give long answers.', inputSchema: obj({ format: { type: 'string', enum: ['step', 'stl'] } }, ['format']) },
   { name: 'list_standard_parts', description: 'The parts catalogue. Without "family": all families (id, group, name, standard, number of sizes). With "family": its sizes and main dimensions.', inputSchema: obj({ family: { type: 'string' } }) },
   { name: 'insert_standard_part', description: 'Insert a catalogue part as a new body with its axis along Z at "at" (default the origin). "length" for screws, pins, tubes and sections.', inputSchema: obj({ family: { type: 'string' }, size: { type: 'string' }, length: { type: 'number' }, at: { type: 'array', items: { type: 'number' }, minItems: 3, maxItems: 3 } }, ['family', 'size']) },
+  { name: 'get_cam', description: 'Manufacture: setups (kind, stock box, error), tools, operations (with toolpath length in mm, time in s or the error text) and the post processors.', inputSchema: obj({ full: { type: 'boolean', description: 'true: every field of setups, tools and operations' } }) },
+  { name: 'add_tool', description: 'Add a tool to the library of the design. Needs type (see guide) and dia (mm); optional name, number, rpm, feed, plunge (mm/min), stepdown, stepover (share of the diameter), fluteLen, length, angle, stickout (mm out of the holder) and holderDia for the collision check.', inputSchema: obj({ tool: { type: 'object' } }, ['tool']) },
+  { name: 'add_operation', description: 'Add a machining operation with the defaults of the app. type: see guide. Optional: setup (id), tool (id) and "fields" merged into the operation (e.g. sketch, entities, depth, stepdown, side, stockToLeave). Returns the operation and its result.', inputSchema: obj({ type: { type: 'string' }, setup: { type: 'string' }, tool: { type: 'string' }, fields: { type: 'object' } }, ['type']) },
+  { name: 'update_operation', description: 'Change fields of one operation ("patch" is merged; null removes a field). Returns its new result.', inputSchema: obj({ id: { type: 'string' }, patch: { type: 'object' } }, ['id', 'patch']) },
+  { name: 'delete_operations', description: 'Remove operations by id.', inputSchema: obj({ ids: { type: 'array', items: { type: 'string' } } }, ['ids']) },
+  { name: 'update_setup', description: 'Change fields of a setup ("patch" is merged; null removes a field) – e.g. name, stock margins, origin, safeZ. Read the fields with get_cam full first.', inputSchema: obj({ id: { type: 'string' }, patch: { type: 'object' } }, ['id', 'patch']) },
+  { name: 'add_setup', description: 'Add a setup (a clamping of the part). It starts as a copy of the setup "copy_of" (default: the last one); "fields" are merged in – e.g. name, orientation ("top", "bottom", "front", "back", "left", "right"), stock margins, origin. Returns get_cam.', inputSchema: obj({ copy_of: { type: 'string' }, fields: { type: 'object' } }) },
+  { name: 'check_nc_program', description: 'Post a setup and check the program line by line: holder and shank against the remaining stock and the clamping, rapids through material, machine travels and limits. It does not tell whether a path cuts into the finished part – compare the result with the model. Returns the issues by kind with the lines they are on; "clean": true when nothing was found. Optional: setup (id), post (id).', inputSchema: obj({ setup: { type: 'string' }, post: { type: 'string' } }) },
+  { name: 'get_nc_program', description: 'The NC program of a setup as text, with line count, run time and warnings. Optional: setup (id, default the first), post (id of a post processor from get_cam). A draft – it must be verified before cutting.', inputSchema: obj({ setup: { type: 'string' }, post: { type: 'string' } }) },
   { name: 'undo', description: 'Take back the last change.', inputSchema: obj() },
   { name: 'redo', description: 'Do the last undone change again.', inputSchema: obj() },
 ];
 
 // api: what the page lends (js/main.js): project(), commit(fn), settled() → model, bodyInfo(body), picture(view, fit),
-// exportText(format), insertPart(v, at), undo(), redo(), uid(prefix), note(what, n) – what: added | changed | deleted | replaced | emptied
+// exportText(format), insertPart(v, at), undo(), redo(), uid(prefix), note(what, n) – what: added | changed | deleted | replaced | emptied | opAdded,
+// cam(full), addOp(type, setupId, toolId, fields) → id, opResult(id), nc(setupId, postId)
 export async function agentCall(name, a, api) {
   a ||= {};
   const errorsNow = async () => { const m = await api.settled(); return { errors: m.errors || {}, bodies: m.bodies.length }; };
@@ -139,6 +159,55 @@ export async function agentCall(name, a, api) {
       const ok = api.insertPart({ fam: f.id, size: String(a.size), len, thread: 'mark' }, Array.isArray(a.at) && a.at.length === 3 ? a.at.map(Number) : [0, 0, 0]);
       return { inserted: ok, name: stdPartName(f, String(a.size), len), ...(await errorsNow()) };
     }
+    case 'get_cam': return api.cam(!!a.full);
+    case 'add_tool': {
+      const t = a.tool;
+      if (!t || !TOOL_TYPES[t.type]) throw new Error(`tool.type must be one of: ${Object.keys(TOOL_TYPES).join(', ')}`);
+      if (!(+t.dia > 0)) throw new Error('tool.dia (mm) is needed');
+      const tools = api.project().cam.tools, id = api.uid('T');
+      const tool = { rpm: 10000, feed: 600, plunge: 200, stepdown: 1, stepover: 0.5, ...structuredClone(t), id, dia: +t.dia, number: +t.number > 0 ? +t.number : Math.max(0, ...tools.map(x => +x.number || 0)) + 1 };
+      tool.name ||= `${TOOL_TYPES[tool.type]} Ø${tool.dia}`;
+      api.commit(p => { p.cam.tools.push(tool); });
+      return tool;
+    }
+    case 'add_operation': {
+      if (!OP_TYPES[a.type]) throw new Error(`Unknown operation type "${a.type}". Types: ${Object.keys(OP_TYPES).join(', ')}`);
+      const p = api.project();
+      if (a.setup && !p.cam.setups.some(s => s.id === a.setup)) throw new Error(`No setup "${a.setup}"`);
+      if (a.tool && !p.cam.tools.some(t => t.id === a.tool)) throw new Error(`No tool "${a.tool}"`);
+      await api.settled();
+      const id = api.addOp(a.type, a.setup || null, a.tool || null, a.fields || {});
+      api.note('opAdded');
+      return api.opResult(id);
+    }
+    case 'update_operation': {
+      if (!api.project().cam.ops.some(o => o.id === a.id)) throw new Error(`No operation with the id "${a.id}"`);
+      if (!a.patch || typeof a.patch !== 'object' || 'id' in a.patch) throw new Error('patch: an object with the fields to change is needed (not the id)');
+      api.commit(p => { const o = p.cam.ops.find(q => q.id === a.id); for (const [k, v] of Object.entries(structuredClone(a.patch))) { if (v === null) delete o[k]; else o[k] = v; } });
+      await api.settled();
+      return api.opResult(a.id);
+    }
+    case 'delete_operations': {
+      const ids = new Set(a.ids || []), n = api.project().cam.ops.filter(o => ids.has(o.id)).length;
+      if (!n) throw new Error('None of these ids exists');
+      api.commit(p => { p.cam.ops = p.cam.ops.filter(o => !ids.has(o.id)); });
+      return { deleted: n };
+    }
+    case 'update_setup': {
+      if (!api.project().cam.setups.some(s => s.id === a.id)) throw new Error(`No setup with the id "${a.id}"`);
+      if (!a.patch || typeof a.patch !== 'object' || 'id' in a.patch) throw new Error('patch: an object with the fields to change is needed (not the id)');
+      api.commit(p => { const s = p.cam.setups.find(q => q.id === a.id); for (const [k, v] of Object.entries(structuredClone(a.patch))) { if (v === null) delete s[k]; else s[k] = v; } });
+      await api.settled();
+      return api.cam(false);
+    }
+    case 'add_setup': {
+      if (a.copy_of && !api.project().cam.setups.some(s => s.id === a.copy_of)) throw new Error(`No setup "${a.copy_of}"`);
+      api.addSetup(a.copy_of || null, a.fields || {});
+      await api.settled();
+      return api.cam(false);
+    }
+    case 'check_nc_program': { await api.settled(); return api.check(a.setup || null, a.post || null); }
+    case 'get_nc_program': { await api.settled(); return api.nc(a.setup || null, a.post || null); }
     case 'undo': api.undo(); return errorsNow();
     case 'redo': api.redo(); return errorsNow();
     default: throw new Error(`Unknown tool "${name}"`);

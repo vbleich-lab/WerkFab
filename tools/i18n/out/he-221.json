@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: ערך לא תקין או פרמטר לא מוכר",
+ ", {0} ohne Platz für diesen Radius": ", {0} ללא מקום לרדיוס זה",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: {1} פינות בקשת – שני העקומים קוצרו, קשת עם מידת רדיוס נוספה{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "פאזה: רק בין קווים ישרים – בקשת יש להשתמש בעיגול פינות.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: רדיוס זה אינו נכנס בין שני העקומים.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: עיגול בקשת הוא קשת בפני עצמה – יש לבחור אותה ולמחוק.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "זווית פלדה לא שווה-שוקיים (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "שוק {0} × {1} · עובי {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "פרופיל T פלדה שווה-שוקיים (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · עובי {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "פרופיל U פלדה UPE, אוגנים מקבילים (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "קורת I מסוג IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · גוף {2} · אוגן {3} (שיפוע 14 %)"
+}

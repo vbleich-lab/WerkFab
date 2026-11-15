@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "AI 에이전트: 작업 생성됨",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "연결된 에이전트가 열려 있는 설계에서 작업합니다. 타임라인을 읽고 변경하며, 바디·부피·오류를 조회하고, 부품 카탈로그에서 표준 부품을 가져오고, 뷰의 이미지를 받아 오며, STEP 또는 STL로 내보내고, 공구와 제조 작업을 만들고 NC 프로그램을 출력합니다. NC 프로그램은 첫 절삭 전에 반드시 확인해야 합니다. 파일, 환경설정, 다른 설계에는 접근할 수 없습니다. 모든 변경은 Ctrl+Z로 되돌릴 수 있는 하나의 단계입니다.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · 웹 {2} · 플랜지 {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "사각 강봉 (EN 10059)",
+ "Flachstahl (EN 10058)": "평강 (EN 10058)",
+ "Breite {0} · Dicke {1}": "폭 {0} · 두께 {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "등변 앵글 (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "다리 {0} · 두께 {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "채널 UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · 웹 {2} · 플랜지 {3} (8 % 경사)",
+ "I-Träger IPE (DIN 1025-5)": "I형강 IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "와이드 플랜지 빔 HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "와이드 플랜지 빔 HEB (DIN 1025-2)"
+}

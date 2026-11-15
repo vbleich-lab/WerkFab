@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "Agent AI: utworzono operację",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "Połączony agent pracuje nad otwartym projektem: odczytuje i zmienia oś czasu, sprawdza bryły, objętości i błędy, pobiera części znormalizowane z katalogu części, prosi o obraz widoku, eksportuje STEP lub STL, tworzy narzędzia i operacje obróbkowe oraz wystawia program NC – który przed pierwszym skrawaniem nadal trzeba sprawdzić. Nie ma dostępu do plików, ustawień ani innych projektów. Każda zmiana jest krokiem, który cofa Ctrl+Z.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · środnik {2} · półka {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "Pręt kwadratowy stalowy (EN 10059)",
+ "Flachstahl (EN 10058)": "Płaskownik stalowy (EN 10058)",
+ "Breite {0} · Dicke {1}": "Szerokość {0} · grubość {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "Kątownik równoramienny (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "Ramię {0} · grubość {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "Ceownik UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · środnik {2} · półka {3} (nachylenie 8 %)",
+ "I-Träger IPE (DIN 1025-5)": "Dwuteownik IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "Dwuteownik szerokopółkowy HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "Dwuteownik szerokopółkowy HEB (DIN 1025-2)"
+}

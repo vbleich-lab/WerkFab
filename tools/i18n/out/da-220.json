@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "AI-agent: operation oprettet",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "En tilsluttet agent arbejder på det åbne design: Den læser og ændrer tidslinjen, forespørger legemer, volumen og fejl, henter standarddele fra delkataloget, får et billede af visningen, eksporterer STEP eller STL, opretter værktøjer og fremstillingsoperationer og udlæser NC-programmet – som stadig skal kontrolleres før det første snit. Den har ingen adgang til filer, indstillinger og andre designs. Hver ændring er ét trin, som Ctrl+Z fortryder.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · krop {2} · flange {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "Firkantstål (EN 10059)",
+ "Flachstahl (EN 10058)": "Fladstål (EN 10058)",
+ "Breite {0} · Dicke {1}": "Bredde {0} · tykkelse {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "Vinkelstål, ligebenet (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "Ben {0} · tykkelse {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "U-stål UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · krop {2} · flange {3} (8 % hældning)",
+ "I-Träger IPE (DIN 1025-5)": "I-bjælke IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "Bredflangebjælke HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "Bredflangebjælke HEB (DIN 1025-2)"
+}

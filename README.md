@@ -13,7 +13,7 @@ WerkFab is a parametric 3D CAD program with integrated CAM. Parts are designed w
 > [!CAUTION]
 > **Every NC program must be verified before it runs on a machine for the first time – in a dry run on the machine (single block, reduced rapid, in the air or with a safe Z offset) or in an external NC simulator.** The simulation inside WerkFab does not replace this check. WerkFab is free software and comes with no warranty of any kind; there is no liability for damage to machines, tools, workpieces or people. See [Safety](#safety-always-simulate-nc-programs-first).
 
-> **Status: Release Candidate 14 (v1.0.0-rc.14).** Feature complete for 1.0.
+> **Status: Release Candidate 15 (v1.0.0-rc.15).** Feature complete for 1.0.
 
 ![Designing a part on the timeline, then toolpaths and a simulation with stock removal](docs/media/demo.gif)
 
@@ -56,7 +56,7 @@ The interface is available in **28 languages**: English (US and UK), German, Chi
 - **Construction geometry**: planes (offset, at an angle, through 3 points, tangent), axes and points
 - **Surfaces**: extrude, revolve, loft, patch, offset, stitch, trim, extend, fill
 - **Sheet metal**: flanges, flange on flange (U hem, Z step, 180° hem), open or closed corners with corner relief (round or square), bend lines, beads, collars, louvres, embossing, flat pattern with bend table, nesting with a cutting program per sheet
-- **Parts catalogue**: standard parts (screws, nuts, washers, pins, keys, retaining rings, bearings, seals), round tubes, square and rectangular hollow sections and round bars – searchable by name, standard or dimension, with a drawn preview and the table of sizes
+- **Parts catalogue**: standard parts (screws, nuts, washers, pins, keys, retaining rings, bearings, seals), round tubes, square and rectangular hollow sections, I-beams (IPE, IPN, HEA, HEB), channels (UPN, UPE), T sections, equal and unequal angles, flat, square and round bars – searchable by name, standard or dimension, with a drawn preview and the table of sizes
 - **Configurations**: named sets of parameter values – one design, several variants
 - **Timeline** with a cache: a change recomputes only the features it affects, step by step with a progress display
 
@@ -93,7 +93,7 @@ The interface is available in **28 languages**: English (US and UK), German, Chi
 - **Languages**: 28 – English (US and UK), German, Chinese, French, Spanish, Italian, Portuguese (Brazil), Dutch, Polish, Turkish, Japanese, Korean, Russian, Czech, Danish, Finnish, Norwegian, Ukrainian, Croatian, Bosnian, Serbian, Georgian, Latvian, Malay, Galician, Arabic and Hebrew (Preferences → Units and value display → Language; “System” follows the language of the browser or operating system). Everything except German, English and Chinese is a machine translation that no native speaker has reviewed yet – corrections are welcome
 - **Look**: ten designs (light, dark, high contrast), accent colour of your choice, icon colour and size, density, corner shape, font, window opacity, interface size, and named profiles of all preferences
 - **Updates**: the program looks for a new version on GitHub at start. The installed Windows app and the Linux AppImage download and install it on request; the portable Windows folder, macOS and the browser version show a note with the download page. This look-up is the only connection WerkFab makes to the net by itself, and it can be switched off (Preferences → General → Updates).
-- **AI agents**: the desktop app can open a local port that speaks the Model Context Protocol (MCP) – Preferences → AI agents shows the address, the key and the command to connect. An agent reads and changes the open design, inserts catalogue parts, asks for bodies, volumes and errors, gets a picture of the view and exports STEP or STL. Off by default, this computer only, key required; no access to files or settings. The same commands run from a JSON script (File → Run command script)
+- **AI agents**: the desktop app can open a local port that speaks the Model Context Protocol (MCP) – Preferences → AI agents shows the address, the key and the command to connect. An agent reads and changes the open design, inserts catalogue parts, adds tools and machining operations, outputs the NC program (a draft to verify) and has it checked for collisions, asks for bodies, volumes and errors, gets a picture of the view and exports STEP or STL. Off by default, this computer only, key required; no access to files or settings. The same commands run from a JSON script (File → Run command script)
 - Marking menu (right click), ViewCube, keyboard shortcuts (e.g. Q press/pull, F fillet, M move, I measure, X construction line)
 - Several documents in tabs, versions on save; import of STEP, IGES, STL, OBJ and DXF, export of STEP, IGES, STL and glTF, tool libraries and post processors (.cps)
 

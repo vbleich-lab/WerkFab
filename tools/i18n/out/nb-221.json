@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: ugyldig verdi eller ukjent parameter",
+ ", {0} ohne Platz für diesen Radius": ", {0} uten plass til denne radiusen",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: {1} hjørne(r) ved en bue – begge kurver forkortet, bue med radiusmål satt inn{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "Fas: bare mellom rette linjer – bruk avrunding ved en bue.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: denne radiusen passer ikke mellom de to kurvene.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: en avrunding ved en bue er en egen bue – velg den og slett den.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "Vinkelstål, ulikebeint (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "Ben {0} × {1} · tykkelse {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "T-stål, likebeint (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · tykkelse {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "U-stål UPE, parallelle flenser (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "I-bjelke IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · steg {2} · flens {3} (14 % helning)"
+}

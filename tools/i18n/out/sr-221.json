@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: неважећа вредност или непознат параметар",
+ ", {0} ohne Platz für diesen Radius": ", {0} без места за овај радијус",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: {1} угао/углова на луку – обе криве скраћене, лук уметнут са котом радијуса{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "Скошење: само између правих линија – на луку употребите заобљење.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: овај радијус не стаје између две криве.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: заобљење на луку је засебан лук – изаберите га и обришите.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "Разнокраки угаоник (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "Крак {0} × {1} · дебљина {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "T-профил, једнакокраки (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · дебљина {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "U-профил UPE, паралелни појасеви (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "I-носач IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · ребро {2} · појас {3} (нагиб 14 %)"
+}

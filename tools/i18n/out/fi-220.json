@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "Tekoälyagentti: operaatio luotu",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "Yhdistetty agentti työskentelee avoimella luonnoksella: se lukee ja muuttaa aikajanaa, kysyy kappaleet, tilavuuden ja virheet, hakee vakio-osat osakatalogista, pyytää kuvan näkymästä, vie STEP- tai STL-tiedoston, luo työkaluja ja valmistusoperaatioita ja tulostaa NC-ohjelman – joka on tarkastettava ennen ensimmäistä leikkausta. Sillä ei ole pääsyä tiedostoihin, asetuksiin tai muihin luonnoksiin. Jokainen muutos on yksi vaihe, jonka Ctrl+Z kumoaa.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · uuma {2} · laippa {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "Neliöteräs (EN 10059)",
+ "Flachstahl (EN 10058)": "Lattateräs (EN 10058)",
+ "Breite {0} · Dicke {1}": "Leveys {0} · paksuus {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "Tasakylkinen kulmateräs (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "Siipi {0} · paksuus {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "U-palkki UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · uuma {2} · laippa {3} (kaltevuus 8 %)",
+ "I-Träger IPE (DIN 1025-5)": "I-palkki IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "Leveälaippainen palkki HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "Leveälaippainen palkki HEB (DIN 1025-2)"
+}

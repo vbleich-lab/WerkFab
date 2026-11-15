@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "סוכן בינה מלאכותית: נוצרה פעולה",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "סוכן מחובר עובד על התכנון הפתוח: הוא קורא ומשנה את ציר הזמן, שואל על גופים, נפח ושגיאות, מביא חלקים תקניים מקטלוג הרכיבים, מבקש תמונה של התצוגה, מייצא STEP או STL, יוצר כלים ופעולות ייצור ומפיק את תוכנית ה-NC – שאותה יש לבדוק לפני החיתוך הראשון. אין לו גישה לקבצים, להגדרות או לתכנונים אחרים. כל שינוי הוא שלב אחד ש-Ctrl+Z מבטל.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · גוף {2} · אוגן {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "מוט פלדה מרובע (EN 10059)",
+ "Flachstahl (EN 10058)": "פלדה שטוחה (EN 10058)",
+ "Breite {0} · Dicke {1}": "רוחב {0} · עובי {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "זווית פלדה שווה-שוקיים (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "שוק {0} · עובי {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "פרופיל U פלדה UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · גוף {2} · אוגן {3} (שיפוע 8 %)",
+ "I-Träger IPE (DIN 1025-5)": "קורת I מסוג IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "קורת אוגנים רחבים HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "קורת אוגנים רחבים HEB (DIN 1025-2)"
+}

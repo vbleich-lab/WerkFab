@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: არასწორი მნიშვნელობა ან უცნობი პარამეტრი",
+ ", {0} ohne Platz für diesen Radius": ", {0} ამ რადიუსისთვის ადგილის გარეშე",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: {1} კუთხე რკალზე – ორივე მრუდი დამოკლებულია, რკალი რადიუსის ზომით ჩასმულია{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "ფასკა: მხოლოდ სწორ ხაზებს შორის – რკალზე გამოიყენეთ მომრგვალება.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: ეს რადიუსი ორ მრუდს შორის არ ეტევა.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: რკალზე მომრგვალება ცალკე რკალია – აირჩიეთ და წაშალეთ.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "არათანაბარწახნაგა კუთხოვანა (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "წახნაგი {0} × {1} · სისქე {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "ტესებრი პროფილი, თანაბარწახნაგა (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · სისქე {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "შველერი UPE, პარალელური თაროები (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "ორტესებრი ძელი IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · ლარტყა {2} · თაროს სისქე {3} (დახრა 14 %)"
+}

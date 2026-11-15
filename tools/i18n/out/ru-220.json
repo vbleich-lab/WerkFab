@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "ИИ-агент: создана операция",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "Подключённый агент работает с открытым проектом: он читает и изменяет временную шкалу, запрашивает тела, объём и ошибки, берёт стандартные детали из каталога деталей, получает изображение вида, экспортирует STEP или STL, создаёт инструменты и операции обработки и выдаёт управляющую программу – которую перед первым резом необходимо проверить. Доступа к файлам, настройкам и другим проектам у него нет. Каждое изменение – один шаг, который отменяется командой Ctrl+Z.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · стенка {2} · полка {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "Квадратная сталь (EN 10059)",
+ "Flachstahl (EN 10058)": "Полосовая сталь (EN 10058)",
+ "Breite {0} · Dicke {1}": "Ширина {0} · толщина {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "Равнополочный уголок (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "Полка {0} · толщина {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "Швеллер UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · стенка {2} · полка {3} (уклон 8 %)",
+ "I-Träger IPE (DIN 1025-5)": "Двутавр IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "Широкополочный двутавр HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "Широкополочный двутавр HEB (DIN 1025-2)"
+}

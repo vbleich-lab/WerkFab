@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "Ejen AI: operasi dicipta",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "Ejen yang disambungkan bekerja pada reka bentuk yang dibuka: ia membaca dan mengubah garis masa, menanyakan jasad, isi padu dan ralat, mengambil bahagian piawai daripada katalog bahagian, mendapatkan gambar paparan, mengeksport STEP atau STL, mencipta alat dan operasi pembuatan serta mengeluarkan program NC – yang masih perlu disemak sebelum pemotongan pertama. Ia tiada akses kepada fail, tetapan dan reka bentuk lain. Setiap perubahan ialah satu langkah yang dibatalkan oleh Ctrl+Z.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · web {2} · bebibir {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "Bar keluli segi empat sama (EN 10059)",
+ "Flachstahl (EN 10058)": "Bar keluli rata (EN 10058)",
+ "Breite {0} · Dicke {1}": "Lebar {0} · ketebalan {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "Sudut keluli sama kaki (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "Kaki {0} · ketebalan {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "Keluli saluran U UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · web {2} · bebibir {3} (cerun 8 %)",
+ "I-Träger IPE (DIN 1025-5)": "Rasuk-I IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "Rasuk bebibir lebar HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "Rasuk bebibir lebar HEB (DIN 1025-2)"
+}

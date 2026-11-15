@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "Agente de IA: operación creada",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "Un agente conectado trabaja en el diseño abierto: lee y modifica la línea de tiempo, consulta cuerpos, volúmenes y errores, obtiene piezas normalizadas del catálogo de piezas, solicita una imagen de la vista, exporta STEP o STL, crea herramientas y operaciones de fabricación y genera el programa NC, que debe comprobarse antes del primer corte. No tiene acceso a archivos, preferencias ni a otros diseños. Cada cambio es un paso que Ctrl+Z deshace.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · alma {2} · ala {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "Barra cuadrada de acero (EN 10059)",
+ "Flachstahl (EN 10058)": "Pletina de acero (EN 10058)",
+ "Breite {0} · Dicke {1}": "Ancho {0} · espesor {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "Ángulo de lados iguales (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "Lado {0} · espesor {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "Perfil en U UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · alma {2} · ala {3} (inclinación 8 %)",
+ "I-Träger IPE (DIN 1025-5)": "Viga en I IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "Viga de ala ancha HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "Viga de ala ancha HEB (DIN 1025-2)"
+}

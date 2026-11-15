@@ -1,0 +1,15 @@
+{
+ "KI-Agent: Operation angelegt": "AI-agent: bewerking aangemaakt",
+ "Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.": "Een verbonden agent werkt aan het geopende ontwerp: hij leest en wijzigt de tijdlijn, vraagt lichamen, volumes en fouten op, haalt normonderdelen uit de onderdelencatalogus, laat zich een beeld van de weergave geven, exporteert STEP of STL, maakt gereedschappen en fabricagebewerkingen aan en geeft het NC-programma uit – dat vóór de eerste snede nog gecontroleerd moet worden. Hij heeft geen toegang tot bestanden, voorkeuren en andere ontwerpen. Elke wijziging is een stap die Ctrl+Z ongedaan maakt.",
+ "h {0} · b {1} · Steg {2} · Flansch {3} · r {4}": "h {0} · b {1} · lijf {2} · flens {3} · r {4}",
+ "Vierkantstahl (EN 10059)": "Vierkant staal (EN 10059)",
+ "Flachstahl (EN 10058)": "Plat staal (EN 10058)",
+ "Breite {0} · Dicke {1}": "Breedte {0} · dikte {1}",
+ "Winkelstahl, gleichschenklig (EN 10056-1)": "Hoekstaal, gelijkbenig (EN 10056-1)",
+ "Schenkel {0} · Dicke {1} · r {2}": "Been {0} · dikte {1} · r {2}",
+ "U-Stahl UPN (DIN 1026-1)": "U-profiel UPN (DIN 1026-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (8 % geneigt)": "h {0} · b {1} · lijf {2} · flens {3} (8 % helling)",
+ "I-Träger IPE (DIN 1025-5)": "I-balk IPE (DIN 1025-5)",
+ "Breitflanschträger HEA (DIN 1025-3)": "Breedflensbalk HEA (DIN 1025-3)",
+ "Breitflanschträger HEB (DIN 1025-2)": "Breedflensbalk HEB (DIN 1025-2)"
+}

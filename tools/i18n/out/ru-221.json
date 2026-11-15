@@ -1,0 +1,15 @@
+{
+ "{0}: ungültiger Wert oder unbekannter Parameter": "{0}: недопустимое значение или неизвестный параметр",
+ ", {0} ohne Platz für diesen Radius": ", {0} без места для этого радиуса",
+ "{0}: {1} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt{2}": "{0}: углов у дуги – {1}; обе кривые укорочены, дуга добавлена с размером радиуса{2}",
+ "Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.": "Фаска: только между прямыми линиями – у дуги используйте скругление.",
+ "{0}: dieser Radius passt nicht zwischen die beiden Kurven.": "{0}: этот радиус не помещается между двумя кривыми.",
+ "{0}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.": "{0}: скругление у дуги – это отдельная дуга; выберите её и удалите.",
+ "Winkelstahl, ungleichschenklig (EN 10056-1)": "Неравнополочный уголок (EN 10056-1)",
+ "Schenkel {0} × {1} · Dicke {2} · r {3}": "Полка {0} × {1} · толщина {2} · r {3}",
+ "T-Stahl, gleichschenklig (EN 10055)": "Тавр равнополочный (EN 10055)",
+ "b {0} · h {1} · Dicke {2} · r {3}": "b {0} · h {1} · толщина {2} · r {3}",
+ "U-Stahl UPE, parallele Flansche (DIN 1026-2)": "Швеллер UPE с параллельными полками (DIN 1026-2)",
+ "I-Träger IPN (DIN 1025-1)": "Двутавр IPN (DIN 1025-1)",
+ "h {0} · b {1} · Steg {2} · Flansch {3} (14 % geneigt)": "h {0} · b {1} · стенка {2} · полка {3} (уклон 14 %)"
+}

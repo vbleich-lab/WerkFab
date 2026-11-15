@@ -20,7 +20,7 @@ import { StockSim, defaultFluteLen, defaultHolderDia, defaultStickout } from './
 import { exampleProject, exampleTurning } from './example.js';
 import { describeEntity, entityPolys, translateEntity, rotateEntity, scaleEntity, mirrorEntity as mirrorAbout } from './profiles.js';
 import { meshInertia } from './mesh.js';
-import { applyCorners, cornerPlan } from './sketchcorner.js';
+import { applyCorners, cornerPlan, curveCorner, filletCurves } from './sketchcorner.js';
 import { offsetEntities } from './sketchoffset.js';
 import { parseDXF, writeDXF } from './dxf.js';
 import { inkFromRGBA, traceImage, toSketch, toSVG, toEntities, quantize, inkOfColors, simplify as simplifyLine } from './trace.js';
@@ -3345,8 +3345,8 @@ function propsSketchEdit(b) {
     }
     else if (e.type === 'poly') {
       e.pts.forEach((p, i) => b.append(row(`Punkt ${i + 1}`, h('div', { style: 'display:flex;gap:4px' },
-        h('input', { type: 'text', value: e.radii?.[i] ?? '', placeholder: 'R', title: 'Eckenradius (Abrundung)', style: 'width:42px', onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); commitSketch(sk.id, s2 => { const x = s2.entities.find(q => q.id === e.id); x.radii ||= {}; if (v > 0) { x.radii[i] = v; if (x.chamfers) delete x.chamfers[i]; } else delete x.radii[i]; if (!Object.keys(x.radii).length) delete x.radii; }); } }),
-        h('input', { type: 'text', value: Array.isArray(e.chamfers?.[i]) ? e.chamfers[i].join('; ') : e.chamfers?.[i] ?? '', placeholder: 'F', title: 'Fase (Abstand, ungleich: „2; 3“)', style: 'width:42px', onchange: ev => { const v = ev.target.value.split(';').map(q => parseFloat(q.replace(',', '.'))).filter(q => q > 0); commitSketch(sk.id, s2 => { const x = s2.entities.find(q => q.id === e.id); x.chamfers ||= {}; if (v.length) { x.chamfers[i] = v.length > 1 ? v.slice(0, 2) : v[0]; if (x.radii) delete x.radii[i]; } else delete x.chamfers[i]; if (!Object.keys(x.chamfers).length) delete x.chamfers; }); } }),
+        h('input', { type: 'text', value: cornerShown(e.radii?.[i]), placeholder: 'R', title: 'Eckenradius (Abrundung)', style: 'width:42px', onchange: ev => { const [v] = cornerEntry(ev.target.value, 1); if (v === undefined) { ev.target.value = cornerShown(e.radii?.[i]); return; } commitSketch(sk.id, s2 => { const x = s2.entities.find(q => q.id === e.id); x.radii ||= {}; if (v !== 0) { x.radii[i] = v; if (x.chamfers) delete x.chamfers[i]; } else delete x.radii[i]; if (!Object.keys(x.radii).length) delete x.radii; }); } }),
+        h('input', { type: 'text', value: cornerShown(e.chamfers?.[i]), placeholder: 'F', title: 'Fase (Abstand, ungleich: „2; 3“)', style: 'width:42px', onchange: ev => { const v = cornerEntry(ev.target.value, 2).filter(q => q !== 0); if (v.includes(undefined)) { ev.target.value = cornerShown(e.chamfers?.[i]); return; } commitSketch(sk.id, s2 => { const x = s2.entities.find(q => q.id === e.id); x.chamfers ||= {}; if (v.length) { x.chamfers[i] = v.length > 1 ? v.slice(0, 2) : v[0]; if (x.radii) delete x.radii[i]; } else delete x.chamfers[i]; if (!Object.keys(x.chamfers).length) delete x.chamfers; }); } }),
         num(p[0], v => ed(x => (x.pts[i][0] = v), `pts.${i}.0`)), num(p[1], v => ed(x => (x.pts[i][1] = v), `pts.${i}.1`))))));
       b.append(row('Geschlossen', chk(e.closed, v => ed(x => (x.closed = v)))));
     }
@@ -4257,7 +4257,68 @@ const agentApi = {
   uid,
   undo: () => undo(),
   redo: () => redo(),
-  note: (what, n) => status(what === 'added' ? (n === 1 ? 'KI-Agent: 1 Feature eingefügt' : `KI-Agent: ${n} Features eingefügt`) : what === 'deleted' ? (n === 1 ? 'KI-Agent: 1 Feature gelöscht' : `KI-Agent: ${n} Features gelöscht`) : what === 'changed' ? 'KI-Agent: Feature geändert' : what === 'replaced' ? 'KI-Agent: Entwurf ersetzt' : 'KI-Agent: Entwurf geleert'),
+  note: (what, n) => status(what === 'added' ? (n === 1 ? 'KI-Agent: 1 Feature eingefügt' : `KI-Agent: ${n} Features eingefügt`) : what === 'deleted' ? (n === 1 ? 'KI-Agent: 1 Feature gelöscht' : `KI-Agent: ${n} Features gelöscht`) : what === 'changed' ? 'KI-Agent: Feature geändert' : what === 'replaced' ? 'KI-Agent: Entwurf ersetzt' : what === 'opAdded' ? 'KI-Agent: Operation angelegt' : 'KI-Agent: Entwurf geleert'),
+  // manufacture: what an operation came to
+  opResult(id) {
+    const o = camOp(id), r = getCam().results.get(id);
+    return { operation: o, result: !r ? { error: 'not computed (disabled or its setup has no stock)' } : r.error ? { error: r.error } : { length: +(+r.length || 0).toFixed(1), time: +(+r.time || 0).toFixed(1), moves: r.moves?.length || 0 } };
+  },
+  cam(full) {
+    const p = state.project, gen = getCam();
+    const res = id => { const r = gen.results.get(id); return !r ? {} : r.error ? { error: r.error } : { length: +(+r.length || 0).toFixed(1), time: +(+r.time || 0).toFixed(1) }; };
+    return {
+      setups: p.cam.setups.map(s => { const g = gen.setups.get(s.id), b = g?.stock; return { ...(full ? s : { id: s.id, name: s.name, kind: s.kind || 'mill' }), ...(b && Number.isFinite(b.minX) ? { stock: { min: [b.minX, b.minY, b.bottom].map(q => +q.toFixed(3)), max: [b.maxX, b.maxY, b.top].map(q => +q.toFixed(3)) } } : {}), ...(g && !g.stock ? { error: g.error } : {}) }; }),
+      tools: p.cam.tools.map(t => (full ? t : { id: t.id, number: t.number, name: t.name, type: t.type, dia: t.dia })),
+      operations: p.cam.ops.map(o => ({ ...(full ? o : { id: o.id, type: o.type, name: o.name, setup: o.setup, tool: o.tool, ...(o.sketch ? { sketch: o.sketch } : {}), ...(o.enabled === false ? { enabled: false } : {}) }), ...res(o.id) })),
+      post: p.post.flavor, posts: allPosts(p).map(x => ({ id: x.id, name: x.name })),
+    };
+  },
+  addOp(type, setupId, toolId, fields) {
+    const before = state.sel;
+    if (setupId) state.sel = { kind: 'setup', id: setupId };
+    let op;
+    try { op = addOp(type, { batch: true, ...(toolId ? { tool: state.project.cam.tools.find(t => t.id === toolId) } : {}) }); } finally { state.sel = before; }
+    if (!op || !op.id) throw new Error(document.querySelector('#status')?.textContent || 'The operation could not be created');
+    for (const [k, v] of Object.entries(structuredClone(fields))) { if (k === 'id' || k === 'type') continue; if (v === null) delete op[k]; else op[k] = v; }
+    if (setupId) op.setup = setupId;
+    // the agent named a sketch but no faces: follow the sketch
+    if (fields.sketch && !('geomSource' in fields) && !(fields.faces || []).length) op.geomSource = 'sketch';
+    commit(pp => pp.cam.ops.push(op));
+    return op.id;
+  },
+  // the collision check of the NC window as data
+  check(setupId, postId) {
+    const p = state.project, sid = setupId || p.cam.setups[0]?.id, g = getCam().setups.get(sid);
+    if (!g) throw new Error(`No setup "${sid}"`);
+    if (!g.stock) throw new Error(g.error || 'The setup has no stock');
+    if (postId && !allPosts(p).some(x => x.id === postId)) throw new Error(`No post processor "${postId}"`);
+    const r = postProcess(resolved(), g, g.machine, postId ? { postId } : {}), rep = ncReport(g, r, postId), lines = r.code.split('\n'), by = {};
+    for (const is of rep.issues) (by[is.kind] ||= []).push(is.k);
+    const skipped = g.ops.filter(o => o.enabled !== false && g.results.get(o.id)?.error).map(o => ({ id: o.id, name: o.name, error: g.results.get(o.id).error }));
+    return { setup: sid, post: findPost(p, postId || p.post.flavor).id, lines: r.lines, time: +(+r.time || 0).toFixed(1), clean: !rep.issues.length && !skipped.length && !(r.warnings || []).length,
+      issues: Object.entries(by).map(([kind, ks]) => ({ kind, text: NC_ISSUE[kind] || kind, count: ks.length, lines: ks.slice(0, 20).map(k => ({ line: k + 1, code: (lines[k] || '').trim() })) })),
+      warnings: r.warnings || [], skipped, machine: [rep.info, rep.why].filter(Boolean), machineLimits: machineChecks(g.machine, g.stock, g.setup, p.cam.tools),
+      notice: 'Checked line by line against the remaining stock, the clamping and the machine as modelled here. This does not replace a dry run on the machine.' };
+  },
+  addSetup(copyOf, fields) {
+    const id = uid('S');
+    commit(p => {
+      const prev = (copyOf && p.cam.setups.find(s => s.id === copyOf)) || p.cam.setups[p.cam.setups.length - 1];
+      const s = { ...defaultSetup(p.cam.setups.length + 1), ...JSON.parse(JSON.stringify(prev || {})), id, name: nextName(p.cam.setups, 'Setup') };
+      for (const [k, v] of Object.entries(structuredClone(fields || {}))) { if (k === 'id') continue; if (v === null) delete s[k]; else s[k] = v; }
+      p.cam.setups.push(s);
+    });
+    return id;
+  },
+  nc(setupId, postId) {
+    const p = state.project, sid = setupId || p.cam.setups[0]?.id, g = getCam().setups.get(sid);
+    if (!g) throw new Error(`No setup "${sid}"`);
+    if (!g.stock) throw new Error(g.error || 'The setup has no stock');
+    if (postId && !allPosts(p).some(x => x.id === postId)) throw new Error(`No post processor "${postId}"`);
+    const r = postProcess(resolved(), g, g.machine, postId ? { postId } : {}), def = findPost(p, postId || p.post.flavor);
+    const skipped = g.ops.filter(o => o.enabled !== false && g.results.get(o.id)?.error).map(o => ({ id: o.id, name: o.name, error: g.results.get(o.id).error }));
+    return { setup: sid, post: def.id, file: `${safeName()}.${def.ext || 'nc'}`, lines: r.lines, time: +(+r.time || 0).toFixed(1), warnings: r.warnings || [], skipped, notice: 'Draft: verify in the simulation and with a dry run on the machine before cutting.', code: r.code };
+  },
   // the model once it is computed (large designs are rebuilt in steps)
   async settled() {
     for (let i = 0; i < 3000; i++) {
@@ -4308,6 +4369,7 @@ function initAgent() {
 function stdPartPicture(famId, size, len) {
   let part;
   try { part = stdPartSteps(famId, size, len); } catch { return h('div', { class: 'cat-pic' }); }
+  if (part.fam.stock) return stockPicture(part.steps);
   const shapes = [];
   let x1 = 0, z0 = Infinity, z1 = -Infinity;
   const ext = (x, z) => { x1 = Math.max(x1, Math.abs(x)); z0 = Math.min(z0, z); z1 = Math.max(z1, z); };
@@ -4321,6 +4383,20 @@ function stdPartPicture(famId, size, len) {
   const W = 2 * x1, H = z1 - z0, m = 0.08 * Math.max(W, H) + 0.01, d = shapes.map(p => 'M' + p.map(([x, z]) => `${(x + x1).toFixed(2)} ${(z1 - z).toFixed(2)}`).join('L') + 'Z').join('');
   const box = h('div', { class: 'cat-pic' });
   box.innerHTML = `<svg viewBox="${-m} ${-m} ${W + 2 * m} ${H + 2 * m}" preserveAspectRatio="xMidYMid meet"><path d="${d}" fill="var(--ic2)" stroke="var(--icEdge, currentColor)" stroke-width="${Math.max(W, H) / 90}" stroke-linejoin="round"/></svg>`;
+  return box;
+}
+// tubes, bars and sections show their cross-section
+function stockPicture(steps) {
+  const box = h('div', { class: 'cat-pic' }), ring = r => `M${-r} 0A${r} ${r} 0 1 0 ${r} 0A${r} ${r} 0 1 0 ${-r} 0Z`;
+  let d = '', R0 = 0;
+  for (const s of steps) {
+    if (s.k === 'rev') { const rs = s.pts.map(p => p[0]), hi = Math.max(...rs), lo = Math.min(...rs); d += ring(hi) + (lo > 1e-6 ? ring(lo) : ''); R0 = Math.max(R0, hi); }
+    else if (s.shape === 'poly') { d += 'M' + s.pts.map(([x, y]) => `${x.toFixed(2)} ${(-y).toFixed(2)}`).join('L') + 'Z'; R0 = Math.max(R0, ...s.pts.map(p => Math.hypot(...p))); }
+    else if (s.shape === 'rect') { const w = s.w / 2, hh = s.h / 2, r = Math.max(0, Math.min(s.rr || 0, w, hh)); d += `M${-w + r} ${-hh}H${w - r}${r ? `A${r} ${r} 0 0 1 ${w} ${-hh + r}` : ''}V${hh - r}${r ? `A${r} ${r} 0 0 1 ${w - r} ${hh}` : ''}H${-w + r}${r ? `A${r} ${r} 0 0 1 ${-w} ${hh - r}` : ''}V${-hh + r}${r ? `A${r} ${r} 0 0 1 ${-w + r} ${-hh}` : ''}Z`; R0 = Math.max(R0, Math.hypot(w, hh)); }
+  }
+  if (!d) return box;
+  const m = 1.1 * R0;
+  box.innerHTML = `<svg viewBox="${-m} ${-m} ${2 * m} ${2 * m}" preserveAspectRatio="xMidYMid meet"><path d="${d}" fill="var(--ic2)" fill-rule="evenodd" stroke="var(--icEdge, currentColor)" stroke-width="${m / 45}" stroke-linejoin="round"/></svg>`;
   return box;
 }
 let catLast = { q: '', group: '', fam: '' };
@@ -4563,7 +4639,8 @@ function stdPartFeats(v, top, n) {
     const name = i ? `${label} (${i + 1})` : label, sid = uid('sk'), fid = uid(st.k === 'prism' ? 'ex' : 'rv');
     const link = st.op === 'new' ? {} : st.op === 'cut' ? { cutOnly: first } : { target: first };
     if (st.k === 'prism') {
-      const ents = st.shape === 'hex' ? [{ id: uid('e'), type: 'ngon', cx: 0, cy: 0, r: r4(st.s / Math.sqrt(3)), n: 6, rot: 0 }]
+      const ents = st.shape === 'poly' ? [{ id: uid('e'), type: 'poly', closed: true, pts: st.pts.map(p => p.map(r4)), ...(st.radii ? { radii: Object.fromEntries(Object.entries(st.radii).map(([k, q]) => [k, r4(q)])) } : {}) }]
+        : st.shape === 'hex' ? [{ id: uid('e'), type: 'ngon', cx: 0, cy: 0, r: r4(st.s / Math.sqrt(3)), n: 6, rot: 0 }]
         : st.shape === 'rect' ? [{ id: uid('e'), type: 'rect', x: r4((st.cx || 0) - st.w / 2), y: r4(-st.h / 2), w: r4(st.w), h: r4(st.h), ...(st.rr ? { r: r4(st.rr) } : {}) }]
           : [{ id: uid('e'), type: 'circle', cx: 0, cy: 0, r: r4(st.r) }];
       if (st.hole) ents.push({ id: uid('e'), type: 'circle', cx: 0, cy: 0, r: r4(st.hole) });
@@ -4920,8 +4997,10 @@ function sheetOf(f) {
 function tabSlotSketches(f, target = null) {
   let base;
   try { base = sheetOf(f); } catch (err) { return status(err.message); }
-  const slots = tabSlots(base.poly, base.z0, base.f), clr = Math.max(0, +(f.tabClear ?? 0.1) || 0);
-  if (!slots.length) return status((base.f.folds || []).length ? 'Schlitze als Skizze gibt es nicht für ein Blech mit Biegelinien.' : 'Keine Zunge passt auf ihre Lasche – Anzahl oder Breite verkleinern.');
+  let slots;
+  try { slots = tabSlots(base.poly, base.z0, base.f); } catch (err) { return status(err.message); }
+  const clr = Math.max(0, +(f.tabClear ?? 0.1) || 0);
+  if (!slots.length) return status('Keine Zunge passt auf ihre Lasche – Anzahl oder Breite verkleinern.');
   const dot = (a, c) => a[0] * c[0] + a[1] * c[1] + a[2] * c[2], r4 = x => +(+x).toFixed(4), groups = [];
   for (const s of slots) {
     const d = dot(s.dir, s.c);
@@ -9254,28 +9333,88 @@ function projectFaceAt(evt) {
 // meet (they are joined into one polyline). 0 removes the rounding / chamfer.
 // Toolbar: with corner points selected, those are changed at once; otherwise the tool starts and the corners are
 // clicked one by one (hover shows the result)
+// a corner value as it is shown ("=r1" → "r1") and as it is read from a field: numbers, or formulas where a
+// parameter is named; undefined marks an entry that is no value (0 or empty: remove)
+const cornerShown = v => (v == null ? '' : (Array.isArray(v) ? v : [v]).map(q => (typeof q === 'string' && q.startsWith('=') ? q.slice(1) : q)).join('; '));
+function cornerEntry(text, max) {
+  const scope = paramScope(state.project), parts = String(text).split(';').map(s => s.trim().replace(/,/g, '.')).filter(Boolean).slice(0, max);
+  if (!parts.length) return [0];
+  return parts.map(s => { const v = evalExpr(s, scope); if (!Number.isFinite(v) || v < 0) { status('Ungültiger Wert oder unbekannter Parameter'); return undefined; } return /[A-Za-z_]/.test(s) ? '=' + s : +v.toFixed(4); });
+}
+const near2 = (a, b) => Math.abs(+a[0] - +b[0]) < 1e-6 && Math.abs(+a[1] - +b[1]) < 1e-6;
 const sketchFillet = () => sketchCornerTool('fillet');
 const sketchChamfer = () => sketchCornerTool('chamfer');
 function sketchCornerTool(kind) {
   const rsk = resolved().features.find(f => f.id === state.sketchId);
-  const picks = sketcher.selection.filter(r => { const [id, k] = r.split(':'), e = rsk.entities.find(x => x.id === id); return k && k[0] === 'p' && (e?.type === 'rect' || (e?.type === 'poly' && !e.curve)); });
+  const picks = sketcher.selection.filter(r => { const [id, k] = r.split(':'), e = rsk.entities.find(x => x.id === id); return k && k[0] === 'p' && (e?.type === 'rect' || (e?.type === 'poly' && !e.curve) || curveCorner(rsk.entities, r)); });
   if (picks.length) return sketchCorner(kind, picks);
   sketcher.setTool(kind);
   status(`${kind === 'fillet' ? 'Abrunden' : 'Fase'}: Ecke anklicken – Linienzug, Rechteck oder Treffpunkt zweier Linien. Das Werkzeug bleibt aktiv, Esc beendet.`);
 }
 async function sketchCorner(kind, picks) {
-  const rsk = resolved().features.find(f => f.id === state.sketchId);
+  let rsk = resolved().features.find(f => f.id === state.sketchId);
   const what = kind === 'fillet' ? 'Abrunden' : 'Fase';
   if (!picks?.length) return;
   const scope = paramScope(state.project);
   const last = sketcher.cornerVal[kind];
   const txt = await askValue(kind === 'fillet' ? 'Radius der Abrundung (mm, 0 = entfernen):' : 'Fasenabstand (mm, ungleich: „2; 3“, 0 = entfernen):', Array.isArray(last) ? last.join('; ') : String(last));
   if (txt == null || txt === '') return;
-  const vals = String(txt).split(/[;×x]/).map(v => evalExpr(v.trim(), scope)).filter(v => Number.isFinite(v));
-  if (!vals.length || vals.some(v => v < 0)) return status(`${what}: ungültiger Wert`);
+  // (a name of a parameter may hold an x: split at ";" – or at "×" / "x" only between plain numbers)
+  const parts = /^[\d.,\s]+[×x][\d.,\s]+$/.test(String(txt)) ? String(txt).split(/[×x]/) : String(txt).split(';');
+  const typed = parts.map(v => v.trim().replace(/,/g, '.')).filter(Boolean), vals = typed.map(v => evalExpr(v, scope));
+  if (!vals.length || vals.some(v => !Number.isFinite(v) || v < 0)) return status(`${what}: ungültiger Wert oder unbekannter Parameter`);
   const value = kind === 'chamfer' && vals.length > 1 ? vals.slice(0, 2) : vals[0];
+  // what is stored: the number, or the formula where the entry names a parameter
+  const keep = typed.map((s, i) => (/[A-Za-z_]/.test(s) ? '=' + s : vals[i]));
+  const stored = kind === 'chamfer' && keep.length > 1 && Math.abs(vals[1] - vals[0]) > 1e-12 ? keep.slice(0, 2) : keep[0];
+  const pkey = p => `${(+p[0]).toFixed(6)},${(+p[1]).toFixed(6)}`, cpts = e => (e.type === 'rect' ? [[+e.x, +e.y], [+e.x + +e.w, +e.y], [+e.x + +e.w, +e.y + +e.h], [+e.x, +e.y + +e.h]] : e.pts || []);
+  // corners where an arc ends: both curves are cut back and a new arc joins them
+  const curved = picks.filter(r => curveCorner(rsk.entities, r));
+  if (curved.length) {
+    let made = 0, failed = 0;
+    if (kind === 'chamfer' || !(vals[0] > 0)) failed = curved.length;
+    else for (const ref of curved) {
+      const cur = resolved().features.find(f => f.id === state.sketchId), plan = curveCorner(cur.entities, ref) ? filletCurves(cur.entities, ref, vals[0], uid('e'), () => uid('c')) : null;
+      if (!plan) { failed++; continue; }
+      commitSketch(state.sketchId, sk => {
+        for (const m of plan.moves) { const x = sk.entities.find(q => q.id === m.id); if (x) x.pts = m.pts.map((p, i) => (near2(p, cur.entities.find(q => q.id === m.id).pts[i]) ? x.pts[i] : p)); }
+        sk.entities.push(plan.arc);
+        sk.constraints = (sk.constraints || []).filter(c => !(c.type === 'coincident' && c.refs.length === 2 && plan.drop.includes(c.refs[0]) && plan.drop.includes(c.refs[1])));
+        sk.constraints.push(...plan.cons, { id: uid('c'), type: 'dim', kind: 'radius', refs: [`${plan.arc.id}:o`], value: keep[0], sign: 1, lp: [+(vals[0] * 0.8).toFixed(3), +(vals[0] * 0.8).toFixed(3)] });
+      });
+      made++;
+    }
+    picks = picks.filter(r => !curved.includes(r));
+    if (!picks.length) {
+      sketcher.selection = [];
+      if (made && vals[0] > 0) sketcher.cornerVal[kind] = value;
+      return status(made ? `${what}: ${made} Ecke(n) an einem Bogen – beide Kurven gekürzt, Bogen mit Radiusmaß eingefügt${failed ? `, ${failed} ohne Platz für diesen Radius` : ''}` : kind === 'chamfer' ? 'Fase: nur zwischen geraden Linien – an einem Bogen bitte abrunden.' : vals[0] > 0 ? `${what}: dieser Radius passt nicht zwischen die beiden Kurven.` : `${what}: eine Abrundung an einem Bogen ist ein eigener Bogen – ihn auswählen und löschen.`);
+    }
+    rsk = resolved().features.find(f => f.id === state.sketchId);
+  }
+  const picked = new Set(picks.map(r => { const [id, s] = r.split(':'), e = rsk.entities.find(x => x.id === id), q = e && cpts(e)[+s.slice(1)]; return q ? pkey(q) : ''; }));
+  // formulas other corners already have (by where the corner lies: points are renumbered when lines are joined)
+  const rawSk = state.project.features.find(f => f.id === state.sketchId), formulas = new Map();
+  for (const re of rsk.entities) {
+    const raw = rawSk.entities.find(x => x.id === re.id);
+    if (raw?.type === 'rect' && typeof raw.r === 'string' && +re.r > 0) cpts(re).forEach(q => formulas.set('r' + pkey(q), { v: raw.r, n: +re.r }));
+    for (const [kk, tag] of [['radii', 'r'], ['chamfers', 'c']]) for (const [k, v] of Object.entries(raw?.[kk] || {})) {
+      if ((typeof v === 'string' || (Array.isArray(v) && v.some(q => typeof q === 'string'))) && re.pts?.[k]) formulas.set(tag + pkey(re.pts[k]), { v, n: re[kk]?.[k] });
+    }
+  }
+  const restore = e => {
+    for (const [kk, tag] of [['radii', 'r'], ['chamfers', 'c']]) for (const k of Object.keys(e[kk] || {})) {
+      const key = pkey(e.pts[k]);
+      if (picked.has(key)) { if ((kk === 'radii') === (kind === 'fillet')) e[kk][k] = kk === 'radii' ? keep[0] : stored; continue; }
+      const f = formulas.get(tag + key);
+      if (!f) continue;
+      // (a chamfer with two distances is turned over when its line is turned)
+      e[kk][k] = Array.isArray(f.v) && Array.isArray(e[kk][k]) && Array.isArray(f.n) && Math.abs(e[kk][k][0] - f.n[0]) > 1e-9 ? f.v.slice().reverse() : f.v;
+    }
+  };
   if (vals[0] > 0) sketcher.cornerVal[kind] = value;
   const res = applyCorners(rsk.entities, rsk.constraints || [], picks, kind, value, () => uid('c'));
+  if (res.done) res.entities.forEach(e => { if (e.type === 'poly' && !e.curve) restore(e); });
   if (!res.done) return status(`${what}: an diesen Punkten nicht möglich (Bogen, Spline, Linienende ohne zweite Linie oder bemaßte Rechteckmitte).`);
   const changed = new Set(res.changed);
   commitSketch(state.sketchId, sk => {
@@ -11166,7 +11305,7 @@ function openSettings(page) {
       h('div', { class: 'prefs-ctl' }, h('button', { class: 'btn', onclick: () => checkForUpdates(true) }, 'Jetzt nach Updates suchen')));
     if (key === '__agent') {
       const box = h('div', { style: 'display:grid;gap:8px' }), ag = window.werkfabApp?.agent;
-      const about = 'Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben und exportiert STEP oder STL. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.';
+      const about = 'Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.';
       if (!ag) { box.append(h('p', { class: 'hint' }, 'KI-Agenten verbinden sich mit der Desktop-App von WerkFab (Windows, Linux, macOS) über das Model Context Protocol (MCP). Im Browser gibt es dafür keinen Anschluss.'), h('p', { class: 'hint' }, about)); return box; }
       const copy = text => navigator.clipboard.writeText(text).then(() => status('In die Zwischenablage kopiert'), () => status('Kopieren nicht möglich'));
       const line = (label, text, secret = false) => h('div', { class: 'prefs-row' }, h('label', null, label), h('div', { class: 'prefs-ctl' },
@@ -13143,6 +13282,24 @@ function ncRotaryCheck(g, pts) {
   return out;
 }
 const NC_ISSUE = { tablecut: 'Werkzeug schneidet durch das Rohteil in den Maschinentisch (Opferplatte oder Spannmittel unterlegen)', limit: 'Schwenkwinkel liegt außerhalb der Achsgrenzen der Maschine (Werkstück anders aufspannen)', table: 'Werkzeug, Halter oder Spindelnase fährt in den Maschinentisch', bar: 'Bohrstange berührt die Bohrungswand (Bohrstange zu dick oder Bohrung zu klein)', flank: 'Nebenschneide schneidet – Bahn taucht steiler ein, als Eckenwinkel und Einstellwinkel der Wendeplatte erlauben', chuck: 'Werkzeug fährt ins Spannfutter (unter das Rohteil-Ende)', contour: 'Fertigkontur verletzt (Werkzeug schneidet zu tief)', back: 'Drehmeißel schneidet rückwärts (+Z) ins Material', side: 'Stechmeißel schneidet seitlich (Z-Bewegung im Material)', holder: 'Halter berührt das Material', shank: 'Schaft berührt das Material (Schneidenlänge zu kurz)', rapid: 'Eilgang ins Material', fixture: 'Werkzeug oder Halter fährt in ein Spannmittel', probe: 'Taster stößt außerhalb einer Messbewegung an (geschützte Bewegung bricht ab)' };
+
+// The checks of the NC window for one posted program (r = result of postProcess, g = its setup): every line against
+// the stock that is left, the clamping, the machine → { issues: [{ kind, k (line index) }], info, why }
+function ncReport(g, r, postId) {
+  let issues = [], info = null, why = null;
+  if (!g?.stock) return { issues, info, why };
+  if (g.kind === 'turn') return { issues: ncLatheCheck(g, parseNcLathe(r.code)), info, why };
+  const tools = state.project.cam.tools, fam = String(postId || state.project.post.flavor);
+  const hh = fam.startsWith('heidenhain') || /^\s*\d*\s*BEGIN PGM\b/m.test(r.code);
+  const pts = parseNcPositions(r.code, hh, n => (+tools.find(t => +t.number === +n)?.dia || 0) / 2);
+  issues = ncCollisions(g, pts);
+  if (hh) issues.push(...ncHeidenhainCheck(r.code));
+  try { const mc = ncMachineCheck(g, pts); issues.push(...mc.issues); info = mc.info; why = mc.why; } catch (e) { console.warn(e); }
+  const nA = pts.filter(p => p?.a != null && Math.abs((((p.a % 360) + 540) % 360) - 180) < 179.999).length;
+  if (nA && [...(g.results?.values() || [])].some(x => x?.rotary && !x.error)) issues = issues.filter(is => !['holder', 'shank', 'rapid', 'contour', 'probe'].includes(is.kind));
+  if (nA) try { issues.push(...ncRotaryCheck(g, pts)); } catch (e) { console.warn(e); }
+  return { issues, info, why };
+}
 
 // Heidenhain Klartext: syntax check of the program as the control reads it (line by line, before it runs)
 Object.assign(NC_ISSUE, {
