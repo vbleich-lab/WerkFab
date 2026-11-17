@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"Las trayectorias siguen el borde de las caras seleccionadas y convergen hacia el centro.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"Las trayectorias siguen la dirección principal de las caras seleccionadas y permanecen dentro de su contorno.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Trayectorias sobre empalmes en planos verticales como G2/G3 con G18 o G19 en lugar de muchas rectas cortas: programas mucho más cortos en el acabado 3D",
-"Bahnlänge":"Longitud de trayectoria",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Longitud de la trayectoria (el punto muestra el color de la trayectoria)",
 "Bahnmuster":"Patrón de trayectoria",
 "Bahnmuster: Ausgabe als Bahn":"Patrón de trayectoria: salida como trayectoria",
 "Bahnmuster: mehr als 2000 Kopien":"Patrón de trayectoria: más de 2000 copias",

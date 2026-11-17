@@ -533,7 +533,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"Passes follow the boundary of the selected faces and converge towards the center.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"Passes run along the main direction of the selected faces and stay within their outline.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Paths over fillets in vertical planes as G2/G3 with G18 or G19 instead of many short lines – much shorter programs in 3D finishing",
-"Bahnlänge":"Toolpath length",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Toolpath length (the dot shows the color of the toolpath)",
 "Bahnmuster":"Toolpath pattern",
 "Bahnmuster: Ausgabe als Bahn":"Toolpath pattern: output as toolpath",
 "Bahnmuster: mehr als 2000 Kopien":"Toolpath pattern: more than 2000 copies",

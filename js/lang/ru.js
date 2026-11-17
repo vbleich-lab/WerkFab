@@ -491,7 +491,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"Проходы следуют границе выбранных граней и сходятся к центру.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"Проходы идут вдоль основного направления выбранных граней и остаются в их контуре.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Траектории по скруглениям в вертикальных плоскостях как G2/G3 с G18 или G19 вместо множества коротких отрезков – значительно более короткие программы при 3D-чистовой обработке",
-"Bahnlänge":"Длина траектории",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Длина траектории (точка показывает цвет траектории)",
 "Bahnmuster":"Массив траектории",
 "Bahnmuster: Ausgabe als Bahn":"Массив траектории: вывод в виде траектории",
 "Bahnmuster: mehr als 2000 Kopien":"Массив траектории: более 2000 копий",

@@ -1713,5 +1713,6 @@
  "Beispiel: Teil mit jedem Konstruktionsschritt": "Example: part with every modelling step",
  "Beispiel: Konstruktionstestteil": "Example: design test part",
  "Kollision": "collision",
- "Kollisionen": "collisions"
+ "Kollisionen": "collisions",
+ "Bahnlänge (der Punkt zeigt die Farbe der Bahn)": "Toolpath length (the dot shows the colour of the toolpath)"
 }

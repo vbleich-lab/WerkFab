@@ -1076,17 +1076,22 @@ function bodiesWithoutFaces(bodies, refs) {
   return g;
 }
 // thick lines along a 3D polyline (selected chains)
+// a highlight tube from a to c, PX_EDGE pixels thick on screen whatever the zoom (see Viewport.updatePixelSizes)
+const PX_EDGE = 1.2, unitTube = new THREE.CylinderGeometry(1, 1, 1, 8, 1, true), _up0 = new THREE.Vector3(0, 1, 0);
+function pxTube(a, c, mat, px = PX_EDGE) {
+  const len = a.distanceTo(c);
+  if (len < 1e-9) return null;
+  const cyl = new THREE.Mesh(unitTube, mat);
+  cyl.position.copy(a).add(c).multiplyScalar(0.5);
+  cyl.quaternion.setFromUnitVectors(_up0, c.clone().sub(a).normalize());
+  cyl.scale.set(vp.worldPerPixel() * px, len, vp.worldPerPixel() * px);
+  cyl.userData = { pxR: px, cached: true }; // (the unit tube is shared: not disposed with the highlight)
+  cyl.renderOrder = 12;
+  return cyl;
+}
 function polyTubes(pts, mat, closed = true) {
-  const g = new THREE.Group(), r = vp.worldPerPixel() * 1.8, up0 = new THREE.Vector3(0, 1, 0);
-  for (let i = 0; i < pts.length - (closed ? 0 : 1); i++) {
-    const a = pts[i], c = pts[(i + 1) % pts.length], len = a.distanceTo(c);
-    if (len < 1e-9) continue;
-    const cyl = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 6, 1, true), mat);
-    cyl.position.copy(a).add(c).multiplyScalar(0.5);
-    cyl.quaternion.setFromUnitVectors(up0, c.clone().sub(a).normalize());
-    cyl.renderOrder = 12;
-    g.add(cyl);
-  }
+  const g = new THREE.Group();
+  for (let i = 0; i < pts.length - (closed ? 0 : 1); i++) { const t = pxTube(pts[i], pts[(i + 1) % pts.length], mat); if (t) g.add(t); }
   return g;
 }
 
@@ -1210,22 +1215,14 @@ vp.overlay.add(hoverGroup);
 let hoverKey = null, hoverRaf = 0;
 const matEdgeHover = new THREE.MeshBasicMaterial({ color: 0x0b0d10, depthTest: false, transparent: true });
 const matEdgeSelMesh = new THREE.MeshBasicMaterial({ color: 0x9fdcff, depthTest: false, transparent: true });
-// one B-rep edge as thin tubes (3 px), so it is clearly visible
+// one B-rep edge as thin tubes (about 2 px on screen at any zoom), so it is clearly visible
 function edgeMesh(body, ei, mat = matEdgeHover) {
-  const pos = body.edges.attributes.position.array, r = vp.worldPerPixel() * 1.6;
+  const pos = body.edges.attributes.position.array;
   const g = new THREE.Group();
-  const a = new THREE.Vector3(), c = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   body.segEdge.forEach((e, s) => {
     if (e !== ei) return;
-    a.set(pos[s * 6], pos[s * 6 + 1], pos[s * 6 + 2]);
-    c.set(pos[s * 6 + 3], pos[s * 6 + 4], pos[s * 6 + 5]);
-    const len = a.distanceTo(c);
-    if (len < 1e-9) return;
-    const cyl = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 6, 1, true), mat);
-    cyl.position.copy(a).add(c).multiplyScalar(0.5);
-    cyl.quaternion.setFromUnitVectors(up, c.clone().sub(a).normalize());
-    cyl.renderOrder = 12;
-    g.add(cyl);
+    const t = pxTube(new THREE.Vector3(pos[s * 6], pos[s * 6 + 1], pos[s * 6 + 2]), new THREE.Vector3(pos[s * 6 + 3], pos[s * 6 + 4], pos[s * 6 + 5]), mat);
+    if (t) g.add(t);
   });
   return g;
 }
@@ -2188,7 +2185,8 @@ function drawCam() {
     if (selOp && selOp !== op.id) continue;
     const r = g.results.get(op.id);
     if (!r || !r.moves.length) continue;
-    // colours: blue = cutting, yellow (dashed) = rapid, red = straight plunge, green = ramp / lead (feed with Z change)
+    // colours: every operation in its own colour – cutting moves full, ramps and leads lighter, straight plunges
+    // darker; rapids faint yellow dashes so they do not cover the colours of the operations
     const feed = [], plunge = [], ramp = [], rapid = [];
     for (let i = 1; i < r.moves.length; i++) {
       const a = r.moves[i - 1], b = r.moves[i];
@@ -2197,10 +2195,10 @@ function drawCam() {
       arr.push(a.x, a.y, a.z, b.x, b.y, b.z);
     }
     grp.add(
-      lineSeg(feed, new THREE.LineBasicMaterial({ color: isDark() ? 0x4ea8ff : 0x1565c0 })),
-      lineSeg(ramp, new THREE.LineBasicMaterial({ color: 0x2fb344 })),
-      lineSeg(plunge, new THREE.LineBasicMaterial({ color: 0xe03131 })),
-      lineSeg(rapid, new THREE.LineDashedMaterial({ color: 0xf2c200, dashSize: 2, gapSize: 1.5 })),
+      lineSeg(feed, new THREE.LineBasicMaterial({ color: opColor(op) })),
+      lineSeg(ramp, new THREE.LineBasicMaterial({ color: new THREE.Color(opColor(op)).lerp(new THREE.Color(0xffffff), 0.35) })),
+      lineSeg(plunge, new THREE.LineBasicMaterial({ color: new THREE.Color(opColor(op)).lerp(new THREE.Color(0x000000), 0.35) })),
+      lineSeg(rapid, new THREE.LineDashedMaterial({ color: 0xf2c200, dashSize: 2, gapSize: 1.5, transparent: true, opacity: 0.3, depthWrite: false })),
     );
     // start (green) and end (red) of the operation's cutting moves
     const cut = r.moves.filter(m => m.t !== 'r');
@@ -2213,6 +2211,15 @@ function drawCam() {
       }
     }
   }
+}
+
+// colour of an operation's toolpath: a palette of clearly different colours in the order of the operations
+// (no red and no yellow: those mark plunges and rapids); a little lighter on the dark theme
+const OP_COLORS = [0x1c7ed6, 0x7048e8, 0x0ca678, 0xf76707, 0xc2255c, 0x1098ad, 0x8d5524, 0x364fc7, 0x5c940d, 0xae3ec9, 0x087f5b, 0x495057];
+function opColor(op) {
+  const i = Math.max(0, state.project.cam.ops.findIndex(o => o.id === op.id));
+  const c = new THREE.Color(OP_COLORS[i % OP_COLORS.length]);
+  return (isDark() ? c.lerp(new THREE.Color(0xffffff), 0.25) : c).getHex();
 }
 
 // ---------- toolbar ----------
@@ -3072,7 +3079,7 @@ function renderTree() {
             svg: opTreeIcon(op, r),
             name: op.name, depth: 2, cls: op.enabled === false ? 'disabled' : '',
             selected: isSel('op', op.id), onclick: () => select('op', op.id), oncontext: e => opMenu(e, op),
-            extra: r?.moves?.length && !r.error ? h('span', { class: 'op-meta', title: 'Bahnlänge' }, `${Math.round(pathLength(r.moves))} mm`) : null,
+            extra: r?.moves?.length && !r.error ? h('span', { class: 'op-meta', title: 'Bahnlänge (der Punkt zeigt die Farbe der Bahn)' }, h('i', { class: 'op-color', style: `background:#${opColor(op).toString(16).padStart(6, '0')}` }), `${Math.round(pathLength(r.moves))} mm`) : null,
           }));
         }
         if (!ops.length) t.append(h('div', { class: 'hint', style: 'padding:4px 0 4px 56px' }, 'Noch keine Operation'));

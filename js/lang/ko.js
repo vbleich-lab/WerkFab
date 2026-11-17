@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"경로는 선택한 면의 가장자리를 따라가며 중심을 향해 모입니다.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"경로는 선택한 면의 주방향을 따라가며 그 외곽 안에 머뭅니다.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"수직 평면의 모깎기 위를 지나는 경로를 짧은 직선 여러 개 대신 G18 또는 G19와 함께 G2/G3로 출력합니다. 3D 정삭 프로그램이 훨씬 짧아집니다",
-"Bahnlänge":"경로 길이",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"툴패스 길이 (점은 툴패스의 색을 나타냅니다)",
 "Bahnmuster":"경로 패턴",
 "Bahnmuster: Ausgabe als Bahn":"경로 패턴: 공구 경로로 출력",
 "Bahnmuster: mehr als 2000 Kopien":"경로 패턴: 복사본이 2000개를 초과합니다",

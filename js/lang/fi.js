@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"Radat seuraavat valittujen pintojen reunaa ja yhtyvät kohti keskustaa.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"Radat kulkevat valittujen pintojen pääsuunnassa ja pysyvät niiden ääriviivojen sisällä.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Pystytasojen pyöristysten yli kulkevat radat G2/G3-kaarina G18:lla tai G19:llä monien lyhyiden suorien sijaan – selvästi lyhyemmät ohjelmat 3D-viimeistelyssä",
-"Bahnlänge":"Radan pituus",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Radan pituus (piste näyttää radan värin)",
 "Bahnmuster":"Ratakuvio",
 "Bahnmuster: Ausgabe als Bahn":"Ratakuvio: tulostus työstöratana",
 "Bahnmuster: mehr als 2000 Kopien":"Ratakuvio: yli 2000 kopiota",

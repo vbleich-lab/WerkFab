@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"המסלולים עוקבים אחר שפת הפאות שנבחרו ומתכנסים אל המרכז.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"המסלולים רצים לאורך הכיוון הראשי של הפאות שנבחרו ונשארים בתוך המתאר שלהן.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"מסלולים מעל עיגולים במישורים אנכיים כ-G2/G3 עם G18 או G19 במקום קווים קצרים רבים – תוכניות קצרות בהרבה בגימור תלת-ממדי",
-"Bahnlänge":"אורך מסלול",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"אורך המסלול (הנקודה מציגה את צבע המסלול)",
 "Bahnmuster":"תבנית מסלול",
 "Bahnmuster: Ausgabe als Bahn":"תבנית מסלולים: פלט כמסלול",
 "Bahnmuster: mehr als 2000 Kopien":"תבנית מסלולים: יותר מ-2000 עותקים",

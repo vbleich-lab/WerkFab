@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"パスは選択した面の縁に沿い、中心に向かって収束します。",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"パスは選択した面の主方向に沿い、その外形内にとどまります。",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"垂直面内のフィレットを通るパスを多数の短い直線ではなくG18またはG19付きのG2/G3で出力します。3D仕上げのプログラムが大幅に短くなります",
-"Bahnlänge":"パス長",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"ツールパスの長さ（点はツールパスの色を示します）",
 "Bahnmuster":"パスパターン",
 "Bahnmuster: Ausgabe als Bahn":"パスパターン:工具パスとして出力",
 "Bahnmuster: mehr als 2000 Kopien":"パスパターン:コピーが2000個を超えています",

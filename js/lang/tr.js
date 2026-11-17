@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"Yollar seçilen yüzeylerin kenarını izler ve merkeze doğru birleşir.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"Yollar seçilen yüzeylerin ana yönü boyunca ilerler ve dış hatları içinde kalır.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Dikey düzlemlerdeki radyuslar üzerinden geçen yollar, çok sayıda kısa doğru yerine G18 veya G19 ile G2/G3 olarak – 3D finişte çok daha kısa programlar",
-"Bahnlänge":"Takım yolu uzunluğu",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Yol uzunluğu (nokta yolun rengini gösterir)",
 "Bahnmuster":"Yol deseni",
 "Bahnmuster: Ausgabe als Bahn":"Takım yolu deseni: takım yolu olarak çıktı",
 "Bahnmuster: mehr als 2000 Kopien":"Takım yolu deseni: 2000'den fazla kopya",

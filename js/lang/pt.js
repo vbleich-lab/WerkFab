@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"As trajetórias seguem a borda das faces selecionadas e convergem para o centro.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"As trajetórias seguem a direção principal das faces selecionadas e permanecem dentro do seu contorno.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Trajetórias sobre concordâncias em planos verticais como G2/G3 com G18 ou G19 em vez de muitas retas curtas – programas bem mais curtos no acabamento 3D",
-"Bahnlänge":"Comprimento da trajetória",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Comprimento da trajetória (o ponto mostra a cor da trajetória)",
 "Bahnmuster":"Padrão de trajetória",
 "Bahnmuster: Ausgabe als Bahn":"Padrão de trajetória: saída como trajetória",
 "Bahnmuster: mehr als 2000 Kopien":"Padrão de trajetória: mais de 2000 cópias",

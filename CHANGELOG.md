@@ -1,5 +1,15 @@
 # Änderungen
 
+## v1.0.0-rc.20 – 2026-11-17
+
+### Darstellung
+- Beim Drehen schimmerten manchmal Raster und Achsen als Muster durch die Flächen des Teils. Sie werden jetzt als Hintergrund gezeichnet und vom Teil immer verdeckt; der Tiefenbereich der Kamera passt sich dem Zoom an.
+- Gewählte Kanten werden als schmale Linie gezeichnet, deren Breite beim Zoomen gleich bleibt (vorher wurden sie beim Hineinzoomen dick).
+
+### Fertigung
+- Jede Operation zeigt ihre Werkzeugbahn in einer eigenen Farbe; Rampen sind heller, senkrechtes Eintauchen dunkler. Eilgänge sind nur noch schwach gestrichelt.
+- Im Browser steht vor der Bahnlänge ein Farbpunkt mit der Farbe der Bahn.
+
 ## v1.0.0-rc.19 – 2026-11-17
 
 ### Fehler behoben

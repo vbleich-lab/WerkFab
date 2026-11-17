@@ -1135,6 +1135,7 @@ svg .g { stroke: var(--icg); fill: none; stroke-width: 1.8; }
 @keyframes rpSpin { to { transform: rotate(360deg); } }
 /* CAM browser: path length next to an operation */
 .node .op-meta { margin-left: auto; padding-right: 6px; font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.node .op-meta .op-color { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 0; box-shadow: 0 0 0 1px rgba(0, 0, 0, .15); }
 /* simulation: comparison with the finished part */
 #simCompareInfo { font-size: 11.5px; white-space: nowrap; }
 #simCompareInfo .c-ok { color: #3fb950; font-weight: 600; }

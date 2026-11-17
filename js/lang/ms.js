@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"Laluan mengikut tepi muka yang dipilih dan bertemu ke arah tengah.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"Laluan mengikut arah utama muka yang dipilih dan kekal dalam garis lilitnya.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Laluan di atas fillet dalam satah menegak sebagai G2/G3 dengan G18 atau G19 dan bukannya banyak garis pendek – program jauh lebih pendek dalam kemasan 3D",
-"Bahnlänge":"Panjang laluan alat",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Panjang laluan alat (titik menunjukkan warna laluan)",
 "Bahnmuster":"Corak laluan alat",
 "Bahnmuster: Ausgabe als Bahn":"Corak laluan alat: output sebagai laluan alat",
 "Bahnmuster: mehr als 2000 Kopien":"Corak laluan alat: lebih daripada 2000 salinan",

@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"Trajektorijas seko izvēlēto skaldņu malai un saplūst uz centru.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"Trajektorijas iet gar izvēlēto skaldņu galveno virzienu un paliek to kontūras robežās.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Trajektorijas pār noapaļojumiem vertikālās plaknēs kā G2/G3 ar G18 vai G19, nevis daudzas īsas taisnes – ievērojami īsākas programmas 3D apdarē",
-"Bahnlänge":"Trajektorijas garums",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Trajektorijas garums (punkts rāda trajektorijas krāsu)",
 "Bahnmuster":"Trajektorijas raksts",
 "Bahnmuster: Ausgabe als Bahn":"Trajektoriju masīvs: izvade kā trajektorija",
 "Bahnmuster: mehr als 2000 Kopien":"Trajektoriju masīvs: vairāk nekā 2000 kopiju",

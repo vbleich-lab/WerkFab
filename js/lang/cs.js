@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"Dráhy sledují okraj zvolených ploch a sbíhají se směrem ke středu.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"Dráhy vedou podél hlavního směru zvolených ploch a zůstávají v jejich obrysu.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Dráhy přes zaoblení ve svislých rovinách jako G2/G3 s G18 resp. G19 místo mnoha krátkých úseček – výrazně kratší programy při 3D dokončování",
-"Bahnlänge":"Délka dráhy",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Délka dráhy (tečka ukazuje barvu dráhy)",
 "Bahnmuster":"Vzor dráhy",
 "Bahnmuster: Ausgabe als Bahn":"Pole drah: výstup jako dráha",
 "Bahnmuster: mehr als 2000 Kopien":"Pole drah: více než 2000 kopií",

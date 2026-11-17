@@ -1719,5 +1719,6 @@
  "Beispiel: Teil mit jedem Konstruktionsschritt": "示例：包含所有建模步骤的零件",
  "Beispiel: Konstruktionstestteil": "示例：结构测试件",
  "Kollision": "处碰撞",
- "Kollisionen": "处碰撞"
+ "Kollisionen": "处碰撞",
+ "Bahnlänge (der Punkt zeigt die Farbe der Bahn)": "刀具路径长度（圆点表示该路径的颜色）"
 }

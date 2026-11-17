@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"تتبع المسارات حدّ الأوجه المحددة وتتقارب نحو المركز.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"تسير المسارات على امتداد الاتجاه الرئيسي للأوجه المحددة وتبقى ضمن محيطها.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"المسارات فوق التقويسات في المستويات الرأسية كـ G2/G3 مع G18 أو G19 بدلاً من خطوط قصيرة كثيرة – برامج أقصر بكثير في التشطيب ثلاثي الأبعاد",
-"Bahnlänge":"طول المسار",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"طول المسار (تُظهر النقطة لون المسار)",
 "Bahnmuster":"نمط المسار",
 "Bahnmuster: Ausgabe als Bahn":"نمط المسار: الإخراج كمسار",
 "Bahnmuster: mehr als 2000 Kopien":"نمط المسار: أكثر من 2000 نسخة",

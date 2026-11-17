@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"ტრაექტორიები არჩეული წახნაგების კიდეს მიჰყვება და ცენტრისკენ იკრიბება.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"ტრაექტორიები არჩეული წახნაგების მთავარი მიმართულებით მიდის და მათ მოხაზულობაში რჩება.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"ვერტიკალურ სიბრტყეებში მომრგვალებებზე გამავალი ტრაექტორიები G2/G3-ით G18 ან G19-ით მრავალი მოკლე ხაზის ნაცვლად – გაცილებით მოკლე პროგრამები 3D საბოლოო დამუშავებისას",
-"Bahnlänge":"ტრაექტორიის სიგრძე",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"ტრაექტორიის სიგრძე (წერტილი აჩვენებს ტრაექტორიის ფერს)",
 "Bahnmuster":"ტრაექტორიის მასივი",
 "Bahnmuster: Ausgabe als Bahn":"ტრაექტორიების მასივი: გამოტანა ტრაექტორიის სახით",
 "Bahnmuster: mehr als 2000 Kopien":"ტრაექტორიების მასივი: 2000-ზე მეტი ასლი",

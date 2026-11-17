@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"Putanje prate rub odabranih ploha i konvergiraju prema sredini.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"Putanje idu duž glavnog smjera odabranih ploha i ostaju unutar njihovog obrisa.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Putanje preko zaobljenja u vertikalnim ravnima kao G2/G3 s G18 odnosno G19 umjesto mnogo kratkih linija – znatno kraći programi pri 3D finoj obradi",
-"Bahnlänge":"Dužina putanje",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Dužina putanje (tačka pokazuje boju putanje)",
 "Bahnmuster":"Uzorak putanje",
 "Bahnmuster: Ausgabe als Bahn":"Niz putanja: izlaz kao putanja",
 "Bahnmuster: mehr als 2000 Kopien":"Niz putanja: više od 2000 kopija",

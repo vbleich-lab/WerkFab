@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"Banerne følger kanten af de valgte flader og løber sammen mod midten.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"Banerne løber langs hovedretningen af de valgte flader og bliver inden for deres omrids.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Baner over afrundinger i lodrette planer som G2/G3 med G18 eller G19 i stedet for mange korte linjer – betydeligt kortere programmer ved 3D-finbearbejdning",
-"Bahnlänge":"Banelængde",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Banelængde (prikken viser banens farve)",
 "Bahnmuster":"Banemønster",
 "Bahnmuster: Ausgabe als Bahn":"Banemønster: output som værktøjsbane",
 "Bahnmuster: mehr als 2000 Kopien":"Banemønster: mere end 2000 kopier",

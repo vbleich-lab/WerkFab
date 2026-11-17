@@ -42,6 +42,18 @@ function studioEnvironment(renderer) {
   return tex;
 }
 
+const _wp = new THREE.Vector3();
+// grid and axes lie in the planes of the model's own faces and edges (Z 0, the origin): drawn first and without
+// depth, the model always covers them – otherwise their lines show through coplanar faces as a flickering
+// pattern while the view turns (the faces are pushed back a little so that their edges stay visible)
+function backdrop(obj) {
+  obj.traverse(o => {
+    if (!o.material) return;
+    for (const m of [].concat(o.material)) { m.transparent = false; m.depthWrite = false; }
+    o.renderOrder = -2;
+  });
+}
+
 export class Viewport {
   constructor(container) {
     this.el = container;
@@ -80,10 +92,10 @@ export class Viewport {
 
     this.grid = new THREE.GridHelper(600, 60, 0xb4bfca, 0xd5dce3);
     this.grid.rotation.x = Math.PI / 2;
-    this.grid.material.transparent = true;
-    this.grid.material.opacity = 0.8;
+    backdrop(this.grid);
     this.scene.add(this.grid);
     this.axesGroup = this.axes();
+    backdrop(this.axesGroup);
     this.scene.add(this.axesGroup);
 
     for (const name of ['model', 'sketches', 'paths', 'overlay', 'sim']) {
@@ -101,6 +113,8 @@ export class Viewport {
       last = now;
       this.controls.update();
       if (this.onFrame) this.onFrame(dt);
+      this.updatePixelSizes();
+      this.updateClipping();
       // the RENDERN workspace draws its own (accumulated) image
       if (this.renderHook) this.renderHook(); else this.renderer.render(this.scene, this.camera);
       this.labels.render(this.scene, this.camera);
@@ -424,11 +438,34 @@ export class Viewport {
     this.grid.geometry.dispose();
     const old = this.grid;
     this.grid = new THREE.GridHelper(600, 60, dark ? 0x3b4652 : 0xb4bfca, dark ? 0x2a333d : 0xd5dce3);
-    this.grid.material.transparent = true;
-    this.grid.material.opacity = 0.9;
+    backdrop(this.grid);
     if (old.matrixAutoUpdate === false) { this.grid.matrixAutoUpdate = false; this.grid.matrix.copy(old.matrix); }
     else this.grid.rotation.x = Math.PI / 2;
     this.scene.add(this.grid);
+  }
+
+  // highlight tubes (selected edges, edge chains) keep their width on screen: radius userData.pxR in pixels,
+  // scaled every frame from the distance to the camera (zooming after the selection does not make them fat)
+  // near and far plane follow the distance to the target: a fixed near plane of 0.5 mm wastes the precision of the
+  // depth buffer on large parts, and coplanar faces and edges start to flicker (z-fighting)
+  updateClipping() {
+    const d = this.camera.position.distanceTo(this.controls.target);
+    const near = Math.max(this.camera.fov < 5 ? 5 : 0.05, d / 300), far = Math.max(this.camera.fov < 5 ? 1e6 : 50000, d * 40);
+    if (Math.abs(near - this.camera.near) > 0.02 * near || far !== this.camera.far) {
+      this.camera.near = near;
+      this.camera.far = far;
+      this.camera.updateProjectionMatrix();
+    }
+  }
+
+  updatePixelSizes() {
+    const k = (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))) / Math.max(1, this.el.clientHeight), cam = this.camera.position;
+    for (const g of [this.paths, this.overlay]) g.traverse(o => {
+      if (!o.userData.pxR) return;
+      o.getWorldPosition(_wp);
+      const s = o.userData.pxR * k * Math.max(1e-6, _wp.distanceTo(cam));
+      o.scale.x = o.scale.z = s;
+    });
   }
 
   worldPerPixel() {

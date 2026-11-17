@@ -484,7 +484,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "Bahnen folgen dem Rand der gewählten Flächen und laufen zur Mitte hin zusammen.":"Ścieżki podążają za brzegiem wybranych ścian i zbiegają się ku środkowi.",
 "Bahnen laufen entlang der Hauptrichtung der gewählten Flächen und bleiben in ihrem Umriss.":"Ścieżki biegną wzdłuż głównego kierunku wybranych ścian i pozostają w ich obrysie.",
 "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten":"Ścieżki przez zaokrąglenia w płaszczyznach pionowych jako G2/G3 z G18 lub G19 zamiast wielu krótkich odcinków – znacznie krótsze programy przy wykańczaniu 3D",
-"Bahnlänge":"Długość ścieżki",
+"Bahnlänge (der Punkt zeigt die Farbe der Bahn)":"Długość ścieżki (kropka pokazuje kolor ścieżki)",
 "Bahnmuster":"Wzór ścieżki",
 "Bahnmuster: Ausgabe als Bahn":"Wzór ścieżek: wyjście jako ścieżka",
 "Bahnmuster: mehr als 2000 Kopien":"Wzór ścieżek: ponad 2000 kopii",
