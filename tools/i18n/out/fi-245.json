@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Vain suorat urat voidaan antaa ohjauksen syklinä (kahden pisteen viiva tai urareikä)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Anna uran leveys ohjauksen syklille viivaa pitkin",
+ "Nut ohne Länge": "Ura ilman pituutta",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Ura {0} mm kapeampi kuin jyrsin Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Ura tunnistettu ({0}) – Heidenhain: CYCL DEF 253 uran keskellä, Sinumerik: taskusykli. Ohjaus jyrsii omalla strategiallaan; simulaatio näyttää tässä radan.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Suorat urat (urareikä tai viiva uran leveydellä) annetaan ohjauksen urasyklinä.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Pois: ura annetaan ratana koordinaatteineen.",
+ "Nutzyklus": "urasykli"
+}

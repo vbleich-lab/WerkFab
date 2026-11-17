@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Disposizione fori come ciclo di schema (cerchio di fori / griglia)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "I fori su un cerchio di fori o in una griglia vengono emessi come ciclo di schema (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Gli altri controlli ricevono sempre le singole coordinate.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Ogni foro viene raggiunto singolarmente con le sue coordinate (X/Y per foro) – nessuno schema a cerchio di fori o a griglia.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Fori su un cerchio di fori o in una griglia come ciclo di schema (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) invece delle singole coordinate. Off: ogni foro con le sue coordinate. Commutabile per ogni operazione di foratura."
+}

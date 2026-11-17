@@ -22,6 +22,12 @@ contextBridge.exposeInMainWorld('werkfabApp', {
     open: ({ name, data, exe }) => ipcRenderer.invoke('slicer:open', { name: String(name || 'werkfab.3mf'), data, exe: String(exe || '') }),
     pick: () => ipcRenderer.invoke('slicer:pick'),
   },
+  // NC program to the machine (Heidenhain, LSV2 like TNCremo): send({ host, port, password, dir, name, text }), test({ host, port, password })
+  machine: {
+    send: c => ipcRenderer.invoke('machine:send', c),
+    test: c => ipcRenderer.invoke('machine:test', c),
+    onProgress: fn => { ipcRenderer.removeAllListeners('machine:progress'); ipcRenderer.on('machine:progress', (_e, f) => fn(f)); },
+  },
   // size of the whole interface (Einstellungen → Benutzeroberfläche)
   zoom: f => { try { webFrame.setZoomFactor(Math.max(0.5, Math.min(3, +f || 1))); } catch { /* keeps the size */ } },
 });

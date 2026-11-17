@@ -88,6 +88,20 @@ ipcMain.handle('slicer:open', async (_e, { name, data, exe }) => {
     return { error: String(err.message || err) };
   }
 });
+// "An Maschine senden": NC program to a Heidenhain control over LSV2 (the protocol of TNCremo, TCP port 19000)
+const lsv2 = require('./lsv2.cjs');
+const lsv2Args = c => ({ host: String(c?.host || '').trim(), port: Math.round(+c?.port) || 19000, password: String(c?.password || ''), dir: String(c?.dir || ''), name: String(c?.name || ''), text: String(c?.text ?? ''), overwrite: c?.overwrite !== false });
+ipcMain.handle('machine:send', async (e, c) => {
+  const a = lsv2Args(c);
+  if (!a.host) return { error: 'IP-Adresse der Steuerung eintragen' };
+  if (!/^[\w\-. ]{1,60}\.(h|H|i|I|nc|NC)$/.test(a.name)) return { error: `Ungültiger Programmname: ${a.name}` };
+  try { return await lsv2.sendProgram(a, f => { try { e.sender.send('machine:progress', f); } catch { /* window closed */ } }); } catch (err) { return { error: String(err.message || err) }; }
+});
+ipcMain.handle('machine:test', async (_e, c) => {
+  const a = lsv2Args(c);
+  if (!a.host) return { error: 'IP-Adresse der Steuerung eintragen' };
+  try { return await lsv2.testConnection(a); } catch (err) { return { error: String(err.message || err) }; }
+});
 ipcMain.handle('slicer:pick', async e => {
   const w = BrowserWindow.fromWebContents(e.sender);
   const r = await dialog.showOpenDialog(w, { properties: ['openFile'], filters: process.platform === 'win32' ? [{ name: 'Programme', extensions: ['exe'] }] : [] });

@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "רק חריצים ישרים יוצאים כמחזור של הבקר (קו משתי נקודות או חריץ מוארך)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "עבור מחזור הבקר לאורך קו יש לציין את רוחב החריץ",
+ "Nut ohne Länge": "חריץ ללא אורך",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "חריץ {0} מ\"מ צר יותר מהמכרסם Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "זוהה חריץ ({0}) – Heidenhain: CYCL DEF 253 במרכז החריץ, Sinumerik: מחזור כיס. הבקר מכרסם באסטרטגיה משלו; הסימולציה כאן מציגה את המסלול.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "חריצים ישרים (חריץ מוארך או קו עם רוחב חריץ) יוצאים כמחזור חריץ של הבקר.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "כבוי: החריץ יוצא כמסלול עם קואורדינטות.",
+ "Nutzyklus": "מחזור חריץ"
+}

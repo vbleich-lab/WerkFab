@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Лише прямі пази виводяться як цикл системи керування (лінія з двох точок або паз)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Для циклу системи керування вздовж лінії вкажіть ширину паза",
+ "Nut ohne Länge": "Паз без довжини",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Паз {0} мм вужчий за фрезу Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Паз розпізнано ({0}) – Heidenhain: CYCL DEF 253 у центрі паза, Sinumerik: цикл кишені. Система керування фрезерує за власною стратегією; симуляція тут показує траєкторію.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Прямі пази (паз або лінія з шириною паза) виводяться як цикл паза системи керування.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Вимк.: паз виводиться як траєкторія з координатами.",
+ "Nutzyklus": "цикл паза"
+}

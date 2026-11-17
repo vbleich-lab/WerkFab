@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Patrón de taladros como ciclo de patrón (círculo de taladros / matriz)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Los taladros en un círculo de taladros o en una matriz se emiten como ciclo de patrón (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Otros controles reciben siempre las coordenadas individuales.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Cada taladro se aborda por separado con sus coordenadas (X/Y por taladro) – sin patrón de círculo de taladros ni matriz.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Taladros en un círculo de taladros o en una matriz como ciclo de patrón (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) en lugar de coordenadas individuales. Desactivado: cada taladro con sus coordenadas. Conmutable por operación de taladrado."
+}

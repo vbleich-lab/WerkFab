@@ -306,7 +306,7 @@ export function copyPost(def, id, name) {
 }
 
 // Controllers and senders often choke on non-ASCII, even inside comments.
-const ascii = s => s.replace(/Ø/g, 'D').replace(/×/g, 'x').replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+export const ascii = s => s.replace(/Ø/g, 'D').replace(/×/g, 'x').replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
   .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss')
   .replace(/[\u2212\u2013\u2014]/g, '-').replace(/\u2026/g, '...').replace(/[\u201e\u201c\u201d\u00ab\u00bb]/g, '"').replace(/[\u2018\u2019\u201a]/g, "'")
   .replace(/°/g, ' Grad').replace(/µ/g, 'u').replace(/±/g, '+/-').replace(/²/g, '2').replace(/³/g, '3')
@@ -699,10 +699,12 @@ export const POST_PROPS = [
   { key: 'subroutines', group: 'prefs', label: 'Unterprogramme verwenden', type: [['none', 'Nein'], ['ops', 'Alle Operationen (LBL)']], def: 'none', only: HH, help: 'Jede Operation als Unterprogramm (LBL) am Programmende, Aufruf mit CALL LBL' },
   { key: 'optionalStop', group: 'prefs', label: 'Optionaler Halt', type: 'bool', def: false, help: 'M1 vor jedem Werkzeugwechsel' },
   { key: 'preloadTool', group: 'prefs', label: 'Werkzeug vorwählen', type: 'bool', def: false, help: 'Nächstes Werkzeug schon vorbereiten (TOOL DEF bzw. T-Wort)' },
-  { key: 'drillPatterns', group: 'prefs', label: 'Bohrbilder als Zyklus', type: 'bool', def: true, only: ['heidenhain', 'sinumerik'], help: 'Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Positionen' },
+  { key: 'drillPatterns', group: 'prefs', label: 'Bohrbilder als Zyklus', type: 'bool', def: false, only: ['heidenhain', 'sinumerik'], help: 'Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.' },
   { key: 'm120', group: 'prefs', label: 'M120 beim Schlichten', type: 'bool', def: true, only: HH, help: 'Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf' },
   { key: 'm120LA', group: 'prefs', label: 'M120 Sätze voraus (LA)', type: 'num', def: 5, only: HH, help: 'Anzahl der vorausberechneten Sätze (LA 1…99)' },
   { key: 'm13', group: 'prefs', label: 'Spindel und Kühlmittel zusammen (M13/M14)', type: 'bool', def: false, only: HH, help: 'M3 + M8 als M13, M4 + M8 als M14 in einem Satz' },
+  { key: 'qParams', group: 'prefs', label: 'Tiefe und Aufmaß als Q-Parameter', type: 'bool', def: false, only: HH, help: 'Je Operation zwei Q-Parameter am Programmanfang: der erste verschiebt die Tiefe (DL, + = weniger tief), der zweite das seitliche Aufmaß (DR, + = mehr Aufmaß; wirkt nur bei Radiuskorrektur an der Steuerung RL/RR). An der Maschine eine Zahl ändern statt Sätze suchen.' },
+  { key: 'qBase', group: 'prefs', label: 'Erster Q-Parameter', type: 'num', def: 50, only: HH, help: 'Nummer des ersten Q-Parameters (je Operation zwei: Tiefe, Aufmaß)' },
   { key: 'apprDep', group: 'prefs', label: 'An-/Abfahren mit APPR/DEP', type: 'bool', def: true, only: HH, help: 'Konturen mit Radiuskorrektur an der Steuerung (RL/RR) fahren mit APPR/DEP an und ab; die Steuerung berechnet Hilfspunkt und Korrektur selbst' },
   { key: 'toolAsName', group: 'prefs', label: 'Werkzeug als Name', type: 'bool', def: false, only: HH, help: 'TOOL CALL "NAME" statt Werkzeugnummer' },
   { key: 'parametricFeed', group: 'prefs', label: 'Parametrischer Vorschub', type: 'bool', def: false, only: HH, help: 'Vorschübe als Q-Parameter (FQ1 …) – an der Maschine zentral anpassbar' },
@@ -731,6 +733,10 @@ export const POST_PROPS = [
   { key: 'writeMachine', group: 'formats', label: 'Maschine ausgeben', type: 'bool', def: true },
   { key: 'writeToolList', group: 'formats', label: 'Werkzeugliste ausgeben', type: 'bool', def: true },
   { key: 'writeVersion', group: 'formats', label: 'Version ausgeben', type: 'bool', def: false },
+  { key: 'toolCheck', group: 'probing', label: 'Werkzeug nach dem Einwechseln prüfen', type: [['off', 'Aus'], ['length', 'Länge (TCH PROBE 481)'], ['both', 'Länge und Radius (TCH PROBE 483)']], def: 'off', only: HH, help: 'Mit dem Werkzeug-Taster (TT) direkt nach dem TOOL CALL: Q340=1 prüft gegen die Werkzeugtabelle, schreibt die Abweichung als DL/DR und sperrt das Werkzeug bei überschrittener Verschleiß- oder Bruchtoleranz' },
+  { key: 'toolBreak', group: 'probing', label: 'Bruchkontrolle nach dem letzten Einsatz', type: 'bool', def: false, only: HH, help: 'TCH PROBE 481 mit Q340=1, bevor das Werkzeug ausgewechselt wird oder das Programm endet (Bruchtoleranz LBREAK aus der Werkzeugtabelle)' },
+  { key: 'ttSafe', group: 'probing', label: 'Sichere Höhe am Taster (Q260)', type: 'num', def: 100, only: HH, help: 'Höhe in der Werkzeugachse, auf der beim Anfahren an den Taster nichts im Weg ist' },
+  { key: 'ttTeeth', group: 'probing', label: 'Einzelschneiden vermessen (Q341)', type: 'bool', def: false, only: HH },
   { key: 'probeCycles', group: 'probing', label: 'Tastzyklen ausgeben', type: 'bool', def: true, help: 'Antast-Operationen als Steuerungszyklen (Heidenhain TCH PROBE 4xx, Renishaw G65 P98xx)' },
   { key: 'probeFeed', group: 'probing', label: 'Antastvorschub', type: 'num', def: 300, help: 'Vorschub für das geschützte Anfahren (Renishaw)' },
   { key: 'lineNumbers', group: 'builtin', label: 'Satznummern', type: 'bool', def: { heidenhain: true, default: false } },
@@ -936,6 +942,24 @@ export function runPost(def, project, gen, opts = {}) {
       W.expand(W.tag(tpl, 'toolListLine'), { ...base, t: String(t.number), toolname: t.name, tooldia: String(+(+t.dia).toFixed(3)), zmin: ok ? W.num(z - o.z) : '' });
     }
   }
+  // Heidenhain: depth (DL) and side allowance (DR) of every operation as Q parameters, set at the machine
+  const qOf = new Map();
+  if (hh && P.qParams && !lathe) {
+    let q = Math.max(1, Math.round(+P.qBase) || 50);
+    for (const op of ops) {
+      const r = results.get(op.id);
+      if (!r || r.manual || r.error || op.type === 'probe' || !r.tool) continue;
+      qOf.set(op.id, [q, q + 1]);
+      const nm = ascii(String(op.name || op.type)).replace(/[;~]/g, ' ').toUpperCase().slice(0, 40);
+      W.expand(`FN 0: Q${q} = +0 ; TIEFE ${nm} (+ = WENIGER TIEF)`);
+      W.expand(`FN 0: Q${q + 1} = +0 ; AUFMASS ${nm} (+ = MEHR)`);
+      q += 2;
+    }
+  }
+  // tool check with the tool touch probe (TT): after the change, and a breakage check after the last use
+  const ttCycle = (no, check) => `TCH PROBE ${no} ${no === 483 ? 'WERKZEUG MESSEN' : 'WERKZEUG-LAENGE'} ~\n  Q340=+${check} ;PRUEFEN ~\n  Q260=${W.num(+P.ttSafe || 100)} ;SICHERE HOEHE ~\n  Q341=+${P.ttTeeth ? 1 : 0} ;SCHNEIDENVERMESSUNG`;
+  const cutOps = ops.filter(op => { const r = results.get(op.id); return r && !r.manual && !r.error && r.tool && op.type !== 'probe'; });
+  const lastOfTool = new Set(cutOps.filter((op, k) => results.get(cutOps[k + 1]?.id)?.tool?.id !== results.get(op.id).tool.id).map(op => op.id));
   if (hh && P.tcpm && !lathe) W.expand(P.tcpmCode === 'm128' ? 'M128' : 'FUNCTION TCPM F TCP AXIS POS PATHCTRL AXIS');
 
   let planeOn = false, kinWarned = false;
@@ -993,14 +1017,58 @@ export function runPost(def, project, gen, opts = {}) {
     smoothOn = false;
   };
 
-  const labels = [];
+  const labels = [], labelOf = new Map();
   let tool = null, totalTime = 0, codeWarned = false;
+
+  // ---- several parts in one clamping: datum shift (or own datum) per part ----
+  const MP = setup.multi;
+  let multi = !lathe && MP?.on && Array.isArray(MP.list) && MP.list.length > 1 ? MP : null;
+  const sinuWcs = n => (n <= 4 ? `G${53 + n}` : `G${500 + n}`);
+  const wcsWord = n => {
+    n = Math.max(1, Math.round(+n) || 1);
+    if (hh) return `CYCL DEF 247 BEZUGSPUNKT SETZEN ~\n  Q339=+${n} ;BEZUGSPUNKT-NUMMER`;
+    if (okuma) return `G15 H${n}`;
+    if (fam === 'sinumerik') return sinuWcs(n);
+    if (n <= 6) return `G${53 + n}`;
+    if (fam === 'fanuc') return `G54.1 P${n - 6}`;
+    if (fam === 'linuxcnc' && n <= 9) return `G59.${n - 6}`;
+    return null;
+  };
+  const shiftWord = p => {
+    const x = W.num(+p.x || 0), y = W.num(+p.y || 0), z = W.num(+p.z || 0);
+    if (hh) return `CYCL DEF 7.0 NULLPUNKT\nCYCL DEF 7.1 X${x}\nCYCL DEF 7.2 Y${y}\nCYCL DEF 7.3 Z${z}`;
+    if (fam === 'sinumerik') return +p.x || +p.y || +p.z ? `TRANS X${x} Y${y} Z${z}` : 'TRANS';
+    if (okuma || fam === 'grbl') return null;
+    return `G52 X${x} Y${y} Z${z}`;
+  };
+  if (multi) {
+    const bad = multi.list.map((p, k) => (multi.mode === 'wcs' ? wcsWord(p.wcs) : shiftWord(p)) ? null : k + 1).filter(Boolean);
+    if (bad.length) { warnings.push(multi.mode === 'wcs' ? `Mehrfachaufspannung: Nullpunkt von Teil ${bad.join(', ')} gibt es an dieser Steuerung nicht – nur ein Teil ausgegeben` : 'Mehrfachaufspannung: Nullpunktverschiebung gibt es in diesem Postprozessor nicht – „Eigener Nullpunkt je Teil“ wählen; nur ein Teil ausgegeben'); multi = null; }
+  }
+  const partSelect = k => {
+    const p = multi.list[k];
+    W.expand('# ' + `Teil ${k + 1} von ${multi.list.length}`);
+    W.expand(multi.mode === 'wcs' ? wcsWord(p.wcs) : shiftWord(p));
+    W.resetModal();
+  };
+  const partReset = () => {
+    W.expand(multi.mode === 'wcs' ? wcsWord(setup.wcsOffset || 1) : shiftWord({ x: 0, y: 0, z: 0 }));
+    W.resetModal();
+  };
+  // up to the safe height before the datum changes (the tool must not cross the next part at the retract height)
+  const retractSafe = () => {
+    W.resetModal();
+    W.expand(W.tag(String(def.rapid || 'G0{Z}').replace(/\{[XY]!?\}/g, '').replace('{Z}', '{Z!}'), 'rapid'), base, { x: null, y: null, z: safe - o.z });
+  };
+  const multiTool = multi && multi.order !== 'part';
   const tcallOf = t => (hh && P.toolAsName ? `"${ascii(t.name).split('"').join('').toUpperCase().slice(0, 32)}"` : String(t.number));
   // after a program stop the spindle and the coolant are switched on again by the next operation
   let respin = false;
-  ops.forEach((op, oi) => {
+  // part: index in the clamping (an operation with one toolpath per part – serial numbers – takes that part's path)
+  const emitOp = (op, oi, part = null) => {
     W.curOp = op.name || op.id;
-    const r = results.get(op.id);
+    const r0 = results.get(op.id), r = part != null && r0.parts ? r0.parts[part] || r0 : r0;
+    const own = !!(multi && r0.parts), sub = own && multiTool && part != null && part > 0;
     // ---- manual NC: lines without a toolpath ----
     if (r.manual) {
       const mn = r.manual, plain = x => String(x).replace(/[{}]/g, '');
@@ -1120,6 +1188,24 @@ export function runPost(def, project, gen, opts = {}) {
 
     // the operation body may go into a subprogram
     const subs = hh && P.subroutines === 'ops';
+    if (hh && !lathe && (qOf.has(op.id) || (toolChanged && P.toolCheck && P.toolCheck !== 'off'))) {
+      // the TOOL CALL of this change (searched back from the end – it was written just now)
+      let at = -1;
+      if (toolChanged) for (let k = W.out.length - 1; k >= 0 && k >= W.out.length - 12; k--) if (/^TOOL CALL (\d+|"[^"]*") Z\b/.test(W.out[k].text)) { at = k; break; }
+      const qq = sub ? null : qOf.get(op.id);
+      if (qq) {
+        const d = ` DL+Q${qq[0]} DR+Q${qq[1]}`;
+        if (at >= 0) W.out[at].text += d;
+        else W.out.push({ text: `TOOL CALL Z S${tv.rpm}${d}`, src: null, op: W.curOp });
+      }
+      if (at >= 0 && P.toolCheck && P.toolCheck !== 'off') {
+        const n0 = W.out.length;
+        W.expand(ttCycle(P.toolCheck === 'both' ? 483 : 481, 1));
+        W.out.splice(at + 1, 0, ...W.out.splice(n0));
+      }
+    }
+    if (multiTool) partSelect(sub ? part : 0);
+    if (r0.serial) W.expand('# ' + `Seriennummer ${r0.serial[part ?? 0] ?? r0.serial[0]}`);
     const mark = W.out.length;
     if (subs) W.resetModal();
 
@@ -1153,7 +1239,8 @@ export function runPost(def, project, gen, opts = {}) {
       if (leftTap) W.expand(`M5\nS${tv.rpm} M4`);
       // bolt circles / grids as the control's pattern cycles (they call the cycle defined just before at each
       // hole); single holes first with the point template, so M99 surely calls the drilling cycle
-      const pats = P.drillPatterns !== false && !def.cycleFirstInDef ? holePatterns(c.pts) : null;
+      // the switch of the operation wins; without one the post property (default: single coordinates)
+      const pats = (op.drillPattern ?? P.drillPatterns === true) && !def.cycleFirstInDef ? holePatterns(c.pts) : null;
       const patKey = pat => (pat.kind === 'circle' ? 'cyclePatternCircle' : 'cyclePatternGrid');
       if (pats && pats.groups.every(pat => def[patKey(pat)])) {
         W.expand(cycleTpl, cv);
@@ -1179,11 +1266,11 @@ export function runPost(def, project, gen, opts = {}) {
     // pocket / stud as the control's cycle (rectangle, circle, slot): Heidenhain defines it once per shape and
     // calls it at the centre (M99); Sinumerik-style calls carry the centre themselves ({px}/{py})
     const studOp = op.type === 'contour';
-    if (!done && (op.type === 'pocket' || studOp) && op.ctrlCycle) {
+    if (!done && (op.type === 'pocket' || op.type === 'slot' || studOp) && op.ctrlCycle) {
       const pc = studOp ? r.studCycle : r.pocketCycle, why = studOp ? r.studCycleWhy : r.pocketCycleWhy;
       const keyOf = s => (studOp ? (s.kind === 'circ' ? 'cycleStudCirc' : 'cycleStudRect')
         : s.kind === 'circ' ? 'cyclePocketCirc' : s.kind === 'slot' && def.cyclePocketSlot ? 'cyclePocketSlot' : 'cyclePocketRect');
-      const what = studOp ? 'Zapfenzyklus' : 'Taschenzyklus';
+      const what = studOp ? 'Zapfenzyklus' : op.type === 'slot' ? 'Nutzyklus' : 'Taschenzyklus';
       if (!pc) warnings.push(`${op.name}: Steuerungszyklus nicht möglich (${why || 'Form nicht erkannt'}) – als Bahn ausgegeben`);
       else if (!(pc.top - pc.bottom > 1e-6)) warnings.push(`${op.name}: Steuerungszyklus nicht möglich (Tiefe 0) – als Bahn ausgegeben`);
       else if (!pc.pockets.every(s => def[keyOf(s)] && (/\{px\}/.test(def[keyOf(s)]) || pointTpl))) warnings.push(`${op.name}: Postprozessor ohne ${what} für diese Form – als Bahn ausgegeben`);
@@ -1435,14 +1522,55 @@ export function runPost(def, project, gen, opts = {}) {
       }
     }
     W.qfeed = null;
+    let lbl = null;
     if (subs) {
       const body = W.out.splice(mark);
-      const n = labels.length + 1;
-      labels.push({ n, name: op.name, body });
-      W.expand(`CALL LBL ${n}`);
+      const lk = own ? op.id + '#' + (part ?? 0) : op.id;
+      lbl = labelOf.get(lk);
+      if (!lbl) { lbl = labels.length + 1; labels.push({ n: lbl, name: op.name, body }); labelOf.set(lk, lbl); }
+      W.expand(`CALL LBL ${lbl}`);
       W.resetModal();
     }
-  });
+    // an inner call for one more part: the caller does the datum handling
+    if (sub) return;
+    // the same operation for the other parts of the clamping, each in its own datum
+    if (multiTool && own) {
+      // own toolpath per part (serial numbers): written again for each part
+      for (let k = 1; k < multi.list.length; k++) { retractSafe(); emitOp(op, oi, k); W.resetModal(); }
+      retractSafe();
+      partReset();
+    } else if (multiTool) {
+      const body = subs ? null : W.out.slice(mark).map(l => ({ ...l }));
+      for (let k = 1; k < multi.list.length; k++) {
+        retractSafe();
+        partSelect(k);
+        if (subs) W.expand(`CALL LBL ${lbl}`);
+        else W.out.push(...body.map(l => ({ ...l })));
+        W.resetModal();
+        totalTime += r.time || 0;
+      }
+      retractSafe();
+      partReset();
+    }
+    // breakage check before the tool goes back into the magazine
+    if (hh && !lathe && P.toolBreak && lastOfTool.has(op.id)) {
+      retractSafe();
+      setCoolant('off');
+      W.expand('M5');
+      W.expand(ttCycle(481, 1));
+      respin = true;
+    }
+  };
+  if (multi && !multiTool) {
+    // part by part: all operations on one part, then the next (tool changes repeat)
+    multi.list.forEach((_, k) => {
+      if (k) retractSafe();
+      partSelect(k);
+      ops.forEach((op, oi) => emitOp(op, oi, k));
+    });
+    retractSafe();
+    partReset();
+  } else ops.forEach((op, oi) => emitOp(op, oi));
   smoothReset();
   planeEnd(true);
   if (liveMode && def.liveOff) W.expand(W.tag(def.liveOff, 'liveOff'), base);

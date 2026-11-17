@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Схема отверстий как цикл шаблона (окружность отверстий / сетка)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Отверстия на окружности или в сетке выводятся как цикл шаблона (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Другие системы ЧПУ всегда получают отдельные координаты.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Каждое отверстие отрабатывается отдельно со своими координатами (X/Y для каждого отверстия) – без шаблона окружности или сетки.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Отверстия на окружности или в сетке как цикл шаблона (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) вместо отдельных координат. Выкл.: каждое отверстие со своими координатами. Переключается для каждой операции сверления."
+}

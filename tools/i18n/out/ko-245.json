@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "직선 홈만 컨트롤러 사이클로 출력됩니다(두 점의 선 또는 슬롯)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "선을 따르는 컨트롤러 사이클에는 홈 폭을 지정하세요",
+ "Nut ohne Länge": "길이 없는 홈",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "홈 {0} mm가 엔드밀 Ø{1}보다 좁음",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "홈 인식됨({0}) – Heidenhain: 홈 중심에 CYCL DEF 253, Sinumerik: 포켓 사이클. 컨트롤러는 자체 전략으로 가공하며, 여기의 시뮬레이션은 공구 경로를 표시합니다.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "직선 홈(슬롯 또는 홈 폭이 있는 선)은 컨트롤러의 홈 사이클로 출력됩니다.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "끔: 홈은 좌표가 있는 경로로 출력됩니다.",
+ "Nutzyklus": "홈 사이클"
+}

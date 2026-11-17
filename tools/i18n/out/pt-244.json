@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Padrão de furos como ciclo de padrão (círculo de furos / grelha)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Os furos num círculo de furos ou numa grelha são emitidos como ciclo de padrão (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Outros comandos recebem sempre as coordenadas individuais.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Cada furo é abordado individualmente com as suas coordenadas (X/Y por furo) – sem padrão de círculo de furos nem grelha.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Furos num círculo de furos ou numa grelha como ciclo de padrão (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) em vez de coordenadas individuais. Desligado: cada furo com as suas coordenadas. Comutável por operação de furação."
+}

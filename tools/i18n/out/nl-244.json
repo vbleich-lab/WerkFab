@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Boorpatroon als patrooncyclus (steekcirkel / raster)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Gaten op een steekcirkel of in een raster worden als patrooncyclus uitgevoerd (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere besturingen krijgen altijd de afzonderlijke coördinaten.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Elk gat wordt afzonderlijk met zijn coördinaten aangelopen (X/Y per gat) – geen steekcirkel- of rasterpatroon.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Gaten op een steekcirkel of in een raster als patrooncyclus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) in plaats van afzonderlijke coördinaten. Uit: elk gat met zijn coördinaten. Per boorbewerking omschakelbaar."
+}

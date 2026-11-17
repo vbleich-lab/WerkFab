@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Jen přímé drážky lze vydat jako cyklus řídicího systému (úsečka ze dvou bodů nebo podlouhlá drážka)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Pro cyklus řídicího systému podél úsečky zadejte šířku drážky",
+ "Nut ohne Länge": "Drážka bez délky",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Drážka {0} mm je užší než fréza Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Drážka rozpoznána ({0}) – Heidenhain: CYCL DEF 253 ve středu drážky, Sinumerik: cyklus kapsy. Řídicí systém frézuje vlastní strategií; simulace zde ukazuje dráhu.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Přímé drážky (podlouhlý otvor nebo čára se šířkou drážky) se vydají jako drážkový cyklus řídicího systému.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Vypnuto: drážka se vydá jako dráha se souřadnicemi.",
+ "Nutzyklus": "drážkový cyklus"
+}

@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Seules les rainures droites sortent en cycle de commande (ligne de deux points ou rainure oblongue)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Pour le cycle de commande le long d'une ligne, indiquer la largeur de rainure",
+ "Nut ohne Länge": "Rainure sans longueur",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Rainure de {0} mm plus étroite que la fraise Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Rainure détectée ({0}) – Heidenhain : CYCL DEF 253 au centre de la rainure, Sinumerik : cycle de poche. La commande fraise avec sa propre stratégie ; la simulation montre ici la trajectoire.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Les rainures droites (rainure oblongue ou ligne avec largeur de rainure) sortent en cycle de rainurage de la commande.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Désactivé : la rainure sort sous forme de trajectoire avec coordonnées.",
+ "Nutzyklus": "cycle de rainurage"
+}

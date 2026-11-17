@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Kun lige noter kan afgives som styringscyklus (linje mellem to punkter eller langhul)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Angiv notbredden for styringscyklussen langs en linje",
+ "Nut ohne Länge": "Not uden længde",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Not {0} mm smallere end fræseren Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Not genkendt ({0}) – Heidenhain: CYCL DEF 253 ved notens midte, Sinumerik: lommecyklus. Styringen fræser med sin egen strategi; simuleringen her viser banen.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Lige noter (langhul eller linje med notbredde) afgives som styringens notcyklus.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Fra: noten afgives som bane med koordinater.",
+ "Nutzyklus": "notcyklus"
+}

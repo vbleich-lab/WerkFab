@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Motif de perçage en cycle de motif (cercle de perçage / grille)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Les perçages sur un cercle de perçage ou dans une grille sont sortis sous forme de cycle de motif (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Les autres commandes reçoivent toujours les coordonnées individuelles.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Chaque perçage est abordé individuellement avec ses coordonnées (X/Y par perçage) – pas de motif de cercle de perçage ni de grille.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Perçages sur un cercle de perçage ou dans une grille en cycle de motif (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) au lieu de coordonnées individuelles. Désactivé : chaque perçage avec ses coordonnées. Commutable par opération de perçage."
+}

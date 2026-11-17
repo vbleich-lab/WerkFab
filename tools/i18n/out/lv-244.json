@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Urbumu raksts kā rakstu cikls (urbumu aplis / režģis)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Urbumi uz urbumu apļa vai režģī tiek izvadīti kā rakstu cikls (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Citas vadības vienmēr saņem atsevišķas koordinātas.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Katrs urbums tiek sasniegts atsevišķi ar savām koordinātām (X/Y katram urbumam) – bez urbumu apļa vai režģa raksta.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Urbumi uz urbumu apļa vai režģī kā rakstu cikls (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) atsevišķu koordinātu vietā. Izslēgts: katrs urbums ar savām koordinātām. Pārslēdzams katrai urbšanas operācijai."
+}

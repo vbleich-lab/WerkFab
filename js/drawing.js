@@ -3,6 +3,8 @@
 // overall dimensions and hole callouts on a standard sheet with a title block.
 import * as THREE from 'three';
 import { MeshBVH } from 'three-mesh-bvh';
+import { parseFit, fitDevText } from './fits.js';
+import { inspectionItems } from './inspect.js';
 
 export const SHEETS = { A4: [297, 210], A3: [420, 297], A2: [594, 420] };
 const SCALES = [10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02];
@@ -430,6 +432,12 @@ export function makeDrawing(bodies, opts) {
   const drawUserDim = dm => {
     // text behind the number: tolerance, fit, count ("±0,1", "H7", "2×")
     const sfx = dm.txt ? ' ' + String(dm.txt) : '';
+    // an ISO fit (H7, g6) gets its limit deviations behind it: "Ø25 H7 (+0,021/0)" (off with dm.fitDev === false)
+    const sfxOf = nom => {
+      if (!sfx || dm.fitDev === false || !parseFit(dm.txt)) return sfx;
+      const dev = fitDevText(dm.txt, Math.round(nom * 1000) / 1000);
+      return dev ? `${sfx} (${dev})` : sfx;
+    };
     // surface texture symbol (ISO 1302, material removal required): the tip on the surface, the value above
     // the bar; ang turns it (0 = standing on a top edge, 90 = on a left face, …)
     if (dm.kind === 'surf') {
@@ -536,7 +544,7 @@ export function makeDrawing(bodies, opts) {
       line([c[0] + ux * rr, c[1] + uy * rr], outer, 'dim');
       const right = ux >= 0, tl = [outer[0] + (right ? 10 : -10), outer[1]];
       line(outer, tl, 'dim');
-      const lab = `${dm.kind === 'dia' ? 'Ø' : 'R'}${f2(dm.kind === 'dia' ? 2 * dm.r : dm.r)}${sfx}`;
+      const lab = `${dm.kind === 'dia' ? 'Ø' : 'R'}${f2(dm.kind === 'dia' ? 2 * dm.r : dm.r)}${dm.kind === 'dia' ? sfxOf(2 * dm.r) : sfx}`;
       line(tl, [outer[0] + (right ? 1 : -1) * Math.max(10, lab.length * 1.9), outer[1]], 'dim');
       text(outer[0] + (right ? 1 : -1), outer[1] - 1.2, lab, 'dtx', right ? 'start' : 'end');
       return;
@@ -548,12 +556,12 @@ export function makeDrawing(bodies, opts) {
       const y = Math.min(a[1], b[1]) - off;
       line([a[0], a[1] - 1], [a[0], y - 2], 'ext'); line([b[0], b[1] - 1], [b[0], y - 2], 'ext');
       line([a[0], y], [b[0], y], 'dim arrow2');
-      text((a[0] + b[0]) / 2, y - 1.5, f2(len) + sfx, 'dtx');
+      text((a[0] + b[0]) / 2, y - 1.5, f2(len) + sfxOf(len), 'dtx');
     } else if (dm.kind === 'v') {
       const x = Math.max(a[0], b[0]) + off;
       line([a[0] + 1, a[1]], [x + 2, a[1]], 'ext'); line([b[0] + 1, b[1]], [x + 2, b[1]], 'ext');
       line([x, a[1]], [x, b[1]], 'dim arrow2');
-      text(x - 1.5, (a[1] + b[1]) / 2, f2(len) + sfx, 'dtx', 'middle', -90);
+      text(x - 1.5, (a[1] + b[1]) / 2, f2(len) + sfxOf(len), 'dtx', 'middle', -90);
     } else {
       const dx = b[0] - a[0], dy = b[1] - a[1], L0 = Math.hypot(dx, dy) || 1;
       let nx = -dy / L0, ny = dx / L0;
@@ -563,16 +571,33 @@ export function makeDrawing(bodies, opts) {
       line(A2, B2, 'dim arrow2');
       let ang = (Math.atan2(dy, dx) * 180) / Math.PI;
       if (ang > 90) ang -= 180; if (ang < -90) ang += 180;
-      text((A2[0] + B2[0]) / 2 + nx * 1.5, (A2[1] + B2[1]) / 2 + ny * 1.5, f2(len) + sfx, 'dtx', 'middle', ang);
+      text((A2[0] + B2[0]) / 2 + nx * 1.5, (A2[1] + B2[1]) / 2 + ny * 1.5, f2(len) + sfxOf(len), 'dtx', 'middle', ang);
     }
     };
+  // inspection plan: a numbered balloon behind the text of each dimension / tolerance frame
+  const balloonNo = new Map(opts.balloons ? inspectionItems(opts.userDims, { general: opts.generalTol, onlyTol: opts.balloons === 'tol' }).map(r => [r.idx, r.no]) : []);
+  const balloon = (from, no) => {
+    for (let q = G[cur].length - 1; q >= from; q--) {
+      const m = /^<text x="([-\d.]+)" y="([-\d.]+)" class="[^"]*" text-anchor="(\w+)"(?: transform="rotate\(([-\d.]+))?[^>]*>([^<]*)<\/text>/.exec(G[cur][q]);
+      if (!m) continue;
+      const x = +m[1], y = +m[2], rot = ((+m[4] || 0) * Math.PI) / 180, w = m[5].length * 1.95, ux = Math.cos(rot), uy = Math.sin(rot);
+      // from the anchor to the end of the text, then a little further; centred on the text height
+      const along = m[3] === 'start' ? w : m[3] === 'end' ? 0 : w / 2;
+      const cx = x + ux * (along + 3.4) + uy * 1.2, cy = y + uy * (along + 3.4) - ux * 1.2;
+      L.push(`<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="2.6" class="balloon"/>`);
+      L.push(`<text x="${cx.toFixed(2)}" y="${(cy + 1.4).toFixed(2)}" class="btx">${no}</text>`);
+      return;
+    }
+  };
   (opts.userDims || []).forEach((dm, di) => {
     if (!place[dm.view] && !DET[dm.view]) return;
     cur = dm.view;
     L.push(`<g class="udim" data-dim="${di}">`);
+    const from = G[cur].length;
     hitLines = true;
     drawUserDim(dm);
     hitLines = false;
+    if (balloonNo.has(di)) balloon(from, balloonNo.get(di));
     L.push('</g>');
   });
 
@@ -723,7 +748,7 @@ export function makeDrawing(bodies, opts) {
   cell(tx + 95, ty + 16, 30, 16, 'Datum', new Date().toLocaleDateString('de-DE'));
   cell(tx + 125, ty + 16, 35, 16, 'Gezeichnet', t.author);
   cell(tx + 160, ty + 16, 20, 16, 'Blatt', '1/1');
-  text(tx + tbW - 2, ty - 2 - (opts.parts?.length ? (opts.parts.length + 1) * 6 : 0), 'Projektionsmethode 1 (ISO-E) · Maße in mm · Allgemeintoleranz ISO 2768-m', 'tbl', 'end');
+  text(tx + tbW - 2, ty - 2 - (opts.parts?.length ? (opts.parts.length + 1) * 6 : 0), `Projektionsmethode 1 (ISO-E) · Maße in mm · Allgemeintoleranz ISO 2768-${['f', 'm', 'c', 'v'].includes(opts.generalTol) ? opts.generalTol : 'm'}`, 'tbl', 'end');
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SW}mm" height="${SH}mm" viewBox="0 0 ${SW} ${SH}">
 <defs><marker id="ar" viewBox="0 0 10 4" refX="10" refY="2" markerUnits="userSpaceOnUse" markerWidth="2.5" markerHeight="1" orient="auto-start-reverse"><path d="M0,0 L10,2 L0,4 z" fill="#000"/></marker>

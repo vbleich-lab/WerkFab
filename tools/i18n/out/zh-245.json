@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "只有直槽可作为系统循环输出（两点直线或长槽）",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "沿直线使用系统循环时，请指定槽宽",
+ "Nut ohne Länge": "槽无长度",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "槽 {0} mm 比铣刀 Ø{1} 窄",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "已识别槽（{0}）– Heidenhain：槽中心处 CYCL DEF 253，Sinumerik：型腔循环。数控系统按自身策略铣削；此处的仿真显示刀路。",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "直槽（长槽或带槽宽的直线）将作为数控系统的槽循环输出。",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "关：槽按带坐标的刀路输出。",
+ "Nutzyklus": "槽循环"
+}

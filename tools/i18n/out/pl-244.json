@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Wzór otworów jako cykl wzoru (okrąg otworów / siatka)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Otwory na okręgu lub w siatce są wyprowadzane jako cykl wzoru (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Inne sterowania zawsze otrzymują pojedyncze współrzędne.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Każdy otwór jest najeżdżany osobno ze swoimi współrzędnymi (X/Y dla każdego otworu) – bez wzoru okręgu otworów lub siatki.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Otwory na okręgu lub w siatce jako cykl wzoru (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) zamiast pojedynczych współrzędnych. Wył.: każdy otwór ze swoimi współrzędnymi. Przełączane dla każdej operacji wiercenia."
+}

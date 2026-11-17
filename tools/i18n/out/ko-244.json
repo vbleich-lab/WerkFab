@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "구멍 패턴을 패턴 사이클로 (볼트 서클 / 그리드)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "볼트 서클 또는 그리드 위의 구멍은 패턴 사이클로 출력됩니다 (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). 다른 제어기에는 항상 개별 좌표가 출력됩니다.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "각 구멍을 자신의 좌표로 개별 이동합니다 (구멍마다 X/Y) – 볼트 서클이나 그리드 패턴 없음.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "볼트 서클 또는 그리드 위의 구멍을 개별 좌표 대신 패턴 사이클 (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801)로 출력합니다. 끔: 각 구멍을 자신의 좌표로 출력. 드릴 가공별로 전환 가능."
+}

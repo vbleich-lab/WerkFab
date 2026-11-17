@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Delik deseni desen çevrimi olarak (delik çemberi / ızgara)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Delik çemberi veya ızgara üzerindeki delikler desen çevrimi olarak çıkarılır (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Diğer kontroller her zaman tekil koordinatları alır.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Her delik kendi koordinatlarıyla tek tek yaklaşılır (delik başına X/Y) – delik çemberi veya ızgara deseni yok.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Delik çemberi veya ızgara üzerindeki delikler tekil koordinatlar yerine desen çevrimi olarak (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801). Kapalı: her delik kendi koordinatlarıyla. Delme işlemi başına değiştirilebilir."
+}

@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Kā vadības ciklu var izvadīt tikai taisnas rievas (līnija no diviem punktiem vai garcaurums)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Vadības ciklam gar līniju norādiet rievas platumu",
+ "Nut ohne Länge": "Rieva bez garuma",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Rieva {0} mm ir šaurāka par frēzi Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Rieva atpazīta ({0}) – Heidenhain: CYCL DEF 253 rievas vidū, Sinumerik: kabatas cikls. Vadība frēzē ar savu stratēģiju; simulācija šeit rāda trajektoriju.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Taisnas rievas (garcaurums vai līnija ar rievas platumu) tiek izvadītas kā vadības rievas cikls.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Izslēgts: rieva tiek izvadīta kā trajektorija ar koordinātām.",
+ "Nutzyklus": "rievas cikls"
+}

@@ -8,6 +8,10 @@ import { initUpdates, checkForUpdates } from './update.js';
 import { AGENT_TOOLS, agentCall } from './agent.js';
 import { initFusion, fusionButtons, storedScripts, importPythonFiles, runEntry, stopEntry, isRunning, runCommand as runPyCommand, startAddins, addTemplate, updateEntry, removeEntry, showOutput as showPyOutput } from './fusionapi.js';
 import { exportGLB } from './gltf.js';
+import { compareRows } from './nccompare.js';
+import { toolTable, TOOL_TABLE_FORMATS } from './tooltable.js';
+import { parseFit, fitLimits, fitMid, COMMON_FITS } from './fits.js';
+import { inspectionItems, inspectionCsv, GENERAL_CLASSES } from './inspect.js';
 import { meshMass, stlBinary, urdfNames, buildUrdf, buildSdf, sdfConfig, buildMjcf, convexHull, URDF_CHAIN } from './urdf.js';
 import { setActiveKernel, activeKernelId, getKernel } from './kern/index.js';
 import './kern/rust.js';
@@ -15,8 +19,8 @@ import { THREAD_SIZES, meshBody, exportGeometry, setViewTessellation, viewTessel
 import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache, dropWaitingSnaps } from './model.js';
 import { Sketcher } from './sketcher.js';
 import { buildHeightmap, cornerOf } from './heightmap.js';
-import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel, orientationLabel, OP_TYPES, DRILL_CYCLES, ORIGINS, TOOL_TYPES, ORIENTATIONS, RAPID_FEED, setupMatrix, sketchHorizontalIn, OPS_3D, PROBE_MODES, MANUAL_KINDS, PATTERN_KINDS, orderByTool, opCells, toolBase, STOCK_MODES, STOCK_MATERIALS, BOUNDARY_MODES, setupBodies, heightSpec, HEIGHT_KEYS, HEIGHT_FROM, applyCutData } from './cam.js';
-import { postProcess, runPost, allPosts, findPost, copyPost, setPostLibrary, SECTIONS, VARIABLES, POST_PROPS, POST_PROP_GROUPS, postProps, propApplies, propType, COOLANT_MODES, mCodeLabel, postMCodes } from './post.js';
+import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel, orientationLabel, OP_TYPES, DRILL_CYCLES, ORIGINS, TOOL_TYPES, ORIENTATIONS, RAPID_FEED, setupMatrix, sketchHorizontalIn, OPS_3D, PROBE_MODES, MANUAL_KINDS, PATTERN_KINDS, orderByTool, opCells, toolBase, STOCK_MODES, STOCK_MATERIALS, BOUNDARY_MODES, setupBodies, heightSpec, HEIGHT_KEYS, HEIGHT_FROM, applyCutData, serialNumbers, serialText, FIT_OPS, fitOffset } from './cam.js';
+import { postProcess, runPost, allPosts, findPost, copyPost, setPostLibrary, SECTIONS, VARIABLES, POST_PROPS, POST_PROP_GROUPS, postProps, propApplies, propType, COOLANT_MODES, mCodeLabel, postMCodes, postFamily } from './post.js';
 import { allMachines, findMachine, copyMachine, newMachine, machineChecks, KIN_TYPES, kinAngles } from './machines.js';
 import { StockSim, defaultFluteLen, defaultHolderDia, defaultStickout } from './sim.js';
 import { exampleProject, exampleTurning, exampleMilling, exampleDesign } from './example.js';
@@ -131,6 +135,85 @@ const fmtTime = s => { if (!Number.isFinite(+s)) return "–"; s = Math.round(s)
 let PREC = 2; // Anzeigegenauigkeit (Voreinstellungen)
 const f2 = v => +(+v).toFixed(PREC);
 
+// tool table for the control (numbers, lengths, radii in the control's import format)
+async function exportToolTable(tools) {
+  const fam = postFamily(findPost(state.project, state.project.post?.flavor) || {});
+  const v = await formDialog('Werkzeugtabelle für die Steuerung', [
+    { key: 'format', label: 'Format', value: TOOL_TABLE_FORMATS[fam] ? fam : 'heidenhain', options: Object.entries(TOOL_TABLE_FORMATS).map(([k, f]) => [k, f.label]) },
+    { hint: 'Länge L ist die Messlänge aus dem Werkzeug (Nennwert). Die echten Längen an der Maschine oder am Voreinstellgerät messen und eintragen. Heidenhain: Datei nach TNC:\\system\\tooltab kopieren, dann Werkzeugverwaltung → WERKZEUG IMPORT.' },
+  ], 'Speichern');
+  if (!v) return;
+  const res = toolTable(tools, v.format);
+  const name = `${v.format === 'linuxcnc' ? 'tool' : 'Werkzeuge_' + safeName()}.${res.ext}`;
+  const where = await writeOutput(name, res.text);
+  status(`${res.rows.length} Werkzeuge → ${name} ${where}${res.warnings.length ? ' · ⚠ ' + res.warnings.join(' · ') : ''}`);
+}
+
+// ----- An Maschine senden: NC program over the network into a Heidenhain control (LSV2, port 19000, as TNCremo) -----
+const MACHINE_KEY = 'werkfab.machineLink';
+const MACHINE_CONTROLS = {
+  tnc640: { label: 'Heidenhain TNC 640 / TNC 620', dir: 'TNC:\\nc_prog\\' },
+  itnc530: { label: 'Heidenhain iTNC 530', dir: 'TNC:\\' },
+};
+function machineLink() {
+  try { return JSON.parse(localStorage.getItem(MACHINE_KEY)) || null; } catch { return null; }
+}
+async function machineLinkDialog() {
+  const m = window.werkfabApp?.machine;
+  const c = machineLink() || { control: 'tnc640', host: '', port: 19000, password: '', dir: '', overwrite: true };
+  const v = await formDialog('Verbindung zur Maschine', [
+    { key: 'control', label: 'Steuerung', value: c.control in MACHINE_CONTROLS ? c.control : 'tnc640', options: Object.entries(MACHINE_CONTROLS).map(([k, x]) => [k, x.label]) },
+    { key: 'host', label: 'IP-Adresse der Steuerung', value: c.host || '', text: true },
+    { key: 'port', label: 'Port', value: +c.port || 19000 },
+    { key: 'password', label: 'Passwort (nur falls gesetzt)', value: c.password || '', text: true },
+    { key: 'dir', label: 'Zielordner (leer = Standard)', value: c.dir || '', text: true },
+    { key: 'overwrite', label: 'Vorhandenes Programm überschreiben', value: c.overwrite !== false, check: true },
+    { key: 'test', label: 'Verbindung jetzt testen', value: !!m, check: true },
+    { hint: 'An der Steuerung muss die Datenübertragung über Ethernet freigegeben sein (wie für TNCremo, LSV2, Port 19000). Standardordner: TNC 640 TNC:\\nc_prog\\, iTNC 530 TNC:\\.' },
+  ], 'Speichern');
+  if (!v) return null;
+  const link = { control: v.control, host: String(v.host || '').trim(), port: Math.round(+v.port) || 19000, password: v.password || '', dir: String(v.dir || '').trim(), overwrite: !!v.overwrite };
+  try { localStorage.setItem(MACHINE_KEY, JSON.stringify(link)); } catch { /* storage full */ }
+  if (v.test && m && link.host) {
+    status(`Verbinde mit ${link.host} …`);
+    const r = await m.test(link);
+    status(r?.error ? '⚠ ' + r.error : `Verbindung in Ordnung: ${r.control || 'Steuerung'} (Blockgröße ${r.block} Byte)`);
+  }
+  return link;
+}
+// file name for the control: letters, digits, - _ . and blanks; .h (Klartext) or .i (ISO)
+function machineFileName(file) {
+  const base = String(file || 'PGM').replace(/^.*[\\/]/, '');
+  const ext = /\.i$/i.test(base) ? '.i' : '.h';
+  const stem = base.replace(/\.[^.]*$/, '').replace(/[^\w\-. ]/g, '_').slice(0, 56) || 'PGM';
+  return stem + ext;
+}
+async function sendToMachine(r) {
+  const m = window.werkfabApp?.machine;
+  if (!m) return status('An die Maschine senden geht nur in der Desktop-App.');
+  let link = machineLink();
+  if (!link?.host) link = await machineLinkDialog();
+  if (!link?.host) return;
+  const ctl = MACHINE_CONTROLS[link.control] || MACHINE_CONTROLS.tnc640;
+  const dir = link.dir || ctl.dir, name = machineFileName(r.file);
+  const fam = postFamily(findPost(state.project, r.postId) || findPost(state.project, state.project.post?.flavor) || {});
+  const foreign = fam !== 'heidenhain' && !/\.i$/i.test(name) ? '\n\n⚠ Das Programm ist nicht für Heidenhain geschrieben (Postprozessor wählen).' : '';
+  if (!confirm(`Programm an ${ctl.label} (${link.host}) senden?\n\nZiel: ${dir.replace(/\\?$/, '\\')}${name}${link.overwrite ? '' : '\n(ein vorhandenes Programm wird nicht überschrieben)'}${foreign}`)) return;
+  status(`Sende ${name} an ${link.host} …`);
+  const off = m.onProgress?.(f => status(`Sende ${name} an ${link.host} … ${Math.round(f * 100)} %`));
+  try {
+    const res = await m.send({ ...link, dir, name, text: r.code });
+    if (res?.error) status('⚠ Senden fehlgeschlagen: ' + res.error);
+    else status(`✓ ${res.path} an ${res.control || ctl.label} übertragen (${res.bytes} Byte)`);
+  } catch (e) {
+    status('⚠ Senden fehlgeschlagen: ' + (e?.message || e));
+  } finally {
+    if (typeof off === 'function') off();
+  }
+}
+
+// one CSV cell in quotes (inner quotes doubled)
+const csvCell = c => '"' + String(c).split('"').join('""') + '"';
 function download(name, data, type) {
   const blob = data instanceof Blob ? data : new Blob([data], { type });
   const a = h('a', { href: URL.createObjectURL(blob), download: name });
@@ -6836,9 +6919,50 @@ function propsSetup(b) {
     fsec('Maschinen-WKS'),
     row('WKS-Versatz', sel([1, 2, 3, 4, 5, 6].map(n => [String(n), `${n} (G${53 + n})`]), String(s.wcsOffset || 1), v => ed(x => (x.wcsOffset = +v)))),
     h('p', { class: 'hint' }, 'Name leer = aus Projekt- und Setup-Name. Nummer und WKS-Versatz werden als O-Nummer und G54 … G59 ausgegeben.'),
+    ...(s.kind === 'turn' ? [] : [fsec('Mehrfachaufspannung'), ...multiPartUi(s, ed)]),
     h('div', { class: 'btns' },
       btn('+ Neues Setup', addSetup, 'primary'),
       state.project.cam.setups.length > 1 ? btn('Setup löschen', () => deleteSetup(id), 'danger') : null));
+}
+
+// several equal parts in one clamping: positions (shift from the datum) or own datums, order of machining
+function multiPartUi(s, ed) {
+  const m = s.multi || {};
+  const out = [row('Mehrere Teile in einer Aufspannung', chk(m.on, v => ed(x => { x.multi = { mode: 'shift', order: 'tool', list: [{ x: 0, y: 0, z: 0 }, { x: 100, y: 0, z: 0 }], ...(x.multi || {}), on: v }; })))];
+  if (!m.on) { out.push(h('p', { class: 'hint' }, 'Dasselbe Programm für mehrere gleiche Teile, z. B. in mehreren Schraubstöcken oder auf einer Spannplatte.')); return out; }
+  const set = fn => ed(x => fn(x.multi));
+  const wcs = m.mode === 'wcs', list = m.list || [];
+  out.push(
+    row('Lage der Teile', sel([['shift', 'Verschiebung vom Nullpunkt (X, Y, Z)'], ['wcs', 'Eigener Nullpunkt je Teil']], m.mode || 'shift', v => set(x => {
+      x.mode = v;
+      if (v === 'wcs') x.list = x.list.map((p, k) => ({ ...p, wcs: p.wcs ?? (+s.wcsOffset || 1) + k }));
+    }))),
+    row('Reihenfolge', sel([['tool', 'Je Werkzeug alle Teile (weniger Werkzeugwechsel)'], ['part', 'Teil für Teil (alle Operationen, dann das nächste Teil)']], m.order || 'tool', v => set(x => (x.order = v)))),
+    h('div', { class: 'multi-list' }, ...list.map((p, k) => h('div', { class: 'multi-row' },
+      h('b', null, `Teil ${k + 1}`),
+      ...(wcs
+        ? [h('label', null, 'Nullpunkt', num(p.wcs ?? 1, v => set(x => (x.list[k].wcs = v)), { min: 1, int: true }))]
+        : ['x', 'y', 'z'].map(a => h('label', null, a.toUpperCase(), num(p[a] ?? 0, v => set(x => (x.list[k][a] = v)), { unit: 'mm' })))),
+      list.length > 2 ? h('button', { class: 'btn', title: 'Teil entfernen', onclick: () => set(x => x.list.splice(k, 1)) }, '✕') : null))),
+    h('div', { class: 'btns' },
+      btn('+ Teil', () => set(x => {
+        const l = x.list[x.list.length - 1] || { x: 0, y: 0, z: 0, wcs: 1 }, pr = x.list[x.list.length - 2];
+        x.list.push(wcs ? { ...l, wcs: (+l.wcs || 1) + 1 } : { x: +(+l.x + (pr ? +l.x - +pr.x : 100)).toFixed(4), y: +(+l.y + (pr ? +l.y - +pr.y : 0)).toFixed(4), z: +l.z || 0 });
+      })),
+      wcs ? null : btn('Raster …', async () => {
+        const v = await formDialog('Teile im Raster', [
+          { key: 'nx', label: 'Anzahl in X', value: 2 }, { key: 'ny', label: 'Anzahl in Y', value: 1 },
+          { key: 'dx', label: 'Abstand in X', value: 100, unit: 'mm' }, { key: 'dy', label: 'Abstand in Y', value: 80, unit: 'mm' }], 'Anlegen');
+        if (!v) return;
+        const nx = Math.max(1, Math.min(20, Math.round(v.nx))), ny = Math.max(1, Math.min(20, Math.round(v.ny)));
+        if (nx * ny < 2) return status('Mindestens zwei Teile');
+        set(x => { x.list = []; for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) x.list.push({ x: i * v.dx, y: j * v.dy, z: 0 }); });
+      })),
+    h('p', { class: 'hint' }, wcs
+      ? 'Jedes Teil hat seinen eigenen Nullpunkt in der Steuerung (G54, G55 … bzw. Bezugspunkt-Nummer in der Tabelle – Heidenhain Zyklus 247). Alle Nullpunkte vorher an der Maschine setzen.'
+      : 'Teil 1 liegt normalerweise auf dem Nullpunkt (0, 0, 0). Die anderen werden mit einer Nullpunktverschiebung angefahren (Heidenhain Zyklus 7, Fanuc/LinuxCNC G52, Sinumerik TRANS). Vor jedem Wechsel geht das Werkzeug auf die sichere Höhe.'),
+    h('p', { class: 'hint' }, `${list.length} Teile · Simulation und Kollisionsprüfung zeigen nur Teil 1 – die anderen müssen genauso gespannt sein.`));
+  return out;
 }
 
 // Overview when nothing is selected in MANUFACTURE (the setup opens as a dialog)
@@ -7350,6 +7474,10 @@ function propsOp(b, op) {
           row('Gewinde', sel([['right', 'Rechtsgewinde'], ['left', 'Linksgewinde']], op.hand || 'right', v => ed(x => (x.hand = v)))),
           h('p', { class: 'hint' }, `Vorschub = Drehzahl × Steigung${t ? ` = ${f2(t.rpm * (+op.pitch || +t.pitch || 1))} mm/min` : ''}. Ausgabe als G84/G74, CYCL 207 bzw. CYCLE84.`));
       }
+      // without a switch of its own the operation follows the post property „Bohrbilder als Zyklus“ (off: coordinates)
+      const patDef = postProps(findPost(p, p.post?.flavor) || {}, p.post?.props?.[p.post?.flavor] || {}).drillPatterns === true;
+      put('passes', C('Bohrbild als Musterzyklus (Lochkreis / Raster)', 'drillPattern', patDef),
+        h('p', { class: 'hint' }, op.drillPattern ?? patDef ? 'Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.' : 'Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.'));
       put('passes', h('p', { class: 'hint' }, 'Mit „Bohrzyklen“ im NC-Programm werden Steuerungszyklen ausgegeben (G81–G86, Heidenhain CYCL 200–207, Sinumerik CYCLE81–85), sonst ausgeschriebene Bewegungen.'));
       holeOrderRow();
       break;
@@ -7370,6 +7498,15 @@ function propsOp(b, op) {
     case 'trace':
       put('passes', N('Tiefe', 'depth', { min: 0.01 }));
       depthSec('Max. Tiefenzustellung', 'Tiefe in einem Zug');
+      put('passes', sec('Seriennummer'), C('Nummer gravieren (# im Text)', 'serialOn'));
+      if (op.serialOn) {
+        const nums = serialNumbers(op, p.cam.setups.find(s => s.id === op.setup));
+        put('passes',
+          row('Startnummer', num(op.serialStart ?? 1, v => ed(x => (x.serialStart = Math.max(0, Math.round(v ?? 1)))), { min: 0, int: true })),
+          row('Schrittweite', num(op.serialStep ?? 1, v => ed(x => (x.serialStep = Math.round(v ?? 1) || 1)), { int: true })),
+          C('Nach dem Ausgeben weiterzählen', 'serialAuto', true),
+          h('p', { class: 'hint' }, `Jedes # im Skizzentext wird durch die Nummer ersetzt, mit Nullen aufgefüllt (SN-#### → SN-${serialText('####', nums[0])}). Bei mehreren Teilen in einer Aufspannung bekommt jedes Teil die nächste Nummer: ${nums.slice(0, 4).join(', ')}${nums.length > 4 ? ' …' : ''}.`));
+      }
       break;
     case 'rough3d':
       put('passes', row('Strategie', sel([['adaptive', 'Adaptiv (konstante Umschlingung)'], ['offset', 'Versatz (Taschenbahnen)']], op.strategy || 'offset', v => ed(x => (x.strategy = v)))), stepoverPct(op.strategy === 'adaptive' ? 'Optimale Belastung' : 'Max. seitliche Zustellung'));
@@ -7582,6 +7719,9 @@ function propsOp(b, op) {
         N('Nutbreite bei Linien', 'slotWidth', { allowEmpty: true, ph: 'Langloch: aus der Skizze', min: 0 }),
         dirRow(), C('Wand am Grund schlichten', 'slotFinish', true),
         h('p', { class: 'hint' }, 'Das Werkzeug fräst in Kreisen, deren Mitte entlang der Nut wandert. Es ist nie über die volle Breite im Eingriff – das erlaubt große Zustelltiefen und schont Fräser und Spindel. Der Fräser sollte etwa 60 % der Nutbreite haben.'));
+      put('passes', C('Als Steuerungszyklus ausgeben', 'ctrlCycle'),
+        op.ctrlCycle ? h('p', { class: 'hint' }, r?.pocketCycle ? `Nut erkannt (${r.pocketCycle.pockets.length}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.` : r?.pocketCycleWhy ? `⚠ ${r.pocketCycleWhy} – wird als Bahn ausgegeben.` : 'Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.')
+          : h('p', { class: 'hint' }, 'Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.'));
       depthSec();
       stockSec(false);
       break;
@@ -7611,6 +7751,26 @@ function propsOp(b, op) {
       put('passes', N('Bahnabstand', 'stepoverMm', { min: 0.01 }), row('Richtung', sel([['0', 'Entlang X'], ['90', 'Entlang Y']], String(op.angle || 0), v => ed(x => (x.angle = +v)))));
       stockSec(false);
       break;
+  }
+
+  // ===== ISO-Passung: auf Toleranzmitte =====
+  if (FIT_OPS.includes(op.type)) {
+    put('passes', csec('Passung (auf Toleranzmitte)', !!op.fit, v => ed(x => { if (v) x.fit = x.type === 'contour' && x.side !== 'inside' ? 'g6' : 'H7'; else delete x.fit; })));
+    if (op.fit) {
+      let info = '', fo = null;
+      try { fo = fitOffset(op, p); } catch (e) { info = '⚠ ' + e.message; }
+      if (fo) {
+        const l = fitLimits(fo.cls, fo.size), n4 = v => +(+v).toFixed(4), mm = v => (v > 0 ? '+' : v < 0 ? '−' : '') + n4(Math.abs(v) / 1000);
+        info = `Ø${f2(fo.size)} ${fo.cls}: ${mm(l[0])} / ${mm(l[1])} mm → gefräst auf Ø${n4(fo.size + fo.mid)} (radiales Aufmaß ${fo.radial > 0 ? '+' : '−'}${n4(Math.abs(fo.radial))} mm zusätzlich).`;
+      }
+      put('passes',
+        row('Passung', h('div', { class: 'fit-row' },
+          txt(op.fit, v => ed(x => (x.fit = String(v).trim()))),
+          sel([['', '…'], ...COMMON_FITS.map(c => [c, c])], '', v => v && ed(x => (x.fit = v))))),
+        N(op.type === 'bore' || op.type === 'circular' ? 'Nennmaß (leer = Kreis)' : 'Nennmaß (Ø oder Breite)', 'fitSize', { allowEmpty: true, ph: op.type === 'bore' || op.type === 'circular' ? 'aus Kreis' : '' }),
+        h('p', { class: 'hint' }, info || 'Großbuchstaben für Bohrungen (H7), Kleinbuchstaben für Wellen und Zapfen (g6, h6).'),
+        h('p', { class: 'hint' }, 'Die Maschine fräst genau, aber Werkzeugverschleiß und Abdrängung verschieben das Maß – das erste Teil messen und den Rest über DR / Verschleißkorrektur ausgleichen.'));
+    }
   }
 
   // ===== Eckenfreistich =====
@@ -9127,6 +9287,27 @@ function deleteTools() {
   editLib(tl.lib, tools => { for (const id of ids) { const k = tools.findIndex(t => t.id === id); if (k >= 0) tools.splice(k, 1); } });
   tl.sel.clear();
 }
+// inspection plan of the drawing: the list to the balloons (printable page or CSV for a spreadsheet)
+function inspectionPlan(d, how) {
+  const items = inspectionItems(d.userDims, { general: d.generalTol || 'm', onlyTol: d.balloons === 'tol' });
+  if (!items.length) return status('Keine Maße für den Prüfplan – erst Maße in die Zeichnung setzen.');
+  const title = (d.title?.name || state.project.name || '').trim();
+  if (how === 'csv') { download(`Pruefplan_${safeName()}.csv`, inspectionCsv(items, { title }), 'text/csv'); return; }
+  const w = window.open('', '_blank');
+  if (!w) return status('Popup blockiert – Druckfenster konnte nicht geöffnet werden.');
+  const esc = v => String(v ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+  const n = v => (v == null ? '' : String(+(+v).toFixed(4)).replace('.', ','));
+  const sg = v => (v == null ? '' : (v > 0 ? '+' : '') + n(v));
+  const view = k => ({ front: 'Vorne', top: 'Oben', left: 'Links', iso: 'Iso' })[k] || k;
+  w.document.write(tHtml(`<!doctype html><meta charset="utf-8"><title>Prüfplan</title><style>body{font:12px sans-serif;margin:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:5px 6px;text-align:left}th{background:#eee}td.no{text-align:center;font-weight:600}td.num{text-align:right;white-space:nowrap}td.ist{width:80px}td.ok{width:34px}.meta{display:flex;gap:30px;margin:6px 0 12px}</style>
+    <h2>Prüfplan – ${esc(title)}</h2><div class="meta"><span>Allgemeintoleranz ISO 2768-${esc(d.generalTol || 'm')}</span><span>${new Date().toLocaleDateString('de-DE')}</span><span>Geprüft von: ____________</span><span>Teil-Nr.: ________</span></div>
+    <table><tr><th>Nr.</th><th>Ansicht</th><th>Merkmal</th><th>Nennmaß</th><th>Toleranz</th><th>Abmaße</th><th>Höchstmaß</th><th>Mindestmaß</th><th>Istwert</th><th>i.O.</th></tr>
+    ${items.map(r => `<tr><td class="no">${r.no}</td><td>${esc(view(r.view))}</td><td>${esc(r.feature)}</td><td class="num">${esc(r.nominalText)}</td><td>${esc(r.tolText)}</td><td class="num">${r.up == null ? '' : `${sg(r.up)} / ${sg(r.lo)}`}</td><td class="num">${n(r.max)}</td><td class="num">${n(r.min)}</td><td class="ist"></td><td class="ok"></td></tr>`).join('')}</table>`));
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
+}
+
 function printTools(tools) {
   const w = window.open('', '_blank');
   if (!w) return status('Popup blockiert – Druckfenster konnte nicht geöffnet werden.');
@@ -9201,6 +9382,7 @@ function renderToolLib() {
     copy: '<svg viewBox="0 0 20 20"><rect x="7" y="7" width="9" height="10" rx="1"/><path d="M5 13H4V3h9v1"/></svg>',
     paste: '<svg viewBox="0 0 20 20"><rect x="5" y="4" width="10" height="13" rx="1"/><path d="M8 4V3h4v1"/></svg>',
     dup: '<svg viewBox="0 0 20 20"><rect x="3" y="3" width="9" height="9"/><rect x="8" y="8" width="9" height="9"/></svg>',
+    ttab: '<svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="1"/><path d="M3 7.5h14M3 12h14M8 3v14"/></svg>',
     print: '<svg viewBox="0 0 20 20"><rect x="5" y="3" width="10" height="5"/><rect x="3" y="8" width="14" height="6" rx="1"/><rect x="6" y="12" width="8" height="5"/></svg>',
     renum: '<svg viewBox="0 0 20 20"><text x="2" y="9" font-size="7" fill="currentColor" stroke="none">1→6</text><text x="2" y="17" font-size="7" fill="currentColor" stroke="none">2→7</text></svg>',
     clean: '<svg viewBox="0 0 20 20"><path d="M12 3l4 4-7 7-4-4z"/><path d="M5 10l-2 7 7-2"/></svg>',
@@ -9214,6 +9396,7 @@ function renderToolLib() {
     ib(I.paste, `Einfügen (Strg+V)${tl.clip.length ? ` – ${tl.clip.length} Werkzeug(e)` : ''}`, () => pasteTools(), !tl.clip.length || !editable),
     ib(I.dup, 'Duplizieren', () => { tl.clip = JSON.parse(JSON.stringify(libTools().filter(t => tl.sel.has(t.id)))); pasteTools(); }, !tl.sel.size || !editable),
     ib(I.print, 'Werkzeugliste drucken', () => printTools(tools), !tools.length),
+    ib(I.ttab, 'Werkzeugtabelle für die Steuerung …', () => exportToolTable(tools), !tools.length),
     ib(I.renum, 'Werkzeuge in Tabellenreihenfolge neu nummerieren', () => {
       if (!confirm(`Alle ${tools.length} angezeigten Werkzeuge in der aktuellen Reihenfolge ab T1 neu nummerieren?`)) return;
       const order = tools.map(t => t.id);
@@ -10870,7 +11053,7 @@ function physicalProps() {
   });
   const head = ['Körper', 'Material', 'Volumen cm³', 'Fläche cm²', 'Masse g', 'Schwerpunkt mm', 'Abmessungen mm'];
   w.body.append(h('table', { class: 'xtab' }, h('tr', null, ...head.map(t => h('th', null, t))), ...rows.map(r => h('tr', null, ...r.map(t => h('td', null, t))))));
-  w.foot.append(h('button', { onclick: () => download(`${safeName()}_Eigenschaften.csv`, [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n'), 'text/csv') }, 'Als CSV'), h('button', { class: 'primary', onclick: w.close }, 'OK'));
+  w.foot.append(h('button', { onclick: () => download(`${safeName()}_Eigenschaften.csv`, [head, ...rows].map(r => r.map(csvCell).join(';')).join('\n'), 'text/csv') }, 'Als CSV'), h('button', { class: 'primary', onclick: w.close }, 'OK'));
 }
 // Stückliste: equal bodies (same volume and size) are counted together
 function billOfMaterials() {
@@ -10888,7 +11071,7 @@ function billOfMaterials() {
   const w = modalWin('Stückliste', 760);
   w.body.append(h('table', { class: 'xtab' }, h('tr', null, ...head.map(t => h('th', null, t))), ...rows.map(r => h('tr', null, ...r.map(t => h('td', null, String(t)))))),
     h('p', { class: 'hint' }, `${bs.length} Körper, ${groups.length} Positionen – gleiche Teile (gleiches Volumen, gleiche Maße, gleiches Material) sind zusammengefasst.`));
-  w.foot.append(h('button', { onclick: () => download(`${safeName()}_Stückliste.csv`, [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n'), 'text/csv') }, 'Als CSV'), h('button', { class: 'primary', onclick: w.close }, 'OK'));
+  w.foot.append(h('button', { onclick: () => download(`${safeName()}_Stückliste.csv`, [head, ...rows].map(r => r.map(csvCell).join(';')).join('\n'), 'text/csv') }, 'Als CSV'), h('button', { class: 'primary', onclick: w.close }, 'OK'));
 }
 // Kontakt prüfen: pairs of bodies that overlap, touch or stay apart (smallest gap)
 function contactCheck() {
@@ -11542,6 +11725,13 @@ function renderDrawing(rebuild = false) {
     state.project.features.some(x => x.type === 'sheet') ? row('Abwicklung (Blech)', chk(!!d.flat, v => ed(x => (x.flat = v)))) : null,
     row('Bemaßung', chk(d.dims !== false, v => ed(x => (x.dims = v)))),
     row('Mittellinien', chk(d.centerLines !== false, v => ed(x => (x.centerLines = v)))),
+    row('Allgemeintoleranz', sel(Object.entries(GENERAL_CLASSES).map(([k, l]) => [k, `ISO 2768-${k} (${l})`]), d.generalTol || 'm', v => ed(x => (x.generalTol = v)))),
+    sec('PRÜFPLAN'),
+    row('Prüfnummern', sel([['', 'aus'], ['all', 'alle Maße und Toleranzen'], ['tol', 'nur Maße mit eigener Toleranz']], d.balloons === true ? 'all' : d.balloons || '', v => ed(x => { if (v) x.balloons = v; else delete x.balloons; }))),
+    h('div', { class: 'btns' },
+      btn('Prüfplan drucken / PDF …', () => inspectionPlan(d, 'print')),
+      btn('Prüfplan als CSV', () => inspectionPlan(d, 'csv'))),
+    h('p', { class: 'hint' }, 'Jedes eigene Maß und jeder Toleranzrahmen bekommt eine Nummer in einem Kreis. Die Liste enthält Nennmaß, Toleranz, Höchst- und Mindestmaß und Felder für den Istwert. Maße ohne eigene Toleranz bekommen die Allgemeintoleranz.'),
     sec('EIGENE MASSE'),
     h('div', { class: 'btns' },
       btn(dwPick.mode === 'dim' ? (dwPick.pts.length ? '2. Punkt anklicken …' : '1. Punkt anklicken …') : 'Maß hinzufügen', () => { dwPick = dwPick.mode === 'dim' ? { mode: null, pts: [] } : { mode: 'dim', pts: [] }; renderDrawing(); }, dwPick.mode === 'dim' ? 'on' : 'primary')),
@@ -11556,6 +11746,7 @@ function renderDrawing(rebuild = false) {
       dm.kind === 'gdt' ? Object.assign(sel([['pos', 'Position'], ['flat', 'Ebenheit'], ['straight', 'Geradheit'], ['round', 'Rundheit'], ['cyl', 'Zylinderform'], ['par', 'Parallelität'], ['perp', 'Rechtwinkligkeit'], ['angle', 'Neigung'], ['conc', 'Koaxialität'], ['sym', 'Symmetrie'], ['run', 'Rundlauf']], dm.sym || 'pos', v => ed(x => (x.userDims[i].sym = v))), { title: 'Toleranzart', style: 'width:92px' }) : null,
       dm.kind === 'surf' ? Object.assign(sel([['m', 'spanend'], ['any', 'beliebig'], ['none', 'ohne Abtrag']], dm.sym || 'm', v => ed(x => (x.userDims[i].sym = v))), { title: 'Fertigungsverfahren', style: 'width:92px' }) : null,
       Object.assign(txt(['note', 'surf', 'gdt', 'datum'].includes(dm.kind) ? dm.text || '' : dm.txt || '', v => ed(x => { if (['note', 'surf', 'gdt', 'datum'].includes(dm.kind)) x.userDims[i].text = v; else x.userDims[i].txt = v; })), { placeholder: { surf: 'Ra 3,2', note: 'Text', gdt: '0,05 A', datum: 'A' }[dm.kind] || '±0,1 / H7', title: { surf: 'Rauheitsangabe', note: 'Text des Hinweises', gdt: 'Toleranzwert, dahinter die Bezüge (durch Leerzeichen getrennt), z. B. Ø0,05 A B. Zusätze in Klammern werden als Buchstabe im Kreis gezeichnet: Ø0,05(M) A(M) – (M) Maximum-Material, (L) Minimum-Material, (P) projiziert, (F) freier Zustand, (E) Hüllbedingung', datum: 'Bezugsbuchstabe' }[dm.kind] || 'Zusatz hinter der Maßzahl (Toleranz, Passung, Anzahl)', style: 'width:64px' }),
+      parseFit(dm.txt) && !['note', 'surf', 'gdt', 'datum', 'ang', 'rad'].includes(dm.kind) ? Object.assign(chk(dm.fitDev !== false, v => ed(x => (x.userDims[i].fitDev = v))), { title: 'Abmaße der Passung anzeigen, z. B. H7 (+0,021/0)' }) : null,
       dm.kind === 'surf' || dm.kind === 'datum' ? num(dm.ang ?? 0, v => ed(x => (x.userDims[i].ang = v ?? 0)), { unit: '°' }) :
       dm.kind === 'note' || dm.kind === 'gdt' ? num(dm.ang ?? 45, v => ed(x => (x.userDims[i].ang = v ?? 45)), { unit: '°' }) :
       dm.kind === 'dia' || dm.kind === 'rad'
@@ -12420,6 +12611,7 @@ function menuAction(act) {
   else if (act === 'example-design') loadExample('design');
   else if (act === 'gltf') exportGltfFile();
   else if (act === 'urdf') exportUrdfFile();
+  else if (act === 'nccompare') ncCompareFiles();
   else if (act === 'script') runScriptFile();
   else if (act === 'pyscript') runPythonFile();
   else if (act === 'pyaddins') openScriptManager();
@@ -15336,6 +15528,70 @@ function ncHeidenhainCheck(code) {
 
 const ncPlot = new THREE.Group();
 vp.scene.add(ncPlot);
+// a text file chosen by the user (NC program, …): { name, text } or null when cancelled
+function pickTextFile(accept = '.h,.nc,.ngc,.tap,.mpf,.spf,.min,.ssb,.cnc,.txt,.i,.eia,.ptp,.gcode,*') {
+  return new Promise(res => {
+    const inp = h('input', { type: 'file', accept, style: 'display:none' });
+    inp.onchange = async () => { const f = inp.files?.[0]; inp.remove(); res(f ? { name: f.name, text: await f.text() } : null); };
+    inp.oncancel = () => { inp.remove(); res(null); };
+    document.body.append(inp);
+    inp.click();
+  });
+}
+async function ncCompareFiles() {
+  status('Erstes NC-Programm wählen …');
+  const a = await pickTextFile();
+  if (!a) return;
+  status('Zweites NC-Programm wählen …');
+  const b = await pickTextFile();
+  if (b) ncCompareDialog(a.name, a.text, b.name, b.text);
+}
+// side-by-side comparison of two NC programs: changed lines yellow, removed red, added green, equal runs folded
+function ncCompareDialog(nameA, textA, nameB, textB) {
+  document.querySelector('.ncc-back')?.remove();
+  const opt = { numbers: true, spaces: true, comments: false, context: 3 };
+  const win = h('div', { class: 'modal ncc-win' }), back = h('div', { class: 'modal-back ncc-back' }, win);
+  const body = h('div', { class: 'ncc-body no-i18n' }), sum = h('div', { class: 'ncc-sum' });
+  let marks = [], at = -1;
+  const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+  const draw = () => {
+    const r = compareRows(textA, textB, opt);
+    if (!r) { sum.textContent = 'Die Programme unterscheiden sich in mehr als 3000 Zeilen – zu verschieden für einen Vergleich.'; body.replaceChildren(); return; }
+    const { stats } = r, n = stats.changed + stats.removed + stats.added;
+    sum.textContent = n ? `${stats.changed} geändert · ${stats.removed} nur links · ${stats.added} nur rechts` : '✓ Die Programme sind gleich' + (opt.numbers || opt.spaces || opt.comments ? ' (mit den gewählten Ausnahmen)' : '');
+    const cell = (lines, k) => k == null ? '<td class="n"></td><td></td>' : `<td class="n">${k + 1}</td><td>${esc(lines[k]) || '&nbsp;'}</td>`;
+    body.innerHTML = '<table class="ncc-t">' + r.rows.map((x, j) => x.kind === 'fold'
+      ? `<tr class="fold" data-j="${j}"><td colspan="4">… ${x.n} gleiche Zeilen …</td></tr>`
+      : `<tr class="${x.kind}">${cell(r.linesA, x.a)}${cell(r.linesB, x.b)}</tr>`).join('') + '</table>';
+    // the first row of each block of differences, for "next / previous"
+    marks = [...body.querySelectorAll('tr')].filter((tr, k, all) => !['same', 'fold'].includes(tr.className) && (k === 0 || ['same', 'fold'].includes(all[k - 1].className)));
+    at = -1;
+  };
+  const jump = d => {
+    if (!marks.length) return;
+    at = (at + d + marks.length) % marks.length;
+    body.querySelector('tr.cur')?.classList.remove('cur');
+    marks[at].classList.add('cur');
+    marks[at].scrollIntoView({ block: 'center' });
+  };
+  const chk = (key, label, title) => { const c = h('input', { type: 'checkbox' }); c.checked = opt[key]; c.onchange = () => { opt[key] = c.checked; draw(); }; return h('label', { title }, c, ' ' + label); };
+  win.append(
+    h('div', { class: 'modal-head' }, 'NC-PROGRAMME VERGLEICHEN', h('button', { onclick: () => back.remove() }, '✕')),
+    h('div', { class: 'ncc-bar' },
+      h('span', { class: 'ncc-name' }, '◧ ' + nameA), h('span', { class: 'ncc-name' }, '◨ ' + nameB)),
+    h('div', { class: 'ncc-bar' },
+      chk('numbers', 'Satznummern ignorieren', 'Ein eingefügter Satz verschiebt alle folgenden Satznummern – so zählen sie nicht als Änderung'),
+      chk('spaces', 'Leerzeichen ignorieren'),
+      chk('comments', 'Kommentare ignorieren'),
+      h('span', { style: 'flex:1' }),
+      h('button', { onclick: () => jump(-1), title: 'Vorherige Änderung' }, '▲'), h('button', { onclick: () => jump(1), title: 'Nächste Änderung' }, '▼')),
+    sum, body,
+    h('div', { class: 'modal-foot' }, h('span', { class: 'hint', style: 'margin-right:auto' }, 'Gelb = geändert, Rot = nur links, Grün = nur rechts.'), h('button', { class: 'primary', onclick: () => back.remove() }, 'Schließen')));
+  document.body.append(back);
+  draw();
+  jump(1);
+}
+
 function ncViewer(results) {
   document.querySelector('.nc-win')?.remove();
   vp.clear(ncPlot);
@@ -15547,7 +15803,13 @@ function ncViewer(results) {
     h('div', { class: 'modal-head nc-head' }, 'NC-PROGRAMM', h('button', { onclick: close }, '✕')),
     tabs, warn,
     h('p', { class: 'warn', style: 'margin:4px 12px' }, '⚠ Jedes NC-Programm vor dem ersten Lauf prüfen: an der Maschine im Probelauf (Einzelsatz, reduzierter Eilgang) oder in einem externen NC-Simulator. Die Simulation hier ersetzt das nicht – Nutzung auf eigene Gefahr, ohne Gewährleistung.'),
-    h('div', { class: 'nc-bar' }, search, tplBtn, editBtn),
+    h('div', { class: 'nc-bar' }, search, tplBtn, editBtn, h('button', { class: 'nc-editbtn', title: 'Dieses Programm mit einer Datei (z. B. der Fassung von der Maschine) oder einem anderen Reiter vergleichen', onclick: async () => {
+      const r = results[i], others = results.filter((_, k) => k !== i);
+      const other = others.length && confirm(`Mit dem Reiter „${others[0].file}“ vergleichen?
+
+Abbrechen = eine Datei wählen`) ? { name: others[0].file, text: others[0].code } : await pickTextFile();
+      if (other) ncCompareDialog(r.file, r.code, other.name, other.text);
+    } }, '⇄ Vergleichen …')),
     partRow,
     issueBox,
     code,
@@ -15557,6 +15819,10 @@ function ncViewer(results) {
       h('span', { class: 'hint', style: 'margin-right:auto' }, 'Zeile anklicken = Werkzeug im 3D-Fenster. Vor dem ersten Lauf an der Maschine prüfen.'),
       h('button', { onclick: () => navigator.clipboard.writeText(results[i].code).then(() => status('NC-Code kopiert')) }, 'Kopieren'),
       h('button', { onclick: () => download(results[i].file, results[i].code, 'text/plain') }, 'Herunterladen'),
+      ...(window.werkfabApp?.machine ? [
+        h('button', { title: 'Verbindung zur Maschine einstellen (IP-Adresse, Steuerung, Zielordner)', onclick: () => machineLinkDialog() }, '⚙'),
+        h('button', { title: 'Programm über das Netzwerk direkt in die Steuerung übertragen (Heidenhain iTNC 530 / TNC 640, LSV2 wie TNCremo)', onclick: () => sendToMachine(editing ? { ...results[i], code: ta.value } : results[i]) }, '➜ An Maschine senden'),
+      ] : []),
       h('button', { class: 'primary', onclick: close }, 'Schließen')));
   document.body.append(win);
   show();
@@ -15703,14 +15969,26 @@ function openPostDialog(saved = null) {
       if (!g?.stock) continue;
       const num = /^\d+$/.test(d.name.trim()) ? +d.name.trim() : undefined;
       const res = postProcess(rp, g, g.machine, { postId: d.postId, opIds: [...d.ops], programName: d.name || undefined, programNumber: num, comment: d.comment || undefined });
-      const baseName = (d.file || d.name || safeName()).replace(/[\\/:*?"<>|]+/g, '_');
-      const file = `${baseName}${setups.length > 1 ? '_' + st.name.replace(/[\\/:*?"<>|]+/g, '_') : ''}.${ext}`;
+      const fileSafe = s => String(s).replace(/[\\/:*?"<>|]+/g, '_');
+      const baseName = fileSafe(d.file || d.name || safeName()), part = setups.length > 1 ? '_' + fileSafe(st.name) : '';
+      const file = `${baseName}${part}.${ext}`;
       const where = await writeOutput(file, res.code);
       out.push({ ...res, file, where, gen: g, postId: d.postId });
       lastPost = res;
     }
     close();
-    status(out.map(r => `${r.file} ${r.where}`).join(' · '));
+    // serial numbers: the next program run starts after the numbers just written
+    const serial = p.cam.ops.filter(o => d.ops.has(o.id) && o.type === 'trace' && o.serialOn && o.serialAuto !== false && o.enabled !== false);
+    if (out.length && serial.length) commit(pp2 => {
+      for (const o of pp2.cam.ops) {
+        if (!serial.some(x => x.id === o.id)) continue;
+        const nums = serialNumbers(o, pp2.cam.setups.find(s => s.id === o.setup));
+        o.serialStart = nums[nums.length - 1] + (Math.round(+o.serialStep || 1) || 1);
+      }
+    }, 'meta');
+    const done = out.map(r => `${r.file} ${r.where}`).join(' · ');
+    const nextNo = serial.length ? serialNumbers(serial[0], p.cam.setups.find(s => s.id === serial[0].setup)).at(-1) + (Math.round(+serial[0].serialStep || 1) || 1) : null;
+    status(nextNo == null ? done : `${done} · nächste Seriennummer ${nextNo}`);
     if (d.openEditor || out.some(r => r.warnings.length)) ncViewer(out);
   };
 

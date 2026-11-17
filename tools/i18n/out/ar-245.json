@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "لا يمكن إخراج سوى المجاري المستقيمة كدورة تحكم (خط من نقطتين أو ثقب مستطيل)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "لدورة التحكم على امتداد خط، حدّد عرض المجرى",
+ "Nut ohne Länge": "مجرى بلا طول",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "المجرى {0} مم أضيق من القاطع Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "تم التعرّف على مجرى ({0}) – Heidenhain: CYCL DEF 253 عند منتصف المجرى، Sinumerik: دورة الجيب. تفرز وحدة التحكم وفق استراتيجيتها الخاصة؛ وتعرض المحاكاة هنا المسار.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "تُخرَج المجاري المستقيمة (ثقب مستطيل أو خط بعرض مجرى) كدورة مجرى في وحدة التحكم.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "إيقاف: يُخرَج المجرى كمسار بإحداثيات.",
+ "Nutzyklus": "دورة المجرى"
+}

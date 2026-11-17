@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Vrtací obrazec jako cyklus vzoru (roztečná kružnice / mřížka)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Díry na roztečné kružnici nebo v mřížce se vypisují jako cyklus vzoru (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Ostatní řízení vždy dostanou jednotlivé souřadnice.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Každá díra se najíždí samostatně se svými souřadnicemi (X/Y pro každou díru) – žádný obrazec roztečné kružnice ani mřížky.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Díry na roztečné kružnici nebo v mřížce jako cyklus vzoru (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) místo jednotlivých souřadnic. Vyp: každá díra se svými souřadnicemi. Přepínatelné pro každou operaci vrtání."
+}

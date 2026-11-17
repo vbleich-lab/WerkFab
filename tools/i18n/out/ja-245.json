@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "直線の溝のみ、コントローラーのサイクルとして出力できます（2点の線または長穴）",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "線に沿ったコントローラーサイクルでは溝幅を指定してください",
+ "Nut ohne Länge": "長さのない溝",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "溝 {0} mm がエンドミル Ø{1} より狭い",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "溝を検出しました（{0}）– Heidenhain：溝中心に CYCL DEF 253、Sinumerik：ポケットサイクル。コントローラーは独自の方式で切削します。ここでのシミュレーションは工具パスを表示します。",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "直線の溝（長穴または溝幅付きの線）は、コントローラーの溝サイクルとして出力されます。",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "オフ：溝は座標付きの工具パスとして出力されます。",
+ "Nutzyklus": "溝サイクル"
+}

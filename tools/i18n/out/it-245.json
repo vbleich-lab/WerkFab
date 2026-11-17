@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Solo le cave rettilinee escono come ciclo del controllo (linea da due punti o asola)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Per il ciclo del controllo lungo una linea indicare la larghezza della cava",
+ "Nut ohne Länge": "Cava senza lunghezza",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Cava di {0} mm più stretta della fresa Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Cava riconosciuta ({0}) – Heidenhain: CYCL DEF 253 al centro della cava, Sinumerik: ciclo tasca. Il controllo fresa con la propria strategia; la simulazione qui mostra il percorso.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Le cave rettilinee (asola o linea con larghezza di cava) escono come ciclo di cava del controllo.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Disattivato: la cava esce come percorso con coordinate.",
+ "Nutzyklus": "ciclo di cava"
+}

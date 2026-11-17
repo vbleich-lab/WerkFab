@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Bare rette spor kan sendes ut som styringssyklus (linje mellom to punkter eller langhull)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Angi sporbredden for styringssyklusen langs en linje",
+ "Nut ohne Länge": "Spor uten lengde",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Spor {0} mm smalere enn frese Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Spor gjenkjent ({0}) – Heidenhain: CYCL DEF 253 i sporets midte, Sinumerik: lommesyklus. Styringen freser med sin egen strategi; simuleringen her viser banen.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Rette spor (langhull eller linje med sporbredde) sendes ut som styringens sporsyklus.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Av: sporet sendes ut som bane med koordinater.",
+ "Nutzyklus": "sporsyklus"
+}

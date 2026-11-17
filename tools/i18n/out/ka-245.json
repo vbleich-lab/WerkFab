@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "მართვის სისტემის ციკლად გამოდის მხოლოდ სწორი ღარები (ორი წერტილის ხაზი ან წაგრძელებული ხვრელი)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "ხაზის გასწვრივ მართვის სისტემის ციკლისთვის მიუთითეთ ღარის სიგანე",
+ "Nut ohne Länge": "ღარი სიგრძის გარეშე",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "ღარი {0} მმ უფრო ვიწროა, ვიდრე ფრეზა Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "ღარი ამოცნობილია ({0}) – Heidenhain: CYCL DEF 253 ღარის ცენტრში, Sinumerik: ჯიბის ციკლი. მართვის სისტემა ფრეზავს საკუთარი სტრატეგიით; სიმულაცია აქ აჩვენებს ტრაექტორიას.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "სწორი ღარები (წაგრძელებული ხვრელი ან ხაზი ღარის სიგანით) გამოდის მართვის სისტემის ღარის ციკლად.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "გამორთულია: ღარი გამოდის კოორდინატებიანი ტრაექტორიის სახით.",
+ "Nutzyklus": "ღარის ციკლი"
+}

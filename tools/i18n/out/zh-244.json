@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "孔图案作为图案循环（分布圆/栅格）",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "分布圆或栅格上的孔以图案循环输出（Heidenhain CYCL DEF 220/221、Sinumerik HOLES2/CYCLE801）。其他控制系统始终输出单个坐标。",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "每个孔按各自坐标逐一定位（每孔 X/Y）– 不使用分布圆或栅格图案。",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "分布圆或栅格上的孔以图案循环输出（Heidenhain 220/221、Sinumerik HOLES2/CYCLE801），而非单个坐标。关：每个孔使用各自坐标。可按钻孔工序切换。"
+}

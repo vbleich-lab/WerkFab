@@ -13,7 +13,7 @@ const MOTION = new Set([0, 1, 2, 3]);
 const CYCLES = new Set([73, 74, 76, 81, 82, 83, 84, 85, 86, 87, 88, 89]);
 // G codes the posts may write, per dialect extras
 const KNOWN_G = new Set([0, 1, 2, 3, 4, 17, 18, 19, 20, 21, 28, 40, 41, 42, 43, 49, 53, 54, 55, 56, 57, 58, 59, 80, 90, 91, 94, 95, 98, 99, ...CYCLES]);
-const EXTRA_G = { fanuc: [5.1, 65, 31], okuma: [15, 56, 31], linuxcnc: [64, 61, 38.2, 33.1], grbl: [], sinumerik: [70, 71, 64, 60, 500, 153] };
+const EXTRA_G = { fanuc: [5.1, 65, 31, 52, 54.1], okuma: [15, 56, 31], linuxcnc: [64, 61, 38.2, 33.1, 52, 59.1, 59.2, 59.3], grbl: [], sinumerik: [70, 71, 64, 60, 500, 153] };
 const SIEMENS_CALL = /^(MCALL\s+)?(CYCLE\d+|HOLES\d|POCKET\d|SLOT\d|LONGHOLE)\((.*)\)$/;
 
 export function lintIso(code, opts = {}) {
@@ -148,6 +148,8 @@ export function lintIso(code, opts = {}) {
     if (g.includes(80)) st.cycle = null;
     if (macro) { if (P == null) bad('G65 ohne P'); st.probe = true; return; }
     if (dwell) { if (X == null && P == null && F == null && all('U').length === 0) bad('G4 ohne Zeit'); return; }
+    // datum shift: the axis words are the shift, not a move (the position in the new datum is unknown)
+    if (g.includes(52) || g.includes(92)) { for (const a of ['X', 'Y', 'Z']) st.pos[a] = null; return; }
     if (ref) { // reference / machine coordinates: position unknown afterwards
       for (const a of ['X', 'Y', 'Z']) if (one(a) != null) st.pos[a] = null;
       if (g.includes(28) && st.abs && (X != null || Y != null || Z != null) && !g.includes(91)) { /* G28 through an absolute point */ }

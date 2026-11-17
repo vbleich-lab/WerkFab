@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Alleen rechte gleuven gaan als besturingscyclus (lijn uit twee punten of sleufgat)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Geef voor de besturingscyclus langs een lijn de gleufbreedte op",
+ "Nut ohne Länge": "Gleuf zonder lengte",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Gleuf {0} mm smaller dan de frees Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Gleuf herkend ({0}) – Heidenhain: CYCL DEF 253 op het midden van de gleuf, Sinumerik: kamercyclus. De besturing freest met haar eigen strategie; de simulatie hier toont het gereedschapspad.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Rechte gleuven (sleufgat of lijn met gleufbreedte) worden uitgevoerd als gleufcyclus van de besturing.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Uit: de gleuf wordt uitgevoerd als pad met coördinaten.",
+ "Nutzyklus": "gleufcyclus"
+}

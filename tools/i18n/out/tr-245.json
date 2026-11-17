@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Yalnızca düz kanallar kontrol çevrimi olarak çıkarılır (iki noktalı çizgi veya kanal)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Çizgi boyunca kontrol çevrimi için kanal genişliğini girin",
+ "Nut ohne Länge": "Uzunluksuz kanal",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "{0} mm kanal, Ø{1} frezeden dar",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Kanal algılandı ({0}) – Heidenhain: kanal ortasında CYCL DEF 253, Sinumerik: cep çevrimi. Kontrol kendi stratejisiyle frezeler; buradaki simülasyon takım yolunu gösterir.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Düz kanallar (kanal veya kanal genişlikli çizgi) kontrolün kanal çevrimi olarak çıkarılır.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Kapalı: kanal, koordinatlı bir yol olarak çıkarılır.",
+ "Nutzyklus": "kanal çevrimi"
+}

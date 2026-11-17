@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Porauskuvio kuviosyklinä (reikäympyrä / ruudukko)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Reikäympyrän tai ruudukon reiät tulostetaan kuviosyklinä (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Muut ohjaukset saavat aina yksittäiset koordinaatit.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Jokainen reikä ajetaan erikseen omilla koordinaateillaan (X/Y reikää kohti) – ei reikäympyrä- tai ruudukkokuviota.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Reikäympyrän tai ruudukon reiät kuviosyklinä (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) yksittäisten koordinaattien sijaan. Pois: jokainen reikä omilla koordinaateillaan. Vaihdettavissa porausoperaatiokohtaisesti."
+}

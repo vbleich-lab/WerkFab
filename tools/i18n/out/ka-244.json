@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "ბურღვის ნიმუში ნიმუშის ციკლად (ხვრელების წრე / ბადე)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "ხვრელების წრეზე ან ბადეში განლაგებული ხვრელები გამოდის ნიმუშის ციკლად (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). სხვა სისტემები ყოველთვის იღებენ ცალკეულ კოორდინატებს.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "თითოეულ ხვრელთან მიდის ცალ-ცალკე თავისი კოორდინატებით (X/Y თითო ხვრელზე) – ხვრელების წრის ან ბადის ნიმუშის გარეშე.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "ხვრელები ხვრელების წრეზე ან ბადეში ნიმუშის ციკლად (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) ცალკეული კოორდინატების ნაცვლად. გამორთვა: თითოეული ხვრელი თავისი კოორდინატებით. გადართვადია თითო ბურღვის ოპერაციაზე."
+}

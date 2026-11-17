@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "نمط الثقوب كدورة نمطية (دائرة الثقوب / شبكة)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "تُخرَج الثقوب الموزعة على دائرة ثقوب أو في شبكة كدورة نمطية (Heidenhain CYCL DEF 220/221، Sinumerik HOLES2/CYCLE801). أما أنظمة التحكم الأخرى فتحصل دائمًا على الإحداثيات المفردة.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "يُقترب من كل ثقب على حدة بإحداثياته (X/Y لكل ثقب) – دون نمط دائرة ثقوب أو شبكة.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "الثقوب على دائرة ثقوب أو في شبكة كدورة نمطية (Heidenhain 220/221، Sinumerik HOLES2/CYCLE801) بدلًا من الإحداثيات المفردة. إيقاف: كل ثقب بإحداثياته. قابل للتبديل لكل عملية ثقب."
+}

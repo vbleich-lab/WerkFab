@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Uzorak bušenja kao ciklus uzorka (krug rupa / mreža)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Rupe na krugu rupa ili u mreži izlaze kao ciklus uzorka (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Ostala upravljanja uvijek dobivaju pojedinačne koordinate.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Svaka se rupa pojedinačno najavljuje svojim koordinatama (X/Y po rupi) – bez uzorka kruga rupa ili mreže.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Rupe na krugu rupa ili u mreži kao ciklus uzorka (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) umjesto pojedinačnih koordinata. Isključeno: svaka rupa sa svojim koordinatama. Može se prebaciti po operaciji bušenja."
+}

@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Samo ravni utori izlaze kao ciklus upravljanja (linija od dvije točke ili izduženi otvor)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Za ciklus upravljanja duž linije navedite širinu utora",
+ "Nut ohne Länge": "Utor bez duljine",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Utor {0} mm uži je od glodala Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Utor prepoznat ({0}) – Heidenhain: CYCL DEF 253 na sredini utora, Sinumerik: ciklus džepa. Upravljanje glođe vlastitom strategijom; simulacija ovdje prikazuje putanju.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Ravni utori (izduženi otvor ili linija sa širinom utora) izlaze kao ciklus utora upravljanja.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Isključeno: utor se izdaje kao putanja s koordinatama.",
+ "Nutzyklus": "ciklus utora"
+}

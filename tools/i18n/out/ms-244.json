@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Corak lubang sebagai kitaran corak (bulatan lubang / grid)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Lubang pada bulatan lubang atau dalam grid dikeluarkan sebagai kitaran corak (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Kawalan lain sentiasa menerima koordinat tunggal.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Setiap lubang didekati satu per satu dengan koordinatnya (X/Y bagi setiap lubang) – tiada corak bulatan lubang atau grid.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Lubang pada bulatan lubang atau dalam grid sebagai kitaran corak (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) dan bukannya koordinat tunggal. Mati: setiap lubang dengan koordinatnya. Boleh ditukar bagi setiap operasi penggerudian."
+}

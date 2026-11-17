@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Only straight slots work as a control cycle (line of two points or slot)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "For the control cycle along a line, enter the slot width",
+ "Nut ohne Länge": "Slot without length",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Slot {0} mm narrower than the cutter Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Slot recognised ({0}) – Heidenhain: CYCL DEF 253 at the slot centre, Sinumerik: pocket cycle. The control mills with its own strategy; the simulation here shows the toolpath.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Straight slots (slot shape or line with slot width) are output as the control's slot cycle.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Off: the slot is output as a toolpath with coordinates.",
+ "Nutzyklus": "slot cycle"
+}

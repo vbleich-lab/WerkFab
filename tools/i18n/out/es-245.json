@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Solo las ranuras rectas se emiten como ciclo del control (línea de dos puntos o ranura oblonga)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Para el ciclo del control a lo largo de una línea, indique el ancho de ranura",
+ "Nut ohne Länge": "Ranura sin longitud",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Ranura de {0} mm más estrecha que la fresa Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Ranura detectada ({0}) – Heidenhain: CYCL DEF 253 en el centro de la ranura, Sinumerik: ciclo de cajera. El control fresa con su propia estrategia; la simulación aquí muestra la trayectoria.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Las ranuras rectas (ranura oblonga o línea con ancho de ranura) se emiten como ciclo de ranura del control.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Desactivado: la ranura se emite como trayectoria con coordenadas.",
+ "Nutzyklus": "ciclo de ranura"
+}

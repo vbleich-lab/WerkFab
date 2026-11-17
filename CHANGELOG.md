@@ -1,5 +1,30 @@
 # Änderungen
 
+## v1.0.0-rc.22 – 2026-11-17
+
+### Fertigung
+- **Mehrere Teile in einer Aufspannung** (Setup → Postprozess): dasselbe Programm für mehrere gleiche Teile, entweder mit Nullpunktverschiebung je Teil (Heidenhain Zyklus 7, Fanuc/LinuxCNC G52, Sinumerik TRANS) oder mit eigenem Nullpunkt je Teil (G54 … G59, G54.1 P, Heidenhain Zyklus 247). Die Reihenfolge ist wählbar: je Werkzeug alle Teile (weniger Werkzeugwechsel) oder Teil für Teil. „Raster …“ legt die Teile in Reihen an. Vor jedem Wechsel fährt das Werkzeug auf die sichere Höhe.
+- **Seriennummer gravieren**: In der Operation „Gravieren“ wird jedes `#` im Skizzentext durch eine fortlaufende Nummer ersetzt (`SN-####` → `SN-0007`). Bei mehreren Teilen bekommt jedes Teil seine eigene Nummer; nach dem Ausgeben zählt die Startnummer auf Wunsch weiter.
+- **Passungen nach ISO 286** (H7, g6 …): Konturen, Taschen, Bohrfräsen und Kreistaschen fräsen auf Wunsch auf die Mitte der Toleranz. Das Nennmaß kommt bei Kreisen aus der Geometrie.
+
+### Postprozessor (Heidenhain)
+- **Bohren, Gewindebohren, Senken: Koordinaten statt Bohrbild.** Jede Bohrung wird jetzt standardmäßig mit ihren eigenen X/Y-Koordinaten ausgegeben. Lochkreis- und Rastermuster (CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801) gibt es nur noch, wenn der neue Schalter „Bohrbild als Musterzyklus“ in der Bohroperation eingeschaltet ist.
+- **Nut als Steuerungszyklus:** Auch die Nut-Operation hat jetzt den Schalter „Als Steuerungszyklus ausgeben“. Langlöcher und gerade Nuten gehen dann als CYCL DEF 253 an der Nutmitte heraus; ohne Schalter bleibt es die Bahn mit Koordinaten (wie bei Taschen).
+- **Tiefe und Aufmaß als Q-Parameter**: je Operation zwei Q-Parameter am Programmanfang, die über `TOOL CALL … DL+Q… DR+Q…` wirken – an der Maschine eine Zahl ändern statt Sätze suchen.
+- **Werkzeug vermessen mit dem Taster (TT)**: `TCH PROBE 481` / `483` direkt nach dem Werkzeugwechsel und auf Wunsch eine Bruchkontrolle nach dem letzten Einsatz eines Werkzeugs.
+
+### NC-Programme
+- **An Maschine senden** (Desktop-App, im NC-Fenster „➜ An Maschine senden“, ⚙ für die Verbindung): Das Programm geht über das Netzwerk direkt in eine Heidenhain-Steuerung, iTNC 530 oder TNC 640/620 – über dasselbe Protokoll wie TNCremo (LSV2, Port 19000). Steuerungstyp, Blockgröße und Passwort werden berücksichtigt, ein vorhandenes Programm wird auf Wunsch ersetzt, Fehler der Steuerung erscheinen als Klartext. „Verbindung testen“ zeigt, welche Steuerung antwortet.
+- **Programme vergleichen** (Datei → „NC-Programme vergleichen…“ oder „⇄ Vergleichen …“ im NC-Fenster): Sie sehen zwei Programme nebeneinander; geänderte Sätze sind gelb, nur links rot, nur rechts grün. Satznummern, Leerzeichen und Kommentare lassen sich ausblenden, ▲▼ springt zur nächsten Änderung.
+- **Werkzeugtabelle für die Steuerung** (Werkzeugbibliothek): Nummer, Länge, Radius, Eckenradius und Schneidenlänge als CSV für WERKZEUG IMPORT (Heidenhain), als tool.tbl (LinuxCNC) und als G10-Programm (Fanuc) bzw. als $TC_DP-Programm (Sinumerik).
+
+### Zeichnung
+- **Passungen mit Abmaßen**: Hinter „H7“ an einem Maß stehen die Abmaße, z. B. `Ø25 H7 (+0,021/0)`; das lässt sich je Maß abschalten.
+- **Prüfplan**: Eigene Maße und Toleranzrahmen bekommen eine Nummer in einem Kreis. Die Liste mit Nennmaß, Toleranz, Höchst- und Mindestmaß und Feldern für den Istwert gibt es zum Drucken (PDF) und als CSV. Maße ohne eigene Toleranz bekommen die Allgemeintoleranz, die jetzt wählbar ist (ISO 2768 f/m/c/v) und im Schriftfeld steht.
+
+### Fehler behoben
+- Einige Texte (Stückliste, Meldungen beim Start) wurden nicht übersetzt.
+
 ## v1.0.0-rc.21 – 2026-11-17
 
 ### Postprozessor

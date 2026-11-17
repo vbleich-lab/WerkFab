@@ -1,6 +1,7 @@
 // Toolpath generation: 2D (face, contour, pocket, chamfer, drill, helical bore)
 // and 3D (Z-level roughing, parallel finishing) strategies.
 import * as THREE from 'three';
+import { parseFit, fitMid } from './fits.js';
 import { entityPolys, entityOutlines, buildRegions, signedArea, ensureCCW, pointInPoly, chainLoops } from './profiles.js';
 import { basis, toWorld } from './plane.js';
 import { buildHeightmap, dropCutter as dropCutterRaw, cornerOf } from './heightmap.js';
@@ -1428,6 +1429,7 @@ function genTrace(op, t, P, h, project) {
   const X = sketchXY(sk);
   const curves = sk.entities
     .filter(e => !Array.isArray(op.entities) || op.entities.includes(e.id))
+    .map(e => (op._sn != null && e.type === 'text' ? { ...e, text: serialText(e.text, op._sn) } : e))
     .flatMap(e => entityOutlines(e))
     .filter(o => o.pts.length >= 2)
     .map(o => ({ pts: o.pts.map(X.tr), closed: o.closed }));
@@ -1446,6 +1448,17 @@ function genTrace(op, t, P, h, project) {
     });
     P.retract();
   }
+}
+
+// serial numbers: each run of "#" in a sketch text becomes the number, padded with zeros to the run's length
+export function serialText(text, n) {
+  return String(text ?? '').replace(/#+/g, m => String(Math.max(0, Math.round(n))).padStart(m.length, '0'));
+}
+// the numbers of one program run: one per part of the clamping
+export function serialNumbers(op, setup) {
+  const m = setup?.multi, parts = setup?.kind !== 'turn' && m?.on && Array.isArray(m.list) && m.list.length > 1 ? m.list.length : 1;
+  const start = Math.round(+(op.serialStart ?? 1) || 0), step = Math.round(+op.serialStep || 1) || 1;
+  return Array.from({ length: parts }, (_, k) => start + k * step);
 }
 
 // Helical thread milling (single-profile cutter), climbing from the bottom.
@@ -1931,6 +1944,35 @@ function genSlot(op, t, P, h, project) {
   const troch = op.slotStyle === 'trochoid';
   const stl = +op.stockToLeave || 0;
   let nTroch = 0;
+  // "Steuerungszyklus": each slot as the control's slot cycle (Heidenhain 253); the moves below stay for the
+  // simulation and for controls without one. Only straight slots: a sketch slot or a line of two points.
+  let cyc = null;
+  if (op.ctrlCycle) {
+    const shapes = [];
+    let why = null;
+    for (const e of ents) {
+      let a, b, w;
+      if (e.type === 'slot') {
+        const r = ((+e.rot || 0) * Math.PI) / 180, dx = (Math.cos(r) * e.len) / 2, dy = (Math.sin(r) * e.len) / 2;
+        [a, b, w] = [X.tr([+e.cx - dx, +e.cy - dy]), X.tr([+e.cx + dx, +e.cy + dy]), +e.w];
+      } else if (e.pts.length === 2 && +op.slotWidth > 0) [a, b, w] = [X.tr(e.pts[0]), X.tr(e.pts[1]), +op.slotWidth];
+      else { why = e.pts.length !== 2 ? 'Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)' : 'Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben'; break; }
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (L < 1e-6) { why = 'Nut ohne Länge'; break; }
+      if (w < t.dia - 1e-6) { why = `Nut ${f2s(w)} mm schmaler als der Fräser Ø${t.dia}`; break; }
+      let ang = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
+      while (ang > 90 + 1e-6) ang -= 180;
+      while (ang <= -90 + 1e-6) ang += 180;
+      shapes.push({ kind: 'slot', cx: (a[0] + b[0]) / 2, cy: (a[1] + b[1]) / 2, w: L + w, l: w, rc: w / 2, ang: Math.abs(ang) < 1e-6 ? 0 : Math.round(ang * 1e4) / 1e4 });
+    }
+    cyc = why ? { pocketCycle: null, pocketCycleWhy: why } : {
+      pocketCycle: {
+        pockets: shapes, top: cycleTop(h), bottom: h.bottom, stepdown: Math.min(op.multiDepth === false ? Infinity : +op.stepdown || t.stepdown, cycleTop(h) - h.bottom), stl,
+        overlap: 1, climb: op.direction !== 'conventional', feed: t.feed, plunge: t.plunge, clear: P.clear,
+        helix: !(op.rampType === 'plunge'), ramp: +op.ramp || 3, toolR: t.dia / 2,
+      },
+    };
+  }
   for (const e of ents) {
     let line;
     if (e.type === 'slot') {
@@ -1974,6 +2016,7 @@ function genSlot(op, t, P, h, project) {
     }
     P.retract();
   }
+  return cyc || {};
 }
 
 const f2s = v => String(+(+v).toFixed(3));
@@ -3392,6 +3435,24 @@ export function manualResult(op) {
   return { moves: [], manual: { kind, text, sec }, length: 0, time: sec };
 }
 
+// ISO fit of an operation: the radial stock that puts the diameter into the middle of the tolerance zone
+export const FIT_OPS = ['contour', 'pocket', 'bore', 'circular'];
+export function fitOffset(op, project) {
+  if (!op.fit || !FIT_OPS.includes(op.type)) return null;
+  const f = parseFit(op.fit);
+  if (!f) throw new Error(`Passung „${op.fit}“ unbekannt (z. B. H7 für Bohrungen, g6 für Wellen)`);
+  const inside = op.type === 'contour' ? op.side === 'inside' : true;
+  if (f.hole !== inside) throw new Error(`Passung ${f.cls}: ${f.hole ? 'Großbuchstaben gelten für Bohrungen – für einen Zapfen Kleinbuchstaben (g6, h6)' : 'Kleinbuchstaben gelten für Wellen – für eine Bohrung Großbuchstaben (H7)'}`);
+  let size = +op.fitSize || 0;
+  if (!size && (op.type === 'bore' || op.type === 'circular')) { const c = circlesOf(op, project); size = 2 * Math.max(...c.map(x => x.r)); }
+  if (!(size > 0)) throw new Error(`Passung ${f.cls}: Nennmaß eintragen`);
+  size = Math.round(size * 1000) / 1000;
+  const mid = fitMid(f, size);
+  if (mid == null) throw new Error(`Passung ${f.cls} für Ø${size} nicht in ISO 286 (bis 500 mm)`);
+  // the deviation is on the diameter: half of it on each side; a hole grows with less stock, a shaft shrinks
+  return { cls: f.cls, size, mid, radial: (f.hole ? -1 : 1) * mid / 2 };
+}
+
 export function generateOp(op, project, stock, ctx) {
   if (op.type === 'manual') return manualResult(op);
   let t = project.cam.tools.find(x => x.id === op.tool);
@@ -3402,6 +3463,9 @@ export function generateOp(op, project, stock, ctx) {
   t = applyCutData(t, op);
   // switched-off sections of the dialog ("Rohteil-Aufmaß", "Tiefenschnitte")
   if (op.stockOn === false) op = { ...op, stockToLeave: 0, axialStock: 0 };
+  // ISO fit (H7, g6): to the middle of the tolerance zone – a hole a little larger, a shaft a little smaller
+  const fit = fitOffset(op, project);
+  if (fit) op = { ...op, stockOn: true, stockToLeave: (+op.stockToLeave || 0) + fit.radial, _fit: fit };
   if (op.multiDepth === false && ['pocket', 'adaptive', 'rough3d', 'adaptive3d', 'pocket3d', 'contour3d', 'ramp3d', 'slot', 'circular', 'trace', 'steep3d'].includes(op.type)) op = { ...op, stepdown: 1e6 };
   if (!t.type || t.type === 'none') throw new Error('Dieses Werkzeug (Halter oder Auftragskopf) kann nicht zerspanen');
   if (op.type === 'probe' && t.type !== 'probe') throw new Error('Für Antasten einen 3D-Taster als Werkzeug wählen');
@@ -3414,7 +3478,17 @@ export function generateOp(op, project, stock, ctx) {
   if (+op.modelRadial || +op.modelAxial) op = { ...op, stockToLeave: (+op.stockToLeave || 0) + (+op.modelRadial || 0), axialStock: (+op.axialStock || 0) + (+op.modelAxial || 0) };
   CUR = { project, op };
   SURF = OPS_3D.includes(op.type) ? surfaceFor(op, stock, ctx) : null;
-  try { return generateOpInner(op, project, stock, ctx, t, s); } finally { SURF = null; CUR = null; }
+  try {
+    if (op.type === 'trace' && op.serialOn) {
+      const sk = project.features.find(f => f.id === op.sketch && f.type === 'sketch');
+      if (sk && !sk.entities.some(e => e.type === 'text' && /#/.test(e.text || '') && (!Array.isArray(op.entities) || op.entities.includes(e.id))))
+        throw new Error('Seriennummer: in der Skizze einen Text mit # als Platzhalter anlegen (z. B. SN-####)');
+      const nums = serialNumbers(op, s);
+      const res = nums.map(n => generateOpInner({ ...op, _sn: n }, project, stock, ctx, t, s));
+      return { ...res[0], serial: nums, parts: res.length > 1 ? res : undefined };
+    }
+    return generateOpInner(op, project, stock, ctx, t, s);
+  } finally { SURF = null; CUR = null; }
 }
 
 // heightmaps of the face groups (geometry comes from main.js, in model coordinates)
@@ -3474,7 +3548,7 @@ function generateOpInner(op, project, stock, ctx, t, s) {
     case 'spiral3d': genSpiral3d(op, t, P, h, stock, ctx); break;
     case 'radial3d': genRadial3d(op, t, P, h, stock, ctx); break;
     case 'project3d': genProject3d(op, t, P, h, stock, ctx, project); break;
-    case 'slot': genSlot(op, t, P, h, project); break;
+    case 'slot': extra = genSlot(op, t, P, h, project) || {}; break;
     case 'plunge3d': extra = genPlunge3d(op, t, P, h, stock, ctx) || {}; break;
     case 'circular': genCircular(op, t, P, h, project); break;
     case 'vcarve': genVcarve(op, t, P, h, project); break;

@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Apenas rasgos retos saem como ciclo do comando (linha de dois pontos ou rasgo oblongo)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Para o ciclo do comando ao longo de uma linha, indique a largura do rasgo",
+ "Nut ohne Länge": "Rasgo sem comprimento",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Rasgo de {0} mm mais estreito que a fresa Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Rasgo reconhecido ({0}) – Heidenhain: CYCL DEF 253 no centro do rasgo, Sinumerik: ciclo de cavidade. O comando fresa com a sua própria estratégia; a simulação aqui mostra a trajetória.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Rasgos retos (rasgo oblongo ou linha com largura de rasgo) saem como ciclo de rasgo do comando.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Desligado: o rasgo sai como trajetória com coordenadas.",
+ "Nutzyklus": "ciclo de rasgo"
+}

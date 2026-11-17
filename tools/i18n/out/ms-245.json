@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Hanya alur lurus boleh dikeluarkan sebagai kitar pengawal (garisan dua titik atau alur)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Untuk kitar pengawal sepanjang garisan, nyatakan lebar alur",
+ "Nut ohne Länge": "Alur tanpa panjang",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Alur {0} mm lebih sempit daripada pemotong Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Alur dikesan ({0}) – Heidenhain: CYCL DEF 253 di tengah alur, Sinumerik: kitar poket. Pengawal mengisar dengan strateginya sendiri; simulasi di sini menunjukkan laluan alat.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Alur lurus (alur atau garisan dengan lebar alur) dikeluarkan sebagai kitar alur pengawal.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Mati: alur dikeluarkan sebagai laluan dengan koordinat.",
+ "Nutzyklus": "kitar alur"
+}

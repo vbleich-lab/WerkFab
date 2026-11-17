@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "穴パターンをパターンサイクルで出力（ボルトサークル／グリッド）",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "ボルトサークルまたはグリッド上の穴はパターンサイクルとして出力されます（Heidenhain CYCL DEF 220/221、Sinumerik HOLES2/CYCLE801）。他の制御装置には常に個々の座標が出力されます。",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "各穴をそれぞれの座標で個別に位置決めします（穴ごとに X/Y）– ボルトサークルやグリッドのパターンは使いません。",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "ボルトサークルまたはグリッド上の穴を、個々の座標ではなくパターンサイクル（Heidenhain 220/221、Sinumerik HOLES2/CYCLE801）で出力します。オフ：各穴をそれぞれの座標で出力。穴あけ工程ごとに切り替え可能。"
+}

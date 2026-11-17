@@ -1392,3 +1392,31 @@ body.tabs-only #toolbar:hover #tools, body.tabs-only #toolbar:focus-within #tool
 [data-dimsize="xlarge"] .sk-label.glyph { font-size: 14px; }
 [data-dimsize="xlarge"] .sk-label.dim.edit input { font-size: 17px; width: 100px; }
 .view-angle { position: absolute; right: 10px; bottom: 8px; padding: 1px 8px; border-radius: 10px; font: 11px/1.5 'Roboto Mono', ui-monospace, monospace; background: var(--overlay); color: var(--muted); pointer-events: none; z-index: 5; }
+
+/* comparing NC programs */
+.ncc-win { width: min(1200px, calc(100vw - 32px)); height: calc(100vh - 60px); }
+.ncc-bar { display: flex; align-items: center; gap: 14px; padding: 6px 12px; font-size: 13px; }
+.ncc-bar .ncc-name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ncc-sum { padding: 2px 12px 6px; font-size: 13px; color: var(--muted); }
+.ncc-body { flex: 1; overflow: auto; border-top: 1px solid var(--line); font-family: var(--mono, Consolas, monospace); font-size: 12px; }
+.ncc-t { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.ncc-t td { padding: 1px 6px; white-space: pre; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
+.ncc-t td.n { width: 52px; text-align: right; color: var(--muted); user-select: none; border-right: 1px solid var(--line); }
+.ncc-t tr.changed td:not(.n) { background: rgba(250, 176, 5, .18); }
+.ncc-t tr.removed td:nth-child(2) { background: rgba(224, 49, 49, .18); }
+.ncc-t tr.added td:nth-child(4) { background: rgba(47, 158, 68, .2); }
+.ncc-t tr.fold td { text-align: center; color: var(--muted); background: var(--panel2, rgba(128,128,128,.08)); font-style: italic; }
+.ncc-t tr.cur td.n { box-shadow: inset 3px 0 0 var(--accent); }
+
+/* several parts in one clamping (setup) */
+.multi-list { display: flex; flex-direction: column; gap: 4px; margin: 4px 0; }
+.multi-row { display: flex; align-items: center; gap: 8px; }
+.multi-row > b { min-width: 46px; font-weight: 600; }
+.multi-row > label { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+.multi-row > label input { width: 100%; min-width: 0; }
+.multi-row .unit { flex: 1; min-width: 0; }
+
+/* ISO fit in the operation dialog */
+.fit-row { display: flex; gap: 6px; }
+.fit-row input { flex: 1; min-width: 0; }
+.fit-row select { width: 64px; }

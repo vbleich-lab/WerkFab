@@ -22,7 +22,7 @@ const userDims = [
 const d = makeDrawing(bodies, { ...base, userDims });
 const texts = [...d.svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map(m => m[1]);
 ok('Längenmaß mit Toleranz-Zusatz', texts.includes('120 ±0,1'), texts.filter(t => /120/.test(t)).join(' | '));
-ok('Durchmesser mit Passung', texts.includes('Ø10 H7'), texts.filter(t => /Ø10/.test(t)).join(' | '));
+ok('Durchmesser mit Passung und Abmaßen', texts.includes('Ø10 H7 (+0,015/0)'), texts.filter(t => /Ø10/.test(t)).join(' | '));
 ok('Winkelmaß 90° zwischen zwei Kanten', texts.includes('90°'), texts.filter(t => /°/.test(t)).join(' | '));
 ok('Winkelmaß 45° mit Zusatz', texts.includes('45° ±0,5°'));
 ok('Hinweis mit Pfeil', texts.includes('Kanten gebrochen') && d.svg.length > plain.svg.length);
@@ -195,4 +195,25 @@ ok('Eigene Maße als greifbare Gruppen (eine je Maß, mit breiten Greiflinien)',
   ok('Halbschnitt: Schnittlinie nur über die rechte Hälfte', ch.length === 1 && Math.abs(ch[0][0] - sx(60)) < 0.01 && ch[0][2] > sx(120) && tx(hf).includes('Halbschnitt A–A') && !/NaN|Infinity/.test(hf.svg), JSON.stringify(ch));
   const full = mk({ y: 40 });
   ok('Vollschnitt unverändert: eine Linie über die ganze Breite', cuts(full).length === 1 && cuts(full)[0][0] < sx(0) && cuts(full)[0][2] > sx(120));
+}
+
+// inspection plan: numbered balloons, list with nominal size, tolerance and limits
+{
+  const { inspectionItems, inspectionCsv, parseTol, generalTol } = await import('../js/inspect.js');
+  const dims = [...userDims, { view: 'top', kind: 'v', a: [0, 0], b: [0, -80], off: 16 }, { view: 'top', kind: 'gdt', a: [5, -5], sym: 'flat', text: '0,05' }];
+  const it = inspectionItems(dims, { general: 'm' });
+  ok('Prüfplan: Maße und Toleranzrahmen nummeriert, Hinweis nicht', it.length === 6 && it.map(r => r.no).join() === '1,2,3,4,5,6' && !it.some(r => r.kind === 'note'), it.map(r => r.kind).join());
+  ok('Prüfplan: ±0,1 → 120,1 / 119,9', it[0].max === 120.1 && it[0].min === 119.9 && it[0].source === 'Toleranz');
+  ok('Prüfplan: Ø10 H7 → 10,015 / 10', it[1].nominalText === 'Ø10' && it[1].max === 10.015 && it[1].min === 10 && it[1].source === 'Passung ISO 286', JSON.stringify(it[1]));
+  ok('Prüfplan: 80 ohne Toleranz → ISO 2768-m ±0,3', it[4].tolText === 'ISO 2768-m' && it[4].max === 80.3 && it[4].min === 79.7);
+  ok('Prüfplan: Ebenheit 0,05', it[5].feature === 'Ebenheit' && it[5].up === 0.05);
+  ok('Prüfplan: nur tolerierte', inspectionItems(dims, { onlyTol: true }).length === 4);
+  ok('Toleranz lesen: +0,1/−0,05, 2× ±0,2, 0/-0,1', JSON.stringify(parseTol('+0,1/−0,05', 10)) === JSON.stringify({ up: 0.1, lo: -0.05, text: '+0,1/−0,05' }) && parseTol('2× ±0,2', 10).up === 0.2 && parseTol('0/-0,1', 5).lo === -0.1 && parseTol('2×', 5) === null);
+  ok('Allgemeintoleranz ISO 2768: f 50 → 0,15, c 500 → 2, v 2 → keine', generalTol('h', 50, 'f') === 0.15 && generalTol('h', 500, 'c') === 2 && generalTol('h', 2, 'v') === null);
+  const csv = inspectionCsv(it, { title: 'Test' });
+  ok('Prüfplan CSV: Semikolon, Komma, Kopf', /^﻿Prüfplan Test\r\nNr\.;Ansicht;Merkmal;Nennmaß;Toleranz/.test(csv) && /\r\n1;top;Länge \(waagrecht\);120;±0,1;0,1;-0,1;120,1;119,9;Toleranz;;\r\n/.test(csv), csv.split('\r\n')[2]);
+  const db = makeDrawing(bodies, { ...base, userDims: dims, balloons: true, generalTol: 'f' });
+  const nb = (db.svg.match(/class="balloon"/g) || []).length, bt = [...db.svg.matchAll(/class="btx">(\d+)</g)].map(m => m[1]);
+  ok('Prüfplan: Ballons in der Zeichnung', nb === 6 && bt.join() === '1,2,3,4,5,6', `${nb} / ${bt.join()}`);
+  ok('Schriftfeld: Allgemeintoleranz ISO 2768-f', db.svg.includes('Allgemeintoleranz ISO 2768-f'));
 }

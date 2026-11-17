@@ -47,7 +47,31 @@ for (const [vname, props] of Object.entries(VARIANTS)) {
       const c = res.code;
       ok('Standard: alle Bohrzyklen (200, 203, 201, 202, 207 rechts/links)', [/CYCL DEF 200 /, /CYCL DEF 203 /, /CYCL DEF 201 /, /CYCL DEF 202 /, /CYCL DEF 207 /].every(r => r.test(c)) && /Q239=\+1\.250/.test(c) && /Q239=-1\.250/.test(c));
       ok('Standard: Taschen-, Nut- und Zapfenzyklen (251, 252, 253, 256)', [/CYCL DEF 251 /, /CYCL DEF 252 /, /CYCL DEF 253 /, /CYCL DEF 256 /].every(r => r.test(c)));
-      ok('Standard: Bohrbilder Raster und Lochkreis (221, 220)', /CYCL DEF 221 /.test(c) && /CYCL DEF 220 /.test(c) && /Q241=6 /.test(c));
+      ok('Standard: Bohrungen mit Koordinaten statt Bohrbild (kein 220/221)', !/CYCL DEF 22[01] /.test(c) && /CYCL CALL POS|M99/.test(c));
+      // the switch of the operation turns the pattern cycles on
+      const pp = structuredClone(p);
+      for (const o of pp.cam.ops) if (o.type === 'drill') o.drillPattern = true;
+      const gp = cam.generateSetup(pp, bodies, pp.cam.setups[0], null, null); gp.setup = pp.cam.setups[0];
+      const cp = post.postProcess(pp, gp, null, { postId: 'heidenhain', props }).code;
+      ok('Schalter je Operation: Bohrbilder Raster und Lochkreis (221, 220)', /CYCL DEF 221 /.test(cp) && /CYCL DEF 220 /.test(cp) && /Q241=6 /.test(cp));
+      ok('Postprozessor-Einstellung „Bohrbilder als Zyklus“ schaltet sie ebenfalls ein', /CYCL DEF 220 /.test(post.postProcess(p, g, null, { postId: 'heidenhain', props: { drillPatterns: true } }).code));
+      for (const o of pp.cam.ops) if (o.type === 'drill') o.drillPattern = false;
+      const gq = cam.generateSetup(pp, bodies, pp.cam.setups[0], null, null); gq.setup = pp.cam.setups[0];
+      ok('Schalter aus schlägt die Postprozessor-Einstellung', !/CYCL DEF 22[01] /.test(post.postProcess(pp, gq, null, { postId: 'heidenhain', props: { drillPatterns: true } }).code));
+      // the slot operation: switch "Als Steuerungszyklus ausgeben" → CYCL DEF 253 at the slot centre, off → path
+      const ps = structuredClone(p), sl = ps.cam.ops.find(o => o.type === 'slot');
+      const slotCode = on => {
+        sl.ctrlCycle = on;
+        const gs = cam.generateSetup(ps, bodies, ps.cam.setups.find(s => s.id === sl.setup) || ps.cam.setups[0], null, null);
+        gs.setup = ps.cam.setups.find(s => s.id === sl.setup) || ps.cam.setups[0];
+        const code = post.postProcess(ps, gs, null, { postId: 'heidenhain', props }).code;
+        const at = code.indexOf(sl.name), rest = code.slice(at), end = rest.search(/\n(\d+ )?; .* - /);
+        return { r: gs.results.get(sl.id), part: end > 0 ? rest.slice(0, end) : rest, code };
+      };
+      const sOn = slotCode(true), sOff = slotCode(false);
+      ok('Nut als Steuerungszyklus: CYCL DEF 253 mit Länge 19 und Breite 7', sOn.r.pocketCycle && /CYCL DEF 253 /.test(sOn.part) && /Q218=\+?19(\.0+)? /.test(sOn.part) && /Q219=\+?7(\.0+)? /.test(sOn.part) && /M99/.test(sOn.part) && /Q202=\+?8\.000 /.test(sOn.part) && !/Q202=\+?1000000/.test(sOn.part), (sOn.r.pocketCycleWhy || '') + ' ' + (sOn.part.match(/Q21[89]=\S+/g) || []).join(' '));
+      ok('Nut ohne Schalter: Bahn mit Koordinaten, kein 253', !/CYCL DEF 253 /.test(sOff.part) && / L X/.test(sOff.part));
+      ok('Nut als Steuerungszyklus: Klartext fehlerfrei', lintHeidenhain(sOn.code, { lineNumbers: props.lineNumbers !== false }).length === 0);
       ok('Standard: APPR/DEP mit RL und RR', /APPR (CT|LCT) .* RL/.test(c) && /APPR LN .* RL/.test(c) && /DEP (CT|LCT)/.test(c) && /DEP LN/.test(c), (c.match(/.*APPR.*/g) || []).slice(0, 3).join(' | '));
       ok('Standard: Radiuskorrektur RR ohne Anfahrbewegung ein- und ausgeschaltet', / RR /.test(c) || / RR$/m.test(c));
       ok('Standard: Schraubenlinien als CP mit IPA/IZ', /CP IPA[+-][\d.]+ IZ[+-][\d.]+ DR[+-]/.test(c), (c.match(/.*CP IPA.*/) || ['–'])[0]);
@@ -95,4 +119,43 @@ for (const [vname, props] of Object.entries(VARIANTS)) {
   ok('M120 ausgeschaltet: kein M120 und kein LA übrig', !/M120|\sLA\d/.test(off));
   const noM120 = post.postProcess(p, g, null, { postId: 'heidenhain', props: { m120: false } }).code;
   ok('M120 abgewählt: kein M120', !/M120/.test(noM120));
+}
+
+// several parts in one clamping: cycle 7 per part (order by tool), cycle 247 per part, subprograms
+{
+  const g = gens[0], st0 = g.setup;
+  const run = (multi, props = {}) => { g.setup = { ...st0, multi }; try { return post.postProcess(p, g, null, { postId: 'heidenhain', props }); } finally { g.setup = st0; } };
+  const r = run({ on: true, mode: 'shift', order: 'tool', list: [{ x: 0, y: 0 }, { x: 120, y: 0 }] });
+  ok('Mehrfachaufspannung Zyklus 7: Verschiebung X+120', /CYCL DEF 7\.1 X\+120/.test(r.code));
+  let issues = lintHeidenhain(r.code);
+  ok('Mehrfachaufspannung Zyklus 7: Programm fehlerfrei', issues.length === 0, issues.length ? lintSummary(issues).slice(0, 4).map(s => `${s.n}× ${s.msg} [${s.first}]`).join(' ‖ ') : '');
+  const w = run({ on: true, mode: 'wcs', order: 'part', list: [{ wcs: 1 }, { wcs: 2 }] });
+  ok('Mehrfachaufspannung Zyklus 247: Bezugspunkt 2', /Q339=\+2 /.test(w.code));
+  issues = lintHeidenhain(w.code);
+  ok('Mehrfachaufspannung Zyklus 247: Programm fehlerfrei', issues.length === 0, issues.length ? lintSummary(issues).slice(0, 4).map(s => `${s.n}× ${s.msg} [${s.first}]`).join(' ‖ ') : '');
+  const sb = run({ on: true, mode: 'shift', order: 'tool', list: [{ x: 0 }, { x: 60 }, { x: 120 }] }, { subroutines: 'ops' });
+  const calls = (sb.code.match(/CALL LBL 1\b/g) || []).length;
+  ok('Mehrfachaufspannung mit Unterprogrammen: LBL 1 dreimal gerufen, einmal definiert', calls === 3 && (sb.code.match(/^\s*\d*\s*LBL 1$/gm) || []).length === 1, `${calls}`);
+  issues = lintHeidenhain(sb.code);
+  ok('Mehrfachaufspannung mit Unterprogrammen: fehlerfrei', issues.length === 0, issues.length ? lintSummary(issues).slice(0, 4).map(s => `${s.n}× ${s.msg} [${s.first}]`).join(' ‖ ') : '');
+}
+
+// Q parameters for depth / allowance, tool check after the change, breakage check after the last use
+{
+  const g = gens[0];
+  const res = post.postProcess(p, g, null, { postId: 'heidenhain', props: { qParams: true, qBase: 50, toolCheck: 'length', toolBreak: true } });
+  const L = res.code.split('\n').map(l => l.replace(/^\d+ /, ''));
+  const qdef = L.filter(l => /^FN 0: Q(5\d|[6-9]\d|\d{3}) = \+0 ; (TIEFE|AUFMASS)/.test(l));
+  ok('Q-Parameter: je Operation Tiefe und Aufmaß am Anfang', qdef.length >= 2 && qdef[0].startsWith('FN 0: Q50 = +0 ; TIEFE'), qdef.slice(0, 2).join(' | '));
+  const calls = L.filter(l => /^TOOL CALL/.test(l));
+  ok('Q-Parameter: jeder TOOL CALL mit DL+Q / DR+Q', calls.length > 0 && calls.filter(l => / S/.test(l)).every(l => / DL\+Q\d+ DR\+Q\d+$/.test(l)), calls.slice(0, 3).join(' | '));
+  ok('Q-Parameter: Operation ohne Werkzeugwechsel bekommt TOOL CALL Z S… DL/DR', calls.some(l => /^TOOL CALL Z S\d+ DL\+Q/.test(l)));
+  const i481 = L.findIndex(l => /^TCH PROBE 481 WERKZEUG-LAENGE ~$/.test(l));
+  ok('Werkzeug prüfen: TCH PROBE 481 direkt nach dem TOOL CALL', i481 > 0 && /^TOOL CALL \d+ Z/.test(L[i481 - 1]) && /Q340=\+1 ;PRUEFEN/.test(L[i481 + 1]), L.slice(i481 - 1, i481 + 3).join(' | '));
+  const nTc = L.filter(l => /^TOOL CALL \d+ Z/.test(l)).length, n481 = L.filter(l => /^TCH PROBE 481/.test(l)).length;
+  ok('Bruchkontrolle: einmal je Werkzeug zusätzlich', n481 === 2 * nTc - L.filter(l => /^TOOL CALL \d+ Z/.test(l) && false).length || n481 >= nTc + 1, `${n481} Zyklen, ${nTc} Werkzeugwechsel`);
+  const issues = lintHeidenhain(res.code);
+  ok('Q-Parameter + Werkzeug prüfen + Bruchkontrolle: Programm fehlerfrei', issues.length === 0, issues.length ? lintSummary(issues).slice(0, 4).map(s => `${s.n}× ${s.msg} [${s.first}]`).join(' ‖ ') : '');
+  const b483 = post.postProcess(p, g, null, { postId: 'heidenhain', props: { toolCheck: 'both', ttTeeth: true } }).code;
+  ok('Werkzeug prüfen: 483 mit Einzelschneiden', /TCH PROBE 483 WERKZEUG MESSEN ~/.test(b483) && /Q341=\+1 ;SCHNEIDENVERMESSUNG/.test(b483));
 }

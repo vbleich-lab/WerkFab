@@ -4,6 +4,8 @@
 const NUM = '[+-]?(?:\\d+\\.?\\d*|\\.\\d+)';
 const VAL = `(?:${NUM}|Q\\d+)`;
 const AXIS = `(?:I?[XYZABC]${VAL})`;
+// tool length / radius allowance in TOOL CALL: a number or a Q parameter with its sign (DL+Q50)
+const DELTA = `(?:${NUM}|[+-]Q\\d+)`;
 const FEED = `(?:F(?:MAX|AUTO|Q\\d+|${NUM}))`;
 // M functions after a block; M120 carries the number of look-ahead blocks (M120 LA5)
 const MCODES = '(?:\\s+M\\d+(?:\\s+LA\\d+)?)*';
@@ -11,7 +13,9 @@ const re = s => new RegExp('^' + s + '$');
 const RE = {
   begin: re('BEGIN PGM (\\S+) (MM|INCH)'), end: re('END PGM (\\S+) (MM|INCH)'),
   blk1: re(`BLK FORM 0\\.1 [XYZ] X${NUM} Y${NUM} Z${NUM}`), blk2: re(`BLK FORM 0\\.2 X${NUM} Y${NUM} Z${NUM}`),
-  toolCall: re(`TOOL CALL (\\d+|"[^"]+")(?: [XYZ])?(?: S${NUM})?(?: F${NUM})?(?: DL${NUM})?(?: DR${NUM})?`),
+  toolCall: re(`TOOL CALL (\\d+|"[^"]+")(?: [XYZ])?(?: S${NUM})?(?: F${NUM})?(?: DL${DELTA})?(?: DR${DELTA})?`),
+  // without a tool number: new speed / allowances for the tool in the spindle, no tool change
+  toolUpd: re(`TOOL CALL(?: [XYZ])?(?: S${NUM})?(?: DL${DELTA})?(?: DR${DELTA})?`),
   toolDef: re('TOOL DEF (\\d+|"[^"]+")'),
   line: re(`L((?:\\s+${AXIS})*)(?:\\s+(R0|RL|RR))?(?:\\s+${FEED})?${MCODES}`),
   cc: re(`CC(?:\\s+I?[XYZ]${VAL}){2}`),
@@ -92,6 +96,11 @@ export function lintHeidenhain(code, opts = {}) {
       return;
     }
     if (RE.tcpm.test(t)) { st.tcpm = !/RESET/.test(t); return; }
+    if (RE.toolUpd.test(t)) {
+      if (!st.tool) bad('TOOL CALL ohne Werkzeugnummer vor dem ersten Werkzeug');
+      if (/ S/.test(t)) st.hasS = true;
+      return;
+    }
     if ((x = t.match(RE.toolCall))) {
       if (st.spindle) bad('TOOL CALL bei laufender Spindel (M5 fehlt davor)');
       if (st.comp !== 'R0') bad('TOOL CALL mit aktiver Radiuskorrektur');
@@ -151,7 +160,8 @@ export function lintHeidenhain(code, opts = {}) {
     }
     if ((x = t.match(RE.cycl))) {
       const no = +x[2], probe = x[1] === 'TCH PROBE';
-      if (!st.tool) bad('Zyklus vor dem ersten TOOL CALL');
+      // cycle 247 (datum setting) needs no tool
+      if (!st.tool && no !== 247) bad('Zyklus vor dem ersten TOOL CALL');
       if (st.comp !== 'R0') bad('Zyklusdefinition bei aktiver Radiuskorrektur');
       if (x[3]) { st.inCycl = no; st.q = new Map(); st.probe = probe; } else if (no >= 200) bad(`Zyklus ${no} ohne Q-Parameter`);
       if (!probe && !SPINDLE_FREE_CYCLES.has(no) && !(no >= 220 && no <= 221)) st.cycle = no;
@@ -291,6 +301,13 @@ function cycleParams(no, q, probe) {
   const pos = (...ns) => { for (const n of ns) if (has(n) && !(v(n) > 0)) out.push(`Zyklus ${no}: Q${n} muss größer als 0 sein (${v(n)})`); };
   const nonNeg = (...ns) => { for (const n of ns) if (has(n) && v(n) < 0) out.push(`Zyklus ${no}: Q${n} darf nicht negativ sein (${v(n)})`); };
   if (probe && no === 417) { need(263, 264, 294, 320, 260); nonNeg(320); if (has(260) && has(294) && v(260) <= v(294)) out.push('Zyklus 417: sichere Höhe Q260 liegt nicht über dem Messpunkt Q294'); return out; }
+  // tool measurement with the TT: check mode 0/1/2, safe height, single edges 0/1
+  if (probe && no >= 480 && no <= 483) {
+    need(260, ...(no === 480 ? [] : [340, 341]));
+    if (has(340) && ![0, 1, 2].includes(v(340))) out.push(`Zyklus ${no}: Q340 muss 0, 1 oder 2 sein`);
+    if (has(341) && ![0, 1].includes(v(341))) out.push(`Zyklus ${no}: Q341 muss 0 oder 1 sein`);
+    return out;
+  }
   if (probe) { need(261, 320, 260); nonNeg(320); if (has(260) && has(261) && v(260) <= v(261)) out.push(`Zyklus ${no}: sichere Höhe Q260 liegt nicht über der Messhöhe Q261`); return out; }
   if ([200, 201, 202, 203, 205, 207, 208, 209, 251, 252, 253, 254, 256, 257, 262].includes(no)) {
     need(200, 201, 203, 204);

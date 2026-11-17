@@ -1,0 +1,10 @@
+{
+ "Nur gerade Nuten gehen als Steuerungszyklus (Linie aus zwei Punkten oder Langloch)": "Tylko proste rowki są wysyłane jako cykl sterowania (linia z dwóch punktów lub rowek)",
+ "Für den Steuerungszyklus entlang einer Linie die Nutbreite angeben": "Dla cyklu sterowania wzdłuż linii podaj szerokość rowka",
+ "Nut ohne Länge": "Rowek bez długości",
+ "Nut {0} mm schmaler als der Fräser Ø{1}": "Rowek {0} mm węższy niż frez Ø{1}",
+ "Nut erkannt ({0}) – Heidenhain: CYCL DEF 253 an der Nutmitte, Sinumerik: Taschenzyklus. Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.": "Rozpoznano rowek ({0}) – Heidenhain: CYCL DEF 253 w środku rowka, Sinumerik: cykl kieszeni. Sterowanie frezuje własną strategią; symulacja tutaj pokazuje ścieżkę.",
+ "Gerade Nuten (Langloch oder Linie mit Nutbreite) gehen als Nutzyklus der Steuerung heraus.": "Proste rowki (rowek lub linia z szerokością rowka) są wysyłane jako cykl rowka sterowania.",
+ "Aus: die Nut wird als Bahn mit Koordinaten ausgegeben.": "Wył.: rowek jest wysyłany jako ścieżka ze współrzędnymi.",
+ "Nutzyklus": "cykl rowka"
+}

@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Hole pattern as pattern cycle (bolt circle / grid)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Holes on a bolt circle or in a grid are output as a pattern cycle (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Other controls always get the single coordinates.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Each hole is approached individually with its coordinates (X/Y per hole) – no bolt circle or grid pattern.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Holes on a bolt circle or in a grid as a pattern cycle (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) instead of single coordinates. Off: every hole with its coordinates. Can be switched per drilling operation."
+}

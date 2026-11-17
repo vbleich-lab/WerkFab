@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "תבנית קידוחים כמחזור תבנית (מעגל קידוחים / רשת)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "קידוחים על מעגל קידוחים או ברשת מוצאים כמחזור תבנית (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). בקרים אחרים מקבלים תמיד את הקואורדינטות הבודדות.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "כל קידוח מתקרב בנפרד עם הקואורדינטות שלו (X/Y לכל קידוח) – ללא תבנית מעגל קידוחים או רשת.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "קידוחים על מעגל קידוחים או ברשת כמחזור תבנית (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) במקום קואורדינטות בודדות. כבוי: כל קידוח עם הקואורדינטות שלו. ניתן להחלפה לכל פעולת קידוח."
+}

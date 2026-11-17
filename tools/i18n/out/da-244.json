@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Boremønster som mønstercyklus (hulcirkel / gitter)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Huller på en hulcirkel eller i et gitter udlæses som mønstercyklus (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andre styringer får altid de enkelte koordinater.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Hvert hul anfares enkeltvis med sine koordinater (X/Y pr. hul) – intet hulcirkel- eller gittermønster.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Huller på en hulcirkel eller i et gitter som mønstercyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) i stedet for enkelte koordinater. Fra: hvert hul med sine koordinater. Kan skiftes pr. boreoperation."
+}

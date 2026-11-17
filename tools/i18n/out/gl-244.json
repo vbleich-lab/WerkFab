@@ -1,0 +1,6 @@
+{
+ "Bohrbild als Musterzyklus (Lochkreis / Raster)": "Patrón de furados como ciclo de patrón (círculo de furados / retícula)",
+ "Bohrungen auf einem Lochkreis oder in einem Raster werden als Musterzyklus ausgegeben (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Andere Steuerungen bekommen immer die einzelnen Koordinaten.": "Os furados nun círculo de furados ou nunha retícula emítense como ciclo de patrón (Heidenhain CYCL DEF 220/221, Sinumerik HOLES2/CYCLE801). Outros controis reciben sempre as coordenadas individuais.",
+ "Jede Bohrung wird mit ihren Koordinaten einzeln angefahren (X/Y je Bohrung) – kein Lochkreis- oder Rastermuster.": "Cada furado abórdase por separado coas súas coordenadas (X/Y por furado) – sen patrón de círculo de furados nin retícula.",
+ "Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Koordinaten. Aus: jede Bohrung mit ihren Koordinaten. Je Bohroperation umschaltbar.": "Furados nun círculo de furados ou nunha retícula como ciclo de patrón (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) en vez de coordenadas individuais. Desactivado: cada furado coas súas coordenadas. Conmutable por operación de furado."
+}
