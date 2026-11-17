@@ -16,3 +16,7 @@ desktop.ini
 tools/i18n/parked/
 tools/i18n/chunks/
 tools/i18n/ref/
+
+# Lokale Ausgaben
+nc-export/
+bericht/

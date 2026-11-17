@@ -133,8 +133,14 @@ function jointFields(a, bodyIds, joints, selfId) {
   return j;
 }
 
+// tools that change the design: refused while the user lets agents only read (Einstellungen → KI-Agenten)
+export const WRITE_TOOLS = new Set(['add_features', 'update_feature', 'delete_features', 'set_params', 'set_project', 'new_design', 'insert_standard_part',
+  'add_tool', 'add_operation', 'update_operation', 'delete_operations', 'update_setup', 'add_setup', 'delete_setups', 'set_placement',
+  'add_joint', 'update_joint', 'delete_joints', 'undo', 'redo']);
+
 export async function agentCall(name, a, api) {
   a ||= {};
+  if (WRITE_TOOLS.has(name) && api.readOnly?.()) throw new Error(`"${name}" changes the design, but the user lets AI agents only read it (WerkFab: Preferences → AI agents). Ask the user to allow changes.`);
   const errorsNow = async () => { const m = await api.settled(); return { errors: m.errors || {}, bodies: m.bodies.length }; };
   switch (name) {
     case 'guide': return AGENT_GUIDE;

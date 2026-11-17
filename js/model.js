@@ -8,6 +8,7 @@ import { basis, planeMatrix, sketchPlane, toWorld, axisRef, planeRef } from './p
 import { sheetSolid, sheetDims } from './sheetmetal.js';
 import { stepSolids, solidsFromStepText, fullKernelReady, requestFullKernel, fullRemoveFaces, fullFilletLaw } from './interop.js';
 import { silhouette, planeCut, curveEntity, chainLoop } from './projection.js';
+import { EXTRA_TYPES, EXTRA_SOURCES, runExtra } from './features2.js';
 
 export const FEATURE_TYPES = {
   sketch: 'Skizze', extrude: 'Extrusion', revolve: 'Rotation', hole: 'Bohrung',
@@ -18,10 +19,12 @@ export const FEATURE_TYPES = {
   pipe: 'Rohr', coil: 'Feder', scale: 'Skalieren', thread: 'Gewinde',
   plane: 'Konstruktionsebene', axis: 'Konstruktionsachse', point: 'Konstruktionspunkt', rib: 'Rippe', torus: 'Torus',
   meshimport: 'Netz einfügen', meshop: 'Netz bearbeiten', emboss: 'Prägen',
-  canvas: 'Ansichtsbereich', decal: 'Aufkleber',
+  canvas: 'Ansichtsbereich', decal: 'Aufkleber', pointcloud: 'Punktwolke', curve3d: '3D-Kurve',
+  ...EXTRA_TYPES,
 };
 export const OPS = { new: 'Neuer Körper', join: 'Verbinden', cut: 'Ausschneiden', intersect: 'Schnittmenge' };
-export const SOLID_SOURCES = ['thicken', 'emboss', 'extrude', 'revolve', 'hole', 'loft', 'sweep', 'freeform', 'sheet', 'box', 'cylinder', 'sphere', 'pipe', 'coil', 'rib', 'torus'];
+export const SOLID_SOURCES = ['thicken', 'emboss', 'extrude', 'revolve', 'hole', 'loft', 'sweep', 'freeform', 'sheet', 'box', 'cylinder', 'sphere', 'pipe', 'coil', 'rib', 'torus',
+  ...EXTRA_SOURCES]; // (the steps of features2.js run before this list is consulted in runFeature)
 
 const DEG = Math.PI / 180;
 const fail = msg => { throw new Error(msg); };
@@ -1209,7 +1212,14 @@ function applyOp(bodies, tool, op, id, target, only = null) {
   if (!bodies.length) fail('Kein Körper vorhanden');
   if (op === 'cut') {
     // (only: a cut that belongs to one body – the socket of a screw must not reach into the part it sits in)
-    for (const b of bodies) if (!only || b.id === only) b.shape = b.shape.cut(tool.clone());
+    // bodies the tool does not reach stay as they are (saves a boolean per body); a surface made of a
+    // single face or shell has no cut and is not touched either
+    const box = s => { try { return s.boundingBox.bounds; } catch { return null; } };
+    const tb = box(tool), apart = (a, b) => a && b && [0, 1, 2].some(i => a[0][i] > b[1][i] + 1e-6 || b[0][i] > a[1][i] + 1e-6);
+    for (const b of bodies) {
+      if ((only && b.id !== only) || typeof b.shape?.cut !== 'function' || apart(tb, box(b.shape))) continue;
+      b.shape = b.shape.cut(tool.clone());
+    }
     return;
   }
   const t = bodies.find(b => b.id === target) || [...bodies].reverse().find(b => hasSolid(b.shape)) || bodies[bodies.length - 1];
@@ -1339,8 +1349,15 @@ function viaFullKernel(shape, args, fn) {
   return solids[0];
 }
 
+const EXTRA_HELPERS = {
+  get fuseAll() { return fuseAll; }, get ribTool() { return ribTool; }, get regionDrawings() { return regionDrawings; }, get rPlane() { return rPlane; },
+  get extrudeTool() { return extrudeTool; }, get applyOp() { return applyOp; }, get hasSolid() { return hasSolid; }, get prism() { return prism; },
+  get sewSheets() { return sewSheets; }, get curveWires() { return curveWires; }, get pickedEdges() { return pickedEdges; },
+  get bodiesWithPoints() { return bodiesWithPoints; }, get profileItems() { return profileItems; }, get planeRef() { return planeRef; },
+};
 function runFeature(f, ctx) {
   const { bodies, sketches, tools } = ctx;
+  if (EXTRA_TYPES[f.type]) return runExtra(f, ctx, EXTRA_HELPERS);
   if (f.type === 'import') {
     // STEP data (IGES is converted to STEP on import); every solid becomes a body
     const solids = stepSolids(f.blob);
@@ -1808,8 +1825,13 @@ function runFeature(f, ctx) {
   }
 }
 
+// how finely curved faces are divided into triangles in the view: [chord tolerance mm, angle rad]
+export const VIEW_TESS = { coarse: [0.08, 0.4], normal: [0.02, 0.2], fine: [0.006, 0.1], ultra: [0.002, 0.05] };
+let viewTess = 'normal';
+export function setViewTessellation(level) { viewTess = VIEW_TESS[level] ? level : 'normal'; }
+export const viewTessellation = () => viewTess;
 export function meshBody(shape, K = activeKernel()) {
-  const m = K.mesh(shape);
+  const m = K.mesh(shape, ...VIEW_TESS[viewTess]);
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(m.vertices, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(m.normals, 3));
@@ -2074,7 +2096,7 @@ function* regenSteps(project, upTo = null) {
         break run;
       }
       if ((f.type === 'axis' && f.kind === 'cyl') || (f.type === 'plane' && f.kind === 'tangent')) { followCylinder(f, ctx.bodies); break run; }
-      if (f.type === 'plane' || f.type === 'axis' || f.type === 'point' || f.type === 'meshimport' || f.type === 'meshop' || f.type === 'canvas' || f.type === 'decal') break run; // construction geometry / meshes (handled in main.js)
+      if (f.type === 'plane' || f.type === 'axis' || f.type === 'point' || f.type === 'meshimport' || f.type === 'meshop' || f.type === 'canvas' || f.type === 'decal' || f.type === 'pointcloud' || f.type === 'curve3d') break run; // construction geometry / meshes (handled in main.js)
       const ok = K.supports(f);
       if (ok !== true) { errors[f.id] = ok; break run; }
       yield { i, n: list.length, name: f.name || FEATURE_TYPES[f.type] || f.type, type: f.type };

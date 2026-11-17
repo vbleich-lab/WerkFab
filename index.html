@@ -61,6 +61,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
         <hr>
         <button data-act="example">Beispiel: Grundplatte</button>
         <button data-act="example-turn">Beispiel: Drehteil</button>
+        <button data-act="example-mill">Beispiel: Frästestteil</button>
+        <button data-act="example-design">Beispiel: Konstruktionstestteil</button>
         <hr>
         <button data-act="settings">Voreinstellungen…</button>
       </div>
@@ -105,8 +107,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
         <button class="cube-arrow down" data-turn="down" title="Nach unten drehen (90°)"></button>
         <button class="cube-arrow left" data-turn="left" title="Nach links drehen (90°)"></button>
         <button class="cube-arrow right" data-turn="right" title="Nach rechts drehen (90°)"></button>
-        <button class="cube-roll ccw" data-turn="rollCCW" title="Ansicht gegen den Uhrzeigersinn rollen (90°)">↺</button>
-        <button class="cube-roll cw" data-turn="rollCW" title="Ansicht im Uhrzeigersinn rollen (90°)">↻</button>
+        <button class="cube-roll ccw" data-turn="rollCCW" title="Ansicht gegen den Uhrzeigersinn rollen (90°)"><svg viewBox="84 1 26 21"><path d="M108.1 15.9A20 20 0 0 0 90.5 10.3"/><path d="M96 12.8L90.5 10.3 94.8 6"/></svg></button>
+        <button class="cube-roll cw" data-turn="rollCW" title="Ansicht im Uhrzeigersinn rollen (90°)"><svg viewBox="103 14 19 25"><path d="M108.1 15.9A20 20 0 0 1 113.7 33.5"/><path d="M118 29.2L113.7 33.5 111.2 28"/></svg></button>
       </div>
       <div id="cursorTip" hidden></div>
       <div id="loading"><div class="spinner"></div><div id="loadingText">CAD-Kern (OpenCascade) wird geladen …</div></div>

@@ -3349,6 +3349,7 @@ function genProbe(op, t, P, project) {
 // values are left alone.
 const LEAN_KEYS = new Set(['t', 'x', 'y', 'z', 'f']);
 const isPlainFeed = m => { if (m.t !== 'f') return false; for (const k in m) if (!LEAN_KEYS.has(k)) return false; return true; };
+const LEAN_ROUGH = ['rough3d', 'adaptive3d', 'pocket3d', 'adaptive', 'plunge3d'];
 export function leanMoves(moves, tol = 0.0005) {
   const n = moves.length;
   if (n < 3) return moves;
@@ -3482,7 +3483,11 @@ function generateOpInner(op, project, stock, ctx, t, s) {
   }
   P.end();
   // a quarter of the operation's tolerance: arc fitting in the post (half of it) still accepts the thinned arcs
-  let moves = leanMoves(rapidMode(P.m, op, h), Math.min(0.002, Math.max(0.0002, (+op.tolerance || 0.01) / 4)));
+  // Roughing with stock to leave: the jitter of the sampled path (a few hundredths along straight walls) is
+  // thinned away up to 15 % of the stock (at most 0.05 mm) – the finishing pass still finds all of its stock
+  const stl = op.stockOn === false ? 0 : +op.stockToLeave || 0;
+  const roughTol = LEAN_ROUGH.includes(op.type) && stl > 0 ? Math.min(0.05, stl * 0.15) : 0;
+  let moves = leanMoves(rapidMode(P.m, op, h), Math.max(roughTol, Math.min(0.002, Math.max(0.0002, (+op.tolerance || 0.01) / 4))));
   // slower around sharp corners ("Vorschubanpassung"); never on drilling cycles and probing
   if (op.feedOpt && !['drill', 'probe', 'plunge3d'].includes(op.type)) {
     const cf = cornerFeed(moves, +op.feedOptAngle || 25, Math.min(0.95, Math.max(0.05, (+op.feedOptPct || 50) / 100)), +op.feedOptDist > 0 ? +op.feedOptDist : t.dia / 2);

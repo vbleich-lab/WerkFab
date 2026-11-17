@@ -16,7 +16,7 @@ export const VARIABLES = {
   'Programm': { project: 'Projektname', setup: 'Setup-Name', orientation: 'Ausrichtung des Setups', pgm: 'Programmname (Großbuchstaben, ohne Sonderzeichen)', prognum: 'Programmnummer', wcs: 'WKS-Versatz (G54 … G59)', wcsh: 'WKS-Nummer (Okuma G15 H…)', comment: 'Programmkommentar aus dem Setup', date: 'Datum/Uhrzeit', origin: 'Nullpunkt', machine: 'Maschine' },
   'Rohteil': { stockx: 'Länge X', stocky: 'Breite Y', stockz: 'Höhe Z', sminx: 'min X', sminy: 'min Y', sminz: 'min Z', smaxx: 'max X', smaxy: 'max Y', smaxz: 'max Z', safe: 'Sicherheitshöhe Z' },
   'Drehen': { safex: 'Rückzug X (Durchmesser)', safez: 'Rückzug Z', tt: 'Werkzeug+Korrektur (z. B. 0101)', tt6: 'Okuma: Korrektur+Werkzeug+Schneide (z. B. 010101)', maxrpm: 'Drehzahlbegrenzung G50 S (Maschine)', pitch: 'Gewindesteigung' },
-  'Werkzeug': { t: 'Nummer', toolname: 'Bezeichnung', tooldia: 'Durchmesser', rpm: 'Drehzahl', coolanton: 'Kühlmittel-ein-Vorlage (wenn aktiv)', coolantoff: 'Kühlmittel-aus-Vorlage (wenn aktiv)' },
+  'Werkzeug': { t: 'Nummer', toolname: 'Bezeichnung', tooldia: 'Durchmesser', zmin: 'Werkzeugliste: tiefstes Z des Werkzeugs (Programmkoordinaten)', rpm: 'Drehzahl', coolanton: 'Kühlmittel-ein-Vorlage (wenn aktiv)', coolantoff: 'Kühlmittel-aus-Vorlage (wenn aktiv)' },
   'Operation': { opname: 'Name', optype: 'Strategie' },
   'Bewegung': { x: 'X-Wert', y: 'Y-Wert', z: 'Z-Wert', f: 'Vorschub', cx: 'Kreismittelpunkt X (absolut)', cy: 'Kreismittelpunkt Y (absolut)', i: 'I (relativ)', j: 'J (relativ)', ipa: 'Schraubenlinie: Winkel inkremental (°, + = gegen Uhrzeigersinn)', iz: 'Schraubenlinie: Z inkremental' },
   'Bohrzyklus': {
@@ -28,6 +28,7 @@ export const VARIABLES = {
 
 export const SECTIONS = [
   ['header', 'Programmanfang'], ['footer', 'Programmende'],
+  ['toolListHead', 'Werkzeugliste: Überschrift'], ['toolListLine', 'Werkzeugliste: Zeile je Werkzeug ({zmin} = tiefstes Z)'],
   ['opStart', 'Operationsbeginn'], ['toolChangeFirst', 'Erster Werkzeugaufruf'], ['toolChange', 'Werkzeugwechsel'],
   ['spindleOn', 'Spindel ein / Drehzahl'], ['coolantOn', 'Kühlmittel ein'], ['coolantOff', 'Kühlmittel aus'],
   ['rapid', 'Eilgang'], ['linear', 'Linear'], ['arcCW', 'Kreisbogen im Uhrzeigersinn'], ['arcCCW', 'Kreisbogen gegen Uhrzeigersinn'],
@@ -50,6 +51,8 @@ export const SECTIONS = [
 ];
 export const CYCLE_KEYS = { drill: 'cycleDrill', dwell: 'cycleDwell', peck: 'cyclePeck', chip: 'cycleChip', tap: 'cycleTap', tapLeft: 'cycleTapLeft', ream: 'cycleReam', bore: 'cycleBore' };
 
+// tool list at the program start (post property "Werkzeugliste ausgeben"); {zmin} = deepest Z of the tool
+const TOOL_LIST = { toolListHead: '# Werkzeuge:', toolListLine: '# T{t} D{tooldia} {toolname} Zmin {zmin}' };
 const GCODE_MOTION = {
   rapid: 'G0{X}{Y}{Z}', linear: 'G1{X}{Y}{Z}{F}', arcCW: 'G2{X!}{Y!}{Z}{I}{J}{F}', arcCCW: 'G3{X!}{Y!}{Z}{I}{J}{F}',
 };
@@ -57,7 +60,7 @@ const GCODE_BASE = {
   decimals: 3, trimZeros: true, signed: false, modalCodes: true, feedAfterRapid: false, separator: ' ',
   comment: '({text})', asciiComments: true, arcs: true, useDrillCycle: false,
   lineNumbers: { enabled: false, start: 10, step: 10, prefix: 'N', comments: false },
-  opStart: '\n# {opname} - {optype}', spindleOn: 'S{rpm} M3', coolantOn: 'M8', coolantOff: 'M9',
+  opStart: '\n# {opname} - {optype}', spindleOn: 'S{rpm} M3', coolantOn: 'M8', coolantOff: 'M9', ...TOOL_LIST,
   dwell: 'G4 P{dwell}', cycleFirstInDef: true, cyclePoint: '{X}{Y}', cycleEnd: 'G80', ...GCODE_MOTION,
 };
 // ISO canned cycles (Fanuc style); the first hole is part of the cycle block
@@ -159,7 +162,7 @@ export const BUILTIN_POSTS = [
     comment: '; {text}', asciiComments: true, arcs: true, useDrillCycle: true, resetModalPerOp: true, coolantPerOp: false,
     lineNumbers: { enabled: true, start: 0, step: 1, prefix: '', comments: true },
     header: 'BEGIN PGM {pgm} MM\nBLK FORM 0.1 Z X{sminx} Y{sminy} Z{sminz}\nBLK FORM 0.2 X{smaxx} Y{smaxy} Z{smaxz}\n# WerkFab - {project}\n# {setup}: {orientation}, Nullpunkt {origin}{comment}',
-    opStart: '# {opname} - {optype}',
+    opStart: '# {opname} - {optype}', ...TOOL_LIST,
     toolChangeFirst: '# T{t} {toolname} D{tooldia}\nTOOL CALL {t} Z S{rpm}\nL Z{safe} R0 FMAX M3',
     toolChange: 'L Z{safe} R0 FMAX M5\n# T{t} {toolname} D{tooldia}\nTOOL CALL {t} Z S{rpm}\nL Z{safe} R0 FMAX M3',
     spindleOn: '', coolantOn: 'M8', coolantOff: 'M9',
@@ -193,6 +196,7 @@ const LATHE_BASE = {
   lathe: true, decimals: 3, trimZeros: true, signed: false, modalCodes: true, feedAfterRapid: false, separator: ' ',
   comment: '({text})', asciiComments: true, arcs: false, useDrillCycle: false,
   lineNumbers: { enabled: false, start: 10, step: 10, prefix: 'N', comments: false },
+  toolListHead: '# Werkzeuge:', toolListLine: '# T{t} {toolname}',
   opStart: '\n# {opname} - {optype}', spindleOn: 'G97 S{rpm} M3', coolantOn: 'M8', coolantOff: 'M9', dwell: 'G4 X{dwell}',
   rapid: 'G0{X}{Z}', linear: 'G1{X}{Z}{F}', arcCW: '', arcCCW: '',
 };
@@ -407,6 +411,33 @@ export function fitArcs(moves, tol = 0.005, helix = true) {
   return out;
 }
 
+// Arcs in the Z/X plane (G18) and the Y/Z plane (G19): passes of 3D finishing run over fillets and round
+// surfaces as many short lines in a vertical plane. The moves are turned so that the plane lies in X/Y, fitted
+// like XY arcs (no helices: the third axis must stand still) and turned back. Moves with radius compensation or
+// a lead keep their lines (compensation acts in the XY plane). Plane arcs carry pl: 18 | 19, the centre in
+// cx/cy/cz and cw in the sense of the plane (G18: looking from +Y with Z to the right and X up).
+export function fitPlaneArcs(moves, tol = 0.005) {
+  let res = moves;
+  for (const pl of [18, 19]) {
+    // u/v of the plane: G18 (z, x), G19 (y, z); w the axis that must stand still
+    const [u, v, w] = pl === 18 ? ['z', 'x', 'y'] : ['y', 'z', 'x'];
+    const sw = res.map(m => {
+      if (!Number.isFinite(m.x) || !Number.isFinite(m.y) || !Number.isFinite(m.z)) return { t: 'x', a: 0, o: m }; // never a start point
+      const keep = m.t !== 'f' || m.comp || m.lead || m.a != null || m.dwell;
+      return { t: keep ? 'x' : 'f', x: m[u], y: m[v], z: m[w], f: m.f, o: m };
+    });
+    const fit = fitArcs(sw, tol, false);
+    if (fit.length === sw.length) continue;
+    res = fit.map(m => {
+      if (m.t !== 'a') return m.o;
+      const e = { [u]: m.x, [v]: m.y, [w]: m.z };
+      const c = { [u]: m.cx, [v]: m.cy, [w]: m.z };
+      return { t: 'a', pl, x: e.x, y: e.y, z: e.z, f: m.f, cx: c.x, cy: c.y, cz: c.z, cw: m.cw, sw: m.sw, r: m.r };
+    });
+  }
+  return res;
+}
+
 function activeOps(project, results, ops = project.cam.ops) {
   return ops.filter(op => {
     const r = results.get(op.id);
@@ -584,7 +615,10 @@ class Writer {
     const src = this.srcMap.get(String(tpl)) || this.src || null;
     const n0 = this.out.length;
     const res = this.expandLines(tpl, vars, motion, d, sep);
-    for (let i = n0; i < this.out.length; i++) if (this.out[i].src === undefined) this.out[i].src = src;
+    for (let i = n0; i < this.out.length; i++) {
+      if (this.out[i].src === undefined) this.out[i].src = src;
+      if (this.curOp && this.out[i].op === undefined) this.out[i].op = this.curOp;
+    }
     return res;
   }
 
@@ -613,7 +647,7 @@ class Writer {
           if (this.qfeed?.has(f)) return `${sep}FQ${this.qfeed.get(f)}`;
           return `${sep}F${f}`;
         }
-        if (motion && (key === 'I' || key === 'J')) return `${sep}${key}${this.num(motion[key.toLowerCase()])}`;
+        if (motion && (key === 'I' || key === 'J' || key === 'K')) return `${sep}${key}${this.num(motion[key.toLowerCase()])}`;
         const v = vars[key] ?? vars[key.toLowerCase()];
         if (v == null) return '';
         return typeof v === 'number' ? this.num(v) : String(v);
@@ -697,6 +731,7 @@ export const POST_PROPS = [
   { key: 'probeFeed', group: 'probing', label: 'Antastvorschub', type: 'num', def: 300, help: 'Vorschub für das geschützte Anfahren (Renishaw)' },
   { key: 'lineNumbers', group: 'builtin', label: 'Satznummern', type: 'bool', def: { heidenhain: true, default: false } },
   { key: 'arcs', group: 'builtin', label: 'Kreisbögen ausgeben', type: 'bool', def: true },
+  { key: 'planeArcs', group: 'builtin', label: 'Kreisbögen in XZ und YZ (G18/G19)', type: 'bool', def: true, only: ['fanuc', 'sinumerik', 'linuxcnc', 'grbl', 'gcode'], help: 'Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten' },
   { key: 'cycles', group: 'builtin', label: 'Bohrzyklen ausgeben', type: 'bool', def: true },
 ];
 export const postFamily = def => def.family || (def.lathe ? 'lathe' : ['heidenhain', 'fanuc', 'sinumerik', 'linuxcnc', 'grbl'].find(f => String(def.id).startsWith(f)) || 'gcode');
@@ -742,6 +777,18 @@ export function runPost(def, project, gen, opts = {}) {
   const o = lathe ? { x: 0, y: 0, z: stock.modelTop } : originOf(setup, stock);
   const W = new Writer({ ...def, lineNumbers: { ...(def.lineNumbers || {}), enabled: !!P.lineNumbers } });
   for (const [key] of SECTIONS) W.tag(def[key], key);
+  // G18 / G19 arc templates from the XY ones (G2 X Y Z I J F → G2 X Z I K F in G18, G2 Y Z J K F in G19)
+  W.plane = 17;
+  const planeTpl = (() => {
+    if (hh || lathe || !propApplies(POST_PROPS.find(p => p.key === 'planeArcs'), def)) return null;
+    const ok = t => typeof t === 'string' && !t.includes('\n') && /\{I\}\{J\}/.test(t) && /\{X!?\}/.test(t) && /\{Y!?\}/.test(t) && /\{Z!?\}/.test(t);
+    if (!ok(def.arcCW) || !ok(def.arcCCW)) return null;
+    const mk = (t, pl) => {
+      const s = t.replace(/\{([XYZ])!\}/g, '{$1}');
+      return W.tag(pl === 18 ? s.replace('{X}', '{X!}').replace('{Z}', '{Z!}').replace('{I}{J}', '{I}{K}') : s.replace('{Y}', '{Y!}').replace('{Z}', '{Z!}').replace('{I}{J}', '{J}{K}'), t === def.arcCW ? 'arcCW' : 'arcCCW');
+    };
+    return { 18: [mk(def.arcCW, 18), mk(def.arcCCW, 18)], 19: [mk(def.arcCW, 19), mk(def.arcCCW, 19)] };
+  })();
   W.tag(def.drillCycle, 'cycleDrill'); W.tag(def.drillPoint, 'cyclePoint');
   const machine = opts.machine;
   const warnings = [];
@@ -822,8 +869,24 @@ export function runPost(def, project, gen, opts = {}) {
   if (P.writeVersion) W.expand('# WerkFab CAD/CAM 1.0');
   if (P.writeToolList) {
     const used = [...new Map(ops.filter(op => results.get(op.id).tool).map(op => [results.get(op.id).tool.id, results.get(op.id).tool])).values()];
-    if (used.length) W.expand('# Werkzeuge:');
-    for (const t of used) W.expand(`# T${t.number} D${+(+t.dia).toFixed(3)} ${t.name}`);
+    if (used.length) W.expand(W.tag(def.toolListHead ?? TOOL_LIST.toolListHead, 'toolListHead'), base);
+    // deepest Z of each tool in program coordinates (milling only, not on tilted planes or rotary ops)
+    const zMin = new Map();
+    if (!lathe && tilt.identity) for (const op of ops) {
+      const r = results.get(op.id);
+      if (!r.tool || r.rotary) continue;
+      let z = zMin.get(r.tool.id) ?? Infinity;
+      for (const m of r.moves || []) if (Number.isFinite(m.z) && m.z < z) z = m.z;
+      if (op.type === 'drill' && Number.isFinite(r.cycle?.bottom)) z = Math.min(z, r.cycle.bottom);
+      zMin.set(r.tool.id, z);
+    }
+    const line = def.toolListLine ?? (lathe ? '# T{t} {toolname}' : TOOL_LIST.toolListLine);
+    for (const t of used) {
+      const z = zMin.get(t.id), ok = Number.isFinite(z);
+      // no depth known (lathe, tilted plane, rotary): drop "{zmin}" together with the word in front of it ("Zmin")
+      const tpl = ok ? line : String(line).replace(/[ \t]*(\S+[ \t]+)?\{zmin\}/g, '');
+      W.expand(W.tag(tpl, 'toolListLine'), { ...base, t: String(t.number), toolname: t.name, tooldia: String(+(+t.dia).toFixed(3)), zmin: ok ? W.num(z - o.z) : '' });
+    }
   }
   if (hh && P.tcpm && !lathe) W.expand('FUNCTION TCPM F TCP AXIS POS PATHCTRL AXIS');
 
@@ -888,6 +951,7 @@ export function runPost(def, project, gen, opts = {}) {
   // after a program stop the spindle and the coolant are switched on again by the next operation
   let respin = false;
   ops.forEach((op, oi) => {
+    W.curOp = op.name || op.id;
     const r = results.get(op.id);
     // ---- manual NC: lines without a toolpath ----
     if (r.manual) {
@@ -938,8 +1002,33 @@ export function runPost(def, project, gen, opts = {}) {
       // the tool name often carries the diameter already ("Schaftfräser Ø6"): no second D6 behind it
       if (ascii(String(t.name)).replace(',', '.').includes('D' + tv.tooldia)) tpl = W.tag(String(tpl || '').replace(' D{tooldia}', ''), tool === null && def.toolChangeFirst ? 'toolChangeFirst' : 'toolChange');
       if (probe) tpl = W.tag(String(tpl || '').replace(/ M3\b/g, '').replace(/ S\{rpm\}/g, ''), 'toolChange'); // no spindle for the touch probe
-      W.expand(tpl, tv);
-      W.resetModal();
+      // after the change the tool first goes over the start point of the operation in X/Y, then down to the
+      // safe height: never straight down from the change position
+      const start = !lathe && !probe && !r.rotary && tilt.identity ? r.moves.find(m => Number.isFinite(m.x) && Number.isFinite(m.y)) : null;
+      if (start) {
+        const tcKey = tool === null && def.toolChangeFirst ? 'toolChangeFirst' : 'toolChange';
+        const ls = String(tpl || '').split('\n');
+        let call = -1;
+        ls.forEach((l, i) => { if (/TOOL CALL|\bM0?6\b|\bM0?0\b|^T\{t/.test(l)) call = i; });
+        const zAt = ls.findIndex((l, i) => i > call && /Z\{safe\}/.test(l));
+        const head = zAt < 0 ? ls : ls.slice(0, zAt), tail = zAt < 0 ? [] : ls.slice(zAt);
+        // Heidenhain: the spindle starts with the move over the part (M3 off the Z line)
+        let spin = '';
+        if (hh && tail.length && /\s(M3|M13)\s*$/.test(tail[0])) { spin = tail[0].match(/\s(M3|M13)\s*$/)[1]; tail[0] = tail[0].replace(/\s(M3|M13)\s*$/, ''); }
+        if (head.length) W.expand(W.tag(head.join('\n'), tcKey), tv);
+        W.resetModal();
+        const xyTpl = hh ? `L{X!}{Y!} R0 FMAX${spin ? ' ' + spin : ''}` : String(def.rapid || 'G0{X}{Y}{Z}').replace(/\{X\}/, '{X!}').replace(/\{Y\}/, '{Y!}');
+        W.expand(W.tag(xyTpl, 'rapid'), tv, { x: start.x - o.x, y: start.y - o.y, z: null });
+        const st = { ...W.st };
+        if (tail.length) W.expand(W.tag(tail.join('\n'), tcKey), tv);
+        W.resetModal();
+        // X/Y are known now (and Z when the template went to the safe height): the path does not repeat them
+        W.st.X = st.X; W.st.Y = st.Y;
+        if (tail.length) W.st.Z = W.num(safe - o.z);
+      } else {
+        W.expand(tpl, tv);
+        W.resetModal();
+      }
       if (!probe && !live) W.expand(def.spindleOn, tv);
       tool = t.id;
       if (P.preloadTool) {
@@ -1146,7 +1235,8 @@ export function runPost(def, project, gen, opts = {}) {
       const tolA = Math.min(0.05, Math.max(0.001, (+op.tolerance || 0.01) / 2));
       // helices only where the post can write them (helix template, or an arc template with Z)
       const helixOk = !!(def.helixCW && def.helixCCW) || (/\{Z/.test(def.arcCW || '') && /\{Z/.test(def.arcCCW || ''));
-      const moves = P.arcs !== false && !lathe && !r.rotary ? fitArcs(r.moves, tolA, helixOk) : r.moves;
+      let moves = P.arcs !== false && !lathe && !r.rotary ? fitArcs(r.moves, tolA, helixOk) : r.moves;
+      if (planeTpl && P.arcs !== false && P.planeArcs !== false && !lathe && !r.rotary) moves = fitPlaneArcs(moves, tolA);
       // 4-axis moves: machine values (Y/Z of the tip with the part turned by A), rotary word added to the templates
       const rot = r.rotary;
       const withA = tpl => (!rot || /\{A!?\}/.test(tpl || '') ? tpl : W.tag(String(tpl || '').replace('{Z}', '{Z}{A}'), tpl === def.rapid ? 'rapid' : 'linear'));
@@ -1205,6 +1295,10 @@ export function runPost(def, project, gen, opts = {}) {
           const nx = list[mi + 1];
           if (mc && comp === mc && m.t === 'f' && px != null && Math.hypot(m.x - px, m.y - py) > 1e-4 && (!nx || nx.t === 'r' || !nx.comp)) mc = null;
         }
+        // working plane: G18 / G19 only around the arcs in those planes, G17 again before everything else that
+        // depends on it (XY arcs, radius compensation) and at the end of the operation
+        const wantPl = m.t === 'a' && m.pl ? m.pl : (m.t === 'a' || (m.comp || null) !== comp) ? 17 : W.plane;
+        if (planeTpl && wantPl !== W.plane) { W.expand(`G${wantPl}`); W.plane = wantPl; }
         if (mc !== comp && !lathe) {
           if (fam === 'grbl') { if (mc) warnings.push(`${op.name}: GRBL kennt keine Radiuskorrektur (G41/G42) – Bahn ohne Korrektur ausgegeben`); }
           else if (!hh) W.expand(mc ? `${mc === 'L' ? 'G41' : 'G42'}${fam === 'sinumerik' ? '' : ' D' + t.number}` : 'G40');
@@ -1235,7 +1329,12 @@ export function runPost(def, project, gen, opts = {}) {
           return s === String(tpl || '') ? tpl : W.tag(s, tpl === def.rapid ? 'rapid' : 'linear');
         };
         if (m.t === 't') { W.expand(def.threadMove, { ...tv, pitch: m.pitch }, { ...mv, f: null }); W.rapidBefore = false; px = m.x; py = m.y; pz = m.z; continue; }
-        if (m.t === 'a') {
+        if (m.t === 'a' && m.pl) {
+          // plane arc: the start is the previous end point (px/py/pz), centre words relative to it
+          Object.assign(mv, { arc: true, i: m.cx - px, j: m.cy - py, k: m.cz - pz });
+          W.expand(m.cw ? planeTpl[m.pl][0] : planeTpl[m.pl][1], tv, mv);
+          W.rapidBefore = false; cpDrift = 0;
+        } else if (m.t === 'a') {
           Object.assign(mv, { arc: true, cx: m.cx - o.x, cy: m.cy - o.y, i: m.cx - px, j: m.cy - py });
           let helix = pz != null && Math.abs(m.z - pz) > 1e-6 && (m.cw ? def.helixCW : def.helixCCW);
           let arcT = m.cw ? def.arcCW : def.arcCCW;
@@ -1268,6 +1367,7 @@ export function runPost(def, project, gen, opts = {}) {
         if (hh && comp && fam !== 'grbl') for (let k = mark0; k < W.out.length; k++) W.out[k].text = W.out[k].text.replace(/ R0\b/, comp === 'L' ? ' RL' : ' RR');
         px = m.x; py = m.y; pz = m.z;
       }
+      if (planeTpl && W.plane !== 17) { W.expand('G17'); W.plane = 17; }
       if (comp && !hh && fam !== 'grbl' && !lathe) W.expand('G40');
       if (polarOn) { W.expand(W.tag(def.polarOff, 'polarOff'), tv); W.resetModal(); }
       if (yOn) { W.expand(W.tag(def.yOff, 'yOff'), tv); W.resetModal(); }
@@ -1317,7 +1417,8 @@ export function runPost(def, project, gen, opts = {}) {
   }
   const code = W.text();
   // src[i]: section key of the template that wrote line i (null: post properties / automatic lines)
-  return { code, lines: code.split('\n').length, time: totalTime, warnings: [...new Set(warnings)], src: W.out.map(l => l.src || null) };
+  // opOf[i]: name of the operation that wrote line i (null: program start and end)
+  return { code, lines: code.split('\n').length, time: totalTime, warnings: [...new Set(warnings)], src: W.out.map(l => l.src || null), opOf: W.out.map(l => l.op || null) };
 }
 
 // Entry point used by the app: post id from project.post.flavor (or the machine).

@@ -107,6 +107,22 @@ export const DEFAULTS = {
   // view
   fitMargin: 'normal',      // tight | normal | wide: room around the model when fitting the view
   showFps: false,           // pictures per second at the bottom of the view
+  // more preferences
+  snapshotMinutes: 10,      // restore points of the open design every n minutes (0 = off)
+  rightClickOk: false,      // a right-click into a dialog presses its OK button
+  wheelEdit: true,          // mouse wheel and arrow keys change the number in a focused field
+  dlgButtonsTop: false,     // OK / Abbrechen at the top of dialogs
+  tabsOnly: false,          // the ribbon shows only its tabs (a click opens one)
+  bgImage: '',              // picture behind the model (data URL, for background: 'image')
+  tessellation: 'normal',   // coarse | normal | fine | ultra: triangles of curved faces in the view
+  showViewAngle: false,     // azimuth and elevation of the view at the bottom right
+  planeNames: 'xyz',        // xyz (XY, XZ, YZ) | views (Oben, Vorne, Rechts)
+  exportPattern: '{design}-{body}', // file names of exports: {design}, {body}, {date}
+  rememberDialog: true,     // command dialogs start with the values used last time
+  dimTextSize: 'normal',    // small | normal | large: text of sketch dimensions
+  toolToggle: true,         // a click on the button of the running sketch tool ends it
+  cubeArrowsInvert: false,  // the arrows at the view cube turn the other way
+  agentAccess: 'edit',      // edit | read: what a connected AI agent may do
 };
 
 export const MOUSE_PRESETS = {

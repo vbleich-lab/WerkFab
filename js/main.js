@@ -11,7 +11,7 @@ import { exportGLB } from './gltf.js';
 import { meshMass, stlBinary, urdfNames, buildUrdf, buildSdf, sdfConfig, buildMjcf, convexHull, URDF_CHAIN } from './urdf.js';
 import { setActiveKernel, activeKernelId, getKernel } from './kern/index.js';
 import './kern/rust.js';
-import { THREAD_SIZES, meshBody, exportGeometry } from './model.js';
+import { THREAD_SIZES, meshBody, exportGeometry, setViewTessellation, viewTessellation } from './model.js';
 import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache } from './model.js';
 import { Sketcher } from './sketcher.js';
 import { buildHeightmap, cornerOf } from './heightmap.js';
@@ -19,7 +19,7 @@ import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel
 import { postProcess, runPost, allPosts, findPost, copyPost, setPostLibrary, SECTIONS, VARIABLES, POST_PROPS, POST_PROP_GROUPS, postProps, propApplies, propType, COOLANT_MODES } from './post.js';
 import { allMachines, findMachine, copyMachine, newMachine, machineChecks, KIN_TYPES, kinAngles } from './machines.js';
 import { StockSim, defaultFluteLen, defaultHolderDia, defaultStickout } from './sim.js';
-import { exampleProject, exampleTurning } from './example.js';
+import { exampleProject, exampleTurning, exampleMilling, exampleDesign } from './example.js';
 import { describeEntity, entityPolys, translateEntity, rotateEntity, scaleEntity, mirrorEntity as mirrorAbout } from './profiles.js';
 import { meshInertia, zipStore } from './mesh.js';
 import { applyCorners, cornerPlan, curveCorner, filletCurves, chamferCurves, unbridge, bridgeRadius } from './sketchcorner.js';
@@ -33,9 +33,10 @@ import { BASE_PLANES, sketchPlane, planeLabel, planeOffset, planeFromFace, basis
 import { resolveProject, paramScope, evalExpr } from './params.js';
 import { ICONS } from './icons.js';
 import { getSettings, saveSettings, resetSettings, DEFAULTS, MOUSE_PRESETS, ACCENTS, DESIGNS, UI_FONTS, LOOK_KEYS, getProfiles, saveProfile, deleteProfile } from './settings.js';
-import { getBlob, putBlob, loadBlobs, withBlobs, takeBlobs, igesToStep, stepToIges, meshToStep, onFullKernel, requestFullKernel, parseToolLibrary, convertCps } from './interop.js';
+import { getBlob, putBlob, loadBlobs, withBlobs, takeBlobs, igesToStep, stepToIges, meshToStep, onFullKernel, requestFullKernel, fullKernelReady, parseToolLibrary, convertCps } from './interop.js';
 import { makeDrawing, SHEETS, VIEWS as DRAW_VIEWS } from './drawing.js';
-import { bodyMatrix, hasAssembly, transformShape, JOINT_TYPES, JOINT_DOF, jointValues, jointFrame, jointMotion } from './assembly.js';
+import { bodyMatrix, hasAssembly, transformShape, JOINT_TYPES, JOINT_DOF, jointValues, jointFrame, jointMotion, LINK_KINDS, linkRatio } from './assembly.js';
+import { parsePointCloud, cloudBounds, cloudHeights } from './pointcloud.js';
 import { STD_FAMILIES, STD_LENGTHS, stdFamily, stdPartName, stdPartSteps, boltSizeFor, boltStack, boltHole } from './stdparts.js';
 import { unfoldFaces } from './unfold.js';
 import { flatPattern, polyEdges, polyArcs, bendAllowance, sheetK, sheetChecks, SHEET_RULES, nestParts, pressForce, SHEET_RM, holeCircle, collarPlan, cutProgram, CUT_CONTROLS, shellPattern, transitionPattern, tabSlots } from './sheetmetal.js';
@@ -94,6 +95,22 @@ function num(value, set, opt = {}) {
     set(+v.toFixed(4));
   });
   i.addEventListener('keydown', e => { if (e.key === 'Enter') i.blur(); });
+  // Einstellungen → Allgemein: mouse wheel and ↑ ↓ change a plain number (Umschalt ×10, Alt ×0,1)
+  const stepBy = (dir, e) => {
+    const v = parseFloat(i.value.trim().replace(',', '.'));
+    if (!getSettings().wheelEdit || i.disabled || !/^-?\d*[.,]?\d+$/.test(i.value.trim()) || !Number.isFinite(v)) return false;
+    const st = (opt.int ? 1 : +opt.step || 1) * (e.shiftKey ? 10 : e.altKey && !opt.int ? 0.1 : 1);
+    let n = +(v + dir * st).toFixed(4);
+    if (opt.min != null) n = Math.max(opt.min, n);
+    i.value = String(n);
+    // the panel is drawn anew after the change: keep the focus on the same field for the next step
+    const root = i.closest('#propsBody, .modal, .prefs, .win') || document.body, idx = [...root.querySelectorAll('input')].indexOf(i);
+    i.dispatchEvent(new Event('change'));
+    setTimeout(() => { if (!i.isConnected && root.isConnected) root.querySelectorAll('input')[idx]?.focus(); }, 30);
+    return true;
+  };
+  i.addEventListener('wheel', e => { if (document.activeElement === i && stepBy(e.deltaY < 0 ? 1 : -1, e)) e.preventDefault(); }, { passive: false });
+  i.addEventListener('keydown', e => { if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && stepBy(e.key === 'ArrowUp' ? 1 : -1, e)) e.preventDefault(); });
   return opt.unit ? h('div', { class: 'unit' }, i, h('span', null, opt.unit)) : i;
 }
 const txt = (value, set) => {
@@ -121,6 +138,13 @@ function download(name, data, type) {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 const safeName = () => state.project.name.replace(/[^\w\-äöüÄÖÜß ]/g, '_');
+// file name of an exported body after the pattern of the preferences: {design}, {body}, {date}
+function exportName(body = '') {
+  const pat = String(getSettings().exportPattern || '{design}-{body}');
+  const s = pat.replaceAll('{design}', state.project.name || 'design').replaceAll('{body}', body).replaceAll('{date}', new Date().toISOString().slice(0, 10))
+    .replace(/[\\/:*?"<>|]+/g, '_').replace(/([-_ .])[-_ .]+/g, '$1').replace(/^[-_ .]+|[-_ .]+$/g, '');
+  return s || safeName();
+}
 
 let toastTimer;
 function status(msg) {
@@ -297,7 +321,8 @@ function turnView(kind) {
   }
   vp.setViewDir(d, null, true);
 }
-document.querySelectorAll('#cubeWrap [data-turn]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); turnView(b.dataset.turn); }));
+const CUBE_FLIP = { left: 'right', right: 'left', up: 'down', down: 'up', rollCW: 'rollCCW', rollCCW: 'rollCW' };
+document.querySelectorAll('#cubeWrap [data-turn]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); const k = b.dataset.turn; turnView(getSettings().cubeArrowsInvert ? CUBE_FLIP[k] || k : k); }));
 $('#cubeHome').onclick = () => fitView();
 
 // ---------- SpaceMouse ----------
@@ -393,7 +418,9 @@ let model = { key: null, bodies: [], errors: {}, box: new THREE.Box3() };
 const ASYNC_MS = 600;
 let regenJob = null;
 function modelKey(rp, upTo) {
-  return JSON.stringify([rp.features.map(featureKey), upTo, activeKernelId()]);
+  // the full kernel is part of the key: a computation that started before it was loaded (and let the steps that
+  // need it fail) is out of date once it is there, even while it is still running
+  return JSON.stringify([rp.features.map(featureKey), upTo, activeKernelId(), viewTessellation(), fullKernelReady()]);
 }
 // the model right now, computed on the spot (Python scripts ask for bodies while they run)
 function modelSync() {
@@ -642,6 +669,16 @@ function analysisBanner() {
     showBanner(['Formschräge-Analyse · Entformung', dirSel, 'min.', minIn, '°  ',
       h('span', { style: 'color:#2fa84e' }, '■ entformbar'), h('span', { style: 'color:#f2c726' }, '■ zu steil'), h('span', { style: 'color:#d64040' }, '■ Hinterschnitt'),
       h('button', { onclick: () => setAnalysis(null) }, 'Schließen')]);
+  } else if (analysis.mode === 'curv') {
+    const r = h('input', { type: 'range', min: 0.002, max: 0.5, step: 0.002, value: curvMat.uniforms.scale.value, style: 'width:140px' });
+    r.oninput = () => { curvMat.uniforms.scale.value = +r.value; };
+    showBanner(['Krümmung: blau = eben, grün = schwach, rot = stark gekrümmt.', h('span', { style: 'margin-left:10px' }, 'Bereich'), r, h('button', { onclick: () => setAnalysis(null) }, 'Schließen')]);
+  } else if (analysis.mode === 'compcolors') {
+    showBanner(['Komponentenfarben: jeder Körper in einer eigenen Farbe.', h('button', { onclick: () => setAnalysis(null) }, 'Schließen')]);
+  } else if (analysis.mode === 'access') {
+    const dirSel = sel([['0,0,1', '+Z'], ['0,0,-1', '−Z'], ['1,0,0', '+X'], ['-1,0,0', '−X'], ['0,1,0', '+Y'], ['0,-1,0', '−Y']], analysis.dir.join(','), v => { analysis.dir = v.split(',').map(Number); accessColours(); rebuildScene(); });
+    showBanner(['Zugänglichkeit aus Richtung', dirSel, h('span', { style: 'color:#33ad52' }, '■ erreichbar'), h('span', { style: 'color:#eb9926' }, '■ verdeckt'), h('span', { style: 'color:#d64040' }, '■ abgewandt'),
+      h('button', { onclick: () => setAnalysis(null) }, 'Schließen')]);
   }
 }
 function setAnalysis(mode) {
@@ -649,11 +686,15 @@ function setAnalysis(mode) {
   if (analysis.mode) analysisBanner(); else showBanner(null);
   renderToolbar();
   rebuildScene();
+  if (analysis.mode === 'access') { accessColours(); vp.render?.(); }
 }
 
 let camMats = null;
 function bodyMaterial(id) {
   if (analysis.mode === 'zebra' && state.workspace === 'design') return zebraMat;
+  if (analysis.mode === 'curv' && state.workspace === 'design') return curvMat;
+  if (analysis.mode === 'compcolors' && state.workspace === 'design') return compColourMat(id);
+  if (analysis.mode === 'access' && state.workspace === 'design') return accessMat;
   if (analysis.mode === 'draft' && state.workspace === 'design') {
     draftMat.uniforms.dir.value.set(...analysis.dir);
     draftMat.uniforms.minA.value = Math.sin(analysis.min * Math.PI / 180);
@@ -809,13 +850,13 @@ const matBody = new THREE.MeshPhysicalMaterial({ color: 0xc3ccd5, metalness: 0.5
 const matGhost = new THREE.MeshStandardMaterial({ color: 0x8fa3b8, transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide });
 const matEdge = new THREE.LineBasicMaterial({ color: 0x1c2530 });
 const matEdgeGhost = new THREE.LineBasicMaterial({ color: 0x1c2530, transparent: true, opacity: 0.25 });
-// selection = light blue, pre-highlight under the mouse = black edges
+// selection = light blue, pre-highlight under the mouse = blue tint / blue thin edge
 const matEdgeSel = new THREE.LineBasicMaterial({ color: 0x9fdcff, depthTest: false, transparent: true });
 const matMeasure = new THREE.LineBasicMaterial({ color: 0xff7a00, depthTest: false, transparent: true });
 
 // ---------- face selection (highlighted like in CAD programs) ----------
 const matFaceSel = new THREE.MeshBasicMaterial({ color: 0x9fdcff, transparent: true, opacity: 0.88, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-const matFaceHover = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+const matFaceHover = new THREE.MeshBasicMaterial({ color: 0x4fb8ff, transparent: true, opacity: 0.45, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
 const _tri = new THREE.Triangle(), _fq = new THREE.Vector3(), _fp = new THREE.Vector3();
 let faceCache = { key: null, map: new Map() };
 // B-rep face of the model that contains a stored pick point
@@ -1188,6 +1229,17 @@ function edgeMesh(body, ei, mat = matEdgeHover) {
   });
   return g;
 }
+// one B-rep edge as a normal (thin) line in the highlight colour
+const matEdgeHoverLine = new THREE.LineBasicMaterial({ color: 0x4fb8ff, depthTest: false, transparent: true });
+function edgeLine(body, ei) {
+  const pos = body.edges.attributes.position.array, pts = [];
+  body.segEdge.forEach((e, s) => { if (e === ei) for (let k = 0; k < 6; k++) pts.push(pos[s * 6 + k]); });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  const l = new THREE.LineSegments(g, matEdgeHoverLine);
+  l.renderOrder = 12;
+  return l;
+}
 // hover objects follow assembly placements of their body
 function placeLike(obj, bi) {
   const mesh = vp.model.children.find(o => o.isMesh && o.userData.body === bi);
@@ -1238,13 +1290,9 @@ function updateFaceHover(e) {
   vp.clear(hoverGroup);
   hoverKey = key;
   const m = getModel();
-  if (ei != null) hoverGroup.add(placeLike(edgeMesh(m.bodies[ebi], ei), ebi));
-  else if (bi != null) {
-    const fg = new THREE.Group();
-    fg.add(faceMesh(m.bodies[bi], fid, matFaceHover));
-    for (const loop of faceLoops3D(m.bodies[bi], fid)) fg.add(polyTubes(loop, matEdgeHover));
-    hoverGroup.add(placeLike(fg, bi));
-  }
+  // pre-highlight = only a colour change: thin edge line, tinted face without outline
+  if (ei != null) hoverGroup.add(placeLike(edgeLine(m.bodies[ebi], ei), ebi));
+  else if (bi != null) hoverGroup.add(placeLike(faceMesh(m.bodies[bi], fid, matFaceHover), bi));
 }
 vp.canvas.addEventListener('pointermove', e => {
   if (hoverRaf) return;
@@ -1483,6 +1531,54 @@ function drawPlanes() {
       vp.sketches.add(s);
     }
   }
+  // 3D curves and point clouds
+  for (const f of rf.slice(0, n ?? undefined)) {
+    if ((f.type !== 'curve3d' && f.type !== 'pointcloud') || f.hidden || f.suppressed) continue;
+    const selected = state.sel?.kind === 'feature' && state.sel.id === f.id;
+    if (f.type === 'pointcloud') {
+      const pts = f.pts || [];
+      if (!pts.length) continue;
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+      const cloud = new THREE.Points(g, new THREE.PointsMaterial({ color: selected ? 0x9fdcff : 0x3a9be0, size: Math.max(1.5, +f.size || 2), sizeAttenuation: false }));
+      cloud.userData = { cloud: f.id };
+      vp.sketches.add(cloud);
+      continue;
+    }
+    const P = curve3dPoints(f).map(q => new THREE.Vector3(...q));
+    if (!P.length) continue;
+    if (f.kind === 'point' || P.length === 1) {
+      for (const q of P) { const s = new THREE.Mesh(ptGeo, selected ? matPtSel : matCurve3dPt); s.position.copy(q); s.scale.setScalar(Math.max(0.4, size * 0.008)); s.renderOrder = 7; vp.sketches.add(s); }
+      continue;
+    }
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(P), selected ? matAxisSel : matCurve3d);
+    line.renderOrder = 6;
+    line.userData = { curve3d: f.id };
+    vp.sketches.add(line);
+    for (const q of f.pts || []) { const s = new THREE.Mesh(ptGeo, matCurve3dPt); s.position.set(...q); s.scale.setScalar(Math.max(0.3, size * 0.005)); s.renderOrder = 7; vp.sketches.add(s); }
+  }
+}
+const matCurve3d = new THREE.LineBasicMaterial({ color: 0x2f7fd0, depthTest: false, transparent: true });
+const matCurve3dPt = new THREE.MeshBasicMaterial({ color: 0x2f7fd0, depthTest: false, transparent: true });
+// the points of a 3D curve for drawing: straight lines through the points, an arc through three points,
+// a smooth spline through all points
+function curve3dPoints(f) {
+  const P = (f.pts || []).map(q => q.map(Number));
+  if (f.kind === 'spline' && P.length >= 3) return new THREE.CatmullRomCurve3(P.map(q => new THREE.Vector3(...q)), false, 'centripetal').getPoints(Math.min(400, P.length * 24)).map(v => v.toArray());
+  if (f.kind === 'arc' && P.length === 3) {
+    const [a, b, c] = P.map(q => new THREE.Vector3(...q));
+    const ab = b.clone().sub(a), ac = c.clone().sub(a), nrm = ab.clone().cross(ac);
+    if (nrm.lengthSq() < 1e-12) return P;
+    // centre of the circle through the three points
+    const ctr = a.clone().add(nrm.clone().cross(ab).multiplyScalar(ac.lengthSq()).add(ac.clone().cross(nrm).multiplyScalar(ab.lengthSq())).divideScalar(2 * nrm.lengthSq()));
+    const u = a.clone().sub(ctr), r = u.length(), x = u.clone().normalize(), y = nrm.clone().normalize().cross(x);
+    const ang = v => { const w = v.clone().sub(ctr); let t = Math.atan2(w.dot(y), w.dot(x)); if (t < 0) t += 2 * Math.PI; return t; };
+    const tb = ang(b), tc = ang(c), end = tb <= tc ? tc : tc; // a → b → c runs counter-clockwise about nrm
+    const out = [];
+    for (let k = 0; k <= 64; k++) { const t = (end * k) / 64; out.push(ctr.clone().addScaledVector(x, r * Math.cos(t)).addScaledVector(y, r * Math.sin(t)).toArray()); }
+    return out;
+  }
+  return P;
 }
 const matAxis = new THREE.LineDashedMaterial({ color: 0xe07b00, dashSize: 4, gapSize: 2.5, depthTest: false, transparent: true });
 const matAxisSel = new THREE.LineBasicMaterial({ color: 0x9fdcff, depthTest: false, transparent: true });
@@ -1512,6 +1608,12 @@ function pickPoint3D(e) {
     for (const [a, c] of ends.values()) { cand(a); cand(c); }
   }
   for (const f of resolved().features) if (f.type === 'point' && !f.suppressed) cand(new THREE.Vector3(+f.x || 0, +f.y || 0, +f.z || 0));
+  // points of 3D curves and point clouds (large clouds: every k-th point)
+  for (const f of resolved().features) {
+    if (f.suppressed || f.hidden) continue;
+    if (f.type === 'curve3d') for (const q of f.pts || []) cand(new THREE.Vector3(...q.map(Number)));
+    if (f.type === 'pointcloud' && f.pts) { const k = Math.max(1, Math.floor(f.pts.length / 3 / 30000)); for (let i = 0; i < f.pts.length; i += 3 * k) cand(new THREE.Vector3(f.pts[i], f.pts[i + 1], f.pts[i + 2])); }
+  }
   cand(new THREE.Vector3());
   if (best) return best.toArray().map(v => +v.toFixed(4));
   const hit = vp.raycast(e, vp.model.children.filter(o => o.isMesh))[0];
@@ -1839,12 +1941,23 @@ function setHoverPlane(obj) {
   }
   vp.canvas.style.cursor = obj ? 'pointer' : '';
 }
+// a sketch tool from its button; a click on the button of the running tool ends it (Einstellungen → Skizze)
+function useSkTool(tool) {
+  sketcher.setTool(getSettings().toolToggle && sketcher.tool === tool && tool !== 'select' ? 'select' : tool);
+  renderToolbar();
+}
+// names of the origin planes (Einstellungen → Konstruktion): XY / XZ / YZ or the views they face
+function basePlaneName(k, long = false) {
+  if (getSettings().planeNames === 'views') return { XY: 'Oben (XY)', XZ: 'Vorne (XZ)', YZ: 'Rechts (YZ)' }[k];
+  return long ? { XY: 'XY-Ebene', XZ: 'XZ-Ebene', YZ: 'YZ-Ebene' }[k] : k;
+}
+const basePlaneOpts = () => ['XY', 'XZ', 'YZ'].map(k => [k, basePlaneName(k, true)]);
 function planeRefOptions(exceptId) {
   const fs = state.project.features;
   let upto = exceptId ? fs.findIndex(f => f.id === exceptId) : fs.length;
   if (upto < 0) upto = fs.length;
   const before = fs.slice(0, upto);
-  return [['XY', 'XY-Ebene'], ['XZ', 'XZ-Ebene'], ['YZ', 'YZ-Ebene'],
+  return [...['XY', 'XZ', 'YZ'].map(k => [k, basePlaneName(k, true)]),
     ...before.filter(f => f.type === 'plane').map(f => [f.id, f.name]),
     ...before.filter(f => f.type === 'sketch').map(f => [f.id, `Ebene von ${f.name}`])];
 }
@@ -2019,8 +2132,8 @@ function selectedEdgeRefs() {
   if (state.workspace !== 'design') return [];
   const id = state.pick?.mode === 'edges' ? state.pick.id : state.sel?.kind === 'feature' ? state.sel.id : null;
   const f = id && feature(id);
-  if (!f || (f.type !== 'fillet' && f.type !== 'chamfer') || f.all) return [];
-  return state.pick?.mode === 'edges' ? f.edges || [] : [];
+  if (!f || (f.type !== 'fillet' && f.type !== 'chamfer' && state.pick?.mode !== 'edges') || f.all) return [];
+  return state.pick?.mode === 'edges' ? f[state.pick.key || 'edges'] || [] : [];
 }
 
 function lineSeg(arr, mat) {
@@ -2112,7 +2225,8 @@ function tbtn(icon, label, onClick, cls = '', title = '') {
 }
 const gbtn = (glyph, label, onClick, title) => h('button', { class: 'tbtn gl', onclick: onClick, title: title || label }, h('b', { class: 'glyph-ic' }, glyph), h('span', null, label));
 // Like a group shows its main tools; the label opens a dropdown with all of them.
-const GROUP_VISIBLE = { VERWALTEN: 4, 'EINFÜGEN': 4, ERSTELLEN: 7, 'ÄNDERN': 6, 'ABHÄNGIGKEITEN': 8, SKIZZE: 8, KONSTRUKTION: 3, '2D-FRÄSEN': 6, '3D-FRÄSEN': 5, 'FLÄCHE ERSTELLEN': 7 };
+const GROUP_VISIBLE = { VERWALTEN: 4, 'EINFÜGEN': 4, ERSTELLEN: 7, 'ÄNDERN': 6, 'ABHÄNGIGKEITEN': 8, SKIZZE: 8, KONSTRUKTION: 3, KONSTRUIEREN: 3, '2D-FRÄSEN': 6, '3D-FRÄSEN': 5, 'FLÄCHE ERSTELLEN': 7,
+  ANORDNEN: 3, KONFIGURIEREN: 1, BEARBEITEN: 5, GELENKE: 4, POSITION: 2, ANSICHTEN: 7, 'AUSWÄHLEN': 6, PARAMETER: 3, MATERIALIEN: 3, REGELN: 3, DESIGN: 4, MESSEN: 3, OBERFLÄCHE: 4, VERLAUF: 3, BIBLIOTHEK: 3, ABWICKLUNG: 3, AUSGABE: 3, 'PRÜFEN': 5 };
 // Which commands sit in the toolbar is up to the user (⋮ in the group dropdown).
 // The buttons of a group are placed by fillGroup() once the tab is known.
 function tgroup(label, ...items) {
@@ -2280,16 +2394,16 @@ function editShortcut(b) {
 }
 
 // Toolbar tabs per workspace (SOLID, SURFACE, SHEET METAL, UTILITIES / MILLING, TURNING ...)
-const uiTab = { design: 'VOLUMENKÖRPER', cam: 'FRÄSEN', render: 'RENDERN' };
+const uiTab = { design: 'MODELL', cam: 'FRÄSEN', render: 'RENDERN' };
 function toolbarTabs() {
   const tabs = {};
   if (state.workspace === 'design' && state.sketchId) {
-    const T = (icon, label, tool, key) => tbtn(icon, label, () => sketcher.setTool(tool), sketcher.tool === tool ? 'active' : '', `${label} (${key})`);
+    const T = (icon, label, tool, key) => tbtn(icon, label, () => useSkTool(tool), sketcher.tool === tool ? 'active' : '', `${label} (${key})`);
     tabs.SKIZZE = [
       tgroup('SKIZZE', T('select', 'Auswahl', 'select', 'S'), T('line', 'Linie', 'line', 'L'), T('arc', '3-Punkt-Bogen', 'arc', 'A'), T('rect', 'Rechteck', 'rect', 'R'), T('circle', 'Kreis', 'circle', 'C'),
-        T('ellipse', 'Ellipse', 'ellipse', 'E'), T('spline', 'Spline', 'spline', 'B'), T('ngon', 'Polygon', 'ngon', 'P'), T('slot', 'Langloch', 'slot', 'O'), tbtn('text', 'Text', () => sketcher.setTool('text'), sketcher.tool === 'text' ? 'active' : '', 'Text'),
+        T('ellipse', 'Ellipse', 'ellipse', 'E'), T('spline', 'Spline', 'spline', 'B'), T('ngon', 'Polygon', 'ngon', 'P'), T('slot', 'Langloch', 'slot', 'O'), tbtn('text', 'Text', () => useSkTool('text'), sketcher.tool === 'text' ? 'active' : '', 'Text'),
         ...[['rectc', 'Mittelpunkt-Rechteck', 'rectc'], ['rect3', '3-Punkt-Rechteck', 'rect3'], ['circle2', '2-Punkt-Kreis', 'circle2'], ['circle3', '3-Punkt-Kreis', 'circle3'], ['arcc', 'Mittelpunkt-Bogen', 'arcc'], ['arct', 'Tangentialbogen', 'arct']]
-          .map(([icon, label, tool]) => tbtn(icon, label, () => sketcher.setTool(tool), sketcher.tool === tool ? 'active' : '', label)),
+          .map(([icon, label, tool]) => tbtn(icon, label, () => useSkTool(tool), sketcher.tool === tool ? 'active' : '', label)),
         tbtn('project', 'Projizieren', () => startProject('face'), sketcher.tool === 'project' && projectMode === 'face' ? 'active' : '', 'Projizieren (J): Fläche oder Kante eines Körpers anklicken – ihr Abbild kommt in die Skizze'),
         tbtn('combine', 'Körperumriss projizieren', () => startProject('body'), sketcher.tool === 'project' && projectMode === 'body' ? 'active' : '', 'Körperumriss projizieren: Körper anklicken – sein Schattenriss auf der Skizzenebene'),
         tbtn('section', 'Schnittkurven', () => startProject('cut'), sketcher.tool === 'project' && projectMode === 'cut' ? 'active' : '', 'Schnittkurven: Körper anklicken – wo die Skizzenebene ihn schneidet')),
@@ -2298,7 +2412,7 @@ function toolbarTabs() {
         tbtn('measure', 'Vorlage kalibrieren', () => calibrateCanvas(), '', 'Vorlage kalibrieren: zwei Punkte im Bild anklicken und ihren wirklichen Abstand eingeben'),
         tbtn('svgfile', 'SVG einfügen', insertSVG, '', 'SVG-Datei in diese Skizze einfügen'),
         tbtn('dxffile', 'DXF einfügen', () => $('#dxfInput').click(), '', 'DXF-Datei in diese Skizze einfügen')),
-      tgroup('ÄNDERN', T('trim', 'Stutzen', 'trim', 'T'), tbtn('extend', 'Verlängern', () => sketcher.setTool('extend'), sketcher.tool === 'extend' ? 'active' : '', 'Verlängern: offenes Linienende bis zur nächsten Kante'),
+      tgroup('ÄNDERN', T('trim', 'Stutzen', 'trim', 'T'), tbtn('extend', 'Verlängern', () => useSkTool('extend'), sketcher.tool === 'extend' ? 'active' : '', 'Verlängern: offenes Linienende bis zur nächsten Kante'),
         tbtn('fillet', 'Abrunden', sketchFillet, sketcher.tool === 'fillet' ? 'active' : '', 'Abrunden: Ecken anklicken (Linienzug, Rechteck, zwei Linien)'),
         tbtn('edgechamfer', 'Fase', sketchChamfer, sketcher.tool === 'chamfer' ? 'active' : '', 'Fase: Ecken anklicken (Linienzug, Rechteck, zwei Linien)'),
         tbtn('offset', 'Versatz', sketchOffset, sketcher.tool === 'offset' ? 'active' : '', 'Versatz: neben eine Kontur fahren (Vorschau), klicken, Abstand bestätigen – auch offene Linienzüge'),
@@ -2348,34 +2462,196 @@ function toolbarTabs() {
     const KONSTRUKTION = () => tgroup('KONSTRUIEREN', C('plane', 'Versatzebene', 'plane', { kind: 'offset' }), C('planeAngle', 'Ebene unter Winkel', 'plane', { kind: 'angle' }), C('planeMid', 'Mittelebene', 'plane', { kind: 'mid' }),
       C('plane3pt', 'Ebene durch drei Punkte', 'plane', { kind: '3pt' }), C('planeTangent', 'Tangentialebene', 'plane', { kind: 'tangent' }), C('axisCyl', 'Achse durch Zylinder', 'axis', { kind: 'cyl' }), C('axis2pt', 'Achse durch zwei Punkte', 'axis', { kind: '2pt' }),
       C('axisPlanes', 'Achse durch zwei Ebenen', 'axis', { kind: 'planes' }), C('cpoint', 'Punkt', 'point'));
-    tabs['VOLUMENKÖRPER'] = [
-      tgroup('ERSTELLEN', SKETCH(),
-        C('extrude', 'Extrusion', 'extrude', null, 'E'), C('revolve', 'Rotation', 'revolve'), C('sweep', 'Sweep', 'sweep'), C('loft', 'Erhebung', 'loft'), C('hole', 'Bohrung', 'hole', null, 'H'),
-        C('thread', 'Gewinde', 'thread'), C('pipe', 'Rohr', 'pipe'), C('coil', 'Feder', 'coil'),
-        C('box', 'Quader', 'box'), C('cylinder', 'Zylinder', 'cylinder'), C('sphere', 'Kugel', 'sphere'),
-        C('rib', 'Rippe', 'rib'), C('torus', 'Torus', 'torus'), C('emboss', 'Prägen', 'emboss'),
-        C('patternRect', 'Rechteck-Muster', 'pattern', { kind: 'rect' }), C('patternCirc', 'Kreis-Muster', 'pattern', { kind: 'circ' }), C('patternPath', 'Muster entlang Pfad', 'pattern', { kind: 'path' }), C('mirror', 'Spiegeln', 'mirror')),
+    const CONFIG = () => tgroup('KONFIGURIEREN', tbtn('params', 'Parameter ändern', () => select('params'), '', 'Parameter ändern: benannte Maße und Formeln'),
+      tbtn('configTable', 'Konfigurationstabelle', configTable, '', 'Konfigurationstabelle: alle Varianten mit ihren Parameterwerten'),
+      tbtn('configAdd', 'Konfigurieren', addConfigCmd, '', 'Konfigurieren: die jetzigen Parameterwerte als Variante speichern'));
+    tabs['MODELL'] = [
+      tgroup('SKIZZE', SKETCH(), tbtn('sketchEdit', 'Skizze bearbeiten', editSketchCmd, '', 'Skizze bearbeiten: gewählte (oder letzte) Skizze öffnen'),
+        tbtn('line3d', '3D-Linie', () => createCurve3d('line'), '', '3D-Linie: Punkte im Raum anklicken (Ecken und Kantenenden rasten ein)'),
+        tbtn('arc3d', '3D-Bogen', () => createCurve3d('arc'), '', '3D-Bogen durch drei Punkte im Raum'),
+        tbtn('spline3d', '3D-Spline', () => createCurve3d('spline'), '', '3D-Spline durch Punkte im Raum'),
+        tbtn('point3d', '3D-Punkt', () => createCurve3d('point'), '', '3D-Punkte im Raum setzen')),
+      tgroup('ERSTELLEN',
+        C('extrude', 'Extrusion', 'extrude', null, 'E'), C('revolve', 'Rotation', 'revolve'), C('hole', 'Bohrung', 'hole', null, 'H'), C('sweep', 'Sweep', 'sweep'), C('loft', 'Erhebung', 'loft'),
+        C('box', 'Quader', 'box'), C('cylinder', 'Zylinder', 'cylinder'), C('sphere', 'Kugel', 'sphere'), C('torus', 'Torus', 'torus'), C('cone', 'Kegel', 'cone'), C('pipe', 'Rohr', 'pipe'),
+        tbtn('bbox', 'Begrenzungskörper', () => createFeature('bbox'), '', 'Begrenzungskörper: Quader oder Zylinder, der einen Körper umschließt (Rohteil, Bauraum)'),
+        C('thread', 'Gewinde', 'thread'),
+        tbtn('bfill', 'Begrenzungsfüllung', () => createFeature('bfill'), '', 'Begrenzungsfüllung: geschlossene Hohlräume im Körper mit Material füllen'),
+        C('coil', 'Feder', 'coil'), C('rib', 'Rippe', 'rib'),
+        tbtn('web', 'Gewebe', () => createFeature('web'), '', 'Gewebe: alle offenen Linien einer Skizze werden zu Rippen'),
+        C('emboss', 'Prägen', 'emboss'),
+        tbtn('boss', 'Ansatz', () => createFeature('boss'), '', 'Ansatz: Schraubdome mit Bohrung an den Punkten einer Skizze'),
+        tbtn('lip', 'Lippe', () => createFeature('lip'), '', 'Lippe oder Nut am Rand einer Schale (für Gehäusehälften)'),
+        tbtn('snapfit', 'Rastverbindung', () => createFeature('snapfit'), '', 'Rastverbindung: federnde Zunge mit Rasthaken'),
+        tbtn('rest', 'Auflage', () => createFeature('rest'), '', 'Auflage: Wand entlang der Innenseite eines Profils (für Platine oder Deckel)')),
       tgroup('ÄNDERN',
         tbtn('presspull', 'Drücken/Ziehen', startPressPull, state.pick?.mode === 'presspull' ? 'active' : '', 'Drücken/Ziehen (Q)'),
-        C('fillet', 'Verrundung', 'fillet', null, 'F'), C('edgechamfer', 'Fase', 'chamfer'), C('shell', 'Schale', 'shell'), C('draft', 'Formschräge', 'draft'), C('scale', 'Skalieren', 'scale'),
-        tbtn('split', 'Fläche löschen', () => createFeature('delface'), '', 'Fläche löschen: Bohrungen, Taschen, Verrundungen oder Fasen entfernen – die Nachbarflächen schließen die Lücke'),
-        tbtn('presspull', 'Fläche ersetzen', () => createFeature('replaceface'), '', 'Fläche ersetzen: eine ebene Fläche auf eine andere Ebene legen – der Körper wächst oder wird gekürzt'),
-        tbtn('presspull', 'Fläche versetzen', () => createFeature('offsetface'), '', 'Fläche versetzen: ebene Flächen verschieben, Bohrungen und Zapfen im Durchmesser ändern'),
-        tbtn('move', 'Ausrichten', () => createFeature('align'), '', 'Ausrichten: einen Körper mit einer seiner Flächen auf die Fläche eines anderen Körpers legen'),
-        C('split', 'Teilen', 'split'), C('move', 'Verschieben', 'move', null, 'M'), C('combine', 'Kombinieren', 'combine'),
-        tbtn('appearance', 'Darstellung', openAppearance, appPanel ? 'active' : '', 'Darstellung (A)'),
-        tbtn('params', 'Parameter', () => select('params'))),
+        C('fillet', 'Verrundung', 'fillet', null, 'F'), C('edgechamfer', 'Fase', 'chamfer'), C('draft', 'Formschräge', 'draft'),
+        tbtn('offsetface', 'Fläche versetzen', () => createFeature('offsetface'), '', 'Fläche versetzen: ebene Flächen verschieben, Bohrungen und Zapfen im Durchmesser ändern'),
+        tbtn('replaceface', 'Fläche ersetzen', () => createFeature('replaceface'), '', 'Fläche ersetzen: eine ebene Fläche auf eine andere Ebene legen – der Körper wächst oder wird gekürzt'),
+        tbtn('splitface', 'Fläche teilen', () => createFeature('splitface'), '', 'Fläche teilen: Trennkante entlang einer Ebene oder Skizze, der Körper bleibt ein Stück'),
+        tbtn('delface', 'Fläche löschen', () => createFeature('delface'), '', 'Fläche löschen: Bohrungen, Taschen, Verrundungen oder Fasen entfernen – die Nachbarflächen schließen die Lücke'),
+        C('shell', 'Schale', 'shell'), C('combine', 'Kombinieren', 'combine'), C('split', 'Körper teilen', 'split'), C('scale', 'Skalieren', 'scale'),
+        tbtn('removebody', 'Körper entfernen', () => createFeature('removebody'), '', 'Körper entfernen: ein Körper verschwindet ab hier aus dem Modell'),
+        tbtn('thicken', 'In Blech umwandeln', () => bodyToSheet(), '', 'In Blech umwandeln: einen Körper gleicher Dicke als Blech mit Abwicklung übernehmen'),
+        tbtn('delete', 'Löschen', deleteSelectedCmd, '', 'Löschen: gewählten Schritt löschen, gewählten Körper entfernen (Entf)'),
+        tbtn('appearance', 'Darstellung', openAppearance, appPanel ? 'active' : '', 'Darstellung (A)')),
+      tgroup('ANORDNEN', C('move', 'Verschieben/Kopieren', 'move', null, 'M'), C('mirror', 'Spiegeln', 'mirror'), C('patternRect', 'Rechteck-Muster', 'pattern', { kind: 'rect' }),
+        tbtn('align', 'Ausrichten', () => createFeature('align'), '', 'Ausrichten: einen Körper mit einer seiner Flächen auf die Fläche eines anderen Körpers legen'),
+        C('patternCirc', 'Kreis-Muster', 'pattern', { kind: 'circ' }), C('patternPath', 'Muster entlang Pfad', 'pattern', { kind: 'path' })),
+      CONFIG(),
       KONSTRUKTION(),
-      tgroup('BAUGRUPPE', tbtn('move', 'Positionieren', placeSelectedBody, '', 'Körper als Komponente positionieren'), tbtn('revolve', 'Gelenk', addJoint), tbtn('cpoint', 'Gelenkursprung', addJointOrigin, state.pick?.mode === 'jorigin' ? 'active' : '', 'Gelenkursprung auf einem Körper setzen (später beim Gelenk anklickbar)'), tbtn('sim', 'Bewegung', motionStudy, motion.on ? 'active' : '', 'Bewegungsstudie mit Kollisionsprüfung')),
-      PRUEFEN(),
-      tgroup('EINFÜGEN', tbtn('bolt', 'Bauteilkatalog', () => catalogDialog(), '', 'Bauteilkatalog: Normteile, Rohre und Profile durchsuchen – nach Name, Norm oder Maß – und einfügen'), tbtn('decal', 'Aufkleber', insertDecal, '', 'Aufkleber: Bild auf eine Körperfläche legen'), tbtn('canvas', 'Ansichtsbereich', insertCanvas, '', 'Ansichtsbereich: Vorlagebild auf einer Ebene'),
-        tbtn('decal', 'Bild nachzeichnen', traceImageDialog, '', 'Bild nachzeichnen: aus einem Bild Konturen oder Mittellinien als neue Skizze, SVG oder DXF erzeugen'),
+    ];
+    tabs['FLÄCHE'] = [
+      tgroup('ERSTELLEN', SKETCH(), C('surfextrude', 'Extrusion', 'surfextrude'), C('surfrevolve', 'Rotation', 'surfrevolve'), C('sweep', 'Sweep', 'sweep'), C('surfloft', 'Erhebung', 'surfloft'),
+        tbtn('fill', 'Begrenzungsfläche', () => createFeature('fill'), '', 'Begrenzungsfläche: eine Fläche in einen geschlossenen Kantenrand spannen'),
+        C('patch', 'Flicken', 'patch'), C('offsetsurf', 'Versatzfläche', 'offsetsurf'),
+        tbtn('ruled', 'Regelfläche', () => createFeature('ruled'), '', 'Regelfläche: gerade Linien von Kanten aus (senkrecht, tangential oder in eine Richtung)'),
+        tbtn('blendsurf', 'Verbindungsfläche', () => createFeature('blendsurf'), '', 'Verbindungsfläche zwischen zwei Kanten'),
+        C('freeform', 'Freiformfläche', 'freeform'), C('pipe', 'Rohr', 'pipe')),
+      tgroup('BEARBEITEN', C('surftrim', 'Trimmen', 'surftrim'),
+        tbtn('untrim', 'Trimmen aufheben', () => createFeature('untrim'), '', 'Trimmen aufheben: Löcher und Ausschnitte in Flächen schließen'),
+        C('surfextend', 'Verlängern', 'surfextend'), C('stitch', 'Zusammenfügen', 'stitch'),
+        tbtn('unstitch', 'Verbund aufheben', () => createFeature('unstitch'), '', 'Verbund aufheben: jede Fläche eines Körpers wird ein eigener Flächenkörper'),
+        tbtn('flipnormal', 'Normale umkehren', () => createFeature('flipnormal'), '', 'Normale umkehren: Vorder- und Rückseite eines Flächenkörpers tauschen'),
+        tbtn('straighten', 'Fläche begradigen', () => createFeature('straighten'), '', 'Fläche begradigen: eine Fläche durch eine ruhige Fläche über ihrem Rand ersetzen'),
+        tbtn('fillet', 'Flächenverrundung', () => createFeature('fillet'), '', 'Flächenverrundung: Kanten zwischen Flächen verrunden'),
+        tbtn('fitsurf', 'Fläche anpassen', fitCloudCmd, '', 'Fläche anpassen: eine Freiformfläche durch die Punkte einer Punktwolke legen'),
+        C('split', 'Teilen', 'split'), C('draft', 'Formschräge', 'draft'), C('scale', 'Skalieren', 'scale')),
+      tgroup('KONVERTIEREN', C('thicken', 'Aufdicken', 'thicken'), tbtn('mesh_tobody', 'Netz → Körper', () => meshToBody(), '', 'Ein geschlossenes Netz in einen Volumenkörper umwandeln')),
+      KONSTRUKTION(),
+    ];
+    tabs['ZUSAMMENBAU'] = [
+      tgroup('KOMPONENTEN', tbtn('newcomp', 'Neue Komponente', newComponent, state.newBody ? 'active' : '', 'Neue Komponente: der nächste Körper wird eine eigene Komponente'),
+        tbtn('fromBodies', 'Komponenten aus Körpern', componentsFromBodies, '', 'Komponenten aus Körpern: Körper zu beweglichen Komponenten machen'),
+        tbtn('component', 'Konstruktion einfügen', insertComponent, '', 'Ein anderes gespeichertes Design als Komponente einfügen'),
+        tbtn('bolt', 'Bauteilkatalog', () => catalogDialog(), '', 'Bauteilkatalog: Normteile, Rohre und Profile'),
+        tbtn('dupjoint', 'Mit Gelenken duplizieren', duplicateWithJoints, '', 'Gewählten Körper samt Gelenken kopieren')),
+      tgroup('GELENKE', tbtn('joint', 'Gelenk', addJoint, state.pick?.mode === 'joint' ? 'active' : '', 'Gelenk (J): zwei Komponenten an Bohrung, Zapfen oder Fläche verbinden'),
+        tbtn('jointBuilt', 'Gelenk wie gebaut', addJointManual, '', 'Gelenk wie gebaut: die Komponente bleibt, wo sie ist, und dreht oder schiebt von dort aus'),
+        tbtn('cpoint', 'Gelenkursprung', addJointOrigin, state.pick?.mode === 'jorigin' ? 'active' : '', 'Gelenkursprung auf einem Körper setzen'),
+        tbtn('rigidGroup', 'Starrgruppe', rigidGroup, '', 'Starrgruppe: mehrere Körper bewegen sich gemeinsam'),
+        tbtn('jointLink', 'Abhängigkeit', () => jointLinkDialog('ratio'), '', 'Abhängigkeit: ein Gelenk folgt einem anderen mit einer Übersetzung'),
+        tbtn('jointLimits', 'Gelenkgrenzen', jointLimitsCmd, '', 'Gelenkgrenzen: Bereich und Anschlag eines Gelenks'),
+        tbtn('gearLink', 'Zahnrad', () => jointLinkDialog('gear'), '', 'Zahnrad: zwei Drehgelenke über die Zähnezahlen koppeln'),
+        tbtn('rack', 'Zahnstange und Ritzel', () => jointLinkDialog('rack'), '', 'Zahnstange und Ritzel: Drehung wird zu Schub'),
+        tbtn('screwJoint', 'Schraube', () => jointLinkDialog('screw'), '', 'Schraube: Drehung schiebt um die Steigung'),
+        tbtn('cam', 'Nocken', () => jointLinkDialog('cam'), '', 'Nocken: ein Exzenter hebt einen Stößel'),
+        tbtn('driveTo', 'Punkt anfahren', driveToValue, '', 'Punkt anfahren: ein Gelenk fährt auf einen Wert')),
+      tgroup('POSITION', tbtn('move', 'Komponente positionieren', placeSelectedBody, '', 'Komponente verschieben und drehen'),
+        tbtn('ground', 'Boden', groundBody, '', 'Boden: den gewählten Körper am Ursprung festhalten (erneut: lösen)'),
+        tbtn('capturePos', 'Position erfassen', capturePosition, '', 'Position erfassen: die Stellung aller Gelenke unter einem Namen merken'),
+        tbtn('resetPos', 'Position zurücksetzen', resetPosition, '', 'Position zurücksetzen: eine gemerkte Stellung oder die Nullstellung')),
+      tgroup('BEWEGUNG', tbtn('sim', 'Gelenke antreiben', () => motionStudy(), motion.on ? 'active' : '', 'Gelenke antreiben: alle freien Gelenke durch ihren Bereich fahren, mit Kollisionsprüfung'),
+        tbtn('combine', 'Interferenz', runInterference, '', 'Überschneidungen zwischen Körpern finden')),
+      tgroup('KONTAKT', tbtn('contactSet', 'Kontaktsätze', contactSets, '', 'Kontaktsätze: welche Körper beim Bewegen gegeneinander geprüft werden'),
+        tbtn('contact', 'Kontakt', toggleContactAll, movableJoints().length && movableJoints().every(j => j.contact) ? 'active' : '', 'Kontakt: Gelenke halten an, wo sich Teile berühren (ein/aus)')),
+    ];
+    tabs['EINFÜGEN'] = [
+      tgroup('DATEIEN', tbtn('import', 'STEP/IGES', () => $('#cadInput').click(), '', 'STEP oder IGES einfügen'), tbtn('mesh', 'Netz', () => $('#cadInput').click(), '', 'STL-, OBJ-, 3MF- oder PLY-Datei als Netz einfügen'),
+        tbtn('pointcloud', 'Punktwolke', insertPointCloud, '', 'Punktwolke aus XYZ-, TXT-, CSV-, PTS- oder PLY-Datei einfügen')),
+      tgroup('BILDER', tbtn('canvas', 'Ansichtsbereich', insertCanvas, '', 'Ansichtsbereich: Vorlagebild auf einer Ebene'), tbtn('decal', 'Aufkleber', insertDecal, '', 'Aufkleber: Bild auf eine Körperfläche legen'),
         tbtn('measure', 'Vorlage kalibrieren', () => calibrateCanvas(), '', 'Vorlage kalibrieren: zwei Punkte im Bild anklicken und ihren wirklichen Abstand eingeben'),
-        tbtn('svgfile', 'SVG-Datei einfügen', insertSVG, '', 'SVG-Datei als Skizze einfügen'), tbtn('dxffile', 'DXF-Datei einfügen', insertDXF, '', 'DXF-Datei als Skizze einfügen'),
-        tbtn('mesh', 'Netz einfügen', () => $('#cadInput').click(), '', 'STL-, OBJ-, 3MF- oder PLY-Datei als Netz einfügen'), tbtn('component', 'Komponente einfügen', insertComponent, '', 'Ein anderes gespeichertes Design als Komponente einfügen'),
-        tbtn('bolt', 'Normteil einfügen', insertBolt, '', 'Schrauben, Muttern, Scheiben, Stifte, Passfedern, Sicherungsringe, Lager und O-Ringe nach Norm einfügen'), tbtn('dupjoint', 'Mit Gelenken duplizieren', duplicateWithJoints, '', 'Gewählten Körper samt Gelenken kopieren'),
-        tbtn('derive', 'Ableitung einfügen', insertDerive, '', 'Körper, Skizzen oder Parameter aus einem anderen Design übernehmen'),
-        tbtn('import', 'STEP/IGES importieren', () => $('#cadInput').click(), '', 'STEP oder IGES einfügen'), tbtn('example', 'Beispiel', () => loadExample()), tbtn('revolve', 'Drehteil', () => loadExample(true), '', 'Beispiel: Welle für die Drehbearbeitung')),
+        tbtn('decal', 'Bild nachzeichnen', traceImageDialog, '', 'Bild nachzeichnen: aus einem Bild Konturen oder Mittellinien als neue Skizze, SVG oder DXF erzeugen')),
+      tgroup('2D', tbtn('dxffile', 'DXF', insertDXF, '', 'DXF-Datei als Skizze einfügen'), tbtn('svgfile', 'SVG', insertSVG, '', 'SVG-Datei als Skizze einfügen')),
+      tgroup('BIBLIOTHEK', tbtn('bolt', 'Verbindungselement', insertBolt, '', 'Schrauben, Muttern, Scheiben, Stifte, Passfedern, Sicherungsringe, Lager und O-Ringe nach Norm einfügen'),
+        tbtn('bolt', 'Bauteilkatalog', () => catalogDialog(), '', 'Bauteilkatalog: Normteile, Rohre und Profile durchsuchen und einfügen'),
+        tbtn('resizePart', 'Bauteilgröße ändern', resizeStdPart, '', 'Bauteilgröße ändern: Größe oder Länge eines Katalogbauteils ändern'),
+        tbtn('component', 'Bauteil einfügen', insertComponent, '', 'Ein anderes gespeichertes Design als Komponente einfügen'),
+        tbtn('derive', 'Ableitung einfügen', insertDerive, '', 'Körper, Skizzen oder Parameter aus einem anderen Design übernehmen')),
+      tgroup('BEISPIELE', tbtn('example', 'Beispiel', () => loadExample()), tbtn('revolve', 'Drehteil', () => loadExample(true), '', 'Beispiel: Welle für die Drehbearbeitung'), tbtn('pocket', 'Frästestteil', () => loadExample('mill'), '', 'Beispiel: Bauteil mit einer Operation für jede Frässtrategie'), tbtn('box', 'Konstruktionstestteil', () => loadExample('design'), '', 'Beispiel: Teil mit jedem Konstruktionsschritt')),
+    ];
+    tabs['PRÜFEN'] = [
+      tgroup('MESSEN', tbtn('measure', 'Messen', toggleMeasure, state.pick?.mode === 'measure' ? 'active' : '', 'Messen (I)'),
+        tbtn('com', 'Massenschwerpunkt', centreOfMass, comMarker ? 'active' : '', 'Massenschwerpunkt der sichtbaren Körper anzeigen'),
+        tbtn('physprops', 'Physikalische Eigenschaften', physicalProps, '', 'Volumen, Fläche, Masse, Schwerpunkt und Abmessungen je Körper')),
+      tgroup('SCHNITT', tbtn('section', 'Schnitt', toggleSection, state.section ? 'active' : '', 'Schnittansicht')),
+      tgroup('PRÜFEN', tbtn('combine', 'Interferenz', runInterference, '', 'Überschneidungen zwischen Körpern finden'),
+        tbtn('draftAn', 'Entformung', () => setAnalysis('draft'), analysis.mode === 'draft' ? 'active' : '', 'Formschräge-Analyse: Entformbarkeit'),
+        tbtn('access', 'Zugänglichkeit', () => setAnalysis('access'), analysis.mode === 'access' ? 'active' : '', 'Zugänglichkeitsanalyse: welche Flächen ein gerades Werkzeug aus einer Richtung erreicht'),
+        tbtn('contact', 'Kontakt prüfen', contactCheck, '', 'Kontakt prüfen: welche Körper sich überschneiden, berühren oder wie weit sie auseinander sind'),
+        tbtn('compare', 'Körper vergleichen', compareBodies, '', 'Körper vergleichen: was der eine Körper mehr hat als der andere'),
+        tbtn('bom', 'Stückliste', billOfMaterials, '', 'Stückliste mit Menge, Material und Masse – auch als CSV'),
+        tbtn('compColors', 'Komponentenfarben', () => setAnalysis('compcolors'), analysis.mode === 'compcolors' ? 'active' : '', 'Jeder Körper in einer eigenen Farbe')),
+      tgroup('OBERFLÄCHE', tbtn('zebra', 'Zebra', () => setAnalysis('zebra'), analysis.mode === 'zebra' ? 'active' : '', 'Zebra-Analyse: Stetigkeit der Flächenübergänge'),
+        tbtn('curv', 'Krümmung', () => setAnalysis('curv'), analysis.mode === 'curv' ? 'active' : '', 'Krümmungsanalyse: Krümmung als Farbe'),
+        tbtn('comb', 'Krümmungskamm', toggleCurvatureComb, inspectLines?.userData.kind === 'comb' ? 'active' : '', 'Krümmungskamm an den gekrümmten Kanten'),
+        tbtn('iso', 'Isokurven', toggleIsocurves, inspectLines?.userData.kind === 'iso' ? 'active' : '', 'Isokurven auf den gekrümmten Flächen')),
+      tgroup('VERLAUF', tbtn('replay', 'Verlauf abspielen', replayHistory, replayTimer ? 'active' : '', 'Verlauf abspielen: die Zeitleiste Schritt für Schritt'),
+        tbtn('deps', 'Merkmalsabhängigkeiten', featureDependencies, '', 'Welcher Schritt auf welchem aufbaut'),
+        tbtn('check', 'Konstruktion prüfen', designCheck, '', 'Konstruktion prüfen: Fehler, Hinweise, offene Körper, unbenutzte Skizzen')),
+    ];
+    tabs['VERWALTEN'] = [
+      tgroup('PARAMETER', tbtn('params', 'Parameter ändern', () => select('params'), '', 'Parameter ändern'),
+        tbtn('paramGraph', 'Parametergraph', paramGraph, '', 'Parametergraph: welcher Parameter von welchem abhängt und wo er verwendet wird'),
+        tbtn('paramSort', 'Parameter sortieren', sortParams, '', 'Parameter alphabetisch ordnen'),
+        tbtn('importdef', 'Parameter importieren', importParams, '', 'Parameter aus einer CSV-Datei übernehmen (Name; Ausdruck)'),
+        tbtn('exportdef', 'Parameter exportieren', exportParams, '', 'Parameter als CSV-Datei speichern')),
+      tgroup('KONFIGURATIONEN', tbtn('configTable', 'Konfigurationstabelle', configTable, '', 'Alle Varianten mit ihren Parameterwerten'), tbtn('configAdd', 'Konfigurieren', addConfigCmd, '', 'Die jetzigen Parameterwerte als Variante speichern')),
+      tgroup('MATERIALIEN', tbtn('material', 'Physikalisches Material', applyMaterialCmd, '', 'Physikalisches Material (Dichte) zuweisen'),
+        tbtn('appearance', 'Darstellung', openAppearance, appPanel ? 'active' : '', 'Darstellung (A)'),
+        tbtn('matCheck', 'Materialdaten prüfen', checkMaterials, '', 'Material, Dichte und Darstellung aller Körper'),
+        tbtn('material', 'Rohteilmaterialien', openMaterialLib, '', 'Rohteilmaterialien mit Dichte, Schnittgeschwindigkeit und Farbe'),
+        tbtn('exportdef', 'Materialbibliothek exportieren', exportMaterialLibrary, '', 'Materialien, Darstellungen und Kunststoffregeln als Datei speichern')),
+      tgroup('REGELN', tbtn('sheet', 'Blechregeln', sheetRulesCmd, '', 'Blechregeln: Blechdicke, Biegeradius und K-Faktor'),
+        tbtn('plasticRules', 'Kunststoffregeln', plasticRules, '', 'Kunststoffregeln verwalten'),
+        tbtn('plasticAssign', 'Kunststoffregel zuweisen', assignPlasticRule, '', 'Kunststoffregel einem Körper zuweisen')),
+      tgroup('DESIGN', tbtn('gear', 'Einheiten und Einstellungen', openSettings, '', 'Einheiten, Darstellung, Navigation'),
+        tbtn('recompute', 'Alles berechnen', recomputeAll, '', 'Alle Schritte neu berechnen'),
+        tbtn('checkpoint', 'Prüfpunkt', saveCheckpoint, '', 'Prüfpunkt: den jetzigen Stand auf diesem Rechner sichern'),
+        tbtn('restoreCp', 'Prüfpunkt wiederherstellen', restoreCheckpoint, '', 'Einen gesicherten Stand zurückholen'),
+        tbtn('spacemouse', 'SpaceMouse kalibrieren', () => openSmCalibration(), '', 'Nullpunkt, Totzone, Empfindlichkeit und Richtung der 3D-Maus')),
+    ];
+    const SF = (k, icon) => tbtn(icon, SEL_FILTERS[k], () => toggleSelFilter(k), state.selFilter[k] ? 'active' : '', `Auswahlfilter: ${SEL_FILTERS[k]} per Klick wählbar (ein/aus)`);
+    tabs['ANSICHT'] = [
+      tgroup('ANSICHTEN', tbtn('namedView', 'Benannte Ansicht', () => namedViewCmd('restore'), '', 'Benannte Ansicht wiederherstellen'),
+        tbtn('viewNew', 'Neue benannte Ansicht', () => namedViewCmd('new'), '', 'Die jetzige Blickrichtung unter einem Namen speichern'),
+        tbtn('viewUpdate', 'Ansicht aktualisieren', () => namedViewCmd('update'), '', 'Eine benannte Ansicht auf die jetzige Blickrichtung setzen'),
+        tbtn('viewRename', 'Ansicht umbenennen', () => namedViewCmd('rename'), '', 'Benannte Ansicht umbenennen'),
+        tbtn('viewDelete', 'Ansicht löschen', () => namedViewCmd('delete'), '', 'Benannte Ansicht löschen'),
+        tbtn('viewList', 'Ansichten auflisten', () => namedViewCmd('list'), '', 'Alle benannten Ansichten'),
+        tbtn('fit', 'Einpassen', fitView, '', 'Einpassen (F6)'),
+        tbtn('home', 'Startansicht', () => { const b = getModel().box; vp.setView('iso', b.isEmpty() ? null : b); }, '', 'Startansicht (isometrisch, eingepasst)'),
+        tbtn('orbit', 'Orbit', () => setNavTool('orbit'), '', 'Navigationswerkzeug: linke Maustaste dreht'),
+        tbtn('pan', 'Verschieben', () => setNavTool('pan'), '', 'Navigationswerkzeug: linke Maustaste verschiebt'),
+        tbtn('zoomTool', 'Zoom', () => setNavTool('zoom'), '', 'Navigationswerkzeug: linke Maustaste zoomt'),
+        tbtn('spin', 'Kontinuierlich drehen', toggleSpin, spinRaf ? 'active' : '', 'Das Modell dreht sich langsam um die Hochachse (ein/aus)'),
+        tbtn('dispShaded', 'Schattiert', () => setDisplayStyle('shaded'), display === 'shaded' ? 'active' : '', 'Darstellungsstil: schattiert'),
+        tbtn('dispEdges', 'Schattiert mit Kanten', () => setDisplayStyle('edges'), display === 'edges' ? 'active' : '', 'Darstellungsstil: schattiert mit Kanten'),
+        tbtn('dispWire', 'Drahtmodell', () => setDisplayStyle('wire'), display === 'wire' ? 'active' : '', 'Darstellungsstil: Drahtmodell'),
+        tbtn('grid', 'Raster', toggleGrid, gridOn ? 'active' : '', 'Raster ein/aus'),
+        tbtn('shadow', 'Bodenschatten', toggleGroundShadow, getSettings().groundShadow ? 'active' : '', 'Bodenschatten ein/aus'),
+        tbtn('navbar', 'Navigationsleiste', toggleNavBar, $('#navBar')?.hidden ? '' : 'active', 'Navigationsleiste unten ein/aus'),
+        tbtn('tabsOnly', 'Nur Registerkarten', toggleTabsOnly, document.body.classList.contains('tabs-only') ? 'active' : '', 'Nur die Registerkarten zeigen (mehr Platz); ein Klick auf eine Karte klappt sie auf')),
+      tgroup('AUSWÄHLEN', SF('body', 'selBody'), SF('face', 'selFace'), SF('edge', 'selEdge'), SF('vertex', 'selVertex'), SF('sketch', 'selSketch'),
+        tbtn('lasso', 'Lasso', startLasso, '', 'Lasso: Körper mit einem Rahmen wählen')),
+    ];
+    tabs['BLECH'] = [
+      tgroup('ERSTELLEN', SKETCH(), tbtn('sheet', 'Flansch', () => sheetCmd('flange'), '', 'Flansch: Blech aus einer Skizze mit Laschen an den Kanten'),
+        tbtn('pathflange', 'Pfadflansch', () => createFeature('pathflange'), '', 'Pfadflansch: ein Querschnitt als Linienzug, auf Blechdicke gezogen'),
+        tbtn('hem', 'Umkantung', () => sheetCmd('hem'), '', 'Umkantung (Saum): den Rand einer Lasche um 180° zurücklegen'),
+        tbtn('fold', 'Falten', () => sheetCmd('fold'), '', 'Falten: das Blech an einer Skizzenlinie biegen'),
+        tbtn('perforate', 'Perforieren', () => createFeature('perforate'), '', 'Perforieren: Lochfeld in einem Profil der Skizze'),
+        tbtn('thicken', 'In Blech umwandeln', () => bodyToSheet(), '', 'Einen Körper gleicher Dicke in ein Blech umwandeln: Dicke, Biegungen und Abwicklung werden erkannt'),
+        tbtn('surfrevolve', 'Mantel', () => shellDialog(), '', 'Rohr- oder Kegelmantel aus gerolltem Blech'),
+        tbtn('surfloft', 'Übergang', () => transitionDialog(), '', 'Übergangsstück von eckig auf rund')),
+      tgroup('ABWICKLUNG',
+        tbtn('flat', 'Entfalten', () => { const f = activeSheet(); if (f && state.flatView !== f.id) toggleFlatView(f); }, state.flatView ? 'active' : '', 'Entfalten: Abwicklung anzeigen'),
+        tbtn('refold', 'Wieder falten', () => { const f = activeSheet(); if (f && state.flatView === f.id) toggleFlatView(f); }, '', 'Wieder falten: gefalteten Zustand zeigen'),
+        tbtn('sketch', 'Flachmuster', () => { const f = activeSheet(), r = f && sheetFlat(f); if (r) flatToSketch(f, r.fp, r.base.z0); }, '', 'Flachmuster: Abwicklung als Skizze anlegen'),
+        tbtn('nest', 'Schachteln', () => nestDialog(), '', 'Zuschnitte aller Blechteile auf Tafeln verteilen')),
+      tgroup('AUSGABE', tbtn('flat_dxf', 'DXF', () => { const f = activeSheet(), r = f && sheetFlat(f); if (r) download(`${safeName()}_Abwicklung.dxf`, flatDXF(r.fp), 'application/dxf'); }, '', 'Abwicklung als DXF speichern (Biegelinien auf der Ebene BIEGUNG)'),
+        tbtn('bendTable', 'Biegetabelle', bendTableCmd, '', 'Biegetabelle als CSV für die Abkantpresse'),
+        tbtn('sheet', 'Zeichnung', openDrawing, '', 'Zeichnungsableitung – dort „Abwicklung“ einschalten')),
+      tgroup('REGELN', tbtn('sheet', 'Blechregeln', sheetRulesCmd, '', 'Blechregeln: Blechdicke, Biegeradius und K-Faktor')),
+      CONFIG(),
+    ];
+    tabs['SCHWEISSTEILE'] = [
+      tgroup('ERSTELLEN', SKETCH(), tbtn('frame', 'Rahmenelement', () => createFeature('frame'), '', 'Rahmenelement: Profil aus dem Katalog entlang der Linien einer Skizze, Ecken auf Gehrung'),
+        tbtn('endcap', 'Endkappe', () => createFeature('endcap'), '', 'Endkappe: Platte auf dem offenen Ende eines Rohrs oder Profils'),
+        tbtn('bolt', 'Bauteilkatalog', () => catalogDialog(), '', 'Rohre und Profile aus dem Katalog')),
+      tgroup('PRÜFEN', tbtn('bom', 'Zuschnittliste', billOfMaterials, '', 'Stückliste der Stäbe mit Menge, Material, Masse und Abmessungen'), tbtn('combine', 'Interferenz', runInterference, '', 'Überschneidungen zwischen Körpern finden')),
+      CONFIG(),
     ];
     const MO = (icon, label, kind) => tbtn(icon, label, () => createMeshOp(kind), '', MESH_OPS[kind]);
     const ADDINS = () => tgroup('ZUSATZMODULE', tbtn('pyscript', 'Skripte und Zusatzmodule', openScriptManager, '', 'Skripte und Zusatzmodule in Python verwalten und ausführen (Umschalt+S)'),
@@ -2395,32 +2671,13 @@ function toolbarTabs() {
       tgroup('EXPORT', ...[['stl', 'STL', 'Sichtbare Netze als STL speichern'], ['obj', 'OBJ', 'Sichtbare Netze als OBJ speichern'], ['3mf', '3MF', 'Sichtbare Netze als 3MF speichern (für 3D-Druck)']].map(([fmt, label, tip]) =>
         tbtn('import', label, () => { const ms = getMeshes().bodies.filter(x => !state.hiddenBodies.has(x.id)); if (!ms.length) return status('Kein Netz vorhanden.'); exportMeshFile(ms, fmt); }, '', tip))),
     ];
-    tabs['FLÄCHE'] = [
-      KONSTRUKTION(),
-      tgroup('FLÄCHE ERSTELLEN', SKETCH(), C('surfextrude', 'Extrusion', 'surfextrude'), C('surfrevolve', 'Rotation', 'surfrevolve'), C('surfloft', 'Erhebung', 'surfloft'), C('patch', 'Flicken', 'patch'), C('fill', 'Rand füllen', 'fill'), C('offsetsurf', 'Versatz', 'offsetsurf'),
-        C('freeform', 'Freiformfläche', 'freeform'), C('sweep', 'Sweep', 'sweep'), C('pipe', 'Rohr', 'pipe')),
-      tgroup('ÄNDERN', C('surftrim', 'Trimmen', 'surftrim'), C('surfextend', 'Verlängern', 'surfextend'), C('thicken', 'Aufdicken', 'thicken'), C('stitch', 'Zusammenfügen', 'stitch'), C('split', 'Teilen', 'split'), C('draft', 'Formschräge', 'draft'), C('shell', 'Schale', 'shell'), C('scale', 'Skalieren', 'scale')),
-      PRUEFEN(),
-    ];
-    tabs['BLECH'] = [
-      tgroup('ERSTELLEN', SKETCH(), C('sheet', 'Blech', 'sheet'), tbtn('surfrevolve', 'Mantel', () => shellDialog(), '', 'Rohr- oder Kegelmantel aus gerolltem Blech: Körper und Abwicklung aus Durchmessern, Höhe und Blechdicke'),
-        tbtn('surfloft', 'Übergang', () => transitionDialog(), '', 'Übergangsstück von eckig auf rund: Körper und Abwicklung mit Kantlinien aus Rechteck, Durchmesser, Höhe und Blechdicke'),
-        tbtn('thicken', 'Körper → Blech', () => bodyToSheet(), '', 'Einen Körper gleicher Dicke (gezeichnet oder aus einer STEP-Datei) in ein Blech umwandeln: Dicke, Biegungen und Abwicklung werden aus seinen Flächen erkannt')),
-      tgroup('ABWICKLUNG',
-        tbtn('flat', 'Abwicklung', () => { const f = activeSheet(); if (f) toggleFlatView(f); }, state.flatView ? 'active' : '', 'Abwicklung anzeigen / gefalteten Zustand zeigen'),
-        tbtn('flat_dxf', 'DXF', () => { const f = activeSheet(), r = f && sheetFlat(f); if (r) download(`${safeName()}_Abwicklung.dxf`, flatDXF(r.fp), 'application/dxf'); }, '', 'Abwicklung als DXF speichern (Biegelinien auf der Ebene BIEGUNG)'),
-        tbtn('sketch', 'Als Skizze', () => { const f = activeSheet(), r = f && sheetFlat(f); if (r) flatToSketch(f, r.fp, r.base.z0); }, '', 'Abwicklung als Skizze anlegen'),
-        tbtn('nest', 'Schachteln', () => nestDialog(), '', 'Zuschnitte aller Blechteile auf Tafeln verteilen – als Skizze, als Körper für die Fertigung oder als DXF'),
-        tbtn('sheet', 'Zeichnung', openDrawing, '', 'Zeichnungsableitung – dort „Abwicklung“ einschalten')),
-      tgroup('PRÜFEN', tbtn('measure', 'Messen', toggleMeasure, state.pick?.mode === 'measure' ? 'active' : ''), tbtn('section', 'Schnitt', toggleSection, state.section ? 'active' : ''), tbtn('fit', 'Einpassen', fitView, '', 'Einpassen (F)')),
-    ];
     tabs['DIENSTPROGRAMME'] = [
       tgroup('ZEICHNUNG', tbtn('sheet', 'Zeichnung', openDrawing, '', 'Zeichnungsableitung (Ansichten, Bemaßung, Schriftfeld)')),
       tgroup('EXPORT', tbtn('import', 'STEP', () => menuAction('step')), tbtn('import', 'IGES', () => menuAction('iges')), tbtn('import', 'STL', () => menuAction('stl'))),
       tgroup('VERWALTEN', tbtn('params', 'Parameter', () => select('params')), tbtn('spacemouse', 'SpaceMouse kalibrieren', () => openSmCalibration(), '', 'Nullpunkt, Totzone, Empfindlichkeit und Richtung der 3D-Maus'), tbtn('gear', 'Einstellungen', openSettings)),
       ADDINS(),
     ];
-    if (fusionButtons().length) tabs['VOLUMENKÖRPER'].splice(tabs['VOLUMENKÖRPER'].length - 1, 0, ADDINS());
+    if (fusionButtons().length) tabs['MODELL'].push(ADDINS());
     return tabs;
   }
   const A = (icon, label, type) => tbtn(icon, label, () => addOp(type));
@@ -2695,6 +2952,7 @@ function renderTree() {
       for (const [k, n] of [['top', 'OBEN'], ['front', 'VORNE'], ['right', 'RECHTS'], ['iso', 'START']]) {
         t.append(node({ svg: SVG.view, name: n, depth: 2, onclick: () => goView(k), ondblclick: () => goView(k) }));
       }
+      for (const q of p.views || []) t.append(node({ svg: SVG.view, name: q.name, depth: 2, onclick: () => restoreNamedView(q), ondblclick: () => restoreNamedView(q) }));
     }
     // origin
     t.append(node({ svg: SVG.folder, name: 'Ursprung', depth: 1, open: O('origin'), okey: 'origin',
@@ -2703,7 +2961,7 @@ function renderTree() {
       t.append(node({ svg: SVG.point, name: 'O', depth: 2 }));
       for (const a of ['X', 'Y', 'Z']) t.append(node({ svg: SVG.axis, name: a, depth: 2 }));
       for (const pl of ['XY', 'XZ', 'YZ']) {
-        t.append(node({ svg: SVG.plane, name: pl, depth: 2, ondblclick: () => createSketch(BASE_PLANES[pl]),
+        t.append(node({ svg: SVG.plane, name: basePlaneName(pl), depth: 2, ondblclick: () => createSketch(BASE_PLANES[pl]),
           oncontext: e => ctxMenu(e.clientX, e.clientY, [{ label: 'Skizze auf dieser Ebene erstellen', icon: '✎', onclick: () => createSketch(BASE_PLANES[pl]) }], pl) }));
       }
     }
@@ -2841,8 +3099,8 @@ function renderTree() {
 }
 
 // ---------- timeline (common CAD/CAM-style) ----------
-const category = f => (f.type === 'sketch' ? 'sketch' : ['plane', 'axis', 'point'].includes(f.type) ? 'construct' : f.type === 'meshimport' || f.type === 'meshop' ? 'meshf' : SOLID_SOURCES.includes(f.type) || f.type === 'pattern' || f.type === 'mirror' ? 'solid' : 'modify');
-const featureIcon = f => ICONS[{ emboss: 'emboss', pattern: f.kind === 'circ' ? 'patternCirc' : f.kind === 'path' ? 'patternPath' : 'patternRect', chamfer: 'edgechamfer', plane: { angle: 'planeAngle', mid: 'planeMid', '3pt': 'plane3pt', tangent: 'planeTangent' }[f.kind] || 'plane', axis: { cyl: 'axisCyl', planes: 'axisPlanes' }[f.kind] || 'axis2pt', point: 'cpoint', meshimport: 'mesh', meshop: 'mesh_' + f.kind }[f.type] || f.type] || ICONS.extrude;
+const category = f => (f.type === 'sketch' ? 'sketch' : ['plane', 'axis', 'point', 'curve3d', 'pointcloud'].includes(f.type) ? 'construct' : f.type === 'meshimport' || f.type === 'meshop' ? 'meshf' : SOLID_SOURCES.includes(f.type) || f.type === 'pattern' || f.type === 'mirror' ? 'solid' : 'modify');
+const featureIcon = f => ICONS[{ emboss: 'emboss', pattern: f.kind === 'circ' ? 'patternCirc' : f.kind === 'path' ? 'patternPath' : 'patternRect', chamfer: 'edgechamfer', plane: { angle: 'planeAngle', mid: 'planeMid', '3pt': 'plane3pt', tangent: 'planeTangent' }[f.kind] || 'plane', axis: { cyl: 'axisCyl', planes: 'axisPlanes' }[f.kind] || 'axis2pt', point: 'cpoint', curve3d: { line: 'line3d', arc: 'arc3d', spline: 'spline3d', point: 'point3d' }[f.kind] || 'curve3d', meshimport: 'mesh', meshop: 'mesh_' + f.kind }[f.type] || f.type] || ICONS.extrude;
 
 // ids of other features a feature refers to (sketch, target, bodies …)
 function featureRefs(f, all) {
@@ -3258,7 +3516,7 @@ function urdfExport(opt = {}) {
         lower: (lim ? Math.min(+j.min - cur[d.k], 0) : -1000) * conv, upper: (lim ? Math.max(+j.max - cur[d.k], 0) : 1000) * conv };
       if (d.k === 0) {
         first.set(j.id, { name: nm, conv });
-        if (j.link?.from) jj.link = { from: j.link.from, ratio: +j.link.ratio || 1, conv };
+        if (j.link?.from && linkRatio(j.link) != null) jj.link = { from: j.link.from, ratio: linkRatio(j.link), conv };
       }
       joints.push(jj);
       from = to;
@@ -3406,7 +3664,7 @@ function runScriptFile() {
     for (let i = 0; i < steps.length; i++) {
       status(`Skript: Schritt ${i + 1} von ${steps.length} (${steps[i].tool}) …`);
       try {
-        const r = await agentCall(steps[i].tool, steps[i].args || {}, { ...agentApi, note: () => {} });
+        const r = await agentCall(steps[i].tool, steps[i].args || {}, { ...agentApi, note: () => {}, readOnly: () => false });
         const errs = r && r.errors ? Object.values(r.errors) : [];
         if (errs.length && steps[i].tool !== 'undo') { renderAll(); return status(`Skript hält bei Schritt ${i + 1} (${steps[i].tool}): ${errs[0]}`); }
       } catch (err) { revertTo(depth); renderAll(); return status(`Skript, Schritt ${i + 1} (${steps[i].tool}): ${err.message} – alle Schritte zurückgenommen.`); }
@@ -3469,7 +3727,8 @@ function propsFeature(b, f) {
     pattern: propsPattern, mirror: propsMirror, move: propsMove, combine: propsCombine, import: propsImport, canvas: propsImage, decal: propsImage,
     pipe: propsPipe, coil: propsCoil, scale: propsScale, thread: propsThread,
     plane: propsPlane, axis: propsAxis, emboss: propsEmboss, point: propsPoint, rib: propsRib, torus: propsTorus, meshimport: propsMeshImport, meshop: propsMeshOp,
-  }[f.type];
+    pointcloud: propsPointCloud, curve3d: propsCurve3d,
+  }[f.type] || propsExtra;
   builder(b, f, ed);
   if (f.type !== 'sketch') b.append(row('Unterdrückt', chk(f.suppressed, v => ed(x => (x.suppressed = v)))));
   if (f.type === 'plane') b.append(h('div', { class: 'btns' }, btn('Skizze auf dieser Ebene', () => sketchOnPlaneFeature(f.id), 'primary')));
@@ -3800,6 +4059,171 @@ function propsTorus(b, f, ed) {
     row('Achse', sel([['z', 'Z'], ['x', 'X'], ['y', 'Y']], f.axis || 'z', v => ed(x => (x.axis = v)))), opSelect(f, ed));
 }
 
+// ----- input panels of the further modelling steps (features2.js) -----
+// a row with "pick" and "clear" buttons for faces or edges, stored under key (default faces / edges)
+function pickRows(f, ed, mode, key = mode, label = mode === 'edges' ? 'Kanten' : 'Flächen') {
+  const picking = state.pick?.mode === mode && state.pick.id === f.id && (state.pick.key || mode) === key;
+  return [row(label, h('span', null, `${(f[key] || []).length} gewählt`)),
+    h('div', { class: 'btns' },
+      btn(picking ? '✓ Auswahl beenden' : `${label} wählen`, () => togglePick(mode, f.id, key), picking ? 'on' : 'primary'),
+      btn('Auswahl leeren', () => ed(x => (x[key] = []))))];
+}
+const lineSketchOptions = () => sketchOptions().filter(([id]) => feature(id)?.entities?.some(e => e.type === 'poly'));
+function propsExtra(b, f, ed) {
+  const N = (label, key, opt = {}) => row(label, num(f[key], v => ed(x => (x[key] = v)), { unit: 'mm', ...opt }));
+  const S = (label, key, opts) => row(label, sel(opts, f[key] ?? opts[0][0], v => ed(x => (x[key] = v))));
+  const C = (label, key) => row(label, chk(f[key], v => ed(x => (x[key] = v))));
+  const SK = (opts = sketchOptions()) => row('Skizze', sel([['', '–'], ...opts], f.sketch || '', v => ed(x => (x.sketch = v))));
+  const BODY = (key = 'body', label = 'Körper') => row(label, sel([['', '–'], ...bodyOptions()], f[key] || '', v => ed(x => (x[key] = v))));
+  const hint = t => h('p', { class: 'hint' }, t);
+  const AXIS = S('Achse', 'axis', [['z', 'Z'], ['x', 'X'], ['y', 'Y']]);
+  switch (f.type) {
+    case 'cone':
+      b.append(sec('MITTELPUNKT DER GRUNDFLÄCHE'), N('X', 'x'), N('Y', 'y'), N('Z', 'z'), sec('MASSE'), N('Radius unten', 'r1', { min: 0 }), N('Radius oben', 'r2', { min: 0 }), N('Höhe', 'h', { min: 0.01 }), AXIS, opSelect(f, ed),
+        hint('Radius oben 0 ergibt eine Spitze.'));
+      break;
+    case 'bbox':
+      b.append(BODY(), S('Form', 'kind', [['box', 'Quader'], ['cyl', 'Zylinder']]), f.kind === 'cyl' ? AXIS : null, N('Zugabe', 'margin'), opSelect(f, ed),
+        hint('Der kleinste achsparallele Quader (oder Zylinder) um den Körper, vergrößert um die Zugabe – z. B. als Rohteil oder Bauraum.'));
+      break;
+    case 'bfill':
+      b.append(BODY(), hint('Geschlossene Hohlräume im Inneren des Körpers werden mit Material gefüllt.'));
+      break;
+    case 'web':
+      b.append(SK(lineSketchOptions()), N('Dicke', 'thickness', { min: 0.01 }), N('Höhe', 'height'), C('Symmetrisch', 'symmetric'), opSelect(f, ed),
+        hint('Jede offene Linie der Skizze wird zu einer Rippe – ein ganzes Rippennetz in einem Schritt.'));
+      break;
+    case 'boss':
+      b.append(SK(), N('Außendurchmesser', 'D', { min: 0.01 }), N('Höhe', 'h', { min: 0.01 }), N('Bohrung', 'd', { min: 0 }), N('Bohrungstiefe', 'depth', { min: 0 }), row('Formschräge', num(f.draft, v => ed(x => (x.draft = v)), { unit: '°' })), C('Andere Richtung', 'flip'), opSelect(f, ed),
+        hint('Ein Dom an jedem Punkt und jedem Kreismittelpunkt der Skizze, mit Bohrung für eine Schraube (Bohrung 0 = voll).'));
+      break;
+    case 'lip':
+      b.append(...pickRows(f, ed, 'faces', 'faces', 'Randfläche'), S('Art', 'kind', [['lip', 'Lippe (erhaben)'], ['groove', 'Nut (vertieft)']]), S('Seite', 'side', [['inner', 'Innenkante'], ['outer', 'Außenkante']]),
+        N('Breite', 'width', { min: 0.01 }), N('Höhe', 'height', { min: 0.01 }),
+        hint('Die ebene Stirnfläche einer Schale anklicken. Lippe und Nut passen zusammen, wenn die Nut etwas breiter ist als die Lippe.'));
+      break;
+    case 'snapfit':
+      b.append(sec('FUSSPUNKT'), N('X', 'x'), N('Y', 'y'), N('Z', 'z'), S('Richtung', 'dir', [['z', '+Z'], ['-z', '−Z'], ['x', '+X'], ['-x', '−X'], ['y', '+Y'], ['-y', '−Y']]), row('Drehung', num(f.rz, v => ed(x => (x.rz = v)), { unit: '°' })),
+        sec('ZUNGE'), N('Länge', 'length', { min: 0.01 }), N('Dicke', 'thickness', { min: 0.01 }), N('Breite', 'width', { min: 0.01 }), N('Haken', 'hook', { min: 0 }), N('Hakenlänge', 'hookLen', { min: 0 }), opSelect(f, ed),
+        hint('Eine federnde Zunge mit Rasthaken. Der Haken steht zur Seite +X der Zunge; Drehung dreht ihn um die Richtung.'));
+      break;
+    case 'rest':
+      b.append(SK(), N('Breite', 'width', { min: 0.01 }), N('Höhe', 'height'), opSelect(f, ed),
+        hint('Eine Wand entlang der Innenseite des geschlossenen Profils – Auflage für eine Platine oder einen Deckel.'));
+      break;
+    case 'removebody':
+      b.append(BODY(), hint('Der Körper verschwindet ab hier aus dem Modell (frühere Schritte bleiben unverändert).'));
+      break;
+    case 'splitface':
+      b.append(...pickRows(f, ed, 'faces'), S('Teilen mit', 'toolKind', [['plane', 'Ebene'], ['sketch', 'Skizze']]),
+        f.toolKind === 'sketch' ? SK() : row('Ebene', sel(planeOptions(), f.plane || 'XY', v => ed(x => (x.plane = v)))),
+        hint('Die gewählten Flächen bekommen eine Trennkante – der Körper bleibt ein Stück (z. B. für Formschrägen oder Farben auf einem Teil der Fläche).'));
+      break;
+    case 'ruled':
+      b.append(...pickRows(f, ed, 'edges'), N('Abstand', 'distance'), S('Richtung', 'dir', [['normal', 'Senkrecht zur Fläche'], ['tangent', 'Tangential'], ['x', 'X'], ['y', 'Y'], ['z', 'Z']]),
+        hint('Eine Fläche aus geraden Linien, die von den Kanten aus in die gewählte Richtung laufen.'));
+      break;
+    case 'blendsurf':
+      b.append(sec('ERSTE SEITE'), ...pickRows(f, ed, 'edges', 'edges', 'Kanten'), sec('ZWEITE SEITE'), ...pickRows(f, ed, 'edges', 'edges2', 'Kanten'), C('Gerade Verbindung', 'ruled'),
+        hint('Eine Fläche, die zwei Kanten (oder Kantenzüge) verbindet.'));
+      break;
+    case 'untrim':
+      b.append(...pickRows(f, ed, 'faces'), hint('Löcher und Ausschnitte in den gewählten Flächen werden geschlossen; die Fläche behält ihren Außenrand.'));
+      break;
+    case 'straighten':
+      b.append(...pickRows(f, ed, 'faces'), hint('Die gewählten Flächen werden durch eine ruhige Fläche über ihrem Rand ersetzt (eben, wenn der Rand eben ist) – Beulen und Wellen verschwinden.'));
+      break;
+    case 'unstitch':
+      b.append(BODY(), hint('Jede Fläche des Körpers wird ein eigener Flächenkörper.'));
+      break;
+    case 'flipnormal':
+      b.append(BODY('body', 'Flächenkörper'), hint('Die Vorder- und Rückseite der Flächen werden vertauscht (z. B. vor dem Aufdicken).'));
+      break;
+    case 'perforate':
+      b.append(SK(), N('Lochdurchmesser', 'dia', { min: 0.01 }), N('Teilung', 'pitch', { min: 0.01 }), N('Randabstand', 'margin', { min: 0 }), C('Versetzt (60°)', 'stagger'), N('Tiefe (0 = durch)', 'depth', { min: 0 }),
+        hint('Ein Lochfeld im geschlossenen Profil der Skizze; Ausschnitte im Profil bleiben frei.'));
+      break;
+    case 'pathflange': {
+      const lines = state.project.features.filter(x => x.type === 'sketch').flatMap(sk => sk.entities.filter(e => e.type === 'poly' && !e.closed).map(e => [`${sk.id}|${e.id}`, `${sk.name}: ${describeEntity(e)}`]));
+      b.append(row('Linienzug', sel(lines, `${f.sketch}|${f.entity}`, v => ed(x => { [x.sketch, x.entity] = v.split('|'); }))), N('Blechdicke', 'thickness', { min: 0.01 }), N('Länge', 'length'), C('Symmetrisch', 'symmetric'), opSelect(f, ed),
+        hint('Der Linienzug ist der Querschnitt des Flansches; er wird auf die Blechdicke verbreitert und um die Länge gezogen.'));
+      break;
+    }
+    case 'frame': {
+      const fams = STD_FAMILIES.filter(x => x.group === 'Rohre und Profile');
+      const fam = stdFamily(f.fam) || fams[0];
+      b.append(SK(lineSketchOptions()), row('Profil', sel(fams.map(x => [x.id, x.name]), fam.id, v => ed(x => { x.fam = v; x.size = stdFamily(v).sizes()[0]; }))),
+        row('Größe', sel(fam.sizes().map(z => [z, z]), f.size, v => ed(x => (x.size = v)))), row('Drehung', num(f.rot, v => ed(x => (x.rot = v)), { unit: '°' })),
+        S('Lage', 'align', [['center', 'Mitte auf der Linie'], ['top', 'Oberkante auf der Linie']]), S('Ecken', 'corner', [['miter', 'Gehrung'], ['none', 'Stumpf (überlappend)']]), C('Einzelne Körper', 'separate'), opSelect(f, ed),
+        hint('Ein Profil aus dem Bauteilkatalog entlang jeder geraden Linie der Skizze; wo sich zwei Linien treffen, werden die Stäbe auf Gehrung geschnitten.'));
+      break;
+    }
+    case 'endcap':
+      b.append(...pickRows(f, ed, 'faces', 'faces', 'Stirnflächen'), N('Dicke', 'thickness', { min: 0.01 }), N('Einzug', 'inset', { min: 0 }), S('Lage', 'place', [['outside', 'Außen aufgesetzt'], ['inside', 'Innen eingesetzt']]), opSelect(f, ed),
+        hint('Eine Platte auf dem offenen Ende eines Rohrs oder Profils, mit dessen Außenkontur (Einzug macht sie kleiner).'));
+      break;
+  }
+}
+function propsPointCloud(b, f, ed) {
+  const n = Math.floor((f.pts || []).length / 3);
+  const { lo, hi } = n ? cloudBounds(f.pts) : { lo: [0, 0, 0], hi: [0, 0, 0] };
+  b.append(row('Datei', h('span', null, f.file || '–')), row('Punkte', h('span', null, n.toLocaleString())),
+    row('Größe', h('span', null, hi.map((v, i) => f2(v - lo[i])).join(' × ') + ' mm')),
+    row('Punktgröße', num(f.size ?? 2, v => ed(x => (x.size = v)), { unit: 'px', min: 1 })),
+    h('div', { class: 'btns' }, btn('Fläche anpassen', () => fitSurfaceToCloud(f.id), 'primary')),
+    h('p', { class: 'hint' }, 'Die Punkte dienen als Vorlage zum Nachkonstruieren (Punkte rasten beim Picken ein). „Fläche anpassen“ legt eine Freiformfläche durch die Punkte (von oben gesehen).'));
+}
+function propsCurve3d(b, f, ed) {
+  const pk = state.pick?.mode === 'cpoints' && state.pick.id === f.id;
+  const n = { line: 99, arc: 3, spline: 99, point: 99 }[f.kind] || 99;
+  b.append(row('Art', h('span', null, { line: '3D-Linie', arc: '3D-Bogen (3 Punkte)', spline: '3D-Spline', point: '3D-Punkte' }[f.kind] || f.kind)),
+    sec('PUNKTE'),
+    ...(f.pts || []).map((q, i) => h('div', { class: 'row' }, h('label', null, `P${i + 1}`),
+      h('div', { class: 'xyz' }, ...[0, 1, 2].map(k => num(q[k], v => ed(x => (x.pts[i][k] = v)))),
+        h('button', { class: 'btn', title: 'Punkt entfernen', onclick: () => ed(x => x.pts.splice(i, 1)) }, '×')))),
+    h('div', { class: 'btns' }, btn(pk ? '✓ Fertig' : 'Punkte anklicken', () => (pk ? (state.pick = null, showBanner(null), renderAll()) : startPointPick(f.id, 'pts', n)), pk ? 'on' : 'primary'),
+      btn('Punkt hinzufügen', () => ed(x => { const l = x.pts?.[x.pts.length - 1] || [0, 0, 0]; x.pts = [...(x.pts || []), [l[0] + 10, l[1], l[2]]]; }))),
+    h('p', { class: 'hint' }, 'Punkte im Raum anklicken (Ecken und Kantenenden rasten ein) oder als Zahlen eingeben. Die Kurve dient als Hilfsgeometrie, z. B. als Leitlinie.'));
+}
+async function insertPointCloud() {
+  const inp = h('input', { type: 'file', accept: '.xyz,.txt,.csv,.pts,.asc,.ply' });
+  inp.onchange = async () => {
+    const file = inp.files[0];
+    if (!file) return;
+    let pts;
+    try { pts = parsePointCloud(await file.arrayBuffer(), file.name); } catch (err) { return status(err.message || String(err)); }
+    const id = uid('pc');
+    commit(p => p.features.push({ id, type: 'pointcloud', name: file.name.replace(/\.[^.]+$/, ''), file: file.name, pts, size: 2 }));
+    select('feature', id);
+    fitView();
+    status(`${(pts.length / 3).toLocaleString()} Punkte eingefügt.`);
+  };
+  inp.click();
+}
+async function fitSurfaceToCloud(id) {
+  const f = feature(id);
+  if (!f?.pts?.length) return status('Punktwolke wählen.');
+  const v = await formDialog('Fläche anpassen', [{ key: 'nx', label: 'Stützstellen in X', value: 8 }, { key: 'ny', label: 'Stützstellen in Y', value: 8 }, { key: 'below', label: 'Dicke unter dem tiefsten Punkt', value: 2, unit: 'mm' }], 'Anlegen');
+  if (!v) return;
+  let g;
+  try { g = cloudHeights(f.pts, Math.max(2, Math.min(40, Math.round(+v.nx))), Math.max(2, Math.min(40, Math.round(+v.ny))), +v.below || 2); } catch (err) { return status(err.message); }
+  const fid = uid('ff');
+  commit(p => p.features.push({ id: fid, type: 'freeform', name: nextName(p.features, `${f.name} – Fläche`), ...g, smooth: true, op: 'new' }));
+  select('feature', fid);
+}
+function createCurve3d(kind) {
+  if (state.sketchId) return;
+  const id = uid('c3');
+  pendingNew = { id, depth: undoDepth() };
+  insertFeature({ id, type: 'curve3d', name: nextName(state.project.features, { line: '3D-Linie', arc: '3D-Bogen', spline: '3D-Spline', point: '3D-Punkt' }[kind]), kind, pts: [] });
+  state.sel = { kind: 'feature', id };
+  startPointPick(id, 'pts', kind === 'arc' ? 3 : 99);
+}
+
+function planeOptions() {
+  return [['XY', 'XY'], ['XZ', 'XZ'], ['YZ', 'YZ'], ...state.project.features.filter(x => x.type === 'plane').map(x => [x.id, x.name])];
+}
+
 function propsPipe(b, f, ed) {
   const paths = state.project.features.filter(x => x.type === 'sketch').flatMap(sk => sk.entities.filter(e => e.type === 'poly' && !e.closed).map(e => [`${sk.id}|${e.id}`, `${sk.name}: ${describeEntity(e)}`]));
   b.append(
@@ -3926,11 +4350,29 @@ const readDataURL = file => new Promise((res, rej) => { const r = new FileReader
 const imageSize = url => new Promise(res => { const im = new Image(); im.onload = () => res([im.naturalWidth || 1, im.naturalHeight || 1]); im.onerror = () => res([1, 1]); im.src = url; });
 
 // small dialog with rows; resolves with the values or null
+// Einstellungen → Konstruktion: command dialogs start with the numbers, choices and check boxes used last time
+// (names and other texts always start fresh)
+const DLG_KEY = 'werkfab.dialogValues.v1';
+const dlgMemory = () => { try { return JSON.parse(localStorage.getItem(DLG_KEY) || '{}') || {}; } catch { return {}; } };
 function formDialog(title, fields, okLabel = 'OK') {
   return new Promise(resolve => {
+    // lists that only number their entries (pick one of the saved views …) are not remembered
+    const kept = (f, v) => !f.text && f.label != null && !(f.options && f.options.every((o, j) => String(o[0]) === String(j))) && (f.options ? f.options.some(o => String(o[0]) === String(v)) : f.check ? typeof v === 'boolean' : Number.isFinite(v) && typeof f.value === 'number');
+    if (getSettings().rememberDialog) {
+      const mem = dlgMemory()[title] || {};
+      fields = fields.map(f => (f.key in mem && kept(f, mem[f.key]) ? { ...f, value: mem[f.key] } : f));
+    }
     const vals = Object.fromEntries(fields.map(f => [f.key, f.value]));
     const back = h('div', { class: 'modal-back' });
-    const done = v => { back.remove(); resolve(v); };
+    const done = v => {
+      back.remove();
+      if (v && getSettings().rememberDialog) {
+        const all = dlgMemory(), mine = {};
+        for (const f of fields) if (kept(f, v[f.key])) mine[f.key] = v[f.key];
+        if (Object.keys(mine).length) { all[title] = mine; try { localStorage.setItem(DLG_KEY, JSON.stringify(all)); } catch { /* storage full */ } }
+      }
+      resolve(v);
+    };
     const rows = fields.filter(f => f.label != null).map(f => {
       if (f.options) return row(f.label, sel(f.options, f.value, v => (vals[f.key] = v)));
       if (f.check) return row(f.label, chk(f.value, v => (vals[f.key] = v)));
@@ -3946,6 +4388,18 @@ function formDialog(title, fields, okLabel = 'OK') {
     document.body.append(back);
   });
 }
+
+// Einstellungen → Allgemein: a right-click into a dialog (not into a field) presses its OK button
+document.addEventListener('contextmenu', e => {
+  if (!getSettings().rightClickOk) return;
+  const back = e.target.closest?.('.modal-back');
+  if (!back || e.target.closest('input, textarea, select, button')) return;
+  const ok = back.querySelector('.modal-foot button.primary, .prefs-foot button.primary');
+  if (!ok) return;
+  e.preventDefault();
+  e.stopPropagation();
+  ok.click();
+}, true);
 
 // ----- Ansichtsbereich (canvas) and Aufkleber (decal): images as features -----
 const imgTex = new Map();
@@ -4003,7 +4457,7 @@ async function insertCanvas() {
     commit(p => p.features.push({ id: uid('cv'), type: 'canvas', name: file.name.replace(/\.[^.]+$/, ''), blob, plane: JSON.parse(JSON.stringify(sketchPlane(rsk))), w: 100, aspect: +(iw / ih).toFixed(5), dx: 0, dy: 0, rot: 0, opacity: 0.5, flip: false }));
     return status('Bild liegt als Vorlage auf der Skizzenebene (Breite 100 mm). „Vorlage kalibrieren“ stellt den Maßstab über zwei Punkte ein.');
   }
-  const v = await formDialog('Ansichtsbereich', [{ key: 'plane', label: 'Ebene', value: 'XY', options: [['XY', 'XY-Ebene'], ['XZ', 'XZ-Ebene'], ['YZ', 'YZ-Ebene']] },
+  const v = await formDialog('Ansichtsbereich', [{ key: 'plane', label: 'Ebene', value: 'XY', options: basePlaneOpts() },
     { key: 'hint', hint: 'Das Bild liegt als Vorlage auf der Ebene. Größe, Lage, Drehung und Deckkraft danach im Eigenschaftenfenster einstellen (z. B. Breite nach einer bekannten Abmessung).' }]);
   if (!v) return;
   await newImageFeature('canvas', { ...BASE_PLANES[v.plane] }, file.name.replace(/\.[^.]+$/, ''), await readDataURL(file));
@@ -4033,7 +4487,7 @@ async function placeDecal(e, meshes) {
 function propsImage(b, f, ed) {
   const N = (label, key, opt = {}) => row(label, num(f[key] ?? opt.def ?? 0, v => ed(x => (x[key] = v)), { unit: 'mm', ...opt }));
   b.append(sec(f.type === 'decal' ? 'AUFKLEBER' : 'ANSICHTSBEREICH'),
-    f.type === 'canvas' ? row('Ebene', sel([['XY', 'XY-Ebene'], ['XZ', 'XZ-Ebene'], ['YZ', 'YZ-Ebene']], Object.keys(BASE_PLANES).find(k => JSON.stringify(BASE_PLANES[k].n) === JSON.stringify(f.plane.n)) || 'XY', v => ed(x => (x.plane = { ...BASE_PLANES[v] })))) : null,
+    f.type === 'canvas' ? row('Ebene', sel(basePlaneOpts(), Object.keys(BASE_PLANES).find(k => JSON.stringify(BASE_PLANES[k].n) === JSON.stringify(f.plane.n)) || 'XY', v => ed(x => (x.plane = { ...BASE_PLANES[v] })))) : null,
     N('Breite', 'w', { min: 0.1 }),
     h('div', { class: 'stats' }, h('span', null, 'Höhe'), h('b', null, `${f2((+f.w || 0) / (+f.aspect || 1))} mm (Seitenverhältnis bleibt)`)),
     N('Versatz X', 'dx'), N('Versatz Y', 'dy'), row('Drehung', num(f.rot || 0, v => ed(x => (x.rot = v)), { unit: '°' })),
@@ -4206,7 +4660,7 @@ async function insertSVG() {
   let scale = 25.4 / 96;
   if (wm) scale = (+wm[1] * unitMM[wm[2] || '']) / (vb.length === 4 && vb[2] > 0 ? vb[2] : +wm[1]);
   const v = await formDialog('SVG-Datei einfügen', [
-    { key: 'plane', label: 'Ebene', value: 'XY', options: [['XY', 'XY-Ebene'], ['XZ', 'XZ-Ebene'], ['YZ', 'YZ-Ebene']] },
+    { key: 'plane', label: 'Ebene', value: 'XY', options: basePlaneOpts() },
     { key: 'scale', label: 'Maßstab (mm je SVG-Einheit)', value: +scale.toFixed(6) },
     { key: 'hint', hint: `Aus der Datei erkannt: ${wm ? `Breite ${wAttr}` : 'keine Einheit (96 dpi angenommen)'}. Pfade, Rechtecke, Kreise, Ellipsen, Linien und Polygone werden zu Skizzenkurven.` }], 'Einfügen');
   if (!v) return;
@@ -4309,7 +4763,7 @@ async function insertSVG() {
 async function insertDXF() {
   const file = await chooseFile('.dxf');
   if (!file) return;
-  const v = await formDialog('DXF-Datei einfügen', [{ key: 'plane', label: 'Ebene', value: 'XY', options: [['XY', 'XY-Ebene'], ['XZ', 'XZ-Ebene'], ['YZ', 'YZ-Ebene']] }], 'Einfügen');
+  const v = await formDialog('DXF-Datei einfügen', [{ key: 'plane', label: 'Ebene', value: 'XY', options: basePlaneOpts() }], 'Einfügen');
   if (!v) return;
   try {
     const { circles, polys, skipped } = parseDXF(await file.text());
@@ -4465,6 +4919,7 @@ function stdPartDialog(hasBody) {
 // ----- KI-Agenten: what the page lends to the tools of js/agent.js. The desktop app passes the calls of a
 // connected agent on (electron/main.cjs); window.werkfabAgent offers the same tools to scripts in the page. -----
 const agentApi = {
+  readOnly: () => getSettings().agentAccess === 'read',
   project: () => state.project,
   commit: fn => commit(fn),
   uid,
@@ -4553,7 +5008,12 @@ const agentApi = {
     for (const is of rep.issues) (by[is.kind] ||= []).push(is.k);
     const skipped = g.ops.filter(o => o.enabled !== false && g.results.get(o.id)?.error).map(o => ({ id: o.id, name: o.name, error: g.results.get(o.id).error }));
     return { setup: sid, post: findPost(p, postId || p.post.flavor).id, lines: r.lines, time: +(+r.time || 0).toFixed(1), clean: !rep.issues.length && !skipped.length && !(r.warnings || []).length,
-      issues: Object.entries(by).map(([kind, ks]) => ({ kind, text: NC_ISSUE[kind] || kind, count: ks.length, lines: ks.slice(0, 20).map(k => ({ line: k + 1, code: (lines[k] || '').trim() })) })),
+      issues: Object.entries(by).map(([kind, ks]) => {
+        // how many of these lines each operation wrote
+        const ops = {};
+        for (const k of ks) { const n = r.opOf?.[k] || '–'; ops[n] = (ops[n] || 0) + 1; }
+        return { kind, text: NC_ISSUE[kind] || kind, count: ks.length, operations: ops, lines: ks.slice(0, 20).map(k => ({ line: k + 1, code: (lines[k] || '').trim(), ...(r.opOf?.[k] ? { operation: r.opOf[k] } : {}) })) };
+      }),
       ...(rep.partDeep > 0 ? { deepestCutIntoPart: +rep.partDeep.toFixed(3) } : {}),
       warnings: r.warnings || [], skipped, machine: [rep.info, rep.why].filter(Boolean), machineLimits: machineChecks(g.machine, g.stock, g.setup, p.cam.tools),
       notice: 'Checked line by line against the remaining stock, the clamping, the machine and the finished part as modelled here. This does not replace a dry run on the machine.' };
@@ -4575,7 +5035,7 @@ const agentApi = {
     if (postId && !allPosts(p).some(x => x.id === postId)) throw new Error(`No post processor "${postId}"`);
     const r = postProcess(resolved(), g, g.machine, postId ? { postId } : {}), def = findPost(p, postId || p.post.flavor);
     const skipped = g.ops.filter(o => o.enabled !== false && g.results.get(o.id)?.error).map(o => ({ id: o.id, name: o.name, error: g.results.get(o.id).error }));
-    return { setup: sid, post: def.id, file: `${safeName()}.${def.ext || 'nc'}`, lines: r.lines, time: +(+r.time || 0).toFixed(1), warnings: r.warnings || [], skipped, notice: 'Draft: verify in the simulation and with a dry run on the machine before cutting.', code: r.code };
+    return { setup: sid, post: def.id, file: ncFileName(r.code, `${safeName()}.${def.ext || 'nc'}`, def.ext), lines: r.lines, time: +(+r.time || 0).toFixed(1), warnings: r.warnings || [], skipped, notice: 'Draft: verify in the simulation and with a dry run on the machine before cutting.', code: r.code };
   },
   // the model once it is computed (large designs are rebuilt in steps)
   async settled() {
@@ -4588,7 +5048,8 @@ const agentApi = {
   },
   bodyInfo(b) {
     const r = { id: b.id, name: state.project.bodyMeta?.[b.id]?.name || b.name };
-    try { const p = bodyProps(b); r.volume = +p.volume.toFixed(3); r.area = +p.area.toFixed(3); } catch { /* a surface or a mesh */ }
+    // a surface body (open shell) has no volume: the number the kernel gives for it means nothing
+    try { const p = bodyProps(b); if (b.surface) r.surface = true; else r.volume = +p.volume.toFixed(3); r.area = +p.area.toFixed(3); } catch { /* a mesh */ }
     b.geometry.computeBoundingBox();
     const bb = b.geometry.boundingBox;
     if (bb && !bb.isEmpty()) { r.min = bb.min.toArray().map(q => +q.toFixed(4)); r.max = bb.max.toArray().map(q => +q.toFixed(4)); }
@@ -4961,7 +5422,43 @@ function stdPartFeats(v, top, n) {
     }
     if (!first) first = fid;
   });
+  // the set of features of this part, with what it was made from (for "Bauteilgröße ändern")
+  const gid = uid('sp');
+  for (const f of feats) f.stdGroup = gid;
+  const head = feats.find(f => f.id === first);
+  if (head) head.std = { fam: v.fam, size: v.size, len: v.len ?? null, thread: v.thread ?? null, top: top.toArray().map(q => +q.toFixed(4)), n: n.toArray().map(q => +q.toFixed(6)) };
   return { feats, first, label };
+}
+// Bauteilgröße ändern: a catalogue part gets another size or length; its features are made anew in place
+async function resizeStdPart() {
+  const fs = state.project.features;
+  const selId = state.sel?.kind === 'feature' ? state.sel.id : state.sel?.kind === 'body' ? state.sel.id : null;
+  let head = selId && fs.find(f => f.id === selId && f.std);
+  if (!head && selId) { const g = fs.find(f => f.id === selId)?.stdGroup; head = g && fs.find(f => f.stdGroup === g && f.std); }
+  head ||= [...fs].reverse().find(f => f.std);
+  if (!head) return status('Kein Katalogbauteil vorhanden – Bauteile aus dem Bauteilkatalog oder „Normteil einfügen“ lassen sich ändern.');
+  const fam = stdFamily(head.std.fam);
+  const fields = [{ key: 'size', label: 'Größe', value: head.std.size, options: fam.sizes().map(z => [z, z]) }];
+  if (fam.len) fields.push({ key: 'len', label: 'Länge', value: head.std.len || fam.len, unit: 'mm' });
+  const v = await formDialog(`Bauteilgröße ändern – ${fam.name}`, fields, 'Ändern');
+  if (!v) return;
+  let made;
+  try { made = stdPartFeats({ ...head.std, size: v.size, len: fam.len ? +v.len : head.std.len }, new THREE.Vector3(...head.std.top), new THREE.Vector3(...head.std.n)); } catch (err) { return status(err.message); }
+  const old = fs.filter(f => f.stdGroup === head.stdGroup);
+  // keep the ids where the steps match (joints, threads and later steps keep their references)
+  const map = new Map();
+  if (old.length === made.feats.length && old.every((f, i) => f.type === made.feats[i].type)) made.feats.forEach((f, i) => map.set(f.id, old[i].id));
+  const re = id => map.get(id) || id;
+  const feats = made.feats.map(f => { const g = { ...f, id: re(f.id) }; for (const k of ['sketch', 'target', 'cutOnly', 'body']) if (typeof g[k] === 'string') g[k] = re(g[k]); g.stdGroup = head.stdGroup; return g; });
+  const label = made.label;
+  commit(p => {
+    const at = p.features.findIndex(f => f.stdGroup === head.stdGroup);
+    p.features = p.features.filter(f => f.stdGroup !== head.stdGroup);
+    p.features.splice(at, 0, ...feats);
+    const first = re(made.first);
+    p.bodyMeta ||= {}; (p.bodyMeta[first] ||= {}).name = label;
+  });
+  status(`${label}`);
 }
 
 // ----- Mit Gelenken duplizieren: copies of a body that keep its joints -----
@@ -8911,7 +9408,7 @@ function propsPost(b) {
   b.append(
     h('div', { class: 'stats' }, h('span', null, 'Zeilen'), h('b', null, lastPost.lines), h('span', null, 'Laufzeit (ca.)'), h('b', null, fmtTime(lastPost.time))),
     h('div', { class: 'btns' },
-      btn(`Herunterladen (.${ext})`, () => download(`${safeName()}_${g.setup.name}.${ext}`, lastPost.code, 'text/plain'), 'primary'),
+      btn(`Herunterladen (.${ext})`, () => download(ncFileName(lastPost.code, `${safeName()}_${g.setup.name}.${ext}`, ext), lastPost.code, 'text/plain'), 'primary'),
       btn('Kopieren', () => navigator.clipboard.writeText(lastPost.code).then(() => status('NC-Code kopiert'))),
       btn('Einrichteblatt', openSetupSheet),
     ),
@@ -9001,11 +9498,11 @@ function createSketch(plane) {
   editSketch(id);
 }
 
-function togglePick(mode, id) {
-  const on = !(state.pick?.mode === mode && state.pick.id === id);
-  state.pick = on ? { mode, id } : null;
+function togglePick(mode, id, key = null) {
+  const on = !(state.pick?.mode === mode && state.pick.id === id && (state.pick.key || mode) === (key || mode));
+  state.pick = on ? { mode, id, ...(key && key !== mode ? { key } : {}) } : null;
   const ft = feature(id)?.type;
-  showBanner(on ? [mode === 'edges' ? 'Kanten anklicken (erneut klicken entfernt).' : ft === 'extrude' ? 'Ebene Flächen anklicken, die extrudiert werden (erneut klicken entfernt).' : ({ surftrim: 'Bereiche der Fläche anklicken, die weggetrimmt werden (erneut klicken nimmt zurück).', offsetsurf: 'Flächen anklicken, die versetzt werden (erneut klicken entfernt).', thicken: 'Flächen anklicken, die aufgedickt werden (erneut klicken entfernt).', draft: 'Flächen anklicken, die geneigt werden (erneut klicken entfernt).', thread: 'Zylinderfläche für das Gewinde anklicken.' }[ft] || 'Flächen anklicken, die offen sein sollen.'), h('button', { onclick: () => togglePick(mode, id) }, 'Fertig')] : null);
+  showBanner(on ? [mode === 'edges' ? 'Kanten anklicken (erneut klicken entfernt).' : ft === 'extrude' ? 'Ebene Flächen anklicken, die extrudiert werden (erneut klicken entfernt).' : ({ surftrim: 'Bereiche der Fläche anklicken, die weggetrimmt werden (erneut klicken nimmt zurück).', offsetsurf: 'Flächen anklicken, die versetzt werden (erneut klicken entfernt).', thicken: 'Flächen anklicken, die aufgedickt werden (erneut klicken entfernt).', draft: 'Flächen anklicken, die geneigt werden (erneut klicken entfernt).', thread: 'Zylinderfläche für das Gewinde anklicken.', offsetface: 'Flächen anklicken, die versetzt werden (erneut klicken entfernt).', replaceface: 'Fläche anklicken, die ersetzt wird.', splitface: 'Flächen anklicken, die geteilt werden (erneut klicken entfernt).', delface: 'Flächen anklicken, die gelöscht werden (erneut klicken entfernt).', lip: 'Randfläche der Schale anklicken, an der die Lippe sitzt.', untrim: 'Flächen mit Löchern anklicken (erneut klicken entfernt).', straighten: 'Flächen anklicken, die begradigt werden (erneut klicken entfernt).', endcap: 'Offene Stirnfläche eines Rohrs oder Profils anklicken.' }[ft] || (mode === 'edges2' || state.pick?.key === 'edges2' ? 'Zweite Kante anklicken.' : 'Flächen anklicken, die offen sein sollen.')), h('button', { onclick: () => togglePick(mode, id) }, 'Fertig')] : null);
   renderAll();
 }
 
@@ -9063,10 +9560,11 @@ function viewportClick(e) {
     const ei = body.segEdge[Math.floor(hit.index / 2)];
     const ref = edgeMidpoint(body, ei);
     const id = state.pick.id;
+    const key = state.pick.key || 'edges';
     editFeature(id, f => {
-      f.edges ||= [];
-      const k = f.edges.findIndex(r => Math.hypot(r[0] - ref[0], r[1] - ref[1], r[2] - ref[2]) < 1e-3);
-      if (k >= 0) f.edges.splice(k, 1); else f.edges.push(ref);
+      f[key] ||= [];
+      const k = f[key].findIndex(r => Math.hypot(r[0] - ref[0], r[1] - ref[1], r[2] - ref[2]) < 1e-3);
+      if (k >= 0) f[key].splice(k, 1); else f[key].push(ref);
     });
     return;
   }
@@ -9126,7 +9624,10 @@ function viewportClick(e) {
       showBanner(`Abstand ${f2(d.length())} mm · ΔX ${f2(d.x)} · ΔY ${f2(d.y)} · ΔZ ${f2(d.z)}`);
     } else showBanner(`Punkt 1: ${f2(hit.point.x)}, ${f2(hit.point.y)}, ${f2(hit.point.z)} – zweiten Punkt anklicken`);
     rebuildScene();
+    return;
   }
+  // no command waits for a pick: the selection filter decides what a click selects
+  if (!state.pick && state.workspace === 'design' && !state.sketchId) filteredClick(e);
 }
 
 let viewBeforeSketch = null;
@@ -9342,7 +9843,13 @@ function createFeature(type, extra = {}) {
   } else if (type === 'combine') {
     if (m.bodies.length < 2) return status('Kombinieren braucht mindestens zwei Körper.');
     f = { ...base, body: m.bodies[0].id, tool: m.bodies[1].id, op: 'join', keep: false };
+  } else if (EXTRA_NEW[type]) {
+    const more = EXTRA_NEW[type]({ m, hasBodies, p, extra });
+    if (typeof more === 'string') return status(more);
+    f = { ...base, ...more };
   }
+  // "Neue Komponente": the first shape after it makes a body of its own
+  if (state.newBody && f && 'op' in f && type !== 'sketch') { f.op = 'new'; delete f.target; state.newBody = false; }
   pendingNew = { id, depth: undoDepth() };
   insertFeature(f);
   state.sel = { kind: 'feature', id };
@@ -9353,8 +9860,36 @@ function createFeature(type, extra = {}) {
   else if (type === 'plane' && f.kind === '3pt') startPointPick(id, 'pts', 3);
   else if (type === 'plane' && f.kind === 'tangent') { state.pick = { mode: 'axiscyl', id }; showBanner(['Zylinderfläche anklicken, an die die Ebene tangential anliegen soll.', h('button', { onclick: () => { state.pick = null; showBanner(null); renderAll(); } }, 'Abbrechen')]); renderAll(); }
   else if (type === 'point') startPointPick(id, 'xyz', 1);
+  else if (['lip', 'splitface', 'untrim', 'straighten', 'endcap'].includes(type)) togglePick('faces', id);
+  else if (type === 'ruled' || type === 'blendsurf') togglePick('edges', id);
   else renderAll();
 }
+
+// defaults of the further modelling steps (features2.js): an object, or a text when the step cannot start
+const lastSketchWith = (p, test) => [...p.features].reverse().find(x => x.type === 'sketch' && x.entities.some(test));
+const lastBodyId = m => m.bodies[m.bodies.length - 1]?.id || '';
+const EXTRA_NEW = {
+  cone: ({ m, hasBodies }) => ({ x: 0, y: 0, z: hasBodies ? f2(m.box.max.z) : 0, r1: 15, r2: 5, h: 25, axis: 'z', op: hasBodies ? 'join' : 'new' }),
+  bbox: ({ m, hasBodies }) => (hasBodies ? { body: state.sel?.kind === 'body' ? state.sel.id : lastBodyId(m), kind: 'box', axis: 'z', margin: 0, op: 'new' } : 'Zuerst einen Körper erstellen.'),
+  bfill: ({ m, hasBodies }) => (hasBodies ? { body: state.sel?.kind === 'body' ? state.sel.id : lastBodyId(m) } : 'Zuerst einen Körper erstellen.'),
+  web: ({ p, hasBodies }) => { const sk = pickSketch() || lastSketchWith(p, e => e.type === 'poly' && !e.closed); return sk ? { sketch: sk.id, thickness: 2, height: 10, symmetric: false, op: hasBodies ? 'join' : 'new' } : 'Gewebe: zuerst eine Skizze mit offenen Linien zeichnen.'; },
+  boss: ({ p, hasBodies }) => { const sk = pickSketch() || lastSketchWith(p, e => e.type === 'point' || e.type === 'circle'); return sk ? { sketch: sk.id, D: 8, d: 3, h: 10, depth: 8, draft: 0, flip: false, op: hasBodies ? 'join' : 'new' } : 'Ansatz: zuerst eine Skizze mit Punkten oder Kreisen an den Stellen der Dome zeichnen.'; },
+  lip: ({ hasBodies, extra }) => (hasBodies ? { faces: [], kind: extra.kind || 'lip', side: 'inner', width: 1, height: 1.5 } : 'Lippe braucht eine Schale (Körper mit offener Seite).'),
+  snapfit: ({ m, hasBodies }) => ({ x: 0, y: 0, z: hasBodies ? f2(m.box.max.z) : 0, dir: 'z', rz: 0, length: 15, thickness: 1.5, width: 6, hook: 1, hookLen: 2, op: hasBodies ? 'join' : 'new' }),
+  rest: ({ hasBodies }) => { const sk = pickSketch(); return sk ? { sketch: sk.id, profiles: 'all', width: 2, height: 4, op: hasBodies ? 'join' : 'new' } : 'Auflage: zuerst eine Skizze mit geschlossenem Profil zeichnen.'; },
+  removebody: ({ m, hasBodies }) => (hasBodies ? { body: state.sel?.kind === 'body' ? state.sel.id : lastBodyId(m) } : 'Kein Körper vorhanden.'),
+  splitface: ({ hasBodies }) => (hasBodies ? { faces: [], toolKind: 'plane', plane: 'XY', sketch: '' } : 'Zuerst einen Körper erstellen.'),
+  ruled: ({ hasBodies }) => (hasBodies ? { edges: [], distance: 10, dir: 'normal' } : 'Regelfläche braucht Kanten eines Körpers oder einer Fläche.'),
+  blendsurf: ({ hasBodies }) => (hasBodies ? { edges: [], edges2: [], ruled: false } : 'Verbindungsfläche braucht Kanten von zwei Flächen.'),
+  untrim: ({ hasBodies }) => (hasBodies ? { faces: [] } : 'Zuerst eine Fläche erstellen.'),
+  straighten: ({ hasBodies }) => (hasBodies ? { faces: [] } : 'Zuerst eine Fläche erstellen.'),
+  unstitch: ({ m, hasBodies }) => (hasBodies ? { body: state.sel?.kind === 'body' ? state.sel.id : lastBodyId(m) } : 'Kein Körper vorhanden.'),
+  flipnormal: ({ m, hasBodies }) => (hasBodies ? { body: state.sel?.kind === 'body' ? state.sel.id : ([...m.bodies].reverse().find(x => x.surface) || m.bodies[m.bodies.length - 1]).id } : 'Kein Flächenkörper vorhanden.'),
+  perforate: ({ hasBodies }) => { if (!hasBodies) return 'Perforieren braucht ein Blech oder eine Platte.'; const sk = pickSketch(); return sk ? { sketch: sk.id, profiles: 'all', dia: 3, pitch: 6, margin: 2, stagger: true, depth: 0 } : 'Perforieren: zuerst eine Skizze mit dem Lochfeld als geschlossenem Profil zeichnen.'; },
+  pathflange: ({ p, hasBodies }) => { const sk = lastSketchWith(p, e => e.type === 'poly' && !e.closed); return sk ? { sketch: sk.id, entity: [...sk.entities].reverse().find(e => e.type === 'poly' && !e.closed).id, thickness: 2, length: 50, symmetric: false, op: hasBodies ? 'join' : 'new' } : 'Pfadflansch: zuerst den Querschnitt als offenen Linienzug in einer Skizze zeichnen.'; },
+  frame: ({ p }) => { const sk = pickSketch() || lastSketchWith(p, e => e.type === 'poly'); if (!sk) return 'Rahmenelement: zuerst eine Skizze mit den Mittellinien der Stäbe zeichnen (Linien, Linienzüge).'; return { sketch: sk.id, fam: 'en10219q', size: stdFamily('en10219q').sizes()[2] || stdFamily('en10219q').sizes()[0], rot: 0, align: 'center', corner: 'miter', separate: false, op: 'new' }; },
+  endcap: ({ hasBodies }) => (hasBodies ? { faces: [], thickness: 3, inset: 0, place: 'outside', op: 'join' } : 'Endkappe braucht ein Rohr oder Profil.'),
+};
 
 function deleteFeature(id) {
   const p = state.project;
@@ -10070,10 +10605,25 @@ function jointMotionRows(j, ed) {
     limited ? row('Maximum', num(j.max, v => ed(x => (x.max = v ?? 0)), { unit: u0 })) : null,
     row('Kontakt (Anschlag)', chk(!!j.contact, v => ed(x => (x.contact = v)))),
     sec('VERKNÜPFUNG'),
-    row('Folgt Gelenk', sel([['', '– keins –'], ...joints.map(q => [q.id, `${q.name} (${JOINT_TYPES[q.type]})`])], linked ? j.link.from : '', v => ed(x => { if (v) x.link = { from: v, ratio: x.link?.ratio || 1, offset: 0 }; else delete x.link; }))),
-    linked ? row('Übersetzung', num(j.link.ratio ?? 1, v => ed(x => (x.link.ratio = v ?? 1)), { unit: `${u0} je ${JOINT_DOF[joints.find(q => q.id === j.link.from).type][0][1]}` })) : null,
-    linked ? h('p', { class: 'hint' }, 'Dieses Gelenk bewegt sich mit dem gewählten (z. B. Zahnräder: Übersetzung = −Zähne₁/Zähne₂). Negative Werte drehen gegenläufig.') : null);
+    row('Folgt Gelenk', sel([['', '– keins –'], ...joints.map(q => [q.id, `${q.name} (${JOINT_TYPES[q.type]})`])], linked ? j.link.from : '', v => ed(x => { if (v) x.link = { kind: x.link?.kind || 'ratio', from: v, ratio: x.link?.ratio || 1, offset: 0 }; else delete x.link; }))),
+    ...(linked ? linkRows(j, ed, u0, JOINT_DOF[joints.find(q => q.id === j.link.from).type][0][1]) : []));
   return rows;
+}
+// the fields of a motion link by its kind
+function linkRows(j, ed, u0, u1) {
+  const L = j.link, kind = L.kind || 'ratio';
+  const N = (label, key, unit, def) => row(label, num(L[key] ?? def, v => ed(x => (x.link[key] = v ?? def)), { unit }));
+  const R0 = row('Art', sel(Object.entries(LINK_KINDS), kind, v => ed(x => (x.link.kind = v))));
+  const rev = row('Gegenläufig', chk(!!L.reverse, v => ed(x => (x.link.reverse = v))));
+  const hint = t => h('p', { class: 'hint' }, t);
+  if (kind === 'gear') return [R0, N('Zähne treibendes Rad', 'z1', '', 20), N('Zähne getriebenes Rad', 'z2', '', 40),
+    h('div', { class: 'btns' }, btn('Übersetzung übernehmen', () => ed(x => (x.link.ratio = +(-(+x.link.z1 || 20) / (+x.link.z2 || 40)).toFixed(6))))),
+    N('Übersetzung', 'ratio', `${u0} je ${u1}`, 1), hint('Außenverzahnte Räder drehen gegenläufig: Übersetzung = −Zähne₁ / Zähne₂.')];
+  if (kind === 'rack') return [R0, N('Teilkreisdurchmesser Ritzel', 'dia', 'mm', 20), rev, N('Versatz', 'offset', u0, 0), hint('Eine Umdrehung des Ritzels schiebt die Zahnstange um π · d.')];
+  if (kind === 'screw') return [R0, N('Steigung', 'lead', 'mm', 1), rev, N('Versatz', 'offset', u0, 0), hint('Eine Umdrehung schiebt die Mutter um die Steigung.')];
+  if (kind === 'cam') return [R0, N('Exzentrizität', 'throw', 'mm', 5), N('Phase', 'phase', '°', 0), N('Rast (Anteil)', 'dwell', '', 0), N('Versatz', 'offset', u0, 0),
+    hint('Ein Exzenter hebt den Stößel um 2 · e und senkt ihn wieder (Hub = 2 · Exzentrizität). Rast: so viel der Umdrehung bleibt der Stößel unten (0 … 0,95).')];
+  return [R0, N('Übersetzung', 'ratio', `${u0} je ${u1}`, 1), N('Versatz', 'offset', u0, 0), hint('Dieses Gelenk bewegt sich mit dem gewählten. Negative Werte drehen gegenläufig.')];
 }
 // would the component (and what hangs on it) overlap another body at these joint values?
 function jointCollides(j, values) {
@@ -10144,6 +10694,736 @@ function motionStudy(jointId) {
   };
   motion.raf = requestAnimationFrame(tick);
   renderToolbar();
+}
+
+// ==================== ribbon commands: assembly, inspect, manage, view ====================
+const asmEdit = fn => commit(pp => { pp.assembly ||= { placements: {}, joints: [] }; pp.assembly.joints ||= []; fn(pp.assembly); });
+const movableJoints = () => (state.project.assembly?.joints || []).filter(j => (JOINT_DOF[j.type] || []).length);
+const selBodyId = () => (state.sel?.kind === 'body' ? state.sel.id : null);
+const bodyChecks = (ids = []) => getModel().bodies.map(b => ({ key: b.id, label: bodyName(b), check: true, value: ids.includes(b.id) }));
+
+// Neue Komponente: the next shape makes a body of its own (a sketch follows)
+function newComponent() {
+  state.newBody = true;
+  status('Neue Komponente: Skizze auf einer Ebene anlegen – der nächste Körper wird eine eigene Komponente.');
+  startPickPlane();
+}
+// Komponenten aus Körpern: every body is a component of the assembly; the chosen ones get a name and a placement
+async function componentsFromBodies() {
+  const bodies = getModel().bodies;
+  if (!bodies.length) return status('Kein Körper vorhanden.');
+  const v = await formDialog('Komponenten aus Körpern', [...bodyChecks(bodies.map(b => b.id)), { key: 'hint', hint: 'Die gewählten Körper werden einzeln bewegliche Komponenten (mit Position und Gelenken).' }], 'Übernehmen');
+  if (!v) return;
+  const ids = bodies.filter(b => v[b.id]).map(b => b.id);
+  commit(pp => { pp.assembly ||= { placements: {}, joints: [] }; pp.assembly.placements ||= {}; for (const id of ids) pp.assembly.placements[id] ||= { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 }; });
+  if (ids[0]) select('body', ids[0]);
+  status(`${ids.length} Komponenten – Lage im Eigenschaften-Fenster, Gelenke mit „Gelenk“.`);
+}
+// Starrgruppe: the chosen bodies move as one (rigid joints to the first one)
+async function rigidGroup() {
+  const bodies = getModel().bodies;
+  if (bodies.length < 2) return status('Eine Starrgruppe braucht mindestens zwei Körper.');
+  const v = await formDialog('Starrgruppe', [...bodyChecks(selBodyId() ? [selBodyId()] : []), { key: 'hint', hint: 'Die gewählten Körper werden starr mit dem ersten verbunden und bewegen sich gemeinsam.' }], 'Verbinden');
+  if (!v) return;
+  const ids = bodies.filter(b => v[b.id]).map(b => b.id);
+  if (ids.length < 2) return status('Mindestens zwei Körper wählen.');
+  asmEdit(a => {
+    a.joints = a.joints.filter(j => !ids.slice(1).includes(j.child));
+    for (const id of ids.slice(1)) a.joints.push({ id: uid('j'), name: nextName(a.joints, 'Starrgruppe'), type: 'rigid', child: id, parent: ids[0], origin: [0, 0, 0], axis: 'z', value: 0, group: true });
+  });
+  status(`Starrgruppe aus ${ids.length} Körpern angelegt.`);
+}
+// Boden: the body is fixed to the origin (a rigid joint without parent); again: loose again
+function groundBody() {
+  const id = selBodyId() || getModel().bodies[0]?.id;
+  if (!id) return status('Zuerst einen Körper wählen.');
+  const has = (state.project.assembly?.joints || []).find(j => j.child === id && j.type === 'rigid' && !j.parent && j.ground);
+  asmEdit(a => {
+    a.joints = a.joints.filter(j => j.child !== id || !j.ground);
+    if (!has) { a.joints = a.joints.filter(j => j.child !== id); a.joints.push({ id: uid('j'), name: nextName(a.joints, 'Boden'), type: 'rigid', child: id, parent: '', origin: [0, 0, 0], axis: 'z', value: 0, ground: true }); }
+  });
+  status(has ? `${bodyLabel(id)} ist wieder frei.` : `${bodyLabel(id)} ist fest mit dem Ursprung verbunden (Boden).`);
+}
+// Zahnrad, Zahnstange, Schraube, Nocken, Abhängigkeit: one joint follows another one
+async function jointLinkDialog(kind = 'ratio') {
+  const js = movableJoints();
+  if (js.length < 2) return status('Dafür braucht es zwei bewegliche Gelenke (z. B. zwei Drehgelenke für Zahnräder, Dreh- und Schiebegelenk für Zahnstange und Ritzel).');
+  const opts = js.map(j => [j.id, `${j.name} (${JOINT_TYPES[j.type]})`]);
+  const fields = [{ key: 'from', label: 'Treibendes Gelenk', value: js[0].id, options: opts }, { key: 'to', label: 'Folgendes Gelenk', value: js[1].id, options: opts }];
+  if (kind === 'gear') fields.push({ key: 'z1', label: 'Zähne treibendes Rad', value: 20 }, { key: 'z2', label: 'Zähne folgendes Rad', value: 40 });
+  if (kind === 'rack') fields.push({ key: 'dia', label: 'Teilkreisdurchmesser Ritzel', value: 20, unit: 'mm' });
+  if (kind === 'screw') fields.push({ key: 'lead', label: 'Steigung', value: 2, unit: 'mm' });
+  if (kind === 'cam') fields.push({ key: 'throw', label: 'Exzentrizität', value: 5, unit: 'mm' });
+  if (kind === 'ratio') fields.push({ key: 'ratio', label: 'Übersetzung', value: 1 });
+  const v = await formDialog(LINK_KINDS[kind] || 'Abhängigkeit', fields, 'Verknüpfen');
+  if (!v) return;
+  if (v.from === v.to) return status('Zwei verschiedene Gelenke wählen.');
+  asmEdit(a => {
+    const j = a.joints.find(x => x.id === v.to);
+    j.link = { kind, from: v.from, offset: 0, ...(kind === 'gear' ? { z1: +v.z1, z2: +v.z2, ratio: +(-(+v.z1 || 20) / (+v.z2 || 40)).toFixed(6) } : {}), ...(kind === 'rack' ? { dia: +v.dia } : {}), ...(kind === 'screw' ? { lead: +v.lead } : {}), ...(kind === 'cam' ? { throw: +v.throw } : {}), ...(kind === 'ratio' ? { ratio: +v.ratio || 1 } : {}) };
+  });
+  select('joint', v.to);
+  status(`${LINK_KINDS[kind]}: „${js.find(j => j.id === v.to).name}“ folgt „${js.find(j => j.id === v.from).name}“.`);
+}
+function jointLimitsCmd() {
+  const j = state.sel?.kind === 'joint' ? state.project.assembly.joints.find(x => x.id === state.sel.id) : movableJoints()[0];
+  if (!j) return status('Kein bewegliches Gelenk vorhanden.');
+  select('joint', j.id);
+  status('Grenzen, Anschlag und Verknüpfung im Gelenk-Fenster unter „Bewegung“.');
+}
+// Punkt anfahren: a joint runs smoothly to a given value
+async function driveToValue() {
+  const js = movableJoints().filter(j => !j.link?.from);
+  if (!js.length) return status('Kein bewegliches Gelenk vorhanden.');
+  const cur = state.sel?.kind === 'joint' && js.find(j => j.id === state.sel.id) || js[0];
+  const v = await formDialog('Punkt anfahren', [{ key: 'j', label: 'Gelenk', value: cur.id, options: js.map(j => [j.id, j.name]) }, { key: 'to', label: 'Zielwert', value: +cur.max || 0 }, { key: 't', label: 'Dauer', value: 1.5, unit: 's' }], 'Anfahren');
+  if (!v) return;
+  const j = js.find(x => x.id === v.j), from = jointValues(state.project.assembly, j, motionValues)[0], to = +v.to, T = Math.max(0.1, +v.t || 1.5) * 1000, t0 = performance.now();
+  const tick = now => {
+    const u = Math.min(1, (now - t0) / T), s = u * u * (3 - 2 * u);
+    motionValues = { ...motionValues, [j.id]: from + (to - from) * s };
+    rebuildScene();
+    if (u < 1) requestAnimationFrame(tick);
+    else { delete motionValues[j.id]; asmEdit(a => (a.joints.find(x => x.id === j.id).value = +to.toFixed(3))); }
+  };
+  requestAnimationFrame(tick);
+}
+// Position erfassen / zurücksetzen: the values of all joints under a name
+async function capturePosition() {
+  const js = movableJoints();
+  if (!js.length) return status('Kein bewegliches Gelenk vorhanden.');
+  const v = await formDialog('Position erfassen', [{ key: 'name', label: 'Name', value: nextName(state.project.assembly?.positions || [], 'Position'), text: true }], 'Speichern');
+  if (!v) return;
+  const vals = Object.fromEntries(js.map(j => [j.id, jointValues(state.project.assembly, j, motionValues)]));
+  asmEdit(a => { a.positions ||= []; a.positions.push({ name: String(v.name || 'Position'), values: vals }); });
+  status(`Position „${v.name}“ gespeichert.`);
+}
+async function resetPosition() {
+  const ps = state.project.assembly?.positions || [];
+  const fields = ps.length ? [{ key: 'i', label: 'Position', value: String(ps.length - 1), options: [['zero', 'Nullstellung (alle Gelenke 0)'], ...ps.map((q, i) => [String(i), q.name])] }] : [{ key: 'i', label: 'Position', value: 'zero', options: [['zero', 'Nullstellung (alle Gelenke 0)']] }];
+  const v = await formDialog('Position zurücksetzen', fields, 'Anwenden');
+  if (!v) return;
+  motionValues = {};
+  asmEdit(a => {
+    for (const j of a.joints) {
+      const q = v.i === 'zero' ? [0, 0, 0] : ps[+v.i]?.values[j.id];
+      if (q) [j.value, j.value2, j.value3] = q.map(x => +(+x).toFixed(4));
+    }
+  });
+  status(v.i === 'zero' ? 'Alle Gelenke auf null.' : `Position „${ps[+v.i].name}“ wiederhergestellt.`);
+}
+// Kontaktsätze: only these bodies are checked against each other while joints move; Kontakt: stops on/off
+async function contactSets() {
+  const cur = state.project.assembly?.contactBodies || [];
+  const v = await formDialog('Kontaktsätze', [...bodyChecks(cur), { key: 'hint', hint: 'Nur die gewählten Körper werden beim Bewegen gegeneinander geprüft (keiner gewählt = alle). Das macht die Prüfung bei großen Baugruppen schnell.' }], 'Übernehmen');
+  if (!v) return;
+  asmEdit(a => { a.contactBodies = getModel().bodies.filter(b => v[b.id]).map(b => b.id); });
+}
+function toggleContactAll() {
+  const js = movableJoints();
+  if (!js.length) return status('Kein bewegliches Gelenk vorhanden.');
+  const on = !js.every(j => j.contact);
+  asmEdit(a => { for (const j of a.joints) if ((JOINT_DOF[j.type] || []).length) j.contact = on; });
+  status(on ? 'Kontakt ein: Gelenke halten an, wo Teile sich berühren.' : 'Kontakt aus.');
+}
+
+// ---------- Prüfen ----------
+const visibleBodies = () => getModel().bodies.filter(b => !state.hiddenBodies.has(b.id));
+function massOf(b) {
+  const pr = bodyProps(b), mat = MATERIALS[bodyMeta(b.id).material || 'alu'];
+  return { ...pr, mass: (pr.volume / 1000) * mat.density, mat };
+}
+// Massenschwerpunkt: a marker at the common centre of mass of the visible bodies
+let comMarker = null;
+function centreOfMass() {
+  if (comMarker) { vp.scene.remove(comMarker); comMarker = null; showBanner(null); return renderToolbar(); }
+  const bs = visibleBodies().filter(b => !b.surface);
+  if (!bs.length) return status('Kein Volumenkörper vorhanden.');
+  let M = 0; const c = [0, 0, 0];
+  for (const b of bs) { const q = massOf(b); M += q.mass; for (let k = 0; k < 3; k++) c[k] += q.com[k] * q.mass; }
+  for (let k = 0; k < 3; k++) c[k] /= M || 1;
+  const size = getModel().box.getSize(new THREE.Vector3()).length() || 50;
+  comMarker = new THREE.Group();
+  const s = new THREE.Mesh(new THREE.SphereGeometry(size * 0.012, 16, 12), new THREE.MeshBasicMaterial({ color: 0xff3b30, depthTest: false }));
+  s.renderOrder = 20;
+  const ax = new THREE.AxesHelper(size * 0.06); ax.material.depthTest = false; ax.renderOrder = 20;
+  comMarker.add(s, ax); comMarker.position.set(...c);
+  vp.scene.add(comMarker);
+  showBanner([`Massenschwerpunkt: X ${f2(c[0])} · Y ${f2(c[1])} · Z ${f2(c[2])} mm · Masse ${f2(M)} g`, h('button', { onclick: centreOfMass }, 'Schließen')]);
+  renderToolbar();
+}
+// Physikalische Eigenschaften: one row per body
+function physicalProps() {
+  const bs = visibleBodies();
+  if (!bs.length) return status('Kein Körper vorhanden.');
+  const w = modalWin('Physikalische Eigenschaften', 820);
+  const rows = bs.map(b => {
+    const q = massOf(b), bb = b.geometry.boundingBox || (b.geometry.computeBoundingBox(), b.geometry.boundingBox), sz = bb.getSize(new THREE.Vector3());
+    return [bodyName(b), b.surface ? '–' : q.mat.label, f2(q.volume / 1000), f2(q.area / 100), b.surface ? '–' : f2(q.mass), q.com.map(f2).join(' / '), [sz.x, sz.y, sz.z].map(f2).join(' × ')];
+  });
+  const head = ['Körper', 'Material', 'Volumen cm³', 'Fläche cm²', 'Masse g', 'Schwerpunkt mm', 'Abmessungen mm'];
+  w.body.append(h('table', { class: 'xtab' }, h('tr', null, ...head.map(t => h('th', null, t))), ...rows.map(r => h('tr', null, ...r.map(t => h('td', null, t))))));
+  w.foot.append(h('button', { onclick: () => download(`${safeName()}_Eigenschaften.csv`, [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n'), 'text/csv') }, 'Als CSV'), h('button', { class: 'primary', onclick: w.close }, 'OK'));
+}
+// Stückliste: equal bodies (same volume and size) are counted together
+function billOfMaterials() {
+  const bs = visibleBodies();
+  if (!bs.length) return status('Kein Körper vorhanden.');
+  const groups = [];
+  for (const b of bs) {
+    const q = massOf(b), bb = b.geometry.boundingBox || (b.geometry.computeBoundingBox(), b.geometry.boundingBox), sz = bb.getSize(new THREE.Vector3()).toArray().map(v => +v.toFixed(2)).sort((x, y) => x - y);
+    const key = `${q.volume.toFixed(1)}|${sz.join('x')}|${q.mat.label}`;
+    const g = groups.find(x => x.key === key);
+    if (g) g.n++; else groups.push({ key, n: 1, name: bodyName(b), mat: b.surface ? '–' : q.mat.label, mass: q.mass, size: sz.reverse().map(f2).join(' × '), rule: state.project.plasticAssign?.[b.id] || '' });
+  }
+  const head = ['Pos.', 'Menge', 'Benennung', 'Material', 'Masse je Stück g', 'Abmessungen mm'];
+  const rows = groups.map((g, i) => [i + 1, g.n, g.name, g.mat, f2(g.mass), g.size]);
+  const w = modalWin('Stückliste', 760);
+  w.body.append(h('table', { class: 'xtab' }, h('tr', null, ...head.map(t => h('th', null, t))), ...rows.map(r => h('tr', null, ...r.map(t => h('td', null, String(t)))))),
+    h('p', { class: 'hint' }, `${bs.length} Körper, ${groups.length} Positionen – gleiche Teile (gleiches Volumen, gleiche Maße, gleiches Material) sind zusammengefasst.`));
+  w.foot.append(h('button', { onclick: () => download(`${safeName()}_Stückliste.csv`, [head, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n'), 'text/csv') }, 'Als CSV'), h('button', { class: 'primary', onclick: w.close }, 'OK'));
+}
+// Kontakt prüfen: pairs of bodies that overlap, touch or stay apart (smallest gap)
+function contactCheck() {
+  const bs = placedBodies().filter(b => !state.hiddenBodies.has(b.id) && !b.surface);
+  if (bs.length < 2) return status('Kontakt prüfen braucht mindestens zwei Körper.');
+  const over = interference(bs), rows = [];
+  for (let i = 0; i < bs.length; i++) for (let k = i + 1; k < bs.length; k++) {
+    const ov = over.find(r => (r.a.id === bs[i].id && r.b.id === bs[k].id) || (r.a.id === bs[k].id && r.b.id === bs[i].id));
+    let d = NaN;
+    if (!ov) try { d = measureGap(bs[i].shape, bs[k].shape); } catch { /* no distance */ }
+    rows.push([bodyName(bs[i]), bodyName(bs[k]), ov ? `Überschneidung ${f2(ov.volume)} mm³` : d < 1e-3 ? 'Berührung' : Number.isFinite(d) ? `Abstand ${f2(d)} mm` : '–']);
+  }
+  const w = modalWin('Kontakt prüfen', 620);
+  w.body.append(h('table', { class: 'xtab' }, h('tr', null, h('th', null, 'Körper'), h('th', null, 'Körper'), h('th', null, 'Ergebnis')), ...rows.map(r => h('tr', { class: /Über/.test(r[2]) ? 'bad' : '' }, ...r.map(t => h('td', null, t))))));
+  w.foot.append(h('button', { class: 'primary', onclick: w.close }, 'OK'));
+}
+const measureGap = (a, b) => { const R = getKernelR(); return R.measureDistanceBetween(a, b); };
+// Körper vergleichen: what one body has more than the other
+async function compareBodies() {
+  const bs = getModel().bodies.filter(b => !b.surface);
+  if (bs.length < 2) return status('Vergleichen braucht zwei Körper.');
+  const opts = bs.map(b => [b.id, bodyName(b)]);
+  const v = await formDialog('Körper vergleichen', [{ key: 'a', label: 'Körper A', value: bs[0].id, options: opts }, { key: 'b', label: 'Körper B', value: bs[1].id, options: opts }], 'Vergleichen');
+  if (!v || v.a === v.b) return;
+  const A = bs.find(b => b.id === v.a), B = bs.find(b => b.id === v.b), R = getKernelR();
+  const vol = s => { try { return s && !s.isNull ? R.measureVolume(s) : 0; } catch { return 0; } };
+  const va = vol(A.shape), vb = vol(B.shape), both = vol(A.shape.clone().intersect(B.shape.clone())), aOnly = vol(A.shape.clone().cut(B.shape.clone())), bOnly = vol(B.shape.clone().cut(A.shape.clone()));
+  const same = aOnly < 1e-6 * Math.max(va, 1) + 1e-6 && bOnly < 1e-6 * Math.max(vb, 1) + 1e-6;
+  showBanner([same ? `✓ ${bodyName(A)} und ${bodyName(B)} sind deckungsgleich.` : `${bodyName(A)}: ${f2(va)} mm³ · ${bodyName(B)}: ${f2(vb)} mm³ · gemeinsam ${f2(both)} · nur A ${f2(aOnly)} · nur B ${f2(bOnly)} mm³`, h('button', { onclick: () => showBanner(null) }, 'OK')]);
+}
+let kernelR = null;
+const getKernelR = () => kernelR;
+import('./kernel.js').then(m => { const grab = () => { kernelR = m.R; if (!kernelR) setTimeout(grab, 500); }; grab(); });
+
+// Isokurven and Krümmungskamm: lines drawn over the bodies (computed from the B-rep)
+let inspectLines = null;
+function clearInspectLines() { if (inspectLines) { vp.scene.remove(inspectLines); inspectLines.traverse(o => o.geometry?.dispose()); inspectLines = null; } }
+function toggleIsocurves() {
+  if (inspectLines?.userData.kind === 'iso') { clearInspectLines(); showBanner(null); return renderToolbar(); }
+  clearInspectLines();
+  const pts = [], N = 8, S = 24;
+  for (const b of visibleBodies()) {
+    for (const fc of b.shape.faces || []) {
+      if (fc.geomType === 'PLANE') continue;
+      let ub;
+      try { ub = fc.UVBounds; } catch { continue; }
+      if (!ub) continue;
+      const { uMin, uMax, vMin, vMax } = ub;
+      const at = (u, v) => { const p = fc.pointOnSurface((u - uMin) / (uMax - uMin), (v - vMin) / (vMax - vMin)); return [p.x, p.y, p.z]; };
+      for (let i = 0; i <= N; i++) for (const dir of [0, 1]) {
+        const t = i / N;
+        for (let k = 0; k < S; k++) {
+          const a = dir ? [t, k / S] : [k / S, t], c = dir ? [t, (k + 1) / S] : [(k + 1) / S, t];
+          try { pts.push(...at(uMin + a[0] * (uMax - uMin), vMin + a[1] * (vMax - vMin)), ...at(uMin + c[0] * (uMax - uMin), vMin + c[1] * (vMax - vMin))); } catch { /* outside */ }
+        }
+      }
+    }
+  }
+  if (!pts.length) return status('Keine gekrümmten Flächen vorhanden.');
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  inspectLines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x1f8f4a, transparent: true, opacity: 0.85 }));
+  inspectLines.userData.kind = 'iso';
+  vp.scene.add(inspectLines);
+  showBanner(['Isokurven: Linien gleicher Flächenparameter auf den gekrümmten Flächen.', h('button', { onclick: toggleIsocurves }, 'Schließen')]);
+  renderToolbar();
+}
+function toggleCurvatureComb() {
+  if (inspectLines?.userData.kind === 'comb') { clearInspectLines(); showBanner(null); return renderToolbar(); }
+  clearInspectLines();
+  const size = getModel().box.getSize(new THREE.Vector3()).length() || 50;
+  const teeth = [], spine = [];
+  let kmax = 0;
+  const samples = [];
+  for (const b of visibleBodies()) {
+    for (const e of b.shape.edges || []) {
+      if (e.geomType === 'LINE') continue;
+      const N = 40, P = [];
+      for (let k = 0; k <= N; k++) { const p = e.pointAt(k / N); P.push(new THREE.Vector3(p.x, p.y, p.z)); }
+      for (let k = 1; k < N; k++) {
+        const a = P[k - 1], m = P[k], c = P[k + 1];
+        // curvature from three points: 1 / radius of the circle through them, towards its centre
+        const ab = m.clone().sub(a), ac = c.clone().sub(a), cr = ab.clone().cross(ac), l = cr.length();
+        if (l < 1e-12) { samples.push({ p: m, n: null, k: 0 }); continue; }
+        const ctr = a.clone().add(cr.clone().cross(ab).multiplyScalar(ac.lengthSq()).add(ac.clone().cross(cr).multiplyScalar(ab.lengthSq())).divideScalar(2 * cr.lengthSq()));
+        const r = ctr.distanceTo(m), kk = 1 / r;
+        kmax = Math.max(kmax, kk);
+        samples.push({ p: m, n: m.clone().sub(ctr).normalize(), k: kk, next: k < N - 1 });
+      }
+    }
+  }
+  if (!samples.length) return status('Keine gekrümmten Kanten vorhanden.');
+  const scale = (size * 0.12) / (kmax || 1);
+  let last = null;
+  for (const s of samples) {
+    const tip = s.n ? s.p.clone().addScaledVector(s.n, s.k * scale) : s.p.clone();
+    teeth.push(...s.p.toArray(), ...tip.toArray());
+    if (last && s.p.distanceTo(last.p) < size * 0.2) spine.push(...last.tip.toArray(), ...tip.toArray());
+    last = s.next ? { p: s.p, tip } : null;
+  }
+  inspectLines = new THREE.Group();
+  const g1 = new THREE.BufferGeometry(); g1.setAttribute('position', new THREE.Float32BufferAttribute(teeth, 3));
+  const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(spine, 3));
+  inspectLines.add(new THREE.LineSegments(g1, new THREE.LineBasicMaterial({ color: 0xd9468b })), new THREE.LineSegments(g2, new THREE.LineBasicMaterial({ color: 0x8a2be2 })));
+  inspectLines.userData.kind = 'comb';
+  vp.scene.add(inspectLines);
+  showBanner([`Krümmungskamm der gekrümmten Kanten: lange Zähne = enge Krümmung (größte: Radius ${f2(1 / kmax)} mm).`, h('button', { onclick: toggleCurvatureComb }, 'Schließen')]);
+  renderToolbar();
+}
+// Zugänglichkeitsanalyse: green where a straight tool from the chosen direction reaches the surface, red where
+// other parts of the model are in the way (vertex colours from rays)
+function accessColours() {
+  const dir = new THREE.Vector3(...analysis.dir).normalize();
+  const meshes = vp.model.children.filter(o => o.isMesh && o.userData.body != null);
+  const ray = new THREE.Raycaster();
+  ray.firstHitOnly = true;
+  for (const mesh of meshes) {
+    const g = mesh.geometry, pos = g.attributes.position, nor = g.attributes.normal;
+    const col = new Float32Array(pos.count * 3);
+    mesh.updateMatrixWorld();
+    const nm = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
+    for (let i = 0; i < pos.count; i++) {
+      const p = new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld), n = new THREE.Vector3().fromBufferAttribute(nor, i).applyMatrix3(nm).normalize();
+      let ok = n.dot(dir) > 0.01;
+      if (ok) { ray.set(p.clone().addScaledVector(dir, 1e-3).addScaledVector(n, 1e-3), dir); ok = !ray.intersectObjects(meshes, false).length; }
+      col.set(ok ? [0.2, 0.68, 0.32] : n.dot(dir) > 0.01 ? [0.92, 0.6, 0.15] : [0.84, 0.25, 0.25], i * 3);
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  }
+}
+const accessMat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+const curvMat = new THREE.ShaderMaterial({
+  uniforms: { scale: { value: 0.05 } },
+  vertexShader: 'varying vec3 vN; varying vec3 vP; void main(){ vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+  fragmentShader: 'uniform float scale; varying vec3 vN; varying vec3 vP; void main(){ vec3 n = normalize(vN); float k = length(fwidth(n)) / max(length(fwidth(vP)), 1e-6); float t = clamp(k / scale, 0.0, 1.0); vec3 c = t < 0.5 ? mix(vec3(0.15, 0.35, 0.85), vec3(0.2, 0.75, 0.35), t * 2.0) : mix(vec3(0.2, 0.75, 0.35), vec3(0.88, 0.22, 0.2), t * 2.0 - 1.0); gl_FragColor = vec4(c * (0.7 + 0.3 * abs(n.z)), 1.0); }',
+  side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+});
+const COMP_COLOURS = ['#4e79a7', '#f28e2b', '#59a14f', '#e15759', '#76b7b2', '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac'];
+function compColourMat(id) {
+  const i = getModel().bodies.findIndex(b => b.id === id);
+  return appearanceMat({ color: COMP_COLOURS[(i < 0 ? 0 : i) % COMP_COLOURS.length], metalness: 0, roughness: 0.55, clearcoat: 0 });
+}
+
+// Verlauf abspielen: the timeline step by step
+let replayTimer = 0;
+function replayHistory() {
+  if (replayTimer) { clearTimeout(replayTimer); replayTimer = 0; setRollback(null); showBanner(null); return renderToolbar(); }
+  const n = state.project.features.length;
+  if (!n) return status('Die Zeitleiste ist leer.');
+  let i = 1;
+  const step = () => {
+    setRollback(i >= n ? null : i);
+    const stop = () => { clearTimeout(replayTimer); replayTimer = 0; setRollback(null); showBanner(null); renderToolbar(); };
+    showBanner([`Verlauf: Schritt ${i} von ${n} – ${state.project.features[i - 1].name}`, h('button', { onclick: stop }, i < n ? 'Stopp' : 'Schließen')]);
+    if (i++ < n) replayTimer = setTimeout(step, 700); else { replayTimer = 0; renderToolbar(); setTimeout(() => { if (!replayTimer) showBanner(null); }, 1500); }
+  };
+  step();
+  renderToolbar();
+}
+function featureDependencies() {
+  const fs = state.project.features;
+  if (!fs.length) return status('Die Zeitleiste ist leer.');
+  const used = new Map(fs.map(f => [f.name, []]));
+  const names = f => featureRefs(f, fs).map(id => fs.find(x => x.id === id)?.name).filter(Boolean);
+  for (const f of fs) for (const r of names(f)) used.get(r)?.push(f.name);
+  const w = modalWin('Merkmalsabhängigkeiten', 760);
+  w.body.append(h('table', { class: 'xtab' }, h('tr', null, h('th', null, '#'), h('th', null, 'Schritt'), h('th', null, 'baut auf'), h('th', null, 'wird verwendet von')),
+    ...fs.map((f, i) => h('tr', null, h('td', null, String(i + 1)), h('td', null, f.name), h('td', null, names(f).join(', ') || '–'), h('td', null, (used.get(f.name) || []).join(', ') || '–')))));
+  w.foot.append(h('button', { class: 'primary', onclick: w.close }, 'OK'));
+}
+// Konstruktion prüfen: errors, warnings, open bodies, unused sketches, loose pieces
+function designCheck() {
+  const fs = state.project.features, errs = allErrors(), notes = getModel().notes || {}, out = [];
+  for (const f of fs) {
+    if (errs[f.id]) out.push(['Fehler', f.name, errs[f.id]]);
+    else if (notes[f.id]) out.push(['Hinweis', f.name, notes[f.id]]);
+    if (f.suppressed) out.push(['Hinweis', f.name, 'Unterdrückt']);
+  }
+  const usedSk = new Set(fs.flatMap(f => [f.sketch, f.pathSketch, ...(f.sections || [])]).filter(Boolean));
+  for (const f of fs) if (f.type === 'sketch' && !usedSk.has(f.id) && !f.entities.every(e => e.cons)) out.push(['Hinweis', f.name, 'Skizze wird von keinem Schritt verwendet']);
+  for (const f of fs) if (f.type === 'sketch' && !f.entities.length) out.push(['Hinweis', f.name, 'Leere Skizze']);
+  for (const b of getModel().bodies) if (b.surface) out.push(['Hinweis', bodyName(b), 'Flächenkörper (nicht geschlossen)']);
+  for (const [bid, rule] of Object.entries(state.project.plasticAssign || {})) {
+    const r = (state.project.plasticRules || []).find(x => x.name === rule), b = getModel().bodies.find(x => x.id === bid);
+    if (!r || !b) continue;
+    for (const f of fs) if (f.type === 'shell' && +f.thickness && Math.abs(+f.thickness - +r.wall) > 1e-6) out.push(['Hinweis', f.name, `Wandstärke ${f2(+f.thickness)} mm weicht von der Kunststoffregel „${r.name}“ ab (${f2(+r.wall)} mm)`]);
+  }
+  const w = modalWin('Konstruktion prüfen', 760);
+  w.body.append(out.length
+    ? h('table', { class: 'xtab' }, h('tr', null, h('th', null, 'Art'), h('th', null, 'Wo'), h('th', null, 'Befund')), ...out.map(r => h('tr', { class: r[0] === 'Fehler' ? 'bad' : '' }, ...r.map(t => h('td', null, t)))))
+    : h('p', null, '✓ Keine Fehler und keine Hinweise.'));
+  w.foot.append(h('button', { class: 'primary', onclick: w.close }, 'OK'));
+}
+
+// ---------- Verwalten ----------
+function paramGraph() {
+  const p = state.project;
+  if (!p.params.length) return status('Noch keine Parameter angelegt.');
+  const names = p.params.map(q => q.name), re = n => new RegExp(`\\b${n}\\b`);
+  const users = n => p.features.filter(f => JSON.stringify(f).match(new RegExp(`"=[^"]*\\b${n}\\b`))).map(f => f.name);
+  const w = modalWin('Parametergraph', 760);
+  w.body.append(h('table', { class: 'xtab' }, h('tr', null, h('th', null, 'Parameter'), h('th', null, 'Ausdruck'), h('th', null, 'hängt ab von'), h('th', null, 'verwendet in')),
+    ...p.params.map(q => h('tr', null, h('td', null, q.name), h('td', null, String(q.expr)), h('td', null, names.filter(n => n !== q.name && re(n).test(String(q.expr))).join(', ') || '–'),
+      h('td', null, [...p.params.filter(o => o.name !== q.name && re(q.name).test(String(o.expr))).map(o => `= ${o.name}`), ...users(q.name)].join(', ') || '–')))));
+  w.foot.append(h('button', { class: 'primary', onclick: w.close }, 'OK'));
+}
+function exportParams() {
+  const p = state.project;
+  if (!p.params.length) return status('Noch keine Parameter angelegt.');
+  const scope = paramScope(p);
+  download(`${safeName()}_Parameter.csv`, ['Name;Ausdruck;Wert', ...p.params.map(q => [q.name, '"' + String(q.expr).replaceAll('"', '""') + '"', f2(scope[q.name])].join(';'))].join('\n'), 'text/csv');
+}
+function importParams() {
+  const inp = h('input', { type: 'file', accept: '.csv,.txt' });
+  inp.onchange = async () => {
+    const text = await inp.files[0]?.text();
+    if (!text) return;
+    const rows = text.split(/\r?\n/).map(l => l.split(/[;\t]/).map(c => c.trim().replace(/^"|"$/g, '').replace(/""/g, '"'))).filter(r => /^[A-Za-z_]\w*$/.test(r[0] || '') && r[1] !== undefined && r[0] !== 'Name');
+    if (!rows.length) return status('Keine Parameter in der Datei (Spalten: Name; Ausdruck).');
+    commit(pp => { for (const [name, expr] of rows) { const q = pp.params.find(x => x.name === name); if (q) q.expr = expr; else pp.params.push({ name, expr }); } });
+    select('params');
+    status(`${rows.length} Parameter übernommen.`);
+  };
+  inp.click();
+}
+function sortParams() {
+  if (!state.project.params.length) return status('Noch keine Parameter angelegt.');
+  commit(pp => pp.params.sort((a, b) => a.name.localeCompare(b.name)));
+  select('params');
+}
+// Kunststoffregeln: wall, draft, radius and rib share per material – assigned to bodies
+const PLASTIC_DEFAULTS = [{ name: 'ABS', wall: 2.5, draft: 1, radius: 1.25, rib: 0.6, boss: 2 }, { name: 'PA6', wall: 2, draft: 0.5, radius: 1, rib: 0.5, boss: 2 }, { name: 'PC', wall: 2.5, draft: 1, radius: 1.25, rib: 0.6, boss: 2.2 }, { name: 'PP', wall: 2, draft: 1, radius: 1, rib: 0.5, boss: 2 }];
+function plasticRules() {
+  const w = modalWin('Kunststoffregeln', 720);
+  const draw = () => {
+    const rules = state.project.plasticRules || PLASTIC_DEFAULTS;
+    const ed = fn => { commit(pp => { pp.plasticRules ||= JSON.parse(JSON.stringify(PLASTIC_DEFAULTS)); fn(pp.plasticRules); }, 'meta'); draw(); };
+    const cell = (i, k, isText) => { const inp = h('input', { type: 'text', value: rules[i][k], style: 'width:100%' }); inp.onchange = () => ed(r => (r[i][k] = isText ? inp.value.trim() : +inp.value.replace(',', '.') || 0)); return h('td', null, inp); };
+    w.body.replaceChildren(h('table', { class: 'xtab' }, h('tr', null, ...['Name', 'Wand mm', 'Formschräge °', 'Radius mm', 'Rippe (× Wand)', 'Dom (× Bohrung)', ''].map(t => h('th', null, t))),
+      ...rules.map((r, i) => h('tr', null, cell(i, 'name', true), cell(i, 'wall'), cell(i, 'draft'), cell(i, 'radius'), cell(i, 'rib'), cell(i, 'boss'), h('td', null, h('button', { onclick: () => ed(rr => rr.splice(i, 1)) }, '✕'))))),
+    h('div', { class: 'btns' }, btn('+ Regel', () => ed(rr => rr.push({ name: nextName(rr, 'Regel'), wall: 2, draft: 1, radius: 1, rib: 0.5, boss: 2 })))),
+    h('p', { class: 'hint' }, 'Eine Kunststoffregel legt Wandstärke, Formschräge, Mindestradius und Verhältnisse für Rippen und Dome fest. Zugewiesen an einen Körper gibt sie die Vorgaben für Schale, Rippe, Gewebe und Ansatz; „Konstruktion prüfen“ meldet Abweichungen.'));
+  };
+  draw();
+  w.foot.append(h('button', { class: 'primary', onclick: w.close }, 'OK'));
+}
+async function assignPlasticRule() {
+  const bs = getModel().bodies;
+  if (!bs.length) return status('Kein Körper vorhanden.');
+  const rules = state.project.plasticRules || PLASTIC_DEFAULTS;
+  const v = await formDialog('Kunststoffregel zuweisen', [{ key: 'r', label: 'Regel', value: rules[0].name, options: [['', '– keine –'], ...rules.map(r => [r.name, r.name])] }, ...bodyChecks(selBodyId() ? [selBodyId()] : bs.map(b => b.id))], 'Zuweisen');
+  if (!v) return;
+  commit(pp => { pp.plasticAssign ||= {}; for (const b of bs) if (v[b.id]) { if (v.r) pp.plasticAssign[b.id] = v.r; else delete pp.plasticAssign[b.id]; } }, 'meta');
+  status(v.r ? `Kunststoffregel „${v.r}“ zugewiesen.` : 'Kunststoffregel entfernt.');
+}
+// the plastic rule of the body a new step works on (defaults for shell, rib, web, boss)
+function plasticRuleFor(bodyId) {
+  const name = state.project.plasticAssign?.[bodyId];
+  return name ? (state.project.plasticRules || PLASTIC_DEFAULTS).find(r => r.name === name) : null;
+}
+function checkMaterials() {
+  const bs = getModel().bodies;
+  if (!bs.length) return status('Kein Körper vorhanden.');
+  const w = modalWin('Materialdaten prüfen', 640);
+  w.body.append(h('table', { class: 'xtab' }, h('tr', null, ...['Körper', 'Material', 'Dichte g/cm³', 'Darstellung', 'Kunststoffregel'].map(t => h('th', null, t))),
+    ...bs.map(b => { const m = bodyMeta(b.id), mat = MATERIALS[m.material || 'alu']; return h('tr', { class: m.material ? '' : 'bad' }, h('td', null, bodyName(b)), h('td', null, m.material ? mat.label : `${mat.label} (Vorgabe)`), h('td', null, String(mat.density)), h('td', null, APPEARANCES[m.appearance]?.label || '–'), h('td', null, state.project.plasticAssign?.[b.id] || '–')); })),
+  h('p', { class: 'hint' }, 'Rot: kein Material zugewiesen – es gilt die Vorgabe Aluminium (für Masse und Schwerpunkt).'));
+  w.foot.append(h('button', { class: 'primary', onclick: w.close }, 'OK'));
+}
+async function applyMaterialCmd() {
+  const bs = getModel().bodies;
+  if (!bs.length) return status('Kein Körper vorhanden.');
+  const v = await formDialog('Physikalisches Material', [{ key: 'm', label: 'Material', value: 'alu', options: Object.entries(MATERIALS).map(([k, m]) => [k, `${m.label} (${m.density} g/cm³)`]) }, ...bodyChecks(selBodyId() ? [selBodyId()] : bs.map(b => b.id))], 'Zuweisen');
+  if (!v) return;
+  commit(p => { p.bodyMeta ||= {}; for (const b of bs) if (v[b.id]) { const m = (p.bodyMeta[b.id] ||= {}); m.material = v.m; delete m.color; } }, 'meta');
+  status(`${MATERIALS[v.m].label} zugewiesen.`);
+}
+function exportMaterialLibrary() {
+  download(`${safeName()}_Materialien.json`, JSON.stringify({ materials: MATERIALS, appearances: APPEARANCES, plasticRules: state.project.plasticRules || PLASTIC_DEFAULTS }, null, 2), 'application/json');
+}
+function recomputeAll() {
+  clearTimelineCache();
+  model.key = null;
+  renderAll();
+  status('Alles neu berechnet.');
+}
+// Prüfpunkte: the whole design saved on this computer under a name, to go back to later
+const CP_KEY = () => `werkfab.checkpoints.${state.project.name || 'design'}`;
+const loadCps = () => { try { return JSON.parse(localStorage.getItem(CP_KEY()) || '[]'); } catch { return []; } };
+async function saveCheckpoint() {
+  const v = await formDialog('Prüfpunkt', [{ key: 'name', label: 'Name', value: `Prüfpunkt ${new Date().toLocaleTimeString()}`, text: true }], 'Speichern');
+  if (!v) return;
+  const cps = loadCps();
+  cps.push({ name: String(v.name), at: Date.now(), project: JSON.stringify(state.project) });
+  while (cps.length > 10) cps.shift();
+  try { localStorage.setItem(CP_KEY(), JSON.stringify(cps)); } catch { return status('Prüfpunkt zu groß für den Speicher des Browsers – stattdessen „Speichern unter“ verwenden.'); }
+  status(`Prüfpunkt „${v.name}“ gesichert.`);
+}
+async function restoreCheckpoint() {
+  const cps = loadCps();
+  if (!cps.length) return status('Noch kein Prüfpunkt gesichert.');
+  const v = await formDialog('Prüfpunkt wiederherstellen', [{ key: 'i', label: 'Prüfpunkt', value: String(cps.length - 1), options: cps.map((c, i) => [String(i), `${c.name} (${new Date(c.at).toLocaleString()})`]) }, { key: 'hint', hint: 'Der jetzige Stand lässt sich mit Rückgängig zurückholen.' }], 'Wiederherstellen');
+  if (!v) return;
+  const proj = JSON.parse(cps[+v.i].project);
+  commit(pp => { for (const k of Object.keys(pp)) delete pp[k]; Object.assign(pp, proj); });
+  status(`Prüfpunkt „${cps[+v.i].name}“ wiederhergestellt.`);
+}
+
+// Wiederherstellungspunkte: every few minutes (Einstellungen → Allgemein) the open design is kept on this
+// computer, the last eight of them; only when it changed since the last one
+const RP_KEY = 'werkfab.restorePoints.v1', RP_MAX = 8;
+const loadRps = () => { try { const l = JSON.parse(localStorage.getItem(RP_KEY) || '[]'); return Array.isArray(l) ? l : []; } catch { return []; } };
+let rpLast = Date.now();
+function takeRestorePoint(force = false) {
+  const min = +getSettings().snapshotMinutes || 0;
+  if (!force && (!(min > 0) || Date.now() - rpLast < min * 60000)) return false;
+  rpLast = Date.now();
+  const json = JSON.stringify(state.project), list = loadRps();
+  if (list.at(-1)?.project === json) return false;
+  list.push({ at: Date.now(), name: state.project.name || 'Entwurf', features: state.project.features.length, project: json });
+  while (list.length > RP_MAX) list.shift();
+  // too large for the storage: drop the oldest until it fits
+  for (;;) { try { localStorage.setItem(RP_KEY, JSON.stringify(list)); return true; } catch { if (list.length <= 1) return false; list.shift(); } }
+}
+setInterval(() => takeRestorePoint(), 30000);
+function restoreRestorePoint(i) {
+  const rp = loadRps()[i];
+  if (!rp) return;
+  takeRestorePoint(true); // the present state becomes a restore point of its own first
+  const proj = JSON.parse(rp.project);
+  commit(pp => { for (const k of Object.keys(pp)) delete pp[k]; Object.assign(pp, proj); });
+  status(`Stand von ${new Date(rp.at).toLocaleTimeString()} wiederhergestellt – Strg+Z holt den vorigen zurück.`);
+}
+
+// ---------- Ansicht ----------
+function viewSnapshot() {
+  const c = vp.camera, t = vp.controls.target;
+  return { pos: c.position.toArray().map(v => +v.toFixed(4)), target: t.toArray().map(v => +v.toFixed(4)), up: c.up.toArray().map(v => +v.toFixed(5)), zoom: +(c.zoom || 1).toFixed(5) };
+}
+function restoreNamedView(v) {
+  const c = vp.camera;
+  c.position.set(...v.pos); c.up.set(...v.up); vp.controls.target.set(...v.target);
+  if (v.zoom) { c.zoom = v.zoom; c.updateProjectionMatrix(); }
+  c.lookAt(vp.controls.target);
+  vp.controls.update?.();
+  vp.render?.();
+}
+async function namedViewCmd(kind) {
+  const views = state.project.views || [];
+  if (kind === 'new') {
+    const v = await formDialog('Neue benannte Ansicht', [{ key: 'name', label: 'Name', value: nextName(views, 'Ansicht'), text: true }], 'Speichern');
+    if (!v) return;
+    commit(pp => { pp.views ||= []; pp.views.push({ name: String(v.name), ...viewSnapshot() }); }, 'meta');
+    return status(`Ansicht „${v.name}“ gespeichert.`);
+  }
+  if (!views.length) return status('Noch keine benannte Ansicht gespeichert.');
+  const opts = views.map((q, i) => [String(i), q.name]);
+  if (kind === 'restore') { const v = await formDialog('Benannte Ansicht', [{ key: 'i', label: 'Ansicht', value: String(views.length - 1), options: opts }], 'Anzeigen'); if (v) restoreNamedView(views[+v.i]); return; }
+  if (kind === 'rename') { const v = await formDialog('Ansicht umbenennen', [{ key: 'i', label: 'Ansicht', value: '0', options: opts }, { key: 'name', label: 'Neuer Name', value: '', text: true }], 'Umbenennen'); if (v?.name) commit(pp => (pp.views[+v.i].name = String(v.name)), 'meta'); return; }
+  if (kind === 'delete') { const v = await formDialog('Ansicht löschen', [{ key: 'i', label: 'Ansicht', value: '0', options: opts }], 'Löschen'); if (v) commit(pp => pp.views.splice(+v.i, 1), 'meta'); return; }
+  if (kind === 'update') { const v = await formDialog('Ansicht aktualisieren', [{ key: 'i', label: 'Ansicht', value: '0', options: opts }, { key: 'hint', hint: 'Die gewählte Ansicht übernimmt die jetzige Blickrichtung.' }], 'Aktualisieren'); if (v) commit(pp => Object.assign(pp.views[+v.i], viewSnapshot()), 'meta'); return; }
+  const w = modalWin('Benannte Ansichten', 480);
+  w.body.append(...views.map(q => h('div', { class: 'row' }, h('label', null, q.name), btn('Anzeigen', () => { restoreNamedView(q); w.close(); }))));
+  w.foot.append(h('button', { class: 'primary', onclick: w.close }, 'OK'));
+}
+// kontinuierlich drehen
+let spinRaf = 0;
+function toggleSpin() {
+  if (spinRaf) { cancelAnimationFrame(spinRaf); spinRaf = 0; return renderToolbar(); }
+  let last = performance.now();
+  const tick = now => {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    const t = vp.controls.target, c = vp.camera, q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), dt * 0.5);
+    c.position.sub(t).applyQuaternion(q).add(t); c.up.applyQuaternion(q); c.lookAt(t);
+    vp.controls.update?.();
+    spinRaf = requestAnimationFrame(tick);
+  };
+  spinRaf = requestAnimationFrame(tick);
+  renderToolbar();
+}
+function setDisplayStyle(disp) {
+  display = disp;
+  document.querySelectorAll('#navBar [data-display]').forEach(x => x.classList.toggle('on', x.dataset.display === disp));
+  rebuildScene();
+  renderToolbar();
+}
+function toggleGrid() { gridOn = !gridOn; vp.grid.visible = gridOn; document.querySelector('#navBar [data-nav="grid"]')?.classList.toggle('on', gridOn); renderToolbar(); }
+function toggleGroundShadow() { saveSettings({ groundShadow: !getSettings().groundShadow }); rebuildScene(); renderToolbar(); }
+function toggleNavBar() { const nb = $('#navBar'); nb.hidden = !nb.hidden; saveSettings({ showNavBar: !nb.hidden }); renderToolbar(); }
+function toggleTabsOnly() { saveSettings({ tabsOnly: !document.body.classList.contains('tabs-only') }); document.body.classList.toggle('tabs-only', getSettings().tabsOnly); renderToolbar(); }
+function setNavTool(kind) {
+  vp.controls.mouseButtons.LEFT = kind === 'pan' ? THREE.MOUSE.PAN : kind === 'zoom' ? THREE.MOUSE.DOLLY : THREE.MOUSE.ROTATE;
+  document.querySelectorAll('#navBar [data-nav=orbit], #navBar [data-nav=pan]').forEach(x => x.classList.toggle('on', x.dataset.nav === kind));
+  status({ orbit: 'Linke Maustaste dreht.', pan: 'Linke Maustaste verschiebt.', zoom: 'Linke Maustaste zoomt.' }[kind]);
+}
+// Auswahlfilter: what a click in the view selects (when no command is waiting for a pick)
+const SEL_FILTERS = { body: 'Körper', face: 'Flächen', edge: 'Kanten', vertex: 'Scheitelpunkte', sketch: 'Skizzen' };
+state.selFilter ||= { body: true, face: false, edge: false, vertex: false, sketch: true };
+function toggleSelFilter(k) { state.selFilter[k] = !state.selFilter[k]; renderToolbar(); status(`Auswahl: ${Object.entries(SEL_FILTERS).filter(([q]) => state.selFilter[q]).map(([, l]) => l).join(', ') || 'nichts'}`); }
+function filteredClick(e) {
+  const m = getModel(), F = state.selFilter;
+  if (F.vertex || F.edge) {
+    const eh = vp.raycast(e, edgePickObjects(), 6)[0];
+    if (eh) {
+      const eb = m.bodies[eh.object.userData.body], ei = eb.segEdge[Math.floor(eh.index / 2)], e3 = eb.shape?.edges?.[ei];
+      if (F.vertex && e3) {
+        const ends = [e3.startPoint, e3.endPoint].map(p => new THREE.Vector3(p.x, p.y, p.z)), hp = eh.point;
+        const v = ends.sort((a, c) => a.distanceTo(hp) - c.distanceTo(hp))[0];
+        if (v.distanceTo(hp) < vp.worldPerPixel() * 12 || !F.edge) { select('body', eb.id); return showBanner([`Scheitelpunkt: X ${f2(v.x)} · Y ${f2(v.y)} · Z ${f2(v.z)} mm`, h('button', { onclick: () => showBanner(null) }, 'OK')]); }
+      }
+      if (F.edge && e3) { select('body', eb.id); let L = 0; try { L = e3.length; } catch { /* unknown */ } return showBanner([`Kante: ${{ LINE: 'Gerade', CIRCLE: 'Kreisbogen', BSPLINE_CURVE: 'Freiformkurve', ELLIPSE: 'Ellipse' }[e3.geomType] || e3.geomType} · Länge ${f2(L)} mm`, h('button', { onclick: () => showBanner(null) }, 'OK')]); }
+    }
+  }
+  const hit = vp.raycast(e, vp.model.children.filter(o => o.isMesh && o.userData.body != null))[0];
+  if (hit) {
+    const b = m.bodies[hit.object.userData.body];
+    if (F.face) {
+      const fid = b.faceOf[hit.faceIndex], fc = b.shape?.faces?.[fid];
+      let A = NaN; try { A = getKernelR().measureArea(fc); } catch { /* unknown */ }
+      select('body', b.id);
+      return showBanner([`Fläche: ${{ PLANE: 'Ebene', CYLINDER: 'Zylinder', CONE: 'Kegel', SPHERE: 'Kugel', TORUS: 'Torus', BSPLINE_SURFACE: 'Freiform' }[fc?.geomType] || fc?.geomType || '?'} · ${f2(A)} mm² · Körper ${bodyName(b)}`, h('button', { onclick: () => showBanner(null) }, 'OK')]);
+    }
+    if (F.body) return select('body', b.id);
+  }
+  if (F.sketch) {
+    const pl = planeUnderMouse(e);
+    if (pl?.userData.plane) return select('feature', pl.userData.plane);
+  }
+}
+// Lasso: drag a frame in the view – the bodies inside are selected (for appearance, material, hiding)
+function startLasso() {
+  status('Lasso: Rahmen im Ansichtsfenster aufziehen.');
+  const cv = vp.canvas, box = h('div', { class: 'lasso-box' });
+  let a = null;
+  const down = e => { if (e.button !== 0) return; e.stopPropagation(); e.preventDefault(); a = [e.clientX, e.clientY]; document.body.append(box); };
+  const move = e => { if (!a) return; const x = Math.min(a[0], e.clientX), y = Math.min(a[1], e.clientY); Object.assign(box.style, { left: x + 'px', top: y + 'px', width: Math.abs(e.clientX - a[0]) + 'px', height: Math.abs(e.clientY - a[1]) + 'px' }); };
+  const up = e => {
+    cv.removeEventListener('pointerdown', down, true); removeEventListener('pointermove', move, true); removeEventListener('pointerup', up, true);
+    box.remove();
+    if (!a) return;
+    const R = cv.getBoundingClientRect(), x0 = Math.min(a[0], e.clientX), x1 = Math.max(a[0], e.clientX), y0 = Math.min(a[1], e.clientY), y1 = Math.max(a[1], e.clientY);
+    const inside = getModel().bodies.filter(b => {
+      if (state.hiddenBodies.has(b.id)) return false;
+      const bb = b.geometry.boundingBox || (b.geometry.computeBoundingBox(), b.geometry.boundingBox), c = bb.getCenter(new THREE.Vector3()).project(vp.camera);
+      const sx = R.left + ((c.x + 1) / 2) * R.width, sy = R.top + ((1 - c.y) / 2) * R.height;
+      return sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1;
+    });
+    state.selBodies = inside.map(b => b.id);
+    if (inside[0]) select('body', inside[0].id); else renderAll();
+    status(inside.length ? `${inside.length} Körper gewählt: ${inside.map(bodyName).join(', ')}` : 'Kein Körper im Rahmen.');
+  };
+  cv.addEventListener('pointerdown', down, true); addEventListener('pointermove', move, true); addEventListener('pointerup', up, true);
+}
+
+// ---------- ribbon helpers (model, configure, sheet metal) ----------
+function editSketchCmd() {
+  const s = state.sel?.kind === 'feature' ? feature(state.sel.id) : null;
+  const f = s?.type === 'sketch' ? s : [...state.project.features].reverse().find(x => x.type === 'sketch' && !x.suppressed);
+  if (!f) return status('Noch keine Skizze vorhanden – zuerst „Skizze“ wählen.');
+  editSketch(f.id);
+}
+function deleteSelectedCmd() {
+  if (state.sel?.kind === 'feature' && feature(state.sel.id)) return deleteFeature(state.sel.id);
+  if (selBodyId()) return createFeature('removebody');
+  status('Zuerst einen Schritt in der Zeitleiste oder einen Körper wählen.');
+}
+async function addConfigCmd() {
+  const p = state.project;
+  if (!p.params.length) return status('Erst Parameter anlegen – eine Konfiguration merkt sich deren Werte.');
+  const v = await formDialog('Konfiguration', [{ key: 'name', label: 'Name', value: nextName(p.configs || [], 'Variante'), text: true }]);
+  const name = String(v?.name || '').trim();
+  if (!name) return;
+  commit(pp => { pp.configs = (pp.configs || []).filter(c => c.name !== name); pp.configs.push({ name, values: Object.fromEntries(pp.params.map(q => [q.name, q.expr])) }); });
+  status(`Konfiguration „${name}“ gespeichert.`);
+}
+// all variants side by side: one row per configuration, one column per parameter; cells can be edited
+function configTable() {
+  if (!state.project.params.length) return status('Erst Parameter anlegen – die Tabelle zeigt deren Werte je Variante.');
+  const { body, foot, close } = modalWin('Konfigurationstabelle', 720);
+  const draw = () => {
+    const cfgs = state.project.configs || [], params = state.project.params;
+    body.replaceChildren();
+    if (!cfgs.length) body.append(h('p', { class: 'hint' }, 'Noch keine Konfiguration. „Konfigurieren“ speichert die jetzigen Parameterwerte als Variante.'));
+    const same = c => params.every(q => c.values[q.name] === undefined || String(c.values[q.name]) === String(q.expr));
+    body.append(h('table', { class: 'xtab' },
+      h('tr', null, h('th', null, 'Konfiguration'), ...params.map(q => h('th', null, q.name)), h('th', null, '')),
+      h('tr', { class: 'cur' }, h('td', null, h('i', null, 'jetzt')), ...params.map(q => h('td', null, q.expr)), h('td', null, '')),
+      ...cfgs.map((c, i) => h('tr', { class: same(c) ? 'on' : '' },
+        h('td', null, (same(c) ? '● ' : '○ ') + c.name),
+        ...params.map(q => {
+          const inp = h('input', { type: 'text', value: c.values[q.name] ?? '' });
+          inp.onchange = () => { commit(pp => { pp.configs[i].values[q.name] = inp.value.trim(); }); draw(); };
+          return h('td', null, inp);
+        }),
+        h('td', null, btn('Anwenden', () => { commit(pp => { for (const q of pp.params) if (c.values[q.name] !== undefined && c.values[q.name] !== '') q.expr = String(c.values[q.name]); }); status(`Konfiguration „${c.name}“ angewendet`); draw(); }),
+          h('button', { title: 'Löschen', onclick: () => { commit(pp => pp.configs.splice(i, 1)); draw(); } }, '✕'))))));
+  };
+  draw();
+  foot.append(btn('+ Konfiguration', async () => { await addConfigCmd(); draw(); }), btn('Schließen', close, 'primary'));
+}
+function fitCloudCmd() {
+  const s = state.sel?.kind === 'feature' ? feature(state.sel.id) : null;
+  const f = s?.type === 'pointcloud' ? s : [...state.project.features].reverse().find(x => x.type === 'pointcloud' && !x.suppressed);
+  if (!f) return status('Zuerst eine Punktwolke einfügen (EINFÜGEN → Punktwolke).');
+  fitSurfaceToCloud(f.id);
+}
+// flange, hem and fold all live in the sheet step: open it (or make one) and say where to click
+function sheetCmd(kind) {
+  const f = [...state.project.features].reverse().find(x => x.type === 'sheet' && !x.suppressed);
+  if (!f) return createFeature('sheet');
+  select('feature', f.id);
+  status({
+    flange: 'Flansch: im Blech eine Kante anklicken – dort entsteht eine Lasche; Länge und Winkel stehen in den Eigenschaften.',
+    hem: 'Umkantung: eine Lasche wählen und in den Eigenschaften „Saum“ einschalten (Umschlag um 180°).',
+    fold: 'Falten: in der Skizze des Blechs eine Linie zeichnen und im Blech als Biegelinie wählen.',
+  }[kind]);
+}
+function bendTableCmd() {
+  const f = activeSheet(), r = f && sheetFlat(f);
+  if (!r) return;
+  if (!r.fp.table?.length) return status('Dieses Blech hat keine Biegungen.');
+  const srm = SHEET_RM[bodyMeta(f.id).material || 'alu'] || 400;
+  download(`${safeName()}_Biegungen.csv`, bendTableCSV(f, r.fp, srm), 'text/csv');
+}
+function sheetRulesCmd() {
+  const { body, foot, close } = modalWin('Blechregeln', 560);
+  const draw = () => {
+    const mine = ownSheetRules();
+    body.replaceChildren(h('table', { class: 'xtab' },
+      h('tr', null, h('th', null, 'Regel'), h('th', null, 'Dicke'), h('th', null, 'Radius innen'), h('th', null, 'K-Faktor'), h('th', null, '')),
+      ...SHEET_RULES.map(r => h('tr', null, h('td', null, r.name), h('td', null, f2(r.thickness)), h('td', null, f2(r.radius)), h('td', null, f2(r.kfactor)), h('td', null, ''))),
+      ...mine.map(r => h('tr', null, h('td', null, '★ ' + r.name), h('td', null, f2(r.thickness)), h('td', null, f2(r.radius)), h('td', null, f2(r.kfactor)),
+        h('td', null, h('button', { title: 'Löschen', onclick: () => { saveJ(OWN_RULES_KEY, ownSheetRules().filter(q => q.id !== r.id)); draw(); } }, '✕'))))),
+      h('p', { class: 'hint' }, 'Eine Regel legt Blechdicke, Biegeradius und K-Faktor fest. Im Blech wird sie in der Liste „Blechregel“ gewählt.'));
+  };
+  draw();
+  foot.append(btn('+ Regel', async () => {
+    const v = await formDialog('Neue Blechregel', [{ key: 'name', label: 'Name', value: 'Eigene Regel', text: true }, { key: 'thickness', label: 'Blechdicke', value: 2, unit: 'mm' }, { key: 'radius', label: 'Biegeradius innen', value: 2, unit: 'mm' }, { key: 'kfactor', label: 'K-Faktor', value: 0.44 }], 'Speichern');
+    const name = String(v?.name || '').trim();
+    if (!name || !(+v.thickness > 0)) return;
+    saveJ(OWN_RULES_KEY, [...ownSheetRules().filter(r => r.name !== name), { id: uid('rule'), name, thickness: +v.thickness, radius: +v.radius, kfactor: +v.kfactor }]);
+    draw();
+  }), btn('Schließen', close, 'primary'));
 }
 
 // ---------- drawing window ----------
@@ -10887,7 +12167,7 @@ function placeTool() {
   // lathe: X as diameter, Z from the finished face (as in the NC program)
   const pos = sim.turn ? `X${(2 * (liveC == null ? x : s.b.polar && s.a.polar ? Math.hypot(x, y) : (s.a.xr ?? s.b.xr) + (s.b.xr - (s.a.xr ?? s.b.xr)) * t)).toFixed(2)} Z${(z - sim.gen.stock.modelTop).toFixed(2)}${liveC != null ? ` C${liveC.toFixed(1)}` : ''}`
     : s.b.a != null ? `X${(x - o.x).toFixed(2)} Z${((s.a.mz ?? s.b.mz) + (s.b.mz - (s.a.mz ?? s.b.mz)) * t - o.z).toFixed(2)} A${aDeg.toFixed(1)}` : `X${(x - o.x).toFixed(2)} Y${(y - o.y).toFixed(2)} Z${(z - o.z).toFixed(2)}`;
-  info.textContent = `${nc ? `⚠ ${nc} Kollision${nc > 1 ? 'en' : ''}  ` : ''}${fmtTime(sim.t)} / ${fmtTime(sim.total)}  ${pos}  ${s.op}`;
+  info.textContent = `${nc ? `⚠ ${nc} ${nc > 1 ? 'Kollisionen' : 'Kollision'}  ` : ''}${fmtTime(sim.t)} / ${fmtTime(sim.total)}  ${pos}  ${s.op}`;
   $('#simProgress').value = sim.total ? Math.round((sim.t / sim.total) * 1000) : 0;
 }
 
@@ -11092,8 +12372,14 @@ $('#simCompare').onchange = applySimCompare;
 $('#simClose').onclick = openSim;
 
 // ---------- file actions ----------
+// Heidenhain: the file must carry the name of BEGIN PGM, or the control will not open it under that name
+function ncFileName(code, fallback, ext = 'h') {
+  const m = String(code || '').match(/^\s*\d*\s*BEGIN PGM\s+(\S+)/m);
+  return m ? `${m[1]}.${ext || 'h'}` : fallback;
+}
+
 function loadExample(turning = false) {
-  openAsNewDoc(migrate(turning ? exampleTurning() : exampleProject()));
+  openAsNewDoc(migrate(turning === 'design' ? exampleDesign() : turning === 'mill' ? exampleMilling() : turning ? exampleTurning() : exampleProject()));
   fitView();
 }
 
@@ -11123,6 +12409,8 @@ function menuAction(act) {
     status('Design exportiert');
   } else if (act === 'example') loadExample();
   else if (act === 'example-turn') loadExample(true);
+  else if (act === 'example-mill') loadExample('mill');
+  else if (act === 'example-design') loadExample('design');
   else if (act === 'gltf') exportGltfFile();
   else if (act === 'urdf') exportUrdfFile();
   else if (act === 'script') runScriptFile();
@@ -11134,17 +12422,18 @@ function menuAction(act) {
     if (act === 'stl' && meshes.length) return exportMeshSTL([...bodies, ...meshes]);
     if (!bodies.length) return status(meshes.length ? 'Netze können nur als STL exportiert werden.' : 'Kein Körper zum Exportieren.');
     const placed = assemblyActive() ? bodies.map(b => ({ ...b, shape: transformShape(b.shape, bodyMatrix(state.project.assembly, b.id, motionValues)) })) : bodies;
-    if (act === 'step') download(`${safeName()}.step`, exportSTEP(placed), 'application/step');
+    const base = exportName(bodies.length === 1 ? bodies[0].name : '');
+    if (act === 'step') download(`${base}.step`, exportSTEP(placed), 'application/step');
     else if (act === 'iges') {
       status('IGES wird erzeugt …');
       exportSTEP(placed).text().then(stepToIges)
-        .then(txt => { download(`${safeName()}.igs`, txt, 'model/iges'); status('IGES exportiert'); })
+        .then(txt => { download(`${base}.igs`, txt, 'model/iges'); status('IGES exportiert'); })
         .catch(err => alert('IGES-Export fehlgeschlagen: ' + (err.message || err)));
     }
     else {
       const grp = new THREE.Group();
       bodies.forEach(x => grp.add(new THREE.Mesh(printGeometry(x))));
-      download(`${safeName()}.stl`, new STLExporter().parse(grp, { binary: true }), 'model/stl');
+      download(`${base}.stl`, new STLExporter().parse(grp, { binary: true }), 'model/stl');
     }
   }
 }
@@ -11360,6 +12649,22 @@ function switchKernel(id) {
     .catch(err => { kernelFailed.add(id); status(`Geometriekern konnte nicht geladen werden (${err.message || err}) – OpenCascade bleibt aktiv.`); })
     .finally(() => { kernelBusy = false; });
 }
+// direction of the view at the bottom right: azimuth about Z (from +X) and elevation above the XY plane
+let viewAngleState = null;
+function viewAngleMeter(on) {
+  if (!on) { if (viewAngleState) { clearInterval(viewAngleState.timer); viewAngleState.el.remove(); viewAngleState = null; } return; }
+  if (viewAngleState) return;
+  const el = h('div', { class: 'view-angle' }), lab = [h('span'), h('span')];
+  el.append(h('span', null, 'Azimut'), ' ', lab[0], ' · ', h('span', null, 'Höhe'), ' ', lab[1]);
+  const tick = () => {
+    const d = vp.camera.position.clone().sub(vp.controls.target).normalize();
+    lab[0].textContent = `${((Math.round(THREE.MathUtils.radToDeg(Math.atan2(d.y, d.x))) % 360) + 360) % 360}°`;
+    lab[1].textContent = `${Math.round(THREE.MathUtils.radToDeg(Math.asin(Math.max(-1, Math.min(1, d.z)))))}°`;
+  };
+  tick();
+  viewAngleState = { el, timer: setInterval(tick, 150) };
+  $('#viewportWrap').append(el);
+}
 // pictures per second, counted at the renderer, at the bottom of the view
 let fpsState = null;
 function fpsMeter(on) {
@@ -11419,10 +12724,16 @@ function applySettings() {
   const op = Math.max(60, Math.min(100, Math.round(+s.panelOpacity || 100)));
   if (op < 100) { root.dataset.glass = '1'; root.style.setProperty('--glass', `color-mix(in srgb, var(--panel) ${op}%, transparent)`); } else { delete root.dataset.glass; root.style.removeProperty('--glass'); }
   // size of the whole interface: the desktop app zooms the window, a browser the page
-  const scale = Math.max(0.8, Math.min(1.5, +s.uiScale || 1));
+  const scale = Math.max(0.75, Math.min(2, +s.uiScale || 1));
   if (window.werkfabApp?.zoom) window.werkfabApp.zoom(scale); else root.style.zoom = scale === 1 ? '' : String(scale);
   const wrap = $('#viewportWrap');
-  wrap.style.background = { gradient: '', light: 'linear-gradient(#ffffff, #dde3ea)', dark: 'linear-gradient(#3b424a, #1b1f24)', solid: s.bgColor }[s.background] ?? '';
+  wrap.style.background = { gradient: '', light: 'linear-gradient(#ffffff, #dde3ea)', dark: 'linear-gradient(#3b424a, #1b1f24)', solid: s.bgColor,
+    image: /^data:image\//.test(s.bgImage || '') ? `center / cover no-repeat url("${s.bgImage}"), ${s.bgColor}` : '' }[s.background] ?? '';
+  flag('dlgtop', s.dlgButtonsTop ? '1' : '', '');
+  flag('dimsize', s.dimTextSize, 'normal');
+  document.body.classList.toggle('tabs-only', !!s.tabsOnly);
+  viewAngleMeter(!!s.showViewAngle);
+  setViewTessellation(s.tessellation); // part of the model key: a change rebuilds the triangles
   gridOn = s.showGrid !== false;
   vp.grid.visible = gridOn;
   document.querySelector('#navBar [data-nav="grid"]')?.classList.toggle('on', gridOn);
@@ -11467,6 +12778,10 @@ const PREF_TREE = [
       ['autosave', 'Automatisch speichern', 'Projekt bei jeder Änderung auf diesem Rechner sichern', 'bool'],
       ['confirmDelete', 'Löschen bestätigen', 'Vor dem Löschen eines Features nachfragen', 'bool'],
       ['undoLimit', 'Rückgängig-Schritte', 'Wie viele Schritte Strg+Z zurückgehen kann', 'num', { min: 10, max: 2000, step: 10 }],
+      ['snapshotMinutes', 'Wiederherstellungspunkte', 'Hält den offenen Entwurf alle paar Minuten auf diesem Rechner fest, wenn er sich geändert hat – die letzten acht bleiben', [['0', 'Aus'], ['5', 'Alle 5 Minuten'], ['10', 'Alle 10 Minuten'], ['15', 'Alle 15 Minuten'], ['30', 'Alle 30 Minuten']]],
+    ]],
+    ['Früheren Stand zurückholen', [
+      ['__snapshots'],
     ]],
     ['Updates', [
       ['updateCheck', 'Nach Updates suchen', 'Fragt beim Start bei GitHub nach einer neuen Version. Sonst baut WerkFab von sich aus keine Verbindung ins Netz auf.', 'bool'],
@@ -11475,6 +12790,13 @@ const PREF_TREE = [
     ]],
     ['Benutzeroberfläche', [
       ['hoverHighlight', 'Vorauswahl hervorheben', 'Fläche oder Kante unter dem Mauszeiger farbig anzeigen', 'bool'],
+      ['tabsOnly', 'Nur die Registerkarten zeigen', 'Die Werkzeugleiste zeigt nur ihre Karten; zeigt die Maus darauf, klappt sie auf – mehr Platz für das Modell', 'bool'],
+      ['wheelEdit', 'Zahlen mit Mausrad und Pfeiltasten ändern', 'Im Eingabefeld, in dem der Cursor steht: Mausrad oder ↑ ↓ ändern den Wert um 1 (mit Umschalt um 10, mit Alt um 0,1)', 'bool'],
+    ]],
+    ['Dialoge', [
+      ['dlgButtonsTop', 'OK und Abbrechen oben', 'Die Schaltflächen der Dialoge stehen unter der Titelleiste statt am unteren Rand', 'bool'],
+      ['rightClickOk', 'Rechtsklick bestätigt', 'Ein Rechtsklick in einen Dialog (nicht in ein Eingabefeld) drückt dessen OK-Schaltfläche', 'bool'],
+      ['rememberDialog', 'Letzte Werte merken', 'Befehlsdialoge beginnen mit den Zahlen, der Auswahl und den Häkchen vom letzten Mal; Namen und Texte beginnen neu', 'bool'],
     ]],
   ], children: [
     { id: 'design', label: 'Konstruktion', groups: [
@@ -11488,6 +12810,12 @@ const PREF_TREE = [
         ['sketchFill', 'Profile hervorheben', 'Geschlossene Profile der aktiven Skizze farbig füllen', 'bool'],
         ['snap', 'Raster/Fang', 'Schrittweite beim Zeichnen; 0 = frei', 'num', { unit: 'mm', min: 0 }],
         ['snapOffKey', 'Fang aussetzen mit', 'Solange die Taste gedrückt ist, rastet der Punkt weder an Punkten noch am Raster ein', [['alt', 'Alt'], ['ctrl', 'Strg'], ['none', 'Keine Taste']]],
+        ['toolToggle', 'Klick auf das laufende Werkzeug beendet es', 'Ein zweiter Klick auf die Schaltfläche des Zeichenwerkzeugs schaltet zurück auf Auswählen', 'bool'],
+        ['dimTextSize', 'Schriftgröße der Bemaßungen', 'Zahlen der Bemaßungen und Abhängigkeitssymbole in der Skizze', [['small', 'Klein'], ['normal', 'Normal'], ['large', 'Groß'], ['xlarge', 'Sehr groß']]],
+      ]],
+      ['Ursprung und Export', [
+        ['planeNames', 'Namen der Ursprungsebenen', 'Im Browser und in den Listen der Ebenen', [['xyz', 'XY, XZ, YZ'], ['views', 'Oben, Vorne, Rechts']]],
+        ['exportPattern', 'Dateiname beim Export', 'Muster für STEP, IGES, STL, 3MF, OBJ und den Slicer: {design} = Name des Entwurfs, {body} = Name des Körpers (leer bei mehreren), {date} = Datum', 'text'],
       ]],
       ['Features', [
         ['defaultExtrude', 'Standard-Extrusionslänge', 'Vorgabe für neue Extrusionen', 'num', { unit: 'mm' }],
@@ -11555,7 +12883,7 @@ const PREF_TREE = [
       ['colorVision', 'Farbsehschwäche', 'Statusfarben, die nicht auf Rot gegen Grün angewiesen sind', [['off', 'Aus'], ['redgreen', 'Rot-Grün-Schwäche (Orange / Blau)'], ['blueyellow', 'Blau-Gelb-Schwäche (Rot / Türkis)']]],
     ]],
     ['Form und Größe', [
-      ['uiScale', 'Größe der Oberfläche', '1 = normal; 1,25 für hochauflösende Bildschirme oder Vorführungen', [['0.8', '80 %'], ['0.9', '90 %'], ['1', '100 %'], ['1.1', '110 %'], ['1.25', '125 %'], ['1.5', '150 %']]],
+      ['uiScale', 'Größe der Oberfläche', '1 = normal; 1,25 für hochauflösende Bildschirme oder Vorführungen', [['0.75', '75 %'], ['0.8', '80 %'], ['0.9', '90 %'], ['1', '100 %'], ['1.1', '110 %'], ['1.25', '125 %'], ['1.5', '150 %'], ['1.75', '175 %'], ['2', '200 %']]],
       ['density', 'Dichte', 'Kompakt = mehr Platz für das Modell, Luftig = größere Schaltflächen', [['compact', 'Kompakt'], ['normal', 'Normal'], ['roomy', 'Luftig']]],
       ['corners', 'Ecken', 'Form von Schaltflächen, Feldern und Fenstern', [['square', 'Eckig'], ['soft', 'Leicht gerundet'], ['round', 'Rund']]],
       ['iconSize', 'Größe der Symbole', 'Symbole der Werkzeugleiste', [['small', 'Klein'], ['normal', 'Normal'], ['large', 'Groß']]],
@@ -11588,6 +12916,7 @@ const PREF_TREE = [
     ['Ansichtswechsel', [
       ['animViews', 'Ansichtswechsel animieren', 'Aus = die Ansicht springt sofort', 'bool'],
       ['animSpeed', 'Geschwindigkeit der Animation', '1 = normal, 2 = doppelt so schnell', 'num', { min: 0.2, max: 5, step: 0.1 }],
+      ['cubeArrowsInvert', 'Pfeile am ViewCube umkehren', 'Die Pfeile neben dem ViewCube drehen die Ansicht in die andere Richtung', 'bool'],
     ]],
   ], children: [
     { id: 'spacemouse', label: 'SpaceMouse', groups: [
@@ -11617,10 +12946,15 @@ const PREF_TREE = [
       ['antialias', 'Kantenglättung', 'Glättet die Kanten im 3D-Bild; wirkt nach einem Neustart des Programms', 'bool'],
       ['groundShadow', 'Bodenschatten', 'Weicher Schatten unter dem Modell (Arbeitsbereich Konstruktion)', 'bool'],
       ['quality', 'Darstellungsqualität', 'Hoch = scharf auf hochauflösenden Bildschirmen, Leistung = schneller', [['high', 'Hoch'], ['normal', 'Normal'], ['performance', 'Leistung']]],
+      ['tessellation', 'Gekrümmte Flächen', 'Wie fein Zylinder, Kugeln und Rundungen in der Ansicht aus Dreiecken bestehen. Feiner sieht runder aus, rechnet bei großen Modellen aber länger. Der Export hat eine eigene Einstellung (3D-Druck).', [['coarse', 'Grob'], ['normal', 'Normal'], ['fine', 'Fein'], ['ultra', 'Sehr fein']]],
+    ]],
+    ['Einblendungen', [
+      ['showViewAngle', 'Blickrichtung anzeigen', 'Azimut (um Z, von +X aus) und Höhe über der XY-Ebene unten rechts in der Ansicht', 'bool'],
     ]],
     ['Umgebung', [
-      ['background', 'Hintergrund', 'Umgebung der Arbeitsfläche', [['gradient', 'Verlauf (Farbschema)'], ['light', 'Hell'], ['dark', 'Dunkelgrau'], ['solid', 'Einfarbig']]],
-      ['bgColor', 'Hintergrundfarbe', 'Für „Einfarbig“', 'color'],
+      ['background', 'Hintergrund', 'Umgebung der Arbeitsfläche', [['gradient', 'Verlauf (Farbschema)'], ['light', 'Hell'], ['dark', 'Dunkelgrau'], ['solid', 'Einfarbig'], ['image', 'Bild']]],
+      ['bgColor', 'Hintergrundfarbe', 'Für „Einfarbig“ und um ein Bild herum', 'color'],
+      ['__bgImage'],
       ['showGrid', 'Raster anzeigen', 'Bodenraster in der XY-Ebene', 'bool'],
       ['showAxes', 'Achsen am Ursprung', 'Rote, grüne und blaue Achse', 'bool'],
     ]],
@@ -11642,7 +12976,8 @@ const PREF_TREE = [
     ['Profile', [['__profiles']]],
     ['Fenster', [['__layout']]],
   ] },
-  { id: 'agents', label: 'KI-Agenten', groups: [['Verbindung für KI-Agenten', [['__agent']]]] },
+  { id: 'agents', label: 'KI-Agenten', groups: [['Verbindung für KI-Agenten', [['__agent']]],
+    ['Rechte', [['agentAccess', 'Was ein Agent darf', 'Nur lesen: der Agent sieht Entwurf, Modell, Bilder und NC-Programme, kann aber nichts ändern', [['edit', 'Lesen und ändern'], ['read', 'Nur lesen']]]]]] },
   { id: 'keys', label: 'Tastenkürzel', groups: [] },
   { id: 'about', label: 'Über WerkFab', groups: [] },
 ];
@@ -11729,6 +13064,45 @@ function openSettings(page) {
       return h('div', { class: 'prefs-row' }, h('label', null, '', null), h('div', { class: 'prefs-ctl' },
         sl ? h('button', { class: 'prefs-btn', onclick: async () => { const p = await sl.pick(); if (p) { draft.slicerPath = p; setDirty(true); draw(); } } }, 'Programm wählen …') : h('span', { class: 'hint' }, 'Nur in der Desktop-App'),
         h('button', { class: 'prefs-btn', onclick: () => sendToSlicer() }, 'Jetzt senden')));
+    }
+    if (key === '__snapshots') {
+      const list = loadRps(), box = h('div', null);
+      const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'gerade eben' : m < 60 ? `vor ${m} min` : new Date(t).toLocaleString(); };
+      if (!list.length) box.append(h('p', { class: 'hint' }, 'Noch kein Wiederherstellungspunkt – der erste entsteht, sobald sich der Entwurf ändert und die eingestellte Zeit vergangen ist.'));
+      list.map((rp, i) => [rp, i]).reverse().forEach(([rp, i]) => box.append(h('div', { class: 'prefs-row' },
+        h('label', null, h('span', { class: 'no-i18n' }, `${new Date(rp.at).toLocaleTimeString()} · ${rp.name}`), h('span', { class: 'hint', style: 'margin-left:6px' }, `${ago(rp.at)} · ${rp.features} Features`)),
+        h('div', { class: 'prefs-ctl' }, h('button', { class: 'prefs-btn', onclick: () => { restoreRestorePoint(i); close(); } }, 'Wiederherstellen')))));
+      box.append(h('div', { class: 'prefs-row' }, h('label', null, 'Jetzigen Stand festhalten', info('Legt sofort einen Wiederherstellungspunkt an')),
+        h('div', { class: 'prefs-ctl' }, h('button', { class: 'prefs-btn', onclick: () => { status(takeRestorePoint(true) ? 'Wiederherstellungspunkt angelegt.' : 'Keine Änderung seit dem letzten Punkt.'); draw(); } }, 'Jetzt festhalten'))));
+      return box;
+    }
+    if (key === '__bgImage') {
+      // the picture is made smaller (longest side 1920 px, JPEG) so it fits into the stored preferences
+      const pick = () => {
+        const inp = h('input', { type: 'file', accept: 'image/*' });
+        inp.onchange = () => {
+          const file = inp.files[0];
+          if (!file) return;
+          const url = URL.createObjectURL(file), img = new Image();
+          img.onload = () => {
+            const k = Math.min(1, 1920 / Math.max(img.width, img.height)), c = h('canvas', { width: Math.round(img.width * k), height: Math.round(img.height * k) });
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            URL.revokeObjectURL(url);
+            draft.bgImage = c.toDataURL('image/jpeg', 0.85);
+            draft.background = 'image';
+            setDirty(true);
+            draw();
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); status('Das Bild lässt sich nicht lesen.'); };
+          img.src = url;
+        };
+        inp.click();
+      };
+      return h('div', { class: 'prefs-row' }, h('label', null, 'Hintergrundbild', info('Für „Bild“: füllt die Ansicht hinter dem Modell')),
+        h('div', { class: 'prefs-ctl' },
+          draft.bgImage ? h('img', { src: draft.bgImage, style: 'height:28px;max-width:60px;object-fit:cover;border:1px solid var(--line);border-radius:2px' }) : null,
+          h('button', { class: 'prefs-btn', onclick: pick }, 'Bild wählen …'),
+          draft.bgImage ? h('button', { class: 'prefs-btn', onclick: () => { draft.bgImage = ''; if (draft.background === 'image') draft.background = 'gradient'; setDirty(true); draw(); } }, 'Entfernen') : null));
     }
     if (key === '__unit') return h('div', { class: 'prefs-row' }, h('label', null, 'Standardeinheit', info('Alle Längen in Millimeter, Winkel in Grad')), h('div', { class: 'prefs-ctl' }, h('b', null, 'Millimeter (mm)')));
     if (key === '__smStatus') {
@@ -12801,7 +14175,7 @@ async function sendToSlicer(list) {
   list ||= [...getModel().bodies.filter(b => !state.hiddenBodies.has(b.id) && !b.surface), ...getMeshes().bodies.filter(b => !state.hiddenBodies.has(b.id))];
   if (!list.length) return status('Nichts zum Drucken: kein sichtbarer Körper und kein Netz.');
   const items = list.map(x => ({ name: x.name || bodyName(x), mesh: x.mesh || meshFromGeometry(printGeometry(x)) }));
-  const fmt = s.slicerFormat === 'stl' ? 'stl' : '3mf', name = `${safeName()}.${fmt}`;
+  const fmt = s.slicerFormat === 'stl' ? 'stl' : '3mf', name = `${exportName(items.length === 1 ? items[0].name : '')}.${fmt}`;
   let data;
   if (fmt === '3mf') data = to3MF(items);
   else { const grp = new THREE.Group(); items.forEach(it => grp.add(new THREE.Mesh(meshToGeometry(it.mesh)))); data = new STLExporter().parse(grp, { binary: true }); }
@@ -12815,12 +14189,12 @@ async function sendToSlicer(list) {
 function exportMeshSTL(list) {
   const grp = new THREE.Group();
   list.forEach(x => grp.add(new THREE.Mesh(printGeometry(x))));
-  download(`${list.length === 1 ? list[0].name : safeName()}.stl`, new STLExporter().parse(grp, { binary: true }), 'model/stl');
+  download(`${exportName(list.length === 1 ? list[0].name : '')}.stl`, new STLExporter().parse(grp, { binary: true }), 'model/stl');
 }
 
 function exportMeshFile(list, fmt) {
   if (fmt === 'stl') return exportMeshSTL(list);
-  const name = list.length === 1 ? list[0].name : safeName(), items = list.map(x => ({ name: x.name, mesh: x.mesh }));
+  const name = exportName(list.length === 1 ? list[0].name : ''), items = list.map(x => ({ name: x.name, mesh: x.mesh }));
   if (fmt === 'obj') download(`${name}.obj`, toOBJ(items), 'model/obj');
   else download(`${name}.3mf`, to3MF(items), 'model/3mf');
 }
@@ -13028,16 +14402,20 @@ function parseNcPositions(code, heidenhain, toolRad = null) {
   };
   const num = (up, k) => { const m = up.match(new RegExp('(?:^|[^A-Z])' + k + '\\s*([+-]?\\d*\\.?\\d+)')); return m ? +m[1] : null; };
   // points along a circular arc (XY plane) from a to b around centre c; cw = clockwise
-  const arcPts = (a, b, c, cw) => {
-    const r = Math.hypot(a.x - c[0], a.y - c[1]);
+  // G18 / G19: the circle lies in Z/X (u = z, v = x) or Y/Z, the third axis runs evenly with the angle
+  const PL_AX = { 17: ['x', 'y', 'z'], 18: ['z', 'x', 'y'], 19: ['y', 'z', 'x'] };
+  let plane = 17;
+  const arcPts = (a, b, c, cw, pl = 17) => {
+    const [u, v, w] = PL_AX[pl];
+    const r = Math.hypot(a[u] - c[0], a[v] - c[1]);
     if (!(r > 1e-6)) return null;
-    const a0 = Math.atan2(a.y - c[1], a.x - c[0]), a1 = Math.atan2(b.y - c[1], b.x - c[0]);
+    const a0 = Math.atan2(a[v] - c[1], a[u] - c[0]), a1 = Math.atan2(b[v] - c[1], b[u] - c[0]);
     let sw = a1 - a0;
     if (cw && sw >= -1e-9) sw -= Math.PI * 2;
     if (!cw && sw <= 1e-9) sw += Math.PI * 2;
     const n = Math.max(2, Math.ceil(Math.abs(sw) / (Math.PI / 24)));
     const res = [];
-    for (let k = 1; k < n; k++) { const t = k / n, an = a0 + sw * t; res.push({ x: c[0] + r * Math.cos(an), y: c[1] + r * Math.sin(an), z: a.z + (b.z - a.z) * t }); }
+    for (let k = 1; k < n; k++) { const t = k / n, an = a0 + sw * t; res.push({ [u]: c[0] + r * Math.cos(an), [v]: c[1] + r * Math.sin(an), [w]: a[w] + (b[w] - a[w]) * t }); }
     return res;
   };
   // controls without tool numbers (GRBL, manual change): the operation comment "(T1 Schaftfraeser …)" names the tool
@@ -13192,10 +14570,14 @@ function parseNcPositions(code, heidenhain, toolRad = null) {
         const pt = pos.z != null ? hhPocketMoves({ n: rect ? 251 : 252, q }, { ...pos, ...at }, RFP, RTP ?? pos.z, rT) : null;
         if (pt) { out.push({ ...pt, tool, first: !known }); known = true; Object.assign(pos, { x: pt.x, y: pt.y, z: pt.z }); for (const k of 'XYZ') seen.add(k); continue; }
       }
+      const pm17 = up.match(/G(1[789])(?!\d)/);
+      if (pm17) plane = +pm17[1];
       if ((mode === 2 || mode === 3) && !cyc) {
-        const I = num(up, 'I'), J = num(up, 'J'), Rr = num(up, 'R');
+        const I = num(up, 'I'), J = num(up, 'J'), K = num(up, 'K'), Rr = num(up, 'R');
         arcCw = mode === 2;
-        if (I != null || J != null) arcC = [pos.x + (I || 0), pos.y + (J || 0)];
+        if (plane === 18) arcC = I != null || K != null ? [pos.z + (K || 0), pos.x + (I || 0)] : null;
+        else if (plane === 19) arcC = J != null || K != null ? [pos.y + (J || 0), pos.z + (K || 0)] : null;
+        else if (I != null || J != null) arcC = [pos.x + (I || 0), pos.y + (J || 0)];
         else if (Rr != null) arcC = { r: Rr };
       }
     }
@@ -13254,9 +14636,9 @@ function parseNcPositions(code, heidenhain, toolRad = null) {
           arcC = [before.x + dx / 2 - (dy / L) * hgt * side, before.y + dy / 2 + (dx / L) * hgt * side];
         } else arcC = null;
       }
-      if (Array.isArray(arcC) && known) pt.arc = arcPts(before, pos, arcC, arcCw);
+      if (Array.isArray(arcC) && known) pt.arc = arcPts(before, pos, arcC, arcCw, heidenhain ? 17 : plane);
       // direction at the end of the move (for DEP): along the line, or the tangent of the arc
-      if (Array.isArray(arcC)) { const rx = pos.x - arcC[0], ry = pos.y - arcC[1], l = Math.hypot(rx, ry); if (l > 1e-9) hhDir = arcCw ? [ry / l, -rx / l] : [-ry / l, rx / l]; }
+      if (Array.isArray(arcC) && (heidenhain || plane === 17)) { const rx = pos.x - arcC[0], ry = pos.y - arcC[1], l = Math.hypot(rx, ry); if (l > 1e-9) hhDir = arcCw ? [ry / l, -rx / l] : [-ry / l, rx / l]; }
       else { const dx = pos.x - before.x, dy = pos.y - before.y, l = Math.hypot(dx, dy); if (l > 1e-6) hhDir = [dx / l, dy / l]; }
       out.push(pt);
       known = true;

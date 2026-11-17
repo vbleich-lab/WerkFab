@@ -74,11 +74,38 @@ export function bodyMatrix(asm, bodyId, values = {}, seen = new Set()) {
 }
 
 // current values of a joint; a linked joint (Bewegungsverknüpfung) follows its driver: value = ratio × driver
+// Motion links: how a joint follows another one (v = the value of the driving joint).
+//   ratio (default) and gear: v · ratio (gears: ratio = −teeth₁ / teeth₂)
+//   rack: a turn of the pinion moves the rack by its pitch circle: mm = v · π · d / 360
+//   screw: a turn moves the nut by the lead: mm = v · lead / 360
+//   cam: an eccentric of throw e lifts a follower: mm = e · (1 − cos v); with "dwell" the follower rests on
+//   the base circle for that share of the turn
+export const LINK_KINDS = { ratio: 'Übersetzung', gear: 'Zahnrad', rack: 'Zahnstange und Ritzel', screw: 'Schraube (Steigung)', cam: 'Nocken' };
+export function linkValue(link, v) {
+  const off = +link.offset || 0;
+  switch (link.kind) {
+    case 'rack': return (v * Math.PI * (+link.dia || 20)) / 360 * (link.reverse ? -1 : 1) + off;
+    case 'screw': return (v * (+link.lead || 1)) / 360 * (link.reverse ? -1 : 1) + off;
+    case 'cam': {
+      const e = +link.throw || 5, dwell = Math.min(0.95, Math.max(0, +link.dwell || 0));
+      let a = ((((v + (+link.phase || 0)) % 360) + 360) % 360) / 360;
+      if (a < dwell) return off;
+      a = (a - dwell) / (1 - dwell);
+      return e * (1 - Math.cos(a * 2 * Math.PI)) + off; // lift from 0 to 2e (twice the eccentricity) and back
+    }
+    default: return (+link.ratio || 1) * v + off;
+  }
+}
+// the slope of a linear link (value per value of the driver), null for a cam
+export function linkRatio(link) {
+  if (link.kind === 'cam') return null;
+  return linkValue({ ...link, offset: 0 }, 1);
+}
 export function jointValues(asm, j, values = {}, depth = 0) {
   const own = k => values[j.id + (k ? ':' + (k + 1) : '')] ?? +[j.value, j.value2, j.value3][k] ?? 0;
   const out = [own(0) || 0, own(1) || 0, own(2) || 0];
   const drv = j.link?.from && depth < 8 && (asm.joints || []).find(q => q.id === j.link.from && q.id !== j.id);
-  if (drv) out[0] = (+j.link.ratio || 1) * jointValues(asm, drv, values, depth + 1)[0] + (+j.link.offset || 0);
+  if (drv) out[0] = linkValue(j.link, jointValues(asm, drv, values, depth + 1)[0]);
   return out;
 }
 

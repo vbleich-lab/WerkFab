@@ -13,11 +13,15 @@ WerkFab ist ein parametrisches 3D-CAD mit integriertem CAM. Teile werden über S
 > [!CAUTION]
 > **Jedes NC-Programm muss vor dem ersten Einsatz geprüft werden – an der Maschine im Probelauf (Einzelsatz, reduzierter Eilgang, ohne Werkstück oder mit Abstand in Z) oder in einem externen NC-Simulator.** Die Simulation in WerkFab ersetzt diese Prüfung nicht. WerkFab ist freie Software ohne jede Gewährleistung; für Schäden an Maschine, Werkzeug, Werkstück oder Personen wird nicht gehaftet (siehe [Sicherheit](#sicherheit-nc-programme-immer-vorher-simulieren)).
 
-> **Status: Release Candidate 16 (v1.0.0-rc.16).** Der Funktionsumfang ist vollständig für 1.0.
+> **Status: Release Candidate 18 (v1.0.0-rc.18).** Der Funktionsumfang ist vollständig für 1.0.
 
 ![Konstruktion über die Zeitachse, danach Fräsbahnen und Simulation mit Materialabtrag](docs/media/demo.gif)
 
 *Von der Skizze zum fertigen Teil: Konstruktion Schritt für Schritt, danach Werkzeugwege und Simulation.*
+
+![Das Konstruktionstestteil mit jedem Konstruktionsschritt, danach das Frästestteil mit allen Frässtrategien in der Simulation](docs/media/testteile.gif)
+
+*Die beiden Testteile, die als Beispiele mitgeliefert werden: Das Konstruktionstestteil nutzt jeden Konstruktionsschritt (168 Schritte, 39 Körper), das Frästestteil jede Frässtrategie.*
 
 ---
 
@@ -32,6 +36,10 @@ WerkFab ist ein parametrisches 3D-CAD mit integriertem CAM. Teile werden über S
 | ![Drehteil mit Schrupp-, Schlicht-, Einstech- und Gewindebahnen](docs/media/05-drehen.png) | ![Rendering im Fotostudio](docs/media/06-rendern.png) |
 | **Bohrungen erkennen** | **Bild nachzeichnen** |
 | ![Bohrungen des Modells nach Durchmesser und Art gruppiert, mit den Operationen und Werkzeugen, die angelegt werden](docs/media/07-bohrungen.png) | ![Ein Bild, nachgezeichnet als Geraden, Bögen und Kreise für Skizze, SVG oder DXF](docs/media/08-nachzeichnen.png) |
+| **Beispiel: Konstruktionstestteil** | **Beispiel: Frästestteil** |
+| ![Ein Teil mit jedem Konstruktionsschritt: Volumen, Flächen, Blech, Rahmen, Muster und Text](docs/media/09-konstruktionstestteil.png) | ![Ein Teil mit Taschen, Zapfen, Bohrungen und 3D-Flächen und den Bahnen aller Frässtrategien](docs/media/10-fraestestteil.png) |
+| **Simulation des Frästestteils** | |
+| ![Simulation des Frästestteils mit Materialabtrag](docs/media/11-fraestestteil-simulation.png) | |
 
 ---
 

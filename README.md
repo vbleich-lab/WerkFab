@@ -13,11 +13,15 @@ WerkFab is a parametric 3D CAD program with integrated CAM. Parts are designed w
 > [!CAUTION]
 > **Every NC program must be verified before it runs on a machine for the first time – in a dry run on the machine (single block, reduced rapid, in the air or with a safe Z offset) or in an external NC simulator.** The simulation inside WerkFab does not replace this check. WerkFab is free software and comes with no warranty of any kind; there is no liability for damage to machines, tools, workpieces or people. See [Safety](#safety-always-simulate-nc-programs-first).
 
-> **Status: Release Candidate 16 (v1.0.0-rc.16).** Feature complete for 1.0.
+> **Status: Release Candidate 18 (v1.0.0-rc.18).** Feature complete for 1.0.
 
 ![Designing a part on the timeline, then toolpaths and a simulation with stock removal](docs/media/demo.gif)
 
 *From sketch to finished part: design step by step, then toolpaths and simulation.*
+
+![The design test part with every design step, then the milling test part with all milling strategies in the simulation](docs/media/testteile.gif)
+
+*The two test parts that ship as examples: the design test part uses every design step (168 steps, 39 bodies), the milling test part every milling strategy.*
 
 ---
 
@@ -32,6 +36,10 @@ WerkFab is a parametric 3D CAD program with integrated CAM. Parts are designed w
 | ![Turned part with roughing, finishing, grooving and threading passes](docs/media/05-drehen.png) | ![Rendering in a photo studio](docs/media/06-rendern.png) |
 | **Hole recognition** | **Trace image** |
 | ![Holes of the model grouped by diameter and kind, with the operations and tools that will be created](docs/media/07-bohrungen.png) | ![A picture traced into lines, arcs and circles for a sketch, SVG or DXF](docs/media/08-nachzeichnen.png) |
+| **Example: design test part** | **Example: milling test part** |
+| ![A part that uses every design step: solids, surfaces, sheet metal, frames, patterns and text](docs/media/09-konstruktionstestteil.png) | ![A part with pockets, bosses, holes and 3D surfaces, and the toolpaths of all milling strategies](docs/media/10-fraestestteil.png) |
+| **Simulation of the milling test part** | |
+| ![Simulation of the milling test part with stock removal](docs/media/11-fraestestteil-simulation.png) | |
 
 The interface is available in **28 languages**: English (US and UK), German, Chinese, French, Spanish, Italian, Portuguese (Brazil), Dutch, Polish, Turkish, Japanese, Korean, Russian, Czech, Danish, Finnish, Norwegian, Ukrainian, Croatian, Bosnian, Serbian, Georgian, Latvian, Malay, Galician, Arabic and Hebrew (the last two with a mirrored, right-to-left layout).
 

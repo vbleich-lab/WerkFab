@@ -181,7 +181,9 @@ export function lintHeidenhain(code, opts = {}) {
         if (!st.feed) bad('Vorschubsatz ohne Vorschub (kein F seit TOOL CALL / LBL)');
         if (!st.spindle && !mStart && !opts.probeTool?.(st)) bad('Vorschubsatz bei stehender Spindel');
       }
-      if (!st.zSafeAfterTool) { if (!(zOnlyUp && fmax)) bad('Erste Bewegung nach TOOL CALL ist kein Freifahren in Z mit FMAX'); st.zSafeAfterTool = true; }
+      // after TOOL CALL: either up in Z first, or over the part in X/Y at the change height (no Z), then down
+      const xyOnly = kind === 'L' && axes.length > 0 && axes.every(m => m[2] === 'X' || m[2] === 'Y');
+      if (!st.zSafeAfterTool) { if (!((zOnlyUp || xyOnly) && fmax)) bad('Erste Bewegung nach TOOL CALL ist weder Freifahren in Z noch Anfahren in X/Y mit FMAX'); st.zSafeAfterTool = true; }
       if (kind === 'L' && !axes.length && !mcodes.length) bad('L-Satz ohne Achse und ohne M-Funktion');
       const seen = new Set();
       for (const a of axes) { if (seen.has(a[2])) bad(`Achse ${a[2]} doppelt im Satz`); seen.add(a[2]); }

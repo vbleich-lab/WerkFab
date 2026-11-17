@@ -1,0 +1,4 @@
+{
+ "Kreisbögen in XZ und YZ (G18/G19)": "XZ・YZ平面の円弧 (G18/G19)",
+ "Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten": "垂直面内のフィレットを通るパスを多数の短い直線ではなくG18またはG19付きのG2/G3で出力します。3D仕上げのプログラムが大幅に短くなります"
+}

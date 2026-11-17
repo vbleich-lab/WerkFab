@@ -1,5 +1,53 @@
 # Änderungen
 
+## v1.0.0-rc.18 – 2026-11-17
+
+### Neue Konstruktionsschritte
+- **Grundformen und Volumen**: Kegel (Radius oben 0 ergibt eine Spitze), Begrenzungskörper, Begrenzungsfüllung (Hohlräume füllen), Gewebe, Ansatz (Dom mit Bohrung und Rippen), Lippe und Nut, Rastverbindung (Haken mit Zunge), Auflage, Körper entfernen, Fläche teilen.
+- **Flächen**: Regelfläche, Verbindungsfläche zwischen zwei Kanten, Begrenzungsfläche, Flächenverrundung, Fläche anpassen (an eine Punktwolke), Trimmen aufheben, Verbund aufheben, Normale umkehren, Fläche begradigen.
+- **Blech und Schweißteile**: Perforieren (Lochfeld, auch versetzt), Pfadflansch, Umkantung, Rahmenelement aus dem Profilkatalog (Gehrung, stumpf), Endkappe, In Blech umwandeln, Blechregeln, Entfalten und wieder falten, Flachmuster.
+- **Punktwolken**: XYZ, TXT, CSV, PTS, ASC und PLY einlesen (bis 500 000 Punkte) und eine Freiformfläche daran anpassen.
+- **3D-Skizze**: 3D-Linie, 3D-Bogen, 3D-Spline und 3D-Punkt.
+
+### Prüfen und Analysieren
+- **Konstruktion prüfen**, Merkmalsabhängigkeiten und Parametergraph (welcher Schritt auf welchem aufbaut), Körper vergleichen, Krümmung als Farbe, Krümmungskamm, Isokurven.
+- **Physikalische Eigenschaften**: Masse, Volumen, Fläche und Massenschwerpunkt; physikalische Materialien mit Dichte, Materialdaten prüfen, Materialbibliothek exportieren.
+- **Kunststoffregeln**: Wandstärke, Formschräge, Rippen und Dome je Kunststoff; einem Körper zuweisen.
+
+### Baugruppe
+- **Komponenten**: neue Komponente, Komponenten aus Körpern, Konstruktion oder Bauteil einfügen, Komponente positionieren, Position erfassen und zurücksetzen, Starrgruppe, Komponentenfarben, Bauteilgröße ändern.
+- **Gelenke**: Gelenk wie gebaut, Gelenkursprung auf einem Körper, Gelenkgrenzen, Gelenke antreiben, mit Gelenken duplizieren, Kontakt und Kontaktsätze.
+- **Bewegungsverknüpfungen**: Übersetzung, Zahnrad, Zahnstange und Ritzel, Schraube (Steigung) und Nocken (Exzenter hebt einen Stößel, mit Rast).
+- **Zuschnittliste** für Rahmen und Profile.
+
+### Konfigurationen, Parameter, Verlauf
+- **Konfigurationstabelle** mit allen Varianten und ihren Parameterwerten.
+- **Parameter** als CSV exportieren und importieren, alphabetisch sortieren, Parameter ändern.
+- **Verlauf abspielen**, alles neu berechnen, Prüfpunkte festhalten und wiederherstellen, automatische Wiederherstellungspunkte alle 5 bis 30 Minuten.
+- **Benannte Ansichten** lassen sich jetzt auch aktualisieren, umbenennen, löschen und auflisten.
+
+### Bedienung und Einstellungen
+- Lasso-Auswahl, Darstellungsstile (schattiert, mit Kanten, Drahtmodell), Bodenschatten, Raster, Startansicht, kontinuierlich drehen, SpaceMouse kalibrieren.
+- **Neue Einstellungen**: Hintergrundbild, Feinheit der gekrümmten Flächen, Blickrichtung anzeigen, Namen der Ursprungsebenen (XY/XZ/YZ oder Oben/Vorne/Rechts), Dateiname beim Export (`{design}`, `{body}`, `{date}`), letzte Werte in Dialogen merken, Rechtsklick bestätigt, Mausrad ändert Zahlen, OK und Abbrechen oben, nur Registerkarten, Schriftgröße der Bemaßungen, Pfeile am ViewCube umkehren.
+- **KI-Agenten**: in den Einstellungen festlegen, ob ein Agent die Konstruktion nur lesen oder auch ändern darf. Flächenkörper melden dem Agenten jetzt eine Fläche statt eines Volumens.
+
+### Fertigung
+- **Werkzeugliste am Programmanfang mit der tiefsten Z-Höhe** jedes Werkzeugs (`Zmin`). Kopf und Zeilen der Liste sind Vorlagen im Postprozessor (`toolListHead`, `toolListLine`, Variable `{zmin}`); bei Drehen, geschwenkter Ebene und Rundachse entfällt der Wert.
+- **Werkzeugwechsel**: nach dem Wechsel fährt das Werkzeug zuerst in X/Y über den Startpunkt, erst dann in Z – nie mehr senkrecht von der Wechselposition nach unten.
+- **Kreisbögen in G18 und G19**: 3D-Schlichtbahnen über Rundungen werden auch in senkrechten Ebenen zu Bögen zusammengefasst statt vieler kurzer Geraden. Die NC-Prüfung kennt die Ebenen und meldet falsche Mittelpunktwörter.
+- **Kürzere Schruppprogramme**: das Zittern abgetasteter Bahnen wird beim Schruppen mit Aufmaß bis 15 % des Aufmaßes (höchstens 0,05 mm) ausgedünnt.
+- Der Dateiname des NC-Programms kommt aus dem Programmnamen.
+
+### Beispiele
+- **Frästestteil**: ein Teil mit allen Frässtrategien; es läuft in der Simulation ohne Kollision durch (Bohren und Gewindebohren kommen erst, wenn die Platte auf Höhe ist, und der Gewindebohrer endet 2 mm über dem Bohrungsgrund).
+- **Konstruktionstestteil**: ein Teil mit jedem Konstruktionsschritt – 168 Schritte, 39 Körper.
+
+### Fehler behoben
+- Der Rasthaken zeigte in den Körper hinein statt nach oben.
+- „Ausschneiden“ brach ab, sobald das Modell einen Flächenkörper enthielt. Außerdem schneidet es Körper, die das Werkzeug nicht berühren, gar nicht erst – das spart bei vielen Körpern Zeit.
+- Nach dem Laden des großen Geometriekerns blieb ein Schritt auf „wird geladen“ stehen; das Modell wird jetzt neu gerechnet.
+- Die Simulation zeigte „Kollisionen“ in anderen Sprachen falsch zusammengesetzt (z. B. „collisionen“).
+
 ## v1.0.0-rc.17 – 2026-11-15
 
 ### Python-Skripte und Zusatzmodule

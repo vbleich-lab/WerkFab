@@ -9,7 +9,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'docs', 'media');
 const FRAMES = process.argv[2] || path.join(ROOT, 'dist', 'frames');
-const ONLY = process.argv[3] || 'all'; // 'stills' | 'gif' | 'all' | 'extra' (only the pictures 07 and 08)
+const ONLY = process.argv[3] || 'all'; // 'stills' | 'gif' | 'all' | 'extra' (only the pictures 07 and 08) | 'tests' (the test parts: 09–11 and the frames of testteile.gif) | 'teststills' | 'testgif'
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
   '.wasm': 'application/wasm', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.webmanifest': 'application/manifest+json' };
 const ZOOM = +(process.argv[4] || 3);
@@ -116,8 +116,50 @@ app.whenReady().then(async () => {
     await js(`document.querySelector('.mwin .modal-head button')?.click();`);
     await sleep(500);
   };
+  // the two test parts: stills 09 / 10 / 11 and the frames of testteile.gif
+  const settled = () => js(`const m = await window.werkfabAgent.call('get_model', {}); return Object.keys(m.errors || {}).length;`);
+  // no recomputation running for 5 s in a row (the big part recomputes once more when the full kernel is ready)
+  const idle = async (maxMin = 12) => { let calm = 0; for (let t = 0; t < maxMin * 60 && calm < 5; t++) { await sleep(1000); calm = (await js(`return !!document.getElementById('regenProgress');`)) ? 0 : calm + 1; } };
+  const testParts = async () => {
+    // the full kernel first: "Fläche löschen" needs it, and the part should come up without a red step
+    await js(`const io = await import('/js/interop.js'); io.requestFullKernel(); for (let i = 0; i < 240 && !io.fullKernelReady(); i++) await new Promise(r => setTimeout(r, 500));`);
+    await click('[data-act=example-design]');
+    await idle();
+    for (let i = 0; i < 6 && (await settled()); i++) { await sleep(3000); await idle(); }
+    await click('[data-view=iso]'); await sleep(700); await click('[data-nav=fit]'); await sleep(900); await zoom(1);
+    await still('09-konstruktionstestteil');
+    if (ONLY === 'tests' || ONLY === 'testgif') {
+      fs.rmSync(FRAMES, { recursive: true, force: true });
+      for (let i = 0; i < 4; i++) await frame();
+      await orbit(720, 0, 48, frame);
+      for (let i = 0; i < 4; i++) await frame();
+    }
+    await click('[data-act=example-mill]');
+    await sleep(5000);
+    await settled();
+    await workspace('cam');
+    await js(`await window.werkfabAgent.call('get_cam', {});`);
+    await sleep(3000);
+    await click('[data-view=iso]'); await sleep(700); await click('[data-nav=fit]'); await sleep(900); await zoom(2);
+    await still('10-fraestestteil');
+    if (ONLY === 'tests' || ONLY === 'testgif') for (let i = 0; i < 6; i++) await frame();
+    await clickText('#tools button', 'Simulieren');
+    await sleep(4000);
+    await zoom(2);
+    const N = 40;
+    for (let i = 0; i <= N; i++) {
+      await seekSim(Math.round((1000 * i) / N));
+      await sleep(600);
+      if (ONLY === 'tests' || ONLY === 'testgif') await frame();
+    }
+    await sleep(1500);
+    await still('11-fraestestteil-simulation');
+    if (ONLY !== 'teststills') for (let i = 0; i < 8; i++) await frame();
+    console.log('frames', fno);
+  };
   try {
     if (ONLY === 'extra') { await extra(); app.quit(); return; }
+    if (ONLY === 'tests' || ONLY === 'teststills' || ONLY === 'testgif') { await testParts(); server.close(); app.quit(); return; }
     if (ONLY !== 'gif') {
       // 1 design
       await loadExample(false);

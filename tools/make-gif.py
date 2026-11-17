@@ -1,11 +1,11 @@
 """Builds docs/media/demo.gif from the frames written by capture-media.cjs.
-Usage: python tools/make-gif.py <frameDir> [width]"""
+Usage: python tools/make-gif.py <frameDir> [width] [name.gif]   (default demo.gif)"""
 import glob, os, sys
 from PIL import Image
 
 src = sys.argv[1]
 width = int(sys.argv[2]) if len(sys.argv) > 2 else 800
-out = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'docs', 'media', 'demo.gif')
+out = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'docs', 'media', sys.argv[3] if len(sys.argv) > 3 else 'demo.gif')
 files = sorted(glob.glob(os.path.join(src, 'f*.png')))
 frames = []
 for f in files:

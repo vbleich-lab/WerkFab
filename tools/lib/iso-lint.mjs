@@ -90,10 +90,10 @@ export function lintIso(code, opts = {}) {
     if (g.includes(21) || g.includes(71)) st.units = true;
     if (g.includes(90)) st.abs = true;
     if (g.includes(91)) st.abs = false;
-    const X = one('X'), Y = one('Y'), Z = one('Z'), I = one('I'), J = one('J'), Rw = one('R'), F = one('F'), S = one('S'), T = one('T'), H = one('H'), Dw = one('D'), Q = one('Q'), P = one('P');
+    const X = one('X'), Y = one('Y'), Z = one('Z'), I = one('I'), J = one('J'), K = one('K'), Rw = one('R'), F = one('F'), S = one('S'), T = one('T'), H = one('H'), Dw = one('D'), Q = one('Q'), P = one('P');
     const macro = g.includes(65), dwell = g.includes(4), ref = g.includes(28) || g.includes(53) || supa;
     // decimal point on lengths (a control may read X10 as 0.010)
-    if (D.decimal && !macro) for (const [L, v] of words) if ('XYZIJR'.includes(L) && !v.includes('.') && +v !== 0 && !(dwell && L === 'X')) bad(`${L}${v} ohne Dezimalpunkt`);
+    if (D.decimal && !macro) for (const [L, v] of words) if ('XYZIJKR'.includes(L) && !v.includes('.') && +v !== 0 && !(dwell && L === 'X')) bad(`${L}${v} ohne Dezimalpunkt`);
 
     if (S != null) { if (!(S >= 0)) bad('Drehzahl negativ'); st.speed = S; }
     if (F != null && !dwell) { if (!(F > 0)) bad('Vorschub F ist nicht größer als 0'); st.feed = F; }
@@ -125,6 +125,7 @@ export function lintIso(code, opts = {}) {
         st.ended = true;
         if (st.spindle) bad('Programmende bei laufender Spindel');
         if (st.comp) bad('Programmende mit aktiver Radiuskorrektur');
+        if ((st.plane ?? 17) !== 17) bad(`Programmende in der Ebene G${st.plane}`);
         if (st.cycle || st.mcall) bad('Programmende mit aktivem Bohrzyklus');
         if (!st.abs) bad('Programmende im Kettenmaß (G91)');
         st.spindle = false;
@@ -132,10 +133,13 @@ export function lintIso(code, opts = {}) {
       if (c === 0) st.spindle = false; // program stop: the spindle stands until it is started again
     }
     if (m.includes(3) && m.includes(5)) bad('M3 und M5 im selben Satz');
+    // working plane (G17 XY, G18 ZX, G19 YZ)
+    for (const c of g) if (c === 17 || c === 18 || c === 19) st.plane = c;
     // radius compensation
     if (g.includes(41) || g.includes(42)) {
       if (D.noComp) bad('G41/G42 kennt diese Steuerung nicht');
       if (st.comp) bad('G41/G42 bei bereits aktiver Radiuskorrektur');
+      if ((st.plane ?? 17) !== 17) bad(`G41/G42 in der Ebene G${st.plane}`);
       if (g.includes(2) || g.includes(3) || ((st.motion === 2 || st.motion === 3) && (X != null || Y != null) && !g.includes(0) && !g.includes(1))) bad('Radiuskorrektur auf einem Kreisbogen eingeschaltet');
       if ((dia === 'fanuc' || dia === 'okuma' || dia === 'linuxcnc') && Dw == null) bad('G41/G42 ohne D');
       st.comp = g.includes(41) ? 41 : 42;
@@ -195,15 +199,20 @@ export function lintIso(code, opts = {}) {
       if (!st.toolLoaded) bad('Vorschubbewegung vor dem Werkzeugwechsel');
     } else if (st.comp && Z == null && (X != null || Y != null)) { /* rapid with compensation: allowed but unusual */ }
     if (st.motion === 2 || st.motion === 3) {
-      if (I == null && J == null && Rw == null) bad('Kreisbogen ohne I/J oder R');
-      const P0 = st.pos, ex = X ?? P0.X, ey = Y ?? P0.Y;
-      if (Rw == null && P0.X != null && P0.Y != null && ex != null && ey != null) {
-        const cx = P0.X + (I || 0), cy = P0.Y + (J || 0), r0 = Math.hypot(I || 0, J || 0), r1 = Math.hypot(ex - cx, ey - cy);
+      // the plane decides which axes and centre words belong to the arc
+      const pl = st.plane ?? 17, [A, B, CA, CB] = { 17: ['X', 'Y', 'I', 'J'], 18: ['Z', 'X', 'K', 'I'], 19: ['Y', 'Z', 'J', 'K'] }[pl];
+      const W = { X, Y, Z, I, J, K };
+      if (W[CA] == null && W[CB] == null && Rw == null) bad(`Kreisbogen ohne ${CA}/${CB} oder R (G${pl})`);
+      const wrong = ['I', 'J', 'K'].filter(k => W[k] != null && k !== CA && k !== CB);
+      if (wrong.length) bad(`${wrong.join('/')} gehört nicht zur Ebene G${pl}`);
+      const P0 = st.pos, ex = W[A] ?? P0[A], ey = W[B] ?? P0[B];
+      if (Rw == null && P0[A] != null && P0[B] != null && ex != null && ey != null) {
+        const cx = P0[A] + (W[CA] || 0), cy = P0[B] + (W[CB] || 0), r0 = Math.hypot(W[CA] || 0, W[CB] || 0), r1 = Math.hypot(ex - cx, ey - cy);
         if (r0 < 0.001) bad('Kreisbogen mit Radius 0');
         else if (Math.abs(r0 - r1) > 0.008) bad(`Kreisendpunkt liegt nicht auf dem Kreis (Radius ${r0.toFixed(3)} → ${r1.toFixed(3)})`);
       }
-      if (X == null && Y == null) bad('Kreisbogen ohne Endpunkt in der Ebene');
-    } else if (I != null || J != null) bad('I/J in einem Geradensatz');
+      if (W[A] == null && W[B] == null) bad('Kreisbogen ohne Endpunkt in der Ebene');
+    } else if (I != null || J != null || K != null) bad('I/J/K in einem Geradensatz');
     if (X != null) st.pos.X = X; if (Y != null) st.pos.Y = Y; if (Z != null) st.pos.Z = Z;
   });
   if (D.percent) {
