@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Vše zapnout",
+ "Alle aus": "Vše vypnout",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Vypnuté M-funkce v programu chybí – vřeteno, chlazení a konec programu pak spínejte na stroji sami.",
+ "M-Befehle (Haken = ausgeben)": "M-funkce (zaškrtnuto = výstup)",
+ "M-Befehle": "M-funkce",
+ "Programmhalt": "Zastavení programu",
+ "Spindel ein, rechts": "Vřeteno zap., vpravo",
+ "Spindel ein, links": "Vřeteno zap., vlevo",
+ "Spindel aus": "Vřeteno vyp.",
+ "Kühlmittel Nebel / Luft": "Chlazení mlha / vzduch",
+ "C-Achse lösen": "Uvolnit osu C",
+ "Spindel rechts (angetriebenes Werkzeug)": "Vřeteno vpravo (poháněný nástroj)",
+ "Programmende mit Rücksprung": "Konec programu s návratem",
+ "C-Achse ein": "Osa C zap.",
+ "C-Achse aus": "Osa C vyp.",
+ "Maschinenkoordinaten": "Strojní souřadnice",
+ "Zyklusaufruf": "Volání cyklu",
+ "Rückzug in Werkzeugachse": "Odjezd v ose nástroje",
+ "C-Achse klemmen lösen": "Uvolnit upnutí osy C",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "M-funkce pro vřeteno jsou vypnuté – vřeteno je nutné zapnout na stroji.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "M-funkce pro konec programu je vypnutá."
+}

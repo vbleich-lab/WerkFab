@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Todos activados",
+ "Alle aus": "Todos desactivados",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Los códigos M desactivados no aparecen en el programa: active usted mismo el husillo, el refrigerante y el fin de programa en la máquina.",
+ "M-Befehle (Haken = ausgeben)": "Códigos M (marcado = salida)",
+ "M-Befehle": "Códigos M",
+ "Programmhalt": "Parada de programa",
+ "Spindel ein, rechts": "Husillo activado, horario",
+ "Spindel ein, links": "Husillo activado, antihorario",
+ "Spindel aus": "Husillo desactivado",
+ "Kühlmittel Nebel / Luft": "Refrigerante niebla / aire",
+ "C-Achse lösen": "Soltar eje C",
+ "Spindel rechts (angetriebenes Werkzeug)": "Husillo horario (herramienta motorizada)",
+ "Programmende mit Rücksprung": "Fin de programa con rebobinado",
+ "C-Achse ein": "Eje C activado",
+ "C-Achse aus": "Eje C desactivado",
+ "Maschinenkoordinaten": "Coordenadas de máquina",
+ "Zyklusaufruf": "Llamada de ciclo",
+ "Rückzug in Werkzeugachse": "Retirada en el eje de la herramienta",
+ "C-Achse klemmen lösen": "Soltar sujeción del eje C",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "Los códigos M del husillo están desactivados: el husillo debe arrancarse en la máquina.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "El código M de fin de programa está desactivado."
+}

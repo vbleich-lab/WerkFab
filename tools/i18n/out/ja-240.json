@@ -1,0 +1,23 @@
+{
+ "Alle ein": "すべてオン",
+ "Alle aus": "すべてオフ",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "オフにした M コードはプログラムに含まれません。主軸、クーラント、プログラム終了は機械側で操作してください。",
+ "M-Befehle (Haken = ausgeben)": "M コード（チェック = 出力）",
+ "M-Befehle": "M コード",
+ "Programmhalt": "プログラム停止",
+ "Spindel ein, rechts": "主軸正転",
+ "Spindel ein, links": "主軸逆転",
+ "Spindel aus": "主軸停止",
+ "Kühlmittel Nebel / Luft": "クーラント ミスト / エア",
+ "C-Achse lösen": "C 軸アンクランプ",
+ "Spindel rechts (angetriebenes Werkzeug)": "主軸正転（回転工具）",
+ "Programmende mit Rücksprung": "プログラム終了・巻き戻し",
+ "C-Achse ein": "C 軸オン",
+ "C-Achse aus": "C 軸オフ",
+ "Maschinenkoordinaten": "機械座標",
+ "Zyklusaufruf": "サイクル呼び出し",
+ "Rückzug in Werkzeugachse": "工具軸方向に退避",
+ "C-Achse klemmen lösen": "C 軸クランプ解除",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "主軸の M コードがオフです。主軸は機械側で起動してください。",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "プログラム終了の M コードがオフです。"
+}

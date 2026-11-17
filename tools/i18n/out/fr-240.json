@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Tout activer",
+ "Alle aus": "Tout désactiver",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Les codes M désactivés manquent dans le programme – commandez vous-même la broche, l’arrosage et la fin de programme sur la machine.",
+ "M-Befehle (Haken = ausgeben)": "Codes M (coché = sortie)",
+ "M-Befehle": "Codes M",
+ "Programmhalt": "Arrêt programme",
+ "Spindel ein, rechts": "Broche en marche, sens horaire",
+ "Spindel ein, links": "Broche en marche, sens antihoraire",
+ "Spindel aus": "Arrêt broche",
+ "Kühlmittel Nebel / Luft": "Arrosage brouillard / air",
+ "C-Achse lösen": "Desserrer l’axe C",
+ "Spindel rechts (angetriebenes Werkzeug)": "Broche sens horaire (outil motorisé)",
+ "Programmende mit Rücksprung": "Fin de programme avec retour",
+ "C-Achse ein": "Axe C actif",
+ "C-Achse aus": "Axe C inactif",
+ "Maschinenkoordinaten": "Coordonnées machine",
+ "Zyklusaufruf": "Appel de cycle",
+ "Rückzug in Werkzeugachse": "Dégagement dans l’axe de l’outil",
+ "C-Achse klemmen lösen": "Libérer le blocage de l’axe C",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "Les codes M de la broche sont désactivés – la broche doit être démarrée sur la machine.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "Le code M de fin de programme est désactivé."
+}

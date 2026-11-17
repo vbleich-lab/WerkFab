@@ -1,0 +1,23 @@
+{
+ "Alle ein": "تشغيل الكل",
+ "Alle aus": "إيقاف الكل",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "أوامر M المعطّلة غير موجودة في البرنامج – شغّل المغزل وسائل التبريد ونهاية البرنامج على الآلة بنفسك.",
+ "M-Befehle (Haken = ausgeben)": "أوامر M (محدد = إخراج)",
+ "M-Befehle": "أوامر M",
+ "Programmhalt": "إيقاف البرنامج",
+ "Spindel ein, rechts": "تشغيل المغزل، يمينًا",
+ "Spindel ein, links": "تشغيل المغزل، يسارًا",
+ "Spindel aus": "إيقاف المغزل",
+ "Kühlmittel Nebel / Luft": "تبريد رذاذ / هواء",
+ "C-Achse lösen": "فك المحور C",
+ "Spindel rechts (angetriebenes Werkzeug)": "المغزل يمينًا (أداة مدارة)",
+ "Programmende mit Rücksprung": "نهاية البرنامج مع الرجوع",
+ "C-Achse ein": "تشغيل المحور C",
+ "C-Achse aus": "إيقاف المحور C",
+ "Maschinenkoordinaten": "إحداثيات الآلة",
+ "Zyklusaufruf": "استدعاء الدورة",
+ "Rückzug in Werkzeugachse": "التراجع على محور الأداة",
+ "C-Achse klemmen lösen": "فك تثبيت المحور C",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "أوامر M للمغزل معطّلة – يجب تشغيل المغزل على الآلة.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "أمر M لنهاية البرنامج معطّل."
+}

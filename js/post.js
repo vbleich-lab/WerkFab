@@ -692,7 +692,7 @@ class Writer {
 export const COOLANT_MODES = { off: 'Aus', flood: 'Flutkühlung', mist: 'Minimalmenge (Nebel)', air: 'Luft außen', airThrough: 'Luft durch Spindel', through: 'Innenkühlung (durch Werkzeug)', floodAir: 'Flut + Luft außen' };
 export const POST_PROP_GROUPS = [
   ['prefs', 'Einstellungen'], ['coolant', 'Kühlmittel (M-Codes)'], ['retract', 'Sicherer Rückzug und Referenzposition'],
-  ['multiaxis', 'Mehrachsen (3+2 Schwenken)'], ['formats', 'Formate'], ['probing', 'Antasten und Messen'], ['builtin', 'Integriert'],
+  ['multiaxis', 'Mehrachsen (3+2 Schwenken)'], ['formats', 'Formate'], ['probing', 'Antasten und Messen'], ['builtin', 'Integriert'], ['mcodes', 'M-Befehle (Haken = ausgeben)'],
 ];
 const HH = ['heidenhain'], ISO_SMOOTH = ['heidenhain', 'fanuc', 'sinumerik'];
 export const POST_PROPS = [
@@ -700,6 +700,9 @@ export const POST_PROPS = [
   { key: 'optionalStop', group: 'prefs', label: 'Optionaler Halt', type: 'bool', def: false, help: 'M1 vor jedem Werkzeugwechsel' },
   { key: 'preloadTool', group: 'prefs', label: 'Werkzeug vorwählen', type: 'bool', def: false, help: 'Nächstes Werkzeug schon vorbereiten (TOOL DEF bzw. T-Wort)' },
   { key: 'drillPatterns', group: 'prefs', label: 'Bohrbilder als Zyklus', type: 'bool', def: true, only: ['heidenhain', 'sinumerik'], help: 'Bohrungen auf einem Lochkreis oder in einem Raster als Musterzyklus (Heidenhain 220/221, Sinumerik HOLES2/CYCLE801) statt einzelner Positionen' },
+  { key: 'm120', group: 'prefs', label: 'M120 beim Schlichten', type: 'bool', def: true, only: HH, help: 'Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf' },
+  { key: 'm120LA', group: 'prefs', label: 'M120 Sätze voraus (LA)', type: 'num', def: 5, only: HH, help: 'Anzahl der vorausberechneten Sätze (LA 1…99)' },
+  { key: 'm13', group: 'prefs', label: 'Spindel und Kühlmittel zusammen (M13/M14)', type: 'bool', def: false, only: HH, help: 'M3 + M8 als M13, M4 + M8 als M14 in einem Satz' },
   { key: 'apprDep', group: 'prefs', label: 'An-/Abfahren mit APPR/DEP', type: 'bool', def: true, only: HH, help: 'Konturen mit Radiuskorrektur an der Steuerung (RL/RR) fahren mit APPR/DEP an und ab; die Steuerung berechnet Hilfspunkt und Korrektur selbst' },
   { key: 'toolAsName', group: 'prefs', label: 'Werkzeug als Name', type: 'bool', def: false, only: HH, help: 'TOOL CALL "NAME" statt Werkzeugnummer' },
   { key: 'parametricFeed', group: 'prefs', label: 'Parametrischer Vorschub', type: 'bool', def: false, only: HH, help: 'Vorschübe als Q-Parameter (FQ1 …) – an der Maschine zentral anpassbar' },
@@ -708,7 +711,7 @@ export const POST_PROPS = [
   { key: 'coolMist', group: 'coolant', label: 'Minimalmenge (Nebel)', type: 'text', def: 'M7' },
   { key: 'coolAir', group: 'coolant', label: 'Luft außen', type: 'text', def: { heidenhain: 'M28', default: 'M7' } },
   { key: 'coolAirThrough', group: 'coolant', label: 'Luft durch Spindel', type: 'text', def: 'M26' },
-  { key: 'coolThrough', group: 'coolant', label: 'Innenkühlung', type: 'text', def: 'M88' },
+  { key: 'coolThrough', group: 'coolant', label: 'Innenkühlung', type: 'text', def: { heidenhain: 'M7', default: 'M88' } },
   { key: 'coolOff', group: 'coolant', label: 'Kühlmittel aus', type: 'text', def: 'M9' },
   { key: 'coolAirOff', group: 'coolant', label: 'Luft aus', type: 'text', def: 'M9', help: 'Falls die Maschine für Luft einen eigenen Aus-Befehl hat (z. B. M29)' },
   { key: 'safeRetract', group: 'retract', label: 'Sicherer Rückzug', type: { heidenhain: [['clearance', 'Sicherheitshöhe'], ['m91', 'M91 (Maschinenkoordinaten)']], default: [['clearance', 'Sicherheitshöhe'], ['g28', 'G28 (Referenzpunkt)'], ['g53', 'G53 (Maschinenkoordinaten)']] }, def: 'clearance' },
@@ -721,6 +724,7 @@ export const POST_PROPS = [
   { key: 'homeXY', group: 'retract', label: 'XY-Referenz am Ende', type: 'bool', def: false, help: 'Am Programmende in X/Y auf Maschinen-Null fahren (M91 / G28)' },
   { key: 'preferTilt', group: 'multiaxis', label: 'Schwenkrichtung bevorzugen', type: [['neg', 'Negativ'], ['pos', 'Positiv'], ['either', 'Beliebig']], def: 'neg', only: HH },
   { key: 'tcpm', group: 'multiaxis', label: 'FUNCTION TCPM verwenden', type: 'bool', def: false, only: HH, help: 'Werkzeugspitzen-Nachführung einschalten' },
+  { key: 'tcpmCode', group: 'multiaxis', label: 'Werkzeugspitzen-Nachführung als', type: [['function', 'FUNCTION TCPM … / FUNCTION RESET TCPM'], ['m128', 'M128 … / M129']], def: 'function', only: HH, help: 'M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)' },
   { key: 'tiltedPlane', group: 'multiaxis', label: 'Geschwenkte Bearbeitungsebene', type: [['spatial', 'PLANE SPATIAL'], ['cycle19', 'Zyklus 19'], ['off', 'Aus']], def: 'spatial', only: HH, help: 'Für Setups, die nicht von oben bearbeitet werden' },
   { key: 'showNotes', group: 'formats', label: 'Notizen ausgeben', type: 'bool', def: false, help: 'Notizen der Operationen als Kommentar' },
   { key: 'structureComments', group: 'formats', label: 'Strukturkommentare', type: 'bool', def: true, help: 'Operationsname als Kommentar vor jeder Operation' },
@@ -733,7 +737,51 @@ export const POST_PROPS = [
   { key: 'arcs', group: 'builtin', label: 'Kreisbögen ausgeben', type: 'bool', def: true },
   { key: 'planeArcs', group: 'builtin', label: 'Kreisbögen in XZ und YZ (G18/G19)', type: 'bool', def: true, only: ['fanuc', 'sinumerik', 'linuxcnc', 'grbl', 'gcode'], help: 'Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten' },
   { key: 'cycles', group: 'builtin', label: 'Bohrzyklen ausgeben', type: 'bool', def: true },
+  // M functions the user switched off: removed from every block of the program (list of numbers)
+  { key: 'mOff', group: 'mcodes', label: 'M-Befehle', type: 'mlist', def: [] },
 ];
+// meaning of the M functions the posts write (shown next to the switches)
+export const M_CODES = {
+  0: 'Programmhalt', 1: 'Optionaler Halt', 2: 'Programmende', 3: 'Spindel ein, rechts', 4: 'Spindel ein, links', 5: 'Spindel aus',
+  6: 'Werkzeugwechsel', 7: 'Kühlmittel Nebel / Luft', 8: 'Kühlmittel ein', 9: 'Kühlmittel aus', 12: 'Angetriebenes Werkzeug aus',
+  13: 'Spindel rechts (angetriebenes Werkzeug)', 26: 'Luft durch Spindel', 28: 'Luft außen', 29: 'Luft aus', 30: 'Programmende mit Rücksprung',
+  45: 'C-Achse ein', 46: 'C-Achse aus', 88: 'Innenkühlung', 91: 'Maschinenkoordinaten', 99: 'Zyklusaufruf', 109: 'C-Achse aus',
+  110: 'C-Achse ein', 14: 'Spindel links + Kühlmittel ein', 120: 'Radiuskorrektur vorausberechnen (LA)', 128: 'Werkzeugspitzen-Nachführung ein (TCPM)', 129: 'Werkzeugspitzen-Nachführung aus', 140: 'Rückzug in Werkzeugachse', 146: 'C-Achse klemmen lösen',
+};
+// Heidenhain: M13/M14 combine spindle and coolant
+const M_CODES_HH = { 13: 'Spindel rechts + Kühlmittel ein' };
+const COOL_KEYS = ['coolFlood', 'coolMist', 'coolAir', 'coolAirThrough', 'coolThrough', 'coolOff', 'coolAirOff'];
+// the coolant codes set in the post properties name their M function (e.g. M7 = Innenkühlung on one machine,
+// Minimalmenge on another); otherwise the usual meaning
+export const mCodeLabel = (n, def, values = {}) => {
+  const P = postProps(def, values);
+  const cool = [...new Set(COOL_KEYS.filter(k => +(String(P[k] || '').trim().match(/^M0*(\d+)$/) || [])[1] === n).map(k => POST_PROPS.find(p => p.key === k).label))];
+  if (cool.length) return cool.join(' / ');
+  return (postFamily(def) === 'heidenhain' && M_CODES_HH[n]) || M_CODES[n] || '';
+};
+// every M function a post can write: the ones in its templates, the coolant codes of its properties and the
+// ones the post writes itself (stops, spindle for left-hand tapping, Heidenhain M91/M140/M99)
+export function postMCodes(def, values = {}) {
+  const fam = postFamily(def), P = postProps(def, values), out = new Set([0, 1, 3, 4, 5]);
+  const scan = v => { if (typeof v === 'string') for (const m of v.matchAll(/(?<![A-Za-z0-9])M0*(\d{1,3})(?![0-9])/g)) out.add(+m[1]); else if (v && typeof v === 'object') Object.values(v).forEach(scan); };
+  for (const [k, v] of Object.entries(def)) if (!['id', 'name', 'ext', 'comment'].includes(k)) scan(v);
+  for (const k of ['coolFlood', 'coolMist', 'coolAir', 'coolAirThrough', 'coolThrough', 'coolOff', 'coolAirOff']) scan(P[k]);
+  if (fam === 'heidenhain') [13, 14, 91, 99, 120, 128, 129, 140].forEach(n => out.add(n));
+  return [...out].sort((a, b) => a - b);
+}
+// remove the switched-off M functions from the blocks (comments stay); a block left empty is dropped
+function stripMCodes(out, off) {
+  const re = /(^|\s)M0*(\d{1,3})(?![0-9])(\s+MB\s+MAX|\s+\$\d+|\s+LA\d+)?/g;
+  return out.filter(l => {
+    if (l.blank || l.comment || typeof l.text !== 'string') return true;
+    const cut = l.text.search(/[(;]/), head = cut >= 0 ? l.text.slice(0, cut) : l.text, tail = cut >= 0 ? l.text.slice(cut) : '';
+    const h2 = head.replace(re, (all, pre, n) => (off.has(+n) ? pre : all)).replace(/\s{2,}/g, ' ').replace(/\s+$/, tail ? ' ' : '');
+    if (h2 === head) return true;
+    if (!h2.trim() && !tail) return false;
+    l.text = (h2.trim() ? h2 : '') + tail;
+    return true;
+  });
+}
 export const postFamily = def => def.family || (def.lathe ? 'lathe' : ['heidenhain', 'fanuc', 'sinumerik', 'linuxcnc', 'grbl'].find(f => String(def.id).startsWith(f)) || 'gcode');
 export const propApplies = (prop, def) => !prop.only || prop.only.includes(postFamily(def));
 const pick = (v, fam) => (v && typeof v === 'object' && !Array.isArray(v) ? (v[fam] ?? v.default) : v);
@@ -888,7 +936,7 @@ export function runPost(def, project, gen, opts = {}) {
       W.expand(W.tag(tpl, 'toolListLine'), { ...base, t: String(t.number), toolname: t.name, tooldia: String(+(+t.dia).toFixed(3)), zmin: ok ? W.num(z - o.z) : '' });
     }
   }
-  if (hh && P.tcpm && !lathe) W.expand('FUNCTION TCPM F TCP AXIS POS PATHCTRL AXIS');
+  if (hh && P.tcpm && !lathe) W.expand(P.tcpmCode === 'm128' ? 'M128' : 'FUNCTION TCPM F TCP AXIS POS PATHCTRL AXIS');
 
   let planeOn = false, kinWarned = false;
   // rotary axes of the machine (cycle 19 computes their angles into Q120…Q122 but does not move them)
@@ -1373,6 +1421,19 @@ export function runPost(def, project, gen, opts = {}) {
       if (yOn) { W.expand(W.tag(def.yOff, 'yOff'), tv); W.resetModal(); }
       if (cylOn) { W.expand(W.tag(def.cylOff, 'cylOff'), { ...tv, cylr: r.cyl }); W.resetModal(); }
     }
+    // Heidenhain M120: look ahead over the radius-compensated contour of finishing operations – in every block
+    // that switches RL/RR on (R0 cancels it, so each new compensated pass gets it again)
+    if (hh && P.m120 && !lathe && !ROUGH_OPS.includes(op.type)) {
+      const la = Math.max(1, Math.min(99, Math.round(+P.m120LA) || 5));
+      let on = false;
+      for (let k = mark; k < W.out.length; k++) {
+        const l = W.out[k];
+        if (l.blank || l.comment) continue;
+        const rc = /\sR[LR](\s|$)/.test(l.text), r0 = /\sR0(\s|$)/.test(l.text) || /^DEP\b/.test(l.text);
+        if (rc && !on && !/\bM120\b/.test(l.text)) l.text += ` M120 LA${la}`;
+        if (rc) on = true; else if (r0) on = false;
+      }
+    }
     W.qfeed = null;
     if (subs) {
       const body = W.out.splice(mark);
@@ -1393,7 +1454,7 @@ export function runPost(def, project, gen, opts = {}) {
   W.expand(footer, { ...base, coolanton: '', coolantoff: '' });
   if (hh && P.tcpm && !lathe) {
     const end = W.out.findIndex(l => /^M30\b|^M2\b/.test(l.text));
-    if (end >= 0) W.out.splice(end, 0, { text: 'FUNCTION RESET TCPM' });
+    if (end >= 0) W.out.splice(end, 0, { text: P.tcpmCode === 'm128' ? 'M129' : 'FUNCTION RESET TCPM' });
   }
   if (P.homeXY && !lathe && !okuma) {
     const end = W.out.findIndex(l => /^M30\b|^M2\b/.test(l.text));
@@ -1415,6 +1476,24 @@ export function runPost(def, project, gen, opts = {}) {
     const ext = { x: stock.maxX - stock.minX, y: stock.maxY - stock.minY, z: safe - stock.bottom };
     for (const k of ['x', 'y', 'z']) if (tr[k] && ext[k] > tr[k]) warnings.push(`${k.toUpperCase()}-Verfahrweg ${tr[k]} mm reicht nicht (benötigt ${ext[k].toFixed(1)} mm)`);
   }
+  if (hh && P.m13 && !lathe) {
+    const flood = String(P.coolFlood || 'M8').trim();
+    for (let i = 0; i < W.out.length; i++) {
+      const l = W.out[i];
+      if (l.blank || l.comment || !/\sM[34]$|^M[34]$/.test(l.text)) continue;
+      // the coolant block within the next/previous few blocks (before any move at feed)
+      for (const d of [1, 2, 3, -1, -2, -3]) {
+        const c = W.out[i + d];
+        if (!c || c.blank || c.comment) continue;
+        if (c.text.trim() === flood) { l.text = l.text.replace(/M([34])$/, (_, n) => (n === '3' ? 'M13' : 'M14')); W.out.splice(i + d, 1); if (d < 0) i--; break; }
+        if (/\sF\d|\sFQ/.test(c.text) && !/FMAX/.test(c.text)) break;
+      }
+    }
+  }
+  const mOff = new Set((Array.isArray(P.mOff) ? P.mOff : []).map(Number));
+  if (mOff.size) W.out = stripMCodes(W.out, mOff);
+  if ([3, 4, 13].some(n => mOff.has(n))) warnings.push('M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.');
+  if ([2, 30].some(n => mOff.has(n))) warnings.push('M-Befehl für das Programmende ist ausgeschaltet.');
   const code = W.text();
   // src[i]: section key of the template that wrote line i (null: post properties / automatic lines)
   // opOf[i]: name of the operation that wrote line i (null: program start and end)

@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 სუფთა დამუშავებისას",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "რადიუსით კორექტირებული კონტურის წინასწარ გამოთვლა (M120 LA…) ბლოკში, სადაც იწყება რადიუსის კორექცია RL/RR – მხოლოდ სუფთა დამუშავების ოპერაციებში; R0 აუქმებს M120-ს",
+ "M120 Sätze voraus (LA)": "M120 წინასწარი ბლოკები (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "შპინდელი და გამაგრილებელი ერთად (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 როგორც M13, M4 + M8 როგორც M14 ერთ ბლოკში",
+ "Werkzeugspitzen-Nachführung als": "ხელსაწყოს წვერის თვალყურის დევნება როგორც",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 ძველი მართვის სისტემებისთვის (TNC 426/430, iTNC 530 FUNCTION TCPM-ის გარეშე)",
+ "Angetriebenes Werkzeug aus": "ამძრავიანი ხელსაწყო გამორთული",
+ "Spindel links + Kühlmittel ein": "შპინდელი მარცხნივ + გამაგრილებელი ჩართული",
+ "Radiuskorrektur vorausberechnen (LA)": "რადიუსის კორექციის წინასწარი გამოთვლა (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "ხელსაწყოს წვერის თვალყურის დევნება ჩართული (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "ხელსაწყოს წვერის თვალყურის დევნება გამორთული",
+ "Spindel rechts + Kühlmittel ein": "შპინდელი მარჯვნივ + გამაგრილებელი ჩართული",
+ "Funktion des Maschinenherstellers": "მანქანის მწარმოებლის ფუნქცია",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

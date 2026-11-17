@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Alles aan",
+ "Alle aus": "Alles uit",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Uitgeschakelde M-codes ontbreken in het programma – schakel spil, koelmiddel en programma-einde zelf op de machine.",
+ "M-Befehle (Haken = ausgeben)": "M-codes (aangevinkt = uitvoer)",
+ "M-Befehle": "M-codes",
+ "Programmhalt": "Programmastop",
+ "Spindel ein, rechts": "Spil aan, rechtsom",
+ "Spindel ein, links": "Spil aan, linksom",
+ "Spindel aus": "Spil uit",
+ "Kühlmittel Nebel / Luft": "Koeling nevel / lucht",
+ "C-Achse lösen": "C-as losmaken",
+ "Spindel rechts (angetriebenes Werkzeug)": "Spil rechtsom (aangedreven gereedschap)",
+ "Programmende mit Rücksprung": "Programma-einde met terugspoelen",
+ "C-Achse ein": "C-as aan",
+ "C-Achse aus": "C-as uit",
+ "Maschinenkoordinaten": "Machinecoördinaten",
+ "Zyklusaufruf": "Cyclusaanroep",
+ "Rückzug in Werkzeugachse": "Terugtrekken langs gereedschapsas",
+ "C-Achse klemmen lösen": "Klemming C-as losmaken",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "De M-codes voor de spil zijn uitgeschakeld – de spil moet op de machine worden gestart.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "De M-code voor het programma-einde is uitgeschakeld."
+}

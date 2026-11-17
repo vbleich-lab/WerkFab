@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Усі ввімк.",
+ "Alle aus": "Усі вимк.",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Вимкнені M-команди відсутні в програмі – шпиндель, МОР і кінець програми вмикайте на верстаті самі.",
+ "M-Befehle (Haken = ausgeben)": "M-команди (позначено = вивід)",
+ "M-Befehle": "M-команди",
+ "Programmhalt": "Зупинка програми",
+ "Spindel ein, rechts": "Шпиндель увімк., за годинниковою",
+ "Spindel ein, links": "Шпиндель увімк., проти годинникової",
+ "Spindel aus": "Шпиндель вимк.",
+ "Kühlmittel Nebel / Luft": "МОР туман / повітря",
+ "C-Achse lösen": "Розтиснути вісь C",
+ "Spindel rechts (angetriebenes Werkzeug)": "Шпиндель за годинниковою (приводний інструмент)",
+ "Programmende mit Rücksprung": "Кінець програми з поверненням",
+ "C-Achse ein": "Вісь C увімк.",
+ "C-Achse aus": "Вісь C вимк.",
+ "Maschinenkoordinaten": "Координати верстата",
+ "Zyklusaufruf": "Виклик циклу",
+ "Rückzug in Werkzeugachse": "Відведення по осі інструмента",
+ "C-Achse klemmen lösen": "Зняти затиск осі C",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "M-команди шпинделя вимкнено – шпиндель потрібно ввімкнути на верстаті.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "M-команду кінця програми вимкнено."
+}

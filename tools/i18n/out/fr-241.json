@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 en finition",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "Précalculer le contour avec correction de rayon (M120 LA…) dans la séquence où commence la correction de rayon RL/RR – opérations de finition uniquement ; R0 annule M120",
+ "M120 Sätze voraus (LA)": "M120 séquences d’anticipation (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "Broche et arrosage ensemble (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 en M13, M4 + M8 en M14 dans une seule séquence",
+ "Werkzeugspitzen-Nachführung als": "Guidage de la pointe d’outil par",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 pour les commandes plus anciennes (TNC 426/430, iTNC 530 sans FUNCTION TCPM)",
+ "Angetriebenes Werkzeug aus": "Outil motorisé arrêté",
+ "Spindel links + Kühlmittel ein": "Broche sens antihoraire + arrosage marche",
+ "Radiuskorrektur vorausberechnen (LA)": "Précalcul de la correction de rayon (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "Guidage de la pointe d’outil actif (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "Guidage de la pointe d’outil inactif",
+ "Spindel rechts + Kühlmittel ein": "Broche sens horaire + arrosage marche",
+ "Funktion des Maschinenherstellers": "Fonction du constructeur de la machine",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

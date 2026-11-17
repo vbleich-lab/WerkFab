@@ -1,0 +1,23 @@
+{
+ "Alle ein": "הכול פועל",
+ "Alle aus": "הכול כבוי",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "פקודות M שכובו חסרות בתוכנית – הפעל את הציר, נוזל הקירור וסיום התוכנית בעצמך במכונה.",
+ "M-Befehle (Haken = ausgeben)": "פקודות M (מסומן = פלט)",
+ "M-Befehle": "פקודות M",
+ "Programmhalt": "עצירת תוכנית",
+ "Spindel ein, rechts": "ציר פועל, ימינה",
+ "Spindel ein, links": "ציר פועל, שמאלה",
+ "Spindel aus": "ציר כבוי",
+ "Kühlmittel Nebel / Luft": "קירור ערפל / אוויר",
+ "C-Achse lösen": "שחרור ציר C",
+ "Spindel rechts (angetriebenes Werkzeug)": "ציר ימינה (כלי מונע)",
+ "Programmende mit Rücksprung": "סיום תוכנית עם חזרה",
+ "C-Achse ein": "ציר C פועל",
+ "C-Achse aus": "ציר C כבוי",
+ "Maschinenkoordinaten": "קואורדינטות מכונה",
+ "Zyklusaufruf": "קריאה למחזור",
+ "Rückzug in Werkzeugachse": "נסיגה בציר הכלי",
+ "C-Achse klemmen lösen": "שחרור נעילת ציר C",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "פקודות M של הציר כבויות – יש להפעיל את הציר במכונה.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "פקודת M לסיום התוכנית כבויה."
+}

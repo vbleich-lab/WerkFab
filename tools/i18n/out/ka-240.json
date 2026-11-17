@@ -1,0 +1,23 @@
+{
+ "Alle ein": "ყველა ჩართული",
+ "Alle aus": "ყველა გამორთული",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "გამორთული M-ბრძანებები პროგრამაში არ არის – შპინდელი, გამაგრილებელი და პროგრამის დასასრული თავად ჩართეთ მანქანაზე.",
+ "M-Befehle (Haken = ausgeben)": "M-ბრძანებები (მონიშნული = გამოტანა)",
+ "M-Befehle": "M-ბრძანებები",
+ "Programmhalt": "პროგრამის შეჩერება",
+ "Spindel ein, rechts": "შპინდელი ჩართული, მარჯვნივ",
+ "Spindel ein, links": "შპინდელი ჩართული, მარცხნივ",
+ "Spindel aus": "შპინდელი გამორთული",
+ "Kühlmittel Nebel / Luft": "გაგრილება ნისლი / ჰაერი",
+ "C-Achse lösen": "C-ღერძის გათავისუფლება",
+ "Spindel rechts (angetriebenes Werkzeug)": "შპინდელი მარჯვნივ (ამძრავიანი ხელსაწყო)",
+ "Programmende mit Rücksprung": "პროგრამის დასასრული დაბრუნებით",
+ "C-Achse ein": "C-ღერძი ჩართული",
+ "C-Achse aus": "C-ღერძი გამორთული",
+ "Maschinenkoordinaten": "მანქანის კოორდინატები",
+ "Zyklusaufruf": "ციკლის გამოძახება",
+ "Rückzug in Werkzeugachse": "უკან გაყვანა ხელსაწყოს ღერძზე",
+ "C-Achse klemmen lösen": "C-ღერძის დამაგრების მოხსნა",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "შპინდელის M-ბრძანებები გამორთულია – შპინდელი მანქანაზე უნდა ჩაირთოს.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "პროგრამის დასასრულის M-ბრძანება გამორთულია."
+}

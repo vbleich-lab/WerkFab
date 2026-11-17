@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Ativar todos",
+ "Alle aus": "Desativar todos",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Os códigos M desativados não aparecem no programa – acione você mesmo o fuso, o refrigerante e o fim de programa na máquina.",
+ "M-Befehle (Haken = ausgeben)": "Códigos M (marcado = saída)",
+ "M-Befehle": "Códigos M",
+ "Programmhalt": "Parada de programa",
+ "Spindel ein, rechts": "Fuso ligado, horário",
+ "Spindel ein, links": "Fuso ligado, anti-horário",
+ "Spindel aus": "Fuso desligado",
+ "Kühlmittel Nebel / Luft": "Refrigeração névoa / ar",
+ "C-Achse lösen": "Soltar eixo C",
+ "Spindel rechts (angetriebenes Werkzeug)": "Fuso horário (ferramenta acionada)",
+ "Programmende mit Rücksprung": "Fim de programa com retorno",
+ "C-Achse ein": "Eixo C ligado",
+ "C-Achse aus": "Eixo C desligado",
+ "Maschinenkoordinaten": "Coordenadas de máquina",
+ "Zyklusaufruf": "Chamada de ciclo",
+ "Rückzug in Werkzeugachse": "Recuo no eixo da ferramenta",
+ "C-Achse klemmen lösen": "Soltar fixação do eixo C",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "Os códigos M do fuso estão desativados – o fuso deve ser ligado na máquina.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "O código M de fim de programa está desativado."
+}

@@ -39,3 +39,21 @@ for (const [id, dialect] of Object.entries(POSTS)) {
     });
   }
 }
+
+// M functions switched off in the post properties: left out of every block, comments untouched
+{
+  const fan = post.findPost(p, 'fanuc'), codes = post.postMCodes(fan, {});
+  ok('M-Befehle: Liste enthält M3, M5, M6, M8, M9, M30', [3, 5, 6, 8, 9, 30].every(n => codes.includes(n)), codes.map(n => 'M' + n).join(' '));
+  const g = gens[0];
+  const full = post.postProcess(p, g, null, { postId: 'fanuc', coolant: true, props: { optionalStop: true } }).code;
+  const res = post.postProcess(p, g, null, { postId: 'fanuc', coolant: true, props: { optionalStop: true, mOff: [1, 8, 9] } }).code;
+  const blocks = c => c.split('\n').filter(l => !/^\s*\(/.test(l));
+  ok('M-Befehle: vorher M1, M8 und M9 im Programm', blocks(full).some(l => /(^|\s)M0?8\b/.test(l)) && blocks(full).some(l => /(^|\s)M0?1\b/.test(l)));
+  ok('M-Befehle: ausgeschaltete M1, M8, M9 fehlen', !blocks(res).some(l => /(^|\s)M0?[189](?![0-9])/.test(l)));
+  { const miss = ['M3', 'M5', 'M6', 'M30'].filter(m => !new RegExp('(^|\\s)' + m + '(?![0-9])', 'm').test(res)); ok('M-Befehle: übrige bleiben (M3, M5, M6, M30)', !miss.length, miss.join(' ')); }
+  ok('M-Befehle: keine leeren Sätze', !res.split('\n').some(l => /^N?\d*\s*$/.test(l) && l !== '' ) );
+  const issues = lintIso(res, { dialect: 'fanuc' });
+  ok('M-Befehle: G-Code fehlerfrei', issues.length === 0, issues.length ? lintSummary(issues).slice(0, 4).map(s => `${s.n}× ${s.msg} [${s.first}]`).join(' ‖ ') : '');
+  const s2 = post.postProcess(p, g, null, { postId: 'fanuc', props: { mOff: [3, 5] } }).code;
+  ok('M-Befehle: S-Wort bleibt ohne M3', /\bS\d+/.test(s2) && !/(^|\s)M0?3(?![0-9])/.test(s2.split('\n').filter(l => !l.startsWith('(')).join('\n')));
+}

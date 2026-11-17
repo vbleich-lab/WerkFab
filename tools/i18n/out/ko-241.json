@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "정삭 시 M120",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "반경 보정 RL/RR이 시작되는 블록에서 반경 보정 윤곽을 미리 계산 (M120 LA…) – 정삭 작업에서만; R0이 M120을 해제합니다",
+ "M120 Sätze voraus (LA)": "M120 선행 블록 수 (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "주축과 절삭유 동시 (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8을 M13으로, M4 + M8을 M14로 한 블록에",
+ "Werkzeugspitzen-Nachführung als": "공구 끝점 제어 방식",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128은 구형 컨트롤러용 (TNC 426/430, FUNCTION TCPM이 없는 iTNC 530)",
+ "Angetriebenes Werkzeug aus": "구동 공구 끄기",
+ "Spindel links + Kühlmittel ein": "주축 역회전 + 절삭유 켜기",
+ "Radiuskorrektur vorausberechnen (LA)": "반경 보정 미리 계산 (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "공구 끝점 제어 켜기 (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "공구 끝점 제어 끄기",
+ "Spindel rechts + Kühlmittel ein": "주축 정회전 + 절삭유 켜기",
+ "Funktion des Maschinenherstellers": "기계 제조사 기능",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 no acabado",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "Precalcular o contorno con compensación de raio (M120 LA…) no bloque no que comeza a compensación de raio RL/RR; só en operacións de acabado; R0 anula M120",
+ "M120 Sätze voraus (LA)": "Bloques de M120 por adiantado (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "Fuso e refrixerante xuntos (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 como M13, M4 + M8 como M14 nun bloque",
+ "Werkzeugspitzen-Nachführung als": "Seguimento da punta da ferramenta como",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 para controis máis antigos (TNC 426/430, iTNC 530 sen FUNCTION TCPM)",
+ "Angetriebenes Werkzeug aus": "Ferramenta motorizada desactivada",
+ "Spindel links + Kühlmittel ein": "Fuso antihorario + refrixerante activado",
+ "Radiuskorrektur vorausberechnen (LA)": "Precalcular a compensación de raio (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "Seguimento da punta activado (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "Seguimento da punta desactivado",
+ "Spindel rechts + Kühlmittel ein": "Fuso horario + refrixerante activado",
+ "Funktion des Maschinenherstellers": "Función do fabricante da máquina",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

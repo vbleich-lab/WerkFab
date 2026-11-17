@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Alle på",
+ "Alle aus": "Alle av",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Avslåtte M-koder mangler i programmet – slå spindel, kjølevæske og programslutt på selv på maskinen.",
+ "M-Befehle (Haken = ausgeben)": "M-koder (avkrysset = utdata)",
+ "M-Befehle": "M-koder",
+ "Programmhalt": "Programstopp",
+ "Spindel ein, rechts": "Spindel på, høyre",
+ "Spindel ein, links": "Spindel på, venstre",
+ "Spindel aus": "Spindel av",
+ "Kühlmittel Nebel / Luft": "Kjølevæske tåke / luft",
+ "C-Achse lösen": "Løsne C-akse",
+ "Spindel rechts (angetriebenes Werkzeug)": "Spindel høyre (drevet verktøy)",
+ "Programmende mit Rücksprung": "Programslutt med tilbakespoling",
+ "C-Achse ein": "C-akse på",
+ "C-Achse aus": "C-akse av",
+ "Maschinenkoordinaten": "Maskinkoordinater",
+ "Zyklusaufruf": "Syklusanrop",
+ "Rückzug in Werkzeugachse": "Tilbaketrekk i verktøyaksen",
+ "C-Achse klemmen lösen": "Løsne C-aksens fastspenning",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "M-kodene for spindelen er slått av – spindelen må startes på maskinen.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "M-koden for programslutt er slått av."
+}

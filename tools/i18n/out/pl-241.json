@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 przy wykańczaniu",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "Obliczanie z wyprzedzeniem konturu z korekcją promienia (M120 LA…) w bloku, w którym zaczyna się korekcja promienia RL/RR – tylko w operacjach wykańczających; R0 kasuje M120",
+ "M120 Sätze voraus (LA)": "M120 bloków z wyprzedzeniem (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "Wrzeciono i chłodziwo razem (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 jako M13, M4 + M8 jako M14 w jednym bloku",
+ "Werkzeugspitzen-Nachführung als": "Prowadzenie wierzchołka narzędzia jako",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 dla starszych sterowań (TNC 426/430, iTNC 530 bez FUNCTION TCPM)",
+ "Angetriebenes Werkzeug aus": "Narzędzie napędzane wył.",
+ "Spindel links + Kühlmittel ein": "Wrzeciono w lewo + chłodziwo wł.",
+ "Radiuskorrektur vorausberechnen (LA)": "Obliczanie korekcji promienia z wyprzedzeniem (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "Prowadzenie wierzchołka narzędzia wł. (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "Prowadzenie wierzchołka narzędzia wył.",
+ "Spindel rechts + Kühlmittel ein": "Wrzeciono w prawo + chłodziwo wł.",
+ "Funktion des Maschinenherstellers": "Funkcja producenta maszyny",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

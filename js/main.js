@@ -16,7 +16,7 @@ import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sket
 import { Sketcher } from './sketcher.js';
 import { buildHeightmap, cornerOf } from './heightmap.js';
 import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel, orientationLabel, OP_TYPES, DRILL_CYCLES, ORIGINS, TOOL_TYPES, ORIENTATIONS, RAPID_FEED, setupMatrix, sketchHorizontalIn, OPS_3D, PROBE_MODES, MANUAL_KINDS, PATTERN_KINDS, orderByTool, opCells, toolBase, STOCK_MODES, STOCK_MATERIALS, BOUNDARY_MODES, setupBodies, heightSpec, HEIGHT_KEYS, HEIGHT_FROM, applyCutData } from './cam.js';
-import { postProcess, runPost, allPosts, findPost, copyPost, setPostLibrary, SECTIONS, VARIABLES, POST_PROPS, POST_PROP_GROUPS, postProps, propApplies, propType, COOLANT_MODES } from './post.js';
+import { postProcess, runPost, allPosts, findPost, copyPost, setPostLibrary, SECTIONS, VARIABLES, POST_PROPS, POST_PROP_GROUPS, postProps, propApplies, propType, COOLANT_MODES, mCodeLabel, postMCodes } from './post.js';
 import { allMachines, findMachine, copyMachine, newMachine, machineChecks, KIN_TYPES, kinAngles } from './machines.js';
 import { StockSim, defaultFluteLen, defaultHolderDia, defaultStickout } from './sim.js';
 import { exampleProject, exampleTurning, exampleMilling, exampleDesign } from './example.js';
@@ -15650,6 +15650,18 @@ function openPostDialog(saved = null) {
       if (!open) continue;
       for (const pr of props) {
         const ty = propType(pr, dd), v = vals[pr.key];
+        if (ty === 'mlist') {
+          // one switch per M function the post can write; switched off = left out of every block
+          const off = new Set((Array.isArray(v) ? v : []).map(Number)), codes = postMCodes(dd, propVals());
+          const setOff = () => { propVals()[pr.key] = [...off].sort((a, b) => a - b); drawRight(); };
+          right.append(h('div', { class: 'pd-mcodes' }, ...codes.map(n => h('label', { class: 'pd-mcode' + (off.has(n) ? ' off' : ''), title: mCodeLabel(n, dd, propVals()) },
+            CB(!off.has(n), on => { on ? off.delete(n) : off.add(n); setOff(); }), h('b', null, 'M' + n), h('span', null, mCodeLabel(n, dd, propVals()))))),
+          h('div', { class: 'pd-inline pd-mbtns' },
+            h('button', { onclick: () => { off.clear(); setOff(); } }, 'Alle ein'),
+            h('button', { onclick: () => { codes.forEach(n => off.add(n)); setOff(); } }, 'Alle aus')),
+          ...(off.size ? [h('p', { class: 'hint', style: 'margin:4px 4px 8px 22px' }, 'Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.')] : []));
+          continue;
+        }
         const set = x => { propVals()[pr.key] = x; };
         const changed = propVals()[pr.key] != null && propVals()[pr.key] !== postProps(dd, {})[pr.key];
         const ctl = ty === 'bool' ? CB(v, set) : ty === 'num' ? (() => { const i = h('input', { type: 'number', value: v, step: 'any' }); i.onchange = () => set(+i.value); return i; })()

@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Все вкл.",
+ "Alle aus": "Все выкл.",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Отключённые M-команды отсутствуют в программе – шпиндель, СОЖ и конец программы включайте на станке сами.",
+ "M-Befehle (Haken = ausgeben)": "M-команды (отмечено = вывод)",
+ "M-Befehle": "M-команды",
+ "Programmhalt": "Останов программы",
+ "Spindel ein, rechts": "Шпиндель вкл., по часовой",
+ "Spindel ein, links": "Шпиндель вкл., против часовой",
+ "Spindel aus": "Шпиндель выкл.",
+ "Kühlmittel Nebel / Luft": "СОЖ туман / воздух",
+ "C-Achse lösen": "Разжать ось C",
+ "Spindel rechts (angetriebenes Werkzeug)": "Шпиндель по часовой (приводной инструмент)",
+ "Programmende mit Rücksprung": "Конец программы с возвратом",
+ "C-Achse ein": "Ось C вкл.",
+ "C-Achse aus": "Ось C выкл.",
+ "Maschinenkoordinaten": "Координаты станка",
+ "Zyklusaufruf": "Вызов цикла",
+ "Rückzug in Werkzeugachse": "Отвод по оси инструмента",
+ "C-Achse klemmen lösen": "Снять зажим оси C",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "M-команды шпинделя отключены – шпиндель нужно включить на станке.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "M-команда конца программы отключена."
+}

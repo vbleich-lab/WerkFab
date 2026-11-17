@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 apdarē",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "Iepriekš aprēķināt kontūru ar rādiusa korekciju (M120 LA…) blokā, kurā sākas rādiusa korekcija RL/RR – tikai apdares operācijās; R0 atceļ M120",
+ "M120 Sätze voraus (LA)": "M120 bloki uz priekšu (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "Vārpsta un dzesēšana kopā (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 kā M13, M4 + M8 kā M14 vienā blokā",
+ "Werkzeugspitzen-Nachführung als": "Instrumenta gala vadība kā",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 vecākām vadības sistēmām (TNC 426/430, iTNC 530 bez FUNCTION TCPM)",
+ "Angetriebenes Werkzeug aus": "Piedziņas instruments izslēgts",
+ "Spindel links + Kühlmittel ein": "Vārpsta pa kreisi + dzesēšana ieslēgta",
+ "Radiuskorrektur vorausberechnen (LA)": "Iepriekš aprēķināt rādiusa korekciju (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "Instrumenta gala vadība ieslēgta (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "Instrumenta gala vadība izslēgta",
+ "Spindel rechts + Kühlmittel ein": "Vārpsta pa labi + dzesēšana ieslēgta",
+ "Funktion des Maschinenherstellers": "Mašīnas ražotāja funkcija",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 при чистовой обработке",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "Предварительный расчёт контура с коррекцией радиуса (M120 LA…) в кадре, где начинается коррекция радиуса RL/RR, – только в чистовых операциях; R0 отменяет M120",
+ "M120 Sätze voraus (LA)": "M120: кадров вперёд (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "Шпиндель и СОЖ вместе (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 как M13, M4 + M8 как M14 в одном кадре",
+ "Werkzeugspitzen-Nachführung als": "Слежение за вершиной инструмента как",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 для старых систем ЧПУ (TNC 426/430, iTNC 530 без FUNCTION TCPM)",
+ "Angetriebenes Werkzeug aus": "Приводной инструмент выкл.",
+ "Spindel links + Kühlmittel ein": "Шпиндель против часовой + СОЖ вкл.",
+ "Radiuskorrektur vorausberechnen (LA)": "Предварительный расчёт коррекции радиуса (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "Слежение за вершиной инструмента вкл. (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "Слежение за вершиной инструмента выкл.",
+ "Spindel rechts + Kühlmittel ein": "Шпиндель по часовой + СОЖ вкл.",
+ "Funktion des Maschinenherstellers": "Функция производителя станка",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 ved slette",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "Forudberegn den radiuskorrigerede kontur (M120 LA…) i den blok, hvor radiuskorrektion RL/RR begynder – kun ved sletteoperationer; R0 ophæver M120",
+ "M120 Sätze voraus (LA)": "M120 blokke frem (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "Spindel og kølemiddel samtidig (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 som M13, M4 + M8 som M14 i én blok",
+ "Werkzeugspitzen-Nachführung als": "Værktøjsspidsføring som",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 til ældre styringer (TNC 426/430, iTNC 530 uden FUNCTION TCPM)",
+ "Angetriebenes Werkzeug aus": "Drevet værktøj fra",
+ "Spindel links + Kühlmittel ein": "Spindel venstre + kølemiddel til",
+ "Radiuskorrektur vorausberechnen (LA)": "Forudberegn radiuskorrektion (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "Værktøjsspidsføring til (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "Værktøjsspidsføring fra",
+ "Spindel rechts + Kühlmittel ein": "Spindel højre + kølemiddel til",
+ "Funktion des Maschinenherstellers": "Maskinproducentens funktion",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

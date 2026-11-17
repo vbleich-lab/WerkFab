@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 בגימור",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "חישוב מראש של קונטור עם תיקון רדיוס (M120 LA…) בבלוק שבו מתחיל תיקון הרדיוס RL/RR – רק בפעולות גימור; R0 מבטל את M120",
+ "M120 Sätze voraus (LA)": "מספר בלוקים מראש ל-M120 (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "ציר ונוזל קירור יחד (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 כ-M13, M4 + M8 כ-M14 בבלוק אחד",
+ "Werkzeugspitzen-Nachführung als": "מעקב קצה הכלי בתור",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 לבקרים ישנים (TNC 426/430, iTNC 530 ללא FUNCTION TCPM)",
+ "Angetriebenes Werkzeug aus": "כלי מונע כבוי",
+ "Spindel links + Kühlmittel ein": "ציר שמאלה + נוזל קירור פועל",
+ "Radiuskorrektur vorausberechnen (LA)": "חישוב מראש של תיקון רדיוס (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "מעקב קצה הכלי פועל (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "מעקב קצה הכלי כבוי",
+ "Spindel rechts + Kühlmittel ein": "ציר ימינה + נוזל קירור פועל",
+ "Funktion des Maschinenherstellers": "פונקציה של יצרן המכונה",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Semua hidup",
+ "Alle aus": "Semua mati",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Kod M yang dimatikan tiada dalam program – hidupkan spindel, penyejuk dan akhir program sendiri pada mesin.",
+ "M-Befehle (Haken = ausgeben)": "Kod M (ditanda = output)",
+ "M-Befehle": "Kod M",
+ "Programmhalt": "Henti program",
+ "Spindel ein, rechts": "Spindel hidup, ikut jam",
+ "Spindel ein, links": "Spindel hidup, lawan jam",
+ "Spindel aus": "Spindel mati",
+ "Kühlmittel Nebel / Luft": "Penyejuk kabus / udara",
+ "C-Achse lösen": "Lepaskan paksi C",
+ "Spindel rechts (angetriebenes Werkzeug)": "Spindel ikut jam (alat berkuasa)",
+ "Programmende mit Rücksprung": "Akhir program dengan ulang semula",
+ "C-Achse ein": "Paksi C hidup",
+ "C-Achse aus": "Paksi C mati",
+ "Maschinenkoordinaten": "Koordinat mesin",
+ "Zyklusaufruf": "Panggilan kitaran",
+ "Rückzug in Werkzeugachse": "Tarik balik pada paksi alat",
+ "C-Achse klemmen lösen": "Lepaskan apitan paksi C",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "Kod M untuk spindel dimatikan – spindel mesti dihidupkan pada mesin.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "Kod M untuk akhir program dimatikan."
+}

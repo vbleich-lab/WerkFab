@@ -1,0 +1,23 @@
+{
+ "Alle ein": "모두 켜기",
+ "Alle aus": "모두 끄기",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "끈 M 코드는 프로그램에 없습니다. 주축, 절삭유, 프로그램 종료는 기계에서 직접 조작하세요.",
+ "M-Befehle (Haken = ausgeben)": "M 코드 (체크 = 출력)",
+ "M-Befehle": "M 코드",
+ "Programmhalt": "프로그램 정지",
+ "Spindel ein, rechts": "주축 정회전",
+ "Spindel ein, links": "주축 역회전",
+ "Spindel aus": "주축 정지",
+ "Kühlmittel Nebel / Luft": "절삭유 미스트 / 에어",
+ "C-Achse lösen": "C축 언클램프",
+ "Spindel rechts (angetriebenes Werkzeug)": "주축 정회전 (구동 공구)",
+ "Programmende mit Rücksprung": "프로그램 종료 및 되감기",
+ "C-Achse ein": "C축 켜기",
+ "C-Achse aus": "C축 끄기",
+ "Maschinenkoordinaten": "기계 좌표",
+ "Zyklusaufruf": "사이클 호출",
+ "Rückzug in Werkzeugachse": "공구 축 방향 후퇴",
+ "C-Achse klemmen lösen": "C축 클램프 해제",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "주축 M 코드가 꺼져 있습니다. 주축은 기계에서 켜야 합니다.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "프로그램 종료 M 코드가 꺼져 있습니다."
+}

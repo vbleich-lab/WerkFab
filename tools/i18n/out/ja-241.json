@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "仕上げ時に M120",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "半径補正 RL/RR が始まるブロックで半径補正輪郭を先読み計算（M120 LA…）– 仕上げ加工のみ。R0 で M120 は解除されます",
+ "M120 Sätze voraus (LA)": "M120 先読みブロック数 (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "主軸とクーラントを同時に (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 を M13、M4 + M8 を M14 として 1 ブロックに",
+ "Werkzeugspitzen-Nachführung als": "工具先端点制御の方式",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 は旧型制御装置用（TNC 426/430、FUNCTION TCPM のない iTNC 530）",
+ "Angetriebenes Werkzeug aus": "回転工具停止",
+ "Spindel links + Kühlmittel ein": "主軸逆転 + クーラントオン",
+ "Radiuskorrektur vorausberechnen (LA)": "半径補正の先読み (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "工具先端点制御オン (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "工具先端点制御オフ",
+ "Spindel rechts + Kühlmittel ein": "主軸正転 + クーラントオン",
+ "Funktion des Maschinenherstellers": "機械メーカー機能",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

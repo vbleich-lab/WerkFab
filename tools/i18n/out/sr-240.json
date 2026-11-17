@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Све укључи",
+ "Alle aus": "Све искључи",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Искључене M-наредбе недостају у програму – вретено, расхладну течност и крај програма укључите сами на машини.",
+ "M-Befehle (Haken = ausgeben)": "M-наредбе (означено = излаз)",
+ "M-Befehle": "M-наредбе",
+ "Programmhalt": "Заустављање програма",
+ "Spindel ein, rechts": "Вретено укључено, десно",
+ "Spindel ein, links": "Вретено укључено, лево",
+ "Spindel aus": "Вретено искључено",
+ "Kühlmittel Nebel / Luft": "Хлађење магла / ваздух",
+ "C-Achse lösen": "Отпусти C-осу",
+ "Spindel rechts (angetriebenes Werkzeug)": "Вретено десно (погоњени алат)",
+ "Programmende mit Rücksprung": "Крај програма са повратком",
+ "C-Achse ein": "C-оса укључена",
+ "C-Achse aus": "C-оса искључена",
+ "Maschinenkoordinaten": "Машинске координате",
+ "Zyklusaufruf": "Позив циклуса",
+ "Rückzug in Werkzeugachse": "Повлачење по оси алата",
+ "C-Achse klemmen lösen": "Отпусти стезање C-осе",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "M-наредбе за вретено су искључене – вретено мора да се укључи на машини.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "M-наредба за крај програма је искључена."
+}

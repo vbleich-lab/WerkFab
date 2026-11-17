@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 při dokončování",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "Předvypočítat konturu s korekcí rádiusu (M120 LA…) v bloku, kde začíná korekce rádiusu RL/RR – jen u dokončovacích operací; R0 M120 ruší",
+ "M120 Sätze voraus (LA)": "M120 bloků dopředu (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "Vřeteno a chlazení společně (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 jako M13, M4 + M8 jako M14 v jednom bloku",
+ "Werkzeugspitzen-Nachführung als": "Vedení špičky nástroje jako",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 pro starší řídicí systémy (TNC 426/430, iTNC 530 bez FUNCTION TCPM)",
+ "Angetriebenes Werkzeug aus": "Poháněný nástroj vyp.",
+ "Spindel links + Kühlmittel ein": "Vřeteno vlevo + chlazení zap.",
+ "Radiuskorrektur vorausberechnen (LA)": "Předvypočítat korekci rádiusu (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "Vedení špičky nástroje zap. (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "Vedení špičky nástroje vyp.",
+ "Spindel rechts + Kühlmittel ein": "Vřeteno vpravo + chlazení zap.",
+ "Funktion des Maschinenherstellers": "Funkce výrobce stroje",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

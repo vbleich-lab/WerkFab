@@ -64,3 +64,35 @@ for (const [vname, props] of Object.entries(VARIANTS)) {
     if (props.cycles === false) ok(`${vname} / ${g.setup.name}: keine Zyklen, kein APPR/DEP, keine Kreise`, !/CYCL DEF 2[02]\d|APPR|DEP |^\d+ C[CP]? /m.test(res.code));
   });
 }
+
+// M functions switched off: M3 off the positioning block, coolant and M140 left out, the program stays valid
+{
+  const g = gens[0];
+  const res = post.postProcess(p, g, null, { postId: 'heidenhain', coolant: true, props: { useM140: true, mOff: [3, 8, 9, 140] } }).code;
+  const blocks = res.split('\n').filter(l => !/^\s*\d*\s*;/.test(l));
+  ok('M-Befehle (Heidenhain): M3, M8, M9, M140 fehlen', !blocks.some(l => /\sM(3|8|9|140)(?![0-9])/.test(l)));
+  ok('M-Befehle (Heidenhain): kein „MB MAX“ ohne M140', !/MB MAX/.test(res));
+  const r2 = post.postProcess(p, g, null, { postId: 'heidenhain', coolant: true, props: { useM140: true, mOff: [3, 8, 9, 140] } });
+  ok('M-Befehle (Heidenhain): Warnung bei ausgeschalteter Spindel', r2.warnings.some(w => /Spindel/.test(w)));
+  const issues = lintHeidenhain(post.postProcess(p, g, null, { postId: 'heidenhain', coolant: true, props: { useM140: true, mOff: [8, 9, 140] } }).code);
+  ok('M-Befehle (Heidenhain): Programm ohne M8, M9, M140 fehlerfrei', issues.length === 0, issues.length ? lintSummary(issues).slice(0, 4).map(s => `${s.n}× ${s.msg} [${s.first}]`).join(' ‖ ') : '');
+  ok('M-Befehle (Heidenhain): Liste enthält M91, M99, M140', [91, 99, 140].every(n => post.postMCodes(post.findPost(p, 'heidenhain'), {}).includes(n)));
+}
+
+// M120 LA (look-ahead) on finishing operations with RL/RR, M128/M129, M13 for spindle + coolant
+{
+  const g = gens[0];
+  const res = post.postProcess(p, g, null, { postId: 'heidenhain', coolant: true, props: { tcpm: true, tcpmCode: 'm128', m13: true, m120LA: 5 } });
+  const L = res.code.split('\n');
+  const rlBlocks = L.filter(l => /\sR[LR](\s|$)/.test(l));
+  const withM120 = L.filter(l => /\sM120 LA5\b/.test(l));
+  ok('M120: im Satz mit RL/RR', withM120.length > 0 && withM120.every(l => /\sR[LR]\s/.test(l)), `${withM120.length} von ${rlBlocks.length} RL/RR-Sätzen`);
+  ok('M128 am Anfang, M129 vor dem Ende', L.some(l => /\sM128$/.test(l)) && L.some(l => /\sM129$/.test(l)) && !/FUNCTION TCPM/.test(res.code));
+  ok('M13 statt M3 + M8', L.some(l => /\sM13$/.test(l)));
+  const issues = lintHeidenhain(res.code);
+  ok('M120/M128/M13: Programm fehlerfrei', issues.length === 0, issues.length ? lintSummary(issues).slice(0, 4).map(s => `${s.n}× ${s.msg} [${s.first}]`).join(' ‖ ') : '');
+  const off = post.postProcess(p, g, null, { postId: 'heidenhain', props: { mOff: [120] } }).code;
+  ok('M120 ausgeschaltet: kein M120 und kein LA übrig', !/M120|\sLA\d/.test(off));
+  const noM120 = post.postProcess(p, g, null, { postId: 'heidenhain', props: { m120: false } }).code;
+  ok('M120 abgewählt: kein M120', !/M120/.test(noM120));
+}

@@ -5,7 +5,8 @@ const NUM = '[+-]?(?:\\d+\\.?\\d*|\\.\\d+)';
 const VAL = `(?:${NUM}|Q\\d+)`;
 const AXIS = `(?:I?[XYZABC]${VAL})`;
 const FEED = `(?:F(?:MAX|AUTO|Q\\d+|${NUM}))`;
-const MCODES = '(?:\\s+M\\d+)*';
+// M functions after a block; M120 carries the number of look-ahead blocks (M120 LA5)
+const MCODES = '(?:\\s+M\\d+(?:\\s+LA\\d+)?)*';
 const re = s => new RegExp('^' + s + '$');
 const RE = {
   begin: re('BEGIN PGM (\\S+) (MM|INCH)'), end: re('END PGM (\\S+) (MM|INCH)'),

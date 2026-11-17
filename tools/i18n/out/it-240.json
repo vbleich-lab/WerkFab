@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Tutti attivi",
+ "Alle aus": "Tutti disattivi",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "I codici M disattivati mancano nel programma: comandare mandrino, refrigerante e fine programma direttamente sulla macchina.",
+ "M-Befehle (Haken = ausgeben)": "Codici M (spuntato = in uscita)",
+ "M-Befehle": "Codici M",
+ "Programmhalt": "Arresto programma",
+ "Spindel ein, rechts": "Mandrino acceso, orario",
+ "Spindel ein, links": "Mandrino acceso, antiorario",
+ "Spindel aus": "Mandrino spento",
+ "Kühlmittel Nebel / Luft": "Refrigerante nebbia / aria",
+ "C-Achse lösen": "Sbloccare asse C",
+ "Spindel rechts (angetriebenes Werkzeug)": "Mandrino orario (utensile motorizzato)",
+ "Programmende mit Rücksprung": "Fine programma con riavvolgimento",
+ "C-Achse ein": "Asse C attivo",
+ "C-Achse aus": "Asse C disattivo",
+ "Maschinenkoordinaten": "Coordinate macchina",
+ "Zyklusaufruf": "Richiamo ciclo",
+ "Rückzug in Werkzeugachse": "Ritrazione lungo l’asse utensile",
+ "C-Achse klemmen lösen": "Rilasciare bloccaggio asse C",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "I codici M del mandrino sono disattivati: il mandrino va avviato sulla macchina.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "Il codice M di fine programma è disattivato."
+}

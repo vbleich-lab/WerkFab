@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Tümü açık",
+ "Alle aus": "Tümü kapalı",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Kapatılan M kodları programda yer almaz – iş milini, soğutma sıvısını ve program sonunu makinede kendiniz açın.",
+ "M-Befehle (Haken = ausgeben)": "M kodları (işaretli = çıktı)",
+ "M-Befehle": "M kodları",
+ "Programmhalt": "Program durdurma",
+ "Spindel ein, rechts": "İş mili açık, saat yönü",
+ "Spindel ein, links": "İş mili açık, saat yönü tersi",
+ "Spindel aus": "İş mili kapalı",
+ "Kühlmittel Nebel / Luft": "Soğutma sis / hava",
+ "C-Achse lösen": "C eksenini serbest bırak",
+ "Spindel rechts (angetriebenes Werkzeug)": "İş mili saat yönü (tahrikli takım)",
+ "Programmende mit Rücksprung": "Başa dönüşlü program sonu",
+ "C-Achse ein": "C ekseni açık",
+ "C-Achse aus": "C ekseni kapalı",
+ "Maschinenkoordinaten": "Makine koordinatları",
+ "Zyklusaufruf": "Çevrim çağrısı",
+ "Rückzug in Werkzeugachse": "Takım ekseninde geri çekilme",
+ "C-Achse klemmen lösen": "C ekseni sıkmasını çöz",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "İş mili M kodları kapalı – iş mili makinede çalıştırılmalıdır.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "Program sonu M kodu kapalı."
+}

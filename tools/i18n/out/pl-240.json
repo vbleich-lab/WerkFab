@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Wszystkie wł.",
+ "Alle aus": "Wszystkie wył.",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Wyłączone funkcje M nie pojawią się w programie – wrzeciono, chłodziwo i koniec programu włącz samodzielnie na maszynie.",
+ "M-Befehle (Haken = ausgeben)": "Funkcje M (zaznaczone = wyjście)",
+ "M-Befehle": "Funkcje M",
+ "Programmhalt": "Zatrzymanie programu",
+ "Spindel ein, rechts": "Wrzeciono wł., w prawo",
+ "Spindel ein, links": "Wrzeciono wł., w lewo",
+ "Spindel aus": "Wrzeciono wył.",
+ "Kühlmittel Nebel / Luft": "Chłodzenie mgła / powietrze",
+ "C-Achse lösen": "Zwolnij oś C",
+ "Spindel rechts (angetriebenes Werkzeug)": "Wrzeciono w prawo (narzędzie napędzane)",
+ "Programmende mit Rücksprung": "Koniec programu z powrotem",
+ "C-Achse ein": "Oś C wł.",
+ "C-Achse aus": "Oś C wył.",
+ "Maschinenkoordinaten": "Współrzędne maszynowe",
+ "Zyklusaufruf": "Wywołanie cyklu",
+ "Rückzug in Werkzeugachse": "Wycofanie w osi narzędzia",
+ "C-Achse klemmen lösen": "Zwolnij zacisk osi C",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "Funkcje M wrzeciona są wyłączone – wrzeciono trzeba uruchomić na maszynie.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "Funkcja M końca programu jest wyłączona."
+}

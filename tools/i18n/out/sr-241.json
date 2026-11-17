@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 при финој обради",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "Унапред израчунати контуру са корекцијом радијуса (M120 LA…) у блоку у којем почиње корекција радијуса RL/RR – само код операција фине обраде; R0 поништава M120",
+ "M120 Sätze voraus (LA)": "M120 блокова унапред (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "Вретено и расхладна течност заједно (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 као M13, M4 + M8 као M14 у једном блоку",
+ "Werkzeugspitzen-Nachführung als": "Праћење врха алата као",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 за старије управљачке јединице (TNC 426/430, iTNC 530 без FUNCTION TCPM)",
+ "Angetriebenes Werkzeug aus": "Погоњени алат искључен",
+ "Spindel links + Kühlmittel ein": "Вретено лево + расхладна течност укључена",
+ "Radiuskorrektur vorausberechnen (LA)": "Унапред израчунати корекцију радијуса (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "Праћење врха алата укључено (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "Праћење врха алата искључено",
+ "Spindel rechts + Kühlmittel ein": "Вретено десно + расхладна течност укључена",
+ "Funktion des Maschinenherstellers": "Функција произвођача машине",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

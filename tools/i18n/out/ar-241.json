@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 عند التشطيب",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "حساب الكفاف المصحَّح بنصف القطر مسبقًا (M120 LA…) في الكتلة التي يبدأ فيها تصحيح نصف القطر RL/RR – لعمليات التشطيب فقط؛ R0 يلغي M120",
+ "M120 Sätze voraus (LA)": "عدد كتل الحساب المسبق لـ M120 (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "المغزل والتبريد معًا (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 كـ M13، و M4 + M8 كـ M14 في كتلة واحدة",
+ "Werkzeugspitzen-Nachführung als": "تتبع رأس الأداة بصيغة",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 لأنظمة التحكم الأقدم (TNC 426/430، iTNC 530 بدون FUNCTION TCPM)",
+ "Angetriebenes Werkzeug aus": "إيقاف الأداة المدارة",
+ "Spindel links + Kühlmittel ein": "المغزل يسارًا + تشغيل التبريد",
+ "Radiuskorrektur vorausberechnen (LA)": "حساب تصحيح نصف القطر مسبقًا (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "تشغيل تتبع رأس الأداة (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "إيقاف تتبع رأس الأداة",
+ "Spindel rechts + Kühlmittel ein": "المغزل يمينًا + تشغيل التبريد",
+ "Funktion des Maschinenherstellers": "وظيفة الشركة المصنعة للآلة",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

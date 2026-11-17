@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 viimeistelyssä",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "Laske säteenkorjattu muoto etukäteen (M120 LA…) lauseessa, jossa säteenkorjaus RL/RR alkaa – vain viimeistelyissä; R0 kumoaa M120:n",
+ "M120 Sätze voraus (LA)": "M120 lauseita etukäteen (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "Kara ja jäähdytys yhdessä (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 muodossa M13, M4 + M8 muodossa M14 yhdessä lauseessa",
+ "Werkzeugspitzen-Nachführung als": "Työkalun kärjen seuranta muodossa",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 vanhemmille ohjauksille (TNC 426/430, iTNC 530 ilman FUNCTION TCPM:ää)",
+ "Angetriebenes Werkzeug aus": "Pyörivä työkalu pois",
+ "Spindel links + Kühlmittel ein": "Kara vastapäivään + jäähdytys päälle",
+ "Radiuskorrektur vorausberechnen (LA)": "Säteenkorjauksen ennakkolaskenta (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "Työkalun kärjen seuranta päälle (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "Työkalun kärjen seuranta pois",
+ "Spindel rechts + Kühlmittel ein": "Kara myötäpäivään + jäähdytys päälle",
+ "Funktion des Maschinenherstellers": "Koneenvalmistajan toiminto",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

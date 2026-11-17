@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "Finişte M120",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "Yarıçap düzeltmeli konturu önceden hesapla (M120 LA…) – yarıçap düzeltmesi RL/RR’nin başladığı blokta, yalnızca finiş operasyonlarında; R0, M120’yi iptal eder",
+ "M120 Sätze voraus (LA)": "M120 ileri blok sayısı (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "İş mili ve soğutma birlikte (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 yerine M13, M4 + M8 yerine M14 tek blokta",
+ "Werkzeugspitzen-Nachführung als": "Takım ucu takibi biçimi",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "Eski kontroller için M128 (TNC 426/430, FUNCTION TCPM olmayan iTNC 530)",
+ "Angetriebenes Werkzeug aus": "Tahrikli takım kapalı",
+ "Spindel links + Kühlmittel ein": "İş mili saat yönü tersi + soğutma açık",
+ "Radiuskorrektur vorausberechnen (LA)": "Yarıçap düzeltmesini önceden hesapla (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "Takım ucu takibi açık (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "Takım ucu takibi kapalı",
+ "Spindel rechts + Kühlmittel ein": "İş mili saat yönü + soğutma açık",
+ "Funktion des Maschinenherstellers": "Makine üreticisinin fonksiyonu",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

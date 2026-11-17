@@ -1,5 +1,14 @@
 # Änderungen
 
+## v1.0.0-rc.21 – 2026-11-17
+
+### Postprozessor
+- **M-Befehle zum Anklicken**: Im Dialog „NC-Programm“ stehen alle M-Befehle, die der gewählte Postprozessor schreiben kann, mit ihrer Bedeutung. Ohne Haken fehlt der Befehl in jedem Satz; „Alle ein“ und „Alle aus“ schalten alle auf einmal. Bei ausgeschalteter Spindel oder ausgeschaltetem Programmende erscheint eine Warnung.
+- **Heidenhain M120**: Beim Schlichten steht `M120 LA5` im Satz, in dem die Radiuskorrektur RL/RR beginnt; die Zahl der Sätze ist einstellbar.
+- **Heidenhain M128**: Die Werkzeugspitzen-Nachführung kann als `M128` / `M129` statt `FUNCTION TCPM` ausgegeben werden.
+- **Heidenhain M13/M14**: Spindel und Kühlmittel auf Wunsch in einem Satz (M3 + M8 als M13, M4 + M8 als M14).
+- **Heidenhain Innenkühlung**: Vorgabe jetzt M7 statt M88. Die Beschriftung der M-Befehle richtet sich nach den eingestellten Kühlmittel-Codes.
+
 ## v1.0.0-rc.20 – 2026-11-17
 
 ### Darstellung

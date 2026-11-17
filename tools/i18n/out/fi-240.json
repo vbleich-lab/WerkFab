@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Kaikki päälle",
+ "Alle aus": "Kaikki pois",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Pois kytketyt M-koodit puuttuvat ohjelmasta – kytke kara, jäähdytys ja ohjelman loppu itse koneella.",
+ "M-Befehle (Haken = ausgeben)": "M-koodit (valittu = tulostetaan)",
+ "M-Befehle": "M-koodit",
+ "Programmhalt": "Ohjelman pysäytys",
+ "Spindel ein, rechts": "Kara päälle, myötäpäivään",
+ "Spindel ein, links": "Kara päälle, vastapäivään",
+ "Spindel aus": "Kara pois",
+ "Kühlmittel Nebel / Luft": "Jäähdytys sumu / ilma",
+ "C-Achse lösen": "Vapauta C-akseli",
+ "Spindel rechts (angetriebenes Werkzeug)": "Kara myötäpäivään (pyörivä työkalu)",
+ "Programmende mit Rücksprung": "Ohjelman loppu ja paluu alkuun",
+ "C-Achse ein": "C-akseli päälle",
+ "C-Achse aus": "C-akseli pois",
+ "Maschinenkoordinaten": "Koneen koordinaatit",
+ "Zyklusaufruf": "Työkierron kutsu",
+ "Rückzug in Werkzeugachse": "Vetäytyminen työkalun akselilla",
+ "C-Achse klemmen lösen": "Vapauta C-akselin lukitus",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "Karan M-koodit on kytketty pois – kara on käynnistettävä koneella.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "Ohjelman lopun M-koodi on kytketty pois."
+}

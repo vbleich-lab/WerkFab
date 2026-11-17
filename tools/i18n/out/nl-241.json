@@ -1,0 +1,17 @@
+{
+ "M120 beim Schlichten": "M120 bij nabewerken",
+ "Radiuskorrigierte Kontur vorausberechnen (M120 LA…) im Satz, in dem die Radiuskorrektur RL/RR beginnt – nur bei Schlicht-Operationen; R0 hebt M120 wieder auf": "Radiusgecorrigeerde contour vooraf berekenen (M120 LA…) in de regel waarin de radiuscorrectie RL/RR begint – alleen bij nabewerkingen; R0 heft M120 op",
+ "M120 Sätze voraus (LA)": "M120 regels vooruit (LA)",
+ "Spindel und Kühlmittel zusammen (M13/M14)": "Spil en koelmiddel samen (M13/M14)",
+ "M3 + M8 als M13, M4 + M8 als M14 in einem Satz": "M3 + M8 als M13, M4 + M8 als M14 in één regel",
+ "Werkzeugspitzen-Nachführung als": "Gereedschapspuntgeleiding als",
+ "M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)": "M128 voor oudere besturingen (TNC 426/430, iTNC 530 zonder FUNCTION TCPM)",
+ "Angetriebenes Werkzeug aus": "Aangedreven gereedschap uit",
+ "Spindel links + Kühlmittel ein": "Spil linksom + koelmiddel aan",
+ "Radiuskorrektur vorausberechnen (LA)": "Radiuscorrectie vooraf berekenen (LA)",
+ "Werkzeugspitzen-Nachführung ein (TCPM)": "Gereedschapspuntgeleiding aan (TCPM)",
+ "Werkzeugspitzen-Nachführung aus": "Gereedschapspuntgeleiding uit",
+ "Spindel rechts + Kühlmittel ein": "Spil rechtsom + koelmiddel aan",
+ "Funktion des Maschinenherstellers": "Functie van de machinefabrikant",
+ "FUNCTION TCPM … / FUNCTION RESET TCPM": "FUNCTION TCPM … / FUNCTION RESET TCPM"
+}

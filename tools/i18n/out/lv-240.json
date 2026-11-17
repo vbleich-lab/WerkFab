@@ -1,0 +1,23 @@
+{
+ "Alle ein": "Visas ieslēgt",
+ "Alle aus": "Visas izslēgt",
+ "Ausgeschaltete M-Befehle fehlen im Programm – Spindel, Kühlmittel und Programmende dann an der Maschine selbst schalten.": "Izslēgtās M komandas programmā nav – vārpstu, dzesēšanu un programmas beigas ieslēdziet paši uz mašīnas.",
+ "M-Befehle (Haken = ausgeben)": "M komandas (atzīmēts = izvade)",
+ "M-Befehle": "M komandas",
+ "Programmhalt": "Programmas apturēšana",
+ "Spindel ein, rechts": "Vārpsta ieslēgta, pa labi",
+ "Spindel ein, links": "Vārpsta ieslēgta, pa kreisi",
+ "Spindel aus": "Vārpsta izslēgta",
+ "Kühlmittel Nebel / Luft": "Dzesēšana migla / gaiss",
+ "C-Achse lösen": "Atbrīvot C asi",
+ "Spindel rechts (angetriebenes Werkzeug)": "Vārpsta pa labi (piedziņas instruments)",
+ "Programmende mit Rücksprung": "Programmas beigas ar atgriešanos",
+ "C-Achse ein": "C ass ieslēgta",
+ "C-Achse aus": "C ass izslēgta",
+ "Maschinenkoordinaten": "Mašīnas koordinātas",
+ "Zyklusaufruf": "Cikla izsaukums",
+ "Rückzug in Werkzeugachse": "Atvilkšana pa instrumenta asi",
+ "C-Achse klemmen lösen": "Atbrīvot C ass fiksāciju",
+ "M-Befehle für die Spindel sind ausgeschaltet – die Spindel muss an der Maschine eingeschaltet werden.": "Vārpstas M komandas ir izslēgtas – vārpsta jāieslēdz uz mašīnas.",
+ "M-Befehl für das Programmende ist ausgeschaltet.": "Programmas beigu M komanda ir izslēgta."
+}
