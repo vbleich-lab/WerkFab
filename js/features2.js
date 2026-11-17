@@ -254,7 +254,7 @@ function splitFace(f, ctx, H) {
     const n = sketchPlane(sk).n, L = 10000;
     tool = H.sewSheets(H.curveWires(sk, f.curves).map(w => H.prism(w.clone().translate(n.map(c => -c * L)), n.map(c => 2 * c * L))));
   } else {
-    const p = H.planeRef(f.plane || 'XY', ctx.features);
+    const p = H.offsetPlane(H.planeRef(f.plane || 'XY', ctx.features), f.offset);
     if (!p) fail('Ebene fehlt');
     tool = R.drawRectangle(20000, 20000).sketchOnPlane(H.rPlane(p)).face();
   }
@@ -284,11 +284,21 @@ function splitFace(f, ctx, H) {
   if (!done) fail('Die Ebene oder Skizze schneidet die gewählten Flächen nicht');
 }
 
+// An edge that lies on two bodies (a surface and the solid thickened from it) is found on both: it is taken
+// once, from a surface body if there is one.
+function edgesOnce(hits, H) {
+  const pt = (e, u) => P3(e.pointAt(u)).map(x => x.toFixed(3)).join(',');
+  const key = e => [pt(e, 0.5), ...[pt(e, 0), pt(e, 1)].sort()].join(';');
+  const sheet = b => !H.hasSolid(b.shape), by = new Map();
+  for (const h of hits) { const k = key(h.e), had = by.get(k); if (!had || (!sheet(had.b) && sheet(h.b))) by.set(k, h); }
+  return [...by.values()];
+}
+
 // Regelfläche: a strip from picked edges, along the face normal (or tangent away from the face, or a direction)
 function ruledTool(f, bodies, H) {
   const d = +f.distance;
   if (!d) fail('Abstand fehlt');
-  const hits = H.pickedEdges(f.edges, bodies);
+  const hits = edgesOnce(H.pickedEdges(f.edges, bodies), H);
   if (!hits.length) fail('Kanten wählen');
   const strips = [];
   for (const { e, b } of hits) {
@@ -312,7 +322,7 @@ function ruledTool(f, bodies, H) {
 
 // Verbindungsfläche: a smooth surface between two picked edges (or edge chains)
 function blendTool(f, bodies, H) {
-  const a = H.pickedEdges(f.edges, bodies), c = H.pickedEdges(f.edges2, bodies);
+  const a = edgesOnce(H.pickedEdges(f.edges, bodies), H), c = edgesOnce(H.pickedEdges(f.edges2, bodies), H);
   if (!a.length || !c.length) fail('Zwei Kanten wählen (erste und zweite Seite)');
   try { return R.loft([R.assembleWire(a.map(x => x.e.clone())), R.assembleWire(c.map(x => x.e.clone()))], { ruled: !!f.ruled }, true); } catch { fail('Verbindung nicht möglich – Kanten zusammenhängend und in gleicher Richtung wählen'); }
 }

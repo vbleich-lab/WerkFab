@@ -12,7 +12,7 @@ import { meshMass, stlBinary, urdfNames, buildUrdf, buildSdf, sdfConfig, buildMj
 import { setActiveKernel, activeKernelId, getKernel } from './kern/index.js';
 import './kern/rust.js';
 import { THREAD_SIZES, meshBody, exportGeometry, setViewTessellation, viewTessellation } from './model.js';
-import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache } from './model.js';
+import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache, dropWaitingSnaps } from './model.js';
 import { Sketcher } from './sketcher.js';
 import { buildHeightmap, cornerOf } from './heightmap.js';
 import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel, orientationLabel, OP_TYPES, DRILL_CYCLES, ORIGINS, TOOL_TYPES, ORIENTATIONS, RAPID_FEED, setupMatrix, sketchHorizontalIn, OPS_3D, PROBE_MODES, MANUAL_KINDS, PATTERN_KINDS, orderByTool, opCells, toolBase, STOCK_MODES, STOCK_MATERIALS, BOUNDARY_MODES, setupBodies, heightSpec, HEIGHT_KEYS, HEIGHT_FROM, applyCutData } from './cam.js';
@@ -4116,7 +4116,7 @@ function propsExtra(b, f, ed) {
       break;
     case 'splitface':
       b.append(...pickRows(f, ed, 'faces'), S('Teilen mit', 'toolKind', [['plane', 'Ebene'], ['sketch', 'Skizze']]),
-        f.toolKind === 'sketch' ? SK() : row('Ebene', sel(planeOptions(), f.plane || 'XY', v => ed(x => (x.plane = v)))),
+        ...(f.toolKind === 'sketch' ? [SK()] : [row('Ebene', sel(planeOptions(), f.plane || 'XY', v => ed(x => (x.plane = v)))), row('Versatz', num(f.offset || 0, v => ed(x => (x.offset = v)), { unit: 'mm' }))]),
         hint('Die gewählten Flächen bekommen eine Trennkante – der Körper bleibt ein Stück (z. B. für Formschrägen oder Farben auf einem Teil der Fläche).'));
       break;
     case 'ruled':
@@ -5680,7 +5680,7 @@ function propsTrim(b, f, ed) {
     row('Fläche', sel([['', '– wählen –'], ...surfs.map(x => [x.id, bodyName(x)])], f.body || '', v => ed(x => (x.body = v)))),
     row('Trimmwerkzeug', sel([['body', 'Körper oder Fläche'], ['plane', 'Ebene'], ['sketch', 'Skizzenkurven']], kind, v => ed(x => (x.toolKind = v)))));
   if (kind === 'body') b.append(row('Werkzeug', sel([['', '– wählen –'], ...m.bodies.filter(x => x.id !== f.body).map(x => [x.id, bodyName(x) + (x.surface ? ' (Fläche)' : '')])], f.tool || '', v => ed(x => (x.tool = v)))));
-  else if (kind === 'plane') b.append(row('Ebene', sel(planeRefOptions(f.id), f.plane || 'XY', v => ed(x => (x.plane = v)))));
+  else if (kind === 'plane') b.append(row('Ebene', sel(planeRefOptions(f.id), f.plane || 'XY', v => ed(x => (x.plane = v)))), row('Versatz', num(f.offset || 0, v => ed(x => (x.offset = v)), { unit: 'mm' })));
   else b.append(
     row('Skizze', sel(sketchOptions(), f.sketch, v => ed(x => { x.sketch = v; x.curves = 'all'; }))),
     row('Kurven', profileChecks(f.sketch, f.curves, v => ed(x => (x.curves = v)), curveFilter)));
@@ -15734,7 +15734,7 @@ function openPostDialog(saved = null) {
   initFusion(fusionEnv());
   setTimeout(startAddins, 1500);
   // steps waiting for the full kernel (delete face, fillet with radius points) are computed as soon as it is there
-  onFullKernel(() => { clearTimelineCache(); model.key = null; renderAll(); });
+  onFullKernel(() => { dropWaitingSnaps(); model.key = null; renderAll(); });
 })();
 
 

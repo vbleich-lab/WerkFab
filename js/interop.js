@@ -531,17 +531,23 @@ export function requestFullKernel() { loadFullOC().catch(() => { fullOC = null; 
 export function onFullKernel(fn) { if (fullInst) fn(); else fullWaiters.push(fn); }
 
 // The writers of the full kernel do not always keep the file name they are given: the text of the file that
-// appeared in the folder is returned, whatever it is called.
+// appeared in the folder is returned, whatever it is called. write(name) makes its own writer: the very first
+// write after the kernel has loaded now and then stops without a file (status 4), the next one works.
 function writtenText(oc, want, write) {
   const had = new Set(oc.FS.readdir('/'));
   try { oc.FS.unlink('/' + want); had.delete(want); } catch { /* not there */ }
-  write('/' + want);
-  const made = oc.FS.readdir('/').filter(n => !had.has(n));
+  let made = [];
+  for (let k = 0; k < 3 && !made.length; k++) {
+    try { write('/' + want); } catch { /* once more */ }
+    made = oc.FS.readdir('/').filter(n => !had.has(n));
+  }
   if (!made.length) throw new Error('Das Ergebnis konnte nicht geschrieben werden');
   const text = oc.FS.readFile('/' + (made.includes(want) ? want : made[0]), { encoding: 'utf8' });
   for (const n of made) { try { oc.FS.unlink('/' + n); } catch { /* stays */ } }
   return text;
 }
+
+const stepWriter = (oc, shape) => { const w = new oc.STEPControl_Writer_1(); w.Transfer(shape, oc.STEPControl_StepModelType.STEPControl_AsIs, true); return w; };
 
 export async function igesToStep(igesText) {
   const oc = await loadFullOC();
@@ -570,9 +576,7 @@ export async function igesToStep(igesText) {
     for (; ex.More(); ex.Next()) { solids.Add(comp, ex.Current()); any = true; }
     if (any) out = comp;
   } catch { out = sh; }
-  const w = new oc.STEPControl_Writer_1();
-  w.Transfer(out, oc.STEPControl_StepModelType.STEPControl_AsIs, true);
-  return writtenText(oc, 'out.step', name => w.Write(name));
+  return writtenText(oc, 'out.step', name => stepWriter(oc, out).Write(name));
 }
 
 export async function stepToIges(stepText) {
@@ -581,10 +585,13 @@ export async function stepToIges(stepText) {
   const rd = new oc.STEPControl_Reader_1();
   rd.ReadFile('/x.step');
   rd.TransferRoots();
-  const w = new oc.IGESControl_Writer_2('MM', 1); // 1 = B-rep solids (MSBO)
-  w.AddShape(rd.OneShape());
-  w.ComputeModel();
-  return writtenText(oc, 'x.igs', name => w.Write_2(name, false));
+  const shape = rd.OneShape();
+  return writtenText(oc, 'x.igs', name => {
+    const w = new oc.IGESControl_Writer_2('MM', 1); // 1 = B-rep solids (MSBO)
+    w.AddShape(shape);
+    w.ComputeModel();
+    return w.Write_2(name, false);
+  });
 }
 
 // Remove faces from a solid so that the neighbouring faces grow together over the gap (holes, pockets, fillets,
@@ -663,9 +670,7 @@ export function fullFilletLaw(stepText, edges, law) {
   if (!mk.IsDone()) throw new Error('Verrundung mit diesen Radien nicht möglich – Radien verkleinern');
   const res = mk.Shape(), before = vol(shape), after = vol(res);
   if (res.IsNull() || !(after > 0)) throw new Error('Verrundung mit diesen Radien nicht möglich – Radien verkleinern');
-  const w = new oc.STEPControl_Writer_1();
-  w.Transfer(res, oc.STEPControl_StepModelType.STEPControl_AsIs, true);
-  return { step: writtenText(oc, 'flout.step', name => w.Write(name)), before, after, edges: used.length };
+  return { step: writtenText(oc, 'flout.step', name => stepWriter(oc, res).Write(name)), before, after, edges: used.length };
 }
 function removeFacesCore(oc, stepText, points) {
   oc.FS.writeFile('/df.step', stepText);
@@ -724,9 +729,7 @@ function removeFacesCore(oc, stepText, points) {
   const res = df.Shape(), before = vol(shape), after = vol(res);
   if (res.IsNull() || !(after > 0)) throw new Error('Die Nachbarflächen lassen sich nicht über die Lücke verlängern');
   if (Math.abs(after - before) < 1e-6 * Math.max(1, before)) throw new Error('Nichts geändert: Die Nachbarflächen schließen diese Lücke nicht – zusammengehörige Flächen gemeinsam wählen (z. B. Wand und Boden einer Tasche)');
-  const w = new oc.STEPControl_Writer_1();
-  w.Transfer(res, oc.STEPControl_StepModelType.STEPControl_AsIs, true);
-  const step = writtenText(oc, 'dfout.step', name => w.Write(name));
+  const step = writtenText(oc, 'dfout.step', name => stepWriter(oc, res).Write(name));
   return { step, before, after, faces: chosen.length };
 }
 

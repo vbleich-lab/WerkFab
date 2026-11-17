@@ -1,5 +1,16 @@
 # Änderungen
 
+## v1.0.0-rc.19 – 2026-11-17
+
+### Fehler behoben
+- „Fläche löschen“ und „Variable Verrundung“ scheiterten manchmal bei der ersten Berechnung nach dem Laden des großen Geometriekerns („Das Ergebnis konnte nicht geschrieben werden“). Ein fehlgeschlagener Schreibversuch wird jetzt mit einem frischen Schreiber wiederholt.
+- Nach dem Laden des großen Geometriekerns wird nur noch ab dem Schritt neu gerechnet, der auf ihn gewartet hat, nicht mehr das ganze Modell.
+- „Verbindungsfläche“ und „Regelfläche“ scheiterten, wenn eine gewählte Kante auf zwei Körpern lag (z. B. Fläche und daraus aufgedickter Körper). Die Kante wird jetzt nur einmal genommen.
+
+### Verbessert
+- „Trimmen“ und „Fläche teilen“ mit einer Ebene haben jetzt das Feld „Versatz“ – eine eigene Versatzebene ist nicht mehr nötig.
+- Konstruktionstestteil: Die Schrift am Bolzen sitzt jetzt unter dem Gewinde statt darauf; das Teil rechnet dadurch deutlich schneller.
+
 ## v1.0.0-rc.18 – 2026-11-17
 
 ### Neue Konstruktionsschritte

@@ -90,6 +90,8 @@ function entityDrawing(e) {
 }
 
 const rPlane = p => new R.Plane(p.o, p.x, p.n);
+// a plane moved along its normal by off mm (trim and split face: "Versatz")
+const offsetPlane = (p, off) => (p && +off ? { ...p, o: p.o.map((c, i) => c + p.n[i] * +off) } : p);
 
 const EXACT = new Set(['rect', 'circle', 'slot']);
 
@@ -606,7 +608,7 @@ function surfLoftTool(f, sketches) {
 // Trimmen: the surface is split where the trim tool crosses it; the clicked regions are removed
 function trimToolShape(f, bodies, ctx) {
   if (f.toolKind === 'plane') {
-    const p = planeRef(f.plane || 'XY', ctx.features);
+    const p = offsetPlane(planeRef(f.plane || 'XY', ctx.features), f.offset);
     if (!p) fail('Ebene fehlt');
     return R.drawRectangle(20000, 20000).sketchOnPlane(rPlane(p)).face();
   }
@@ -1339,7 +1341,7 @@ function viaFullKernel(shape, args, fn) {
   const key = textHash(data + JSON.stringify(args));
   let out = fullCache.get(key);
   if (!out) {
-    if (!fullKernelReady()) { requestFullKernel(); fail('Der große Geometriekern wird geladen – dieser Schritt rechnet gleich von selbst nach'); }
+    if (!fullKernelReady()) { requestFullKernel(); fail(WAIT_FULL); }
     try { out = fn(text).step; } catch (err) { fail(err.message || String(err)); }
     fullCache.set(key, out);
     while (fullCache.size > 40) fullCache.delete(fullCache.keys().next().value);
@@ -1353,7 +1355,7 @@ const EXTRA_HELPERS = {
   get fuseAll() { return fuseAll; }, get ribTool() { return ribTool; }, get regionDrawings() { return regionDrawings; }, get rPlane() { return rPlane; },
   get extrudeTool() { return extrudeTool; }, get applyOp() { return applyOp; }, get hasSolid() { return hasSolid; }, get prism() { return prism; },
   get sewSheets() { return sewSheets; }, get curveWires() { return curveWires; }, get pickedEdges() { return pickedEdges; },
-  get bodiesWithPoints() { return bodiesWithPoints; }, get profileItems() { return profileItems; }, get planeRef() { return planeRef; },
+  get bodiesWithPoints() { return bodiesWithPoints; }, get profileItems() { return profileItems; }, get planeRef() { return planeRef; }, get offsetPlane() { return offsetPlane; },
 };
 function runFeature(f, ctx) {
   const { bodies, sketches, tools } = ctx;
@@ -1859,6 +1861,12 @@ const SNAP_MAX = 400;
 const snapCache = new Map(); // key → snapshot (Map keeps insertion order: oldest first)
 let cacheStats = { hits: 0, skipped: 0, ran: 0 };
 export const timelineCacheStats = () => ({ ...cacheStats, entries: snapCache.size });
+// the full kernel has loaded: only the snapshots taken while a step waited for it are stale (that step and
+// everything after it); the steps before it are kept
+export const WAIT_FULL = 'Der große Geometriekern wird geladen – dieser Schritt rechnet gleich von selbst nach';
+export function dropWaitingSnaps() {
+  for (const [k, s] of [...snapCache]) if (Object.values(s.errors || {}).includes(WAIT_FULL)) { snapCache.delete(k); dropSnap(s); }
+}
 export function clearTimelineCache() {
   for (const s of snapCache.values()) dropSnap(s);
   snapCache.clear();

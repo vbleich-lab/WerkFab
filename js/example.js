@@ -242,7 +242,7 @@ export function exampleDesign() {
     { id: 'fiQ', type: 'fillet', name: 'Block verrunden', radius: 3, all: false, edges: [[192.5, 100, 30], [205, 110, 30], [192.5, 120, 30], [180, 110, 30]] },
     { id: 'coK', type: 'cone', name: 'Kegel', x: 150, y: 140, z: T, r1: 8, r2: 3, h: 12, axis: 'z', op: 'join' },
     { id: 'cyB', type: 'cylinder', name: 'Bolzen', x: 185, y: 140, z: T, r: 6, h: 18, op: 'join' },
-    { id: 'thB', type: 'thread', name: 'Außengewinde M12', faces: [[191, 140, 32]], size: 'auto', pitch: null, full: false, length: 12, modeled: true, hand: 'right', flip: false },
+    { id: 'thB', type: 'thread', name: 'Außengewinde M12', faces: [[191, 140, 32]], size: 'auto', pitch: null, full: false, length: 7, modeled: true, hand: 'right', flip: false },
     // sweep along a bent path, rib, web, bosses, snap hook, ledge
     sk('skW1', 'Sweep-Pfad', XY(T + 2), [{ id: 'w1', type: 'poly', closed: false, pts: [[20, 118], [60, 118], [80, 134]], radii: { 1: 10 } }]),
     sk('skW2', 'Sweep-Profil', YZ(20, 118, T + 2), [{ id: 'w2', type: 'circle', cx: 0, cy: 0, r: 4 }]),
@@ -260,7 +260,7 @@ export function exampleDesign() {
     sk('skT', 'Schrift', XY(T), [{ id: 't1', type: 'text', x: 20, y: 140, text: 'WerkFab', size: 8 }], { planeRef: 'plT' }),
     { id: 'emT', type: 'emboss', name: 'Schrift vertieft', sketch: 'skT', profiles: 'all', mode: 'deboss', depth: 0.5, wrap: 'plane', pts: [], r: 0 },
     { id: 'plB', type: 'plane', hidden: true, name: 'Tangentialebene Bolzen', kind: 'tangent', base: 'XY', pts: [[185, 140, 20], [185, 140, 38]], r: 6, angle: 0 },
-    sk('skTB', 'Schrift Bolzen', { o: [185, 146, 20], x: [0, 0, 1], n: [0, 1, 0] }, [{ id: 'tb1', type: 'text', x: 2, y: -3, text: 'M12', size: 4 }], { planeRef: 'plB' }),
+    sk('skTB', 'Schrift Bolzen', { o: [185, 146, 20], x: [0, 0, 1], n: [0, 1, 0] }, [{ id: 'tb1', type: 'text', x: 1, y: -3, text: 'M12', size: 4 }], { planeRef: 'plB' }),
     { id: 'emB', type: 'emboss', name: 'Schrift Bolzen', sketch: 'skTB', profiles: 'all', mode: 'emboss', depth: 0.4, wrap: 'cyl', pts: [[185, 140, 20], [185, 140, 38]], r: 6 },
     // chamfer the bottom edges of the plate
     { id: 'chB', type: 'chamfer', name: 'Fase unten', distance: 1, all: false, edges: [[110, 0, 0], [220, 80, 0], [110, 160, 0], [0, 80, 0]] },
