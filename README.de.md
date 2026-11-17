@@ -1,6 +1,6 @@
 # WerkFab
 
-<a href="https://paypal.me/VitalijBleich"><img src="docs/media/kaffee-button.svg" alt="Buy me a coffee (PayPal)" height="48"></a> &nbsp; **[WerkFab mit einem Kaffee unterstützen → paypal.me/VitalijBleich](https://paypal.me/VitalijBleich)**
+<a href="https://paypal.me/VitalijBleich"><img src="docs/media/kaffee-button.svg" alt="Buy me a coffee (PayPal)" height="48"></a>
 
 [English](README.md) · **Deutsch**
 
