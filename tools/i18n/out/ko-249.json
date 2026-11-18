@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "서로 다른 두 선을 클릭하세요.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "선이 평행합니다. 서로 만나지 않습니다.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "폴리선의 끝부분만 자르거나 연장할 수 있습니다.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "이 교차점에서는 한 선이 남지 않습니다.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "클릭: 두 선을 교차점까지 연결",
+ "Zweite Linie anklicken · Esc bricht ab": "두 번째 선 클릭 · Esc 취소",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "두 번째 선을 클릭하세요. 두 선이 교차점까지 잘리거나 연장됩니다. Esc 취소."
+}

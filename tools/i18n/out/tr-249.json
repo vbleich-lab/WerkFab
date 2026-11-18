@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "İki farklı çizgiye tıklayın.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "Çizgiler paralel – hiçbir yerde kesişmiyorlar.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "Yalnızca bir çoklu çizginin ucu kırpılabilir veya uzatılabilir.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "Bu kesişim noktasında çizgilerden birinden hiçbir şey kalmaz.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "Tıklama: iki çizgiyi kesişim noktasına kadar götür",
+ "Zweite Linie anklicken · Esc bricht ab": "İkinci çizgiye tıklayın · Esc iptal eder",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "İkinci çizgiye tıklayın – iki çizgi de kesişim noktasına kadar kırpılır veya uzatılır. Esc iptal eder."
+}

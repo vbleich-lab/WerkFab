@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "انقر على خطين مختلفين.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "الخطان متوازيان – لا يلتقيان أبدًا.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "يمكن قص طرف الخط المتعدد أو تمديده فقط.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "عند نقطة التقاطع هذه لن يتبقى شيء من أحد الخطين.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "انقر: مدّ الخطين حتى نقطة تقاطعهما",
+ "Zweite Linie anklicken · Esc bricht ab": "انقر على الخط الثاني · Esc للإلغاء",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "انقر على الخط الثاني – يُقص الخطان أو يُمدّان حتى نقطة تقاطعهما. Esc للإلغاء."
+}

@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "Клацніть дві різні лінії.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "Лінії паралельні – вони ніде не перетинаються.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "Обрізати чи подовжити можна лише кінець полілінії.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "У цій точці перетину від однієї лінії нічого не залишилося б.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "Клацання: довести обидві лінії до точки перетину",
+ "Zweite Linie anklicken · Esc bricht ab": "Клацніть другу лінію · Esc скасовує",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "Клацніть другу лінію – обидві лінії буде обрізано або подовжено до точки перетину. Esc скасовує."
+}

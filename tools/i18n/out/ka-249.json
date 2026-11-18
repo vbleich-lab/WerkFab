@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "დააწკაპუნეთ ორ სხვადასხვა ხაზზე.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "ხაზები პარალელურია – ისინი არსად იკვეთება.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "მხოლოდ პოლიხაზის ბოლოს მოჭრა ან გაგრძელება შეიძლება.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "ამ გადაკვეთის წერტილში ერთი ხაზიდან არაფერი დარჩებოდა.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "დაწკაპუნება: ორივე ხაზის მიყვანა გადაკვეთის წერტილამდე",
+ "Zweite Linie anklicken · Esc bricht ab": "დააწკაპუნეთ მეორე ხაზზე · Esc აუქმებს",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "დააწკაპუნეთ მეორე ხაზზე – ორივე ხაზი მოიჭრება ან გაგრძელდება გადაკვეთის წერტილამდე. Esc აუქმებს."
+}

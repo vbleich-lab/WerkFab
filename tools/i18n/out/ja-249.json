@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "異なる2本の線をクリックしてください。",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "線が平行です。交わることはありません。",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "トリムまたは延長できるのはポリラインの端だけです。",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "この交点では片方の線が何も残りません。",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "クリック：両方の線を交点まで伸ばす",
+ "Zweite Linie anklicken · Esc bricht ab": "2本目の線をクリック · Esc でキャンセル",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "2本目の線をクリック。両方の線が交点までトリムまたは延長されます。Esc でキャンセル。"
+}

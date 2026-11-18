@@ -1,5 +1,26 @@
 # Änderungen
 
+## v1.0.0-rc.24 – 2026-11-18
+
+### Oberfläche
+- **Werkzeugleiste mit der Maus anpassen:**
+  - Befehle mit gedrückter Maustaste an eine andere Stelle ziehen, auch in eine andere Gruppe desselben Reiters. Eine blaue Linie zeigt, wo der Befehl landet.
+  - Unterkante der Leiste ziehen ändert die Höhe der Leiste und damit die Größe der Symbole.
+  - Der Griff unten rechts ändert Höhe und Breite der Befehle zugleich.
+  - Den rechten Rand einer Gruppe ziehen: Die Gruppe zeigt mehr oder weniger Befehle.
+  - Alles bleibt gespeichert. Ein Doppelklick auf den Griff unten rechts setzt die Leiste des Arbeitsbereichs zurück.
+
+### Skizze
+- **Abrunden und Fase am Mittelpunkt-Rechteck:** Bisher ging das nicht, sobald die Mitte des Rechtecks festgelegt war (z. B. auf dem Ursprung). Jetzt wird das Rechteck zum Linienzug, und eine Konstruktionsdiagonale hält die Mitte an ihrem Platz. So macht es auch die übliche CAD-Darstellung des Mittelpunkt-Rechtecks.
+- **Abrunden und Fase zwischen zwei Linien oder Bögen, die sich kreuzen oder nicht ganz treffen:**
+  - Mit Abrunden oder Fase erst die eine, dann die andere Linie oder den Bogen anklicken, dann den Wert eingeben.
+  - Beide werden bis zu ihrem Schnittpunkt gestutzt bzw. verlängert, ein Bogen entlang seines Kreises. Dann wird die Ecke dort abgerundet bzw. gefast.
+  - Schneiden sich Linie und Bogen oder zwei Bögen zweimal, gilt der Schnittpunkt, der den beiden Klickstellen am nächsten liegt.
+  - Es bleibt jeweils das Stück, auf das geklickt wurde. Beim Überfahren der zweiten Linie zeigt eine Vorschau den neuen Verlauf.
+  - Parallele Linien und mittlere Stücke eines Linienzugs werden mit einer Meldung abgelehnt. Esc bricht nach der ersten Linie ab.
+- **Exakte Bögen in Konturen aus einzelnen Linien:** Eine geschlossene Kontur aus einzelnen Linien und Bögen (oder einem Linienzug mit Abrundungen) ergab bisher angenäherte Bögen. Jetzt hat der Körper dort echte Zylinderflächen.
+- **Abrunden und Fase am Polygon:** Die Ecken von Sechsecken und anderen Polygonen lassen sich jetzt abrunden und fasen. Das Polygon bleibt regelmäßig: Die Ecken liegen auf einem Konstruktionskreis, alle Seiten sind gleich lang, und Mitte und Radius bleiben erhalten.
+
 ## v1.0.0-rc.23 – 2026-11-18
 
 ### Konstruktion

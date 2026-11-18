@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "Napsauta kahta eri viivaa.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "Viivat ovat yhdensuuntaiset – ne eivät kohtaa.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "Vain murtoviivan pään voi trimmata tai jatkaa.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "Tässä leikkauspisteessä toisesta viivasta ei jäisi mitään.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "Napsauta: vie molemmat viivat leikkauspisteeseen",
+ "Zweite Linie anklicken · Esc bricht ab": "Napsauta toista viivaa · Esc peruuttaa",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "Napsauta toista viivaa – molemmat viivat trimmataan tai jatketaan leikkauspisteeseen. Esc peruuttaa."
+}

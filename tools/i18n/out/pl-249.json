@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "Kliknij dwie różne linie.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "Linie są równoległe – nigdy się nie przecinają.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "Przyciąć lub wydłużyć można tylko koniec polilinii.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "W tym punkcie przecięcia z jednej linii nic by nie zostało.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "Kliknij: doprowadź obie linie do punktu przecięcia",
+ "Zweite Linie anklicken · Esc bricht ab": "Kliknij drugą linię · Esc anuluje",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "Kliknij drugą linię – obie linie zostaną przycięte lub wydłużone do punktu przecięcia. Esc anuluje."
+}

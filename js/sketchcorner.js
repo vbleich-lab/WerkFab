@@ -96,15 +96,43 @@ const plainOpen = e => e?.type === 'poly' && !e.curve && !e.closed && e.pts.leng
 const rekey = (obj, f) => { if (!obj) return obj; const o = {}; for (const [k, v] of Object.entries(obj)) { const nk = f(+k); if (nk != null) o[nk] = v; } return Object.keys(o).length ? o : undefined; };
 
 // rectangle → closed polyline with the same point and line numbers (p0 = x/y, counter-clockwise), kept rectangular
-// by horizontal / vertical constraints. Not when the rectangle's centre point is constrained.
+// by horizontal / vertical constraints. A centre held on a point (centre rectangle on the origin) is kept by a
+// construction diagonal whose midpoint lies there; other constraints on the centre: not possible (null).
+const isPointRef = r => r === 'origin' || /:(pd+|c)$/.test(r);
 function rectToPoly(e, cons, newId) {
-  if (cons.some(c => c.refs.includes(`${e.id}:c`))) return null;
+  const cref = `${e.id}:c`, onC = cons.filter(c => c.refs.includes(cref));
+  if (onC.some(c => c.type !== 'coincident' || c.refs.length !== 2 || !isPointRef(c.refs.find(r => r !== cref) || ''))) return null;
   const x0 = +e.x, y0 = +e.y, x1 = x0 + +e.w, y1 = y0 + +e.h;
   const r = +e.r || 0;
   const p = { id: e.id, type: 'poly', closed: true, pts: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]], ...(r > 0 ? { radii: { 0: r, 1: r, 2: r, 3: r } } : {}) };
   if (e.cons) p.cons = true;
   const add = [['horizontal', 0], ['vertical', 1], ['horizontal', 2], ['vertical', 3]].map(([type, l]) => ({ id: newId(), type, refs: [`${e.id}:l${l}`] }));
-  return { e: p, add };
+  if (!onC.length) return { e: p, add };
+  const did = 'e' + newId(), diag = { id: did, type: 'poly', cons: true, closed: false, pts: [[x0, y0], [x1, y1]] };
+  add.push({ id: newId(), type: 'coincident', refs: [`${did}:p0`, `${e.id}:p0`] }, { id: newId(), type: 'coincident', refs: [`${did}:p1`, `${e.id}:p2`] },
+    ...onC.map(c => ({ id: newId(), type: 'midpoint', refs: [c.refs.find(r => r !== cref), `${did}:l0`] })));
+  return { e: p, add, extra: diag, drop: onC.map(c => c.id) };
+}
+
+// corners of a regular polygon (same order as its outline)
+const ngonPts = e => {
+  if (!(+e.r > 0) || +e.n < 3) return [];
+  const rot = ((+e.rot || 0) * Math.PI) / 180 + Math.PI / 2;
+  return Array.from({ length: +e.n }, (_, i) => [+e.cx + +e.r * Math.cos(rot + (i * 2 * Math.PI) / +e.n), +e.cy + +e.r * Math.sin(rot + (i * 2 * Math.PI) / +e.n)]);
+};
+// regular polygon → closed polyline, kept regular: corners on a construction circle (centre and radius of the
+// polygon; constraints on the polygon's centre move to it) and all sides equal. The circle carries of: polygon id.
+function ngonToPoly(e, cons, newId) {
+  const pts = ngonPts(e), n = pts.length;
+  if (n < 3) return null;
+  const cid = 'e' + newId(), circ = { id: cid, type: 'circle', cons: true, cx: +e.cx, cy: +e.cy, r: +e.r, of: e.id };
+  for (const c of cons) c.refs = c.refs.map(r => (r === `${e.id}:c` ? `${cid}:c` : r));
+  const p = { id: e.id, type: 'poly', closed: true, pts: pts.map(q => [+q[0].toFixed(6), +q[1].toFixed(6)]) };
+  if (e.cons) p.cons = true;
+  const add = [];
+  for (let k = 0; k < n; k++) add.push({ id: newId(), type: 'coincident', refs: [`${e.id}:p${k}`, `${cid}:o`] });
+  for (let k = 0; k < n - 1; k++) add.push({ id: newId(), type: 'equal', refs: [`${e.id}:l${k}`, `${e.id}:l${k + 1}`] });
+  return { e: p, add, extra: circ };
 }
 
 // reversing a polyline: point k → n-1-k, line k → n-2-k (open)
@@ -165,6 +193,7 @@ export function applyCorners(entities, constraints, picks, kind, value, newId) {
     const [id, s] = ref.split(':'), e = ents.find(x => x.id === id), k = +String(s).slice(1);
     if (!e || !s || s[0] !== 'p') return null;
     if (e.type === 'rect') return { id, p: [[+e.x, +e.y], [+e.x + +e.w, +e.y], [+e.x + +e.w, +e.y + +e.h], [+e.x, +e.y + +e.h]][k] };
+    if (e.type === 'ngon') return ngonPts(e)[k] ? { id, p: ngonPts(e)[k] } : null;
     return e.pts?.[k] ? { id, p: [+e.pts[k][0], +e.pts[k][1]] } : null;
   });
   const alias = {}, changed = new Set();
@@ -173,11 +202,13 @@ export function applyCorners(entities, constraints, picks, kind, value, newId) {
   for (const t of targets) {
     if (!t) { skipped++; continue; }
     let e = ents.find(x => x.id === live(t.id));
-    if (e?.type === 'rect') {
-      const rp = rectToPoly(e, cons, newId);
+    if (e?.type === 'rect' || e?.type === 'ngon') {
+      const rp = e.type === 'rect' ? rectToPoly(e, cons, newId) : ngonToPoly(e, cons, newId);
       if (!rp) { skipped++; continue; }
       ents[ents.indexOf(e)] = rp.e;
       changed.add(e.id);
+      if (rp.extra) ents.push(rp.extra);
+      if (rp.drop) for (const id of rp.drop) cons.splice(cons.findIndex(c => c.id === id), 1);
       cons.push(...rp.add);
       e = rp.e;
     }
@@ -224,6 +255,8 @@ export function cornerAt(entities, p, tol) {
     if (e.cons) continue;
     if (e.type === 'rect' && +e.w > 0 && +e.h > 0) {
       [[+e.x, +e.y], [+e.x + +e.w, +e.y], [+e.x + +e.w, +e.y + +e.h], [+e.x, +e.y + +e.h]].forEach((q, k) => consider(`${e.id}:p${k}`, q));
+    } else if (e.type === 'ngon') {
+      ngonPts(e).forEach((q, k) => consider(`${e.id}:p${k}`, q));
     } else if (e.type === 'poly' && !e.curve) {
       const n = e.pts.length;
       e.pts.forEach((q0, k) => {
@@ -244,6 +277,138 @@ export function cornerAt(entities, p, tol) {
     consider(`${e.id}:b`, e.pts.length === 3 ? [+e.pts[1][0], +e.pts[1][1]] : [(+e.pts[0][0] + +e.pts[1][0]) / 2, (+e.pts[0][1] + +e.pts[1][1]) / 2]);
   }
   return best;
+}
+
+// ---- two lines that do not meet in a corner (they cross, or end short of each other) ----
+const segDist2 = (p, a, b) => {
+  const d = sub(b, a), L2 = d[0] * d[0] + d[1] * d[1], t = L2 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * d[0] + (p[1] - a[1]) * d[1]) / L2)) : 0;
+  return len(sub(p, [a[0] + d[0] * t, a[1] + d[1] * t]));
+};
+// the line or arc under p that can be cut back or lengthened to meet another one: a line, the first / last segment
+// of an open polyline, or a 3-point arc → { id, seg, c: the clicked point } or null
+export function cornerLineAt(entities, p, tol) {
+  let best = null, bd = tol;
+  for (const e of entities) {
+    if (e.cons) continue;
+    if (isArcE(e)) {
+      const C = curveOf(e, 0);
+      if (!C) continue;
+      const t = C.par(p);
+      if (t > C.S + 1e-9) continue;
+      const d = Math.abs(len(sub(p, C.c)) - C.r);
+      if (d < bd) { bd = d; best = { id: e.id, seg: 0, c: [+p[0], +p[1]] }; }
+      continue;
+    }
+    if (!plainOpen(e)) continue;
+    const n = e.pts.length;
+    for (const sg of n === 2 ? [0] : [0, n - 2]) {
+      const d = segDist2(p, e.pts[sg].map(Number), e.pts[sg + 1].map(Number));
+      if (d < bd) { bd = d; best = { id: e.id, seg: sg, c: [+p[0], +p[1]] }; }
+    }
+  }
+  return best;
+}
+// a picked line (segment seg) or arc as geometry: lines P→Q, arcs circle c / r from angle a0 sweeping sw (signed)
+function curveOf(e, seg) {
+  if (isArcE(e)) {
+    const [A, M, B] = e.pts.map(q => q.map(Number)), ci = circle3(A, M, B);
+    if (!ci) return null;
+    const ang = q => Math.atan2(q[1] - ci.c[1], q[0] - ci.c[0]), a0 = ang(A);
+    let sw = norm(ang(B) - a0);
+    if (norm(ang(M) - a0) > sw) sw -= TAU;
+    const dir = Math.sign(sw) || 1;
+    // param of a point: the angle from the start in the direction of the arc, 0 … 2π
+    return { kind: 'A', e, c: ci.c, r: ci.r, a0, dir, S: Math.abs(sw), A, B, ang, par: q => norm(dir * (ang(q) - a0)) };
+  }
+  if (!plainOpen(e) || !e.pts[seg + 1]) return null;
+  return { kind: 'L', e, seg, P: e.pts[seg].map(Number), Q: e.pts[seg + 1].map(Number) };
+}
+// where two curves (lines endless, arcs as full circles) cross
+function crossings(a, b) {
+  const cr = (u, v) => u[0] * v[1] - u[1] * v[0], dot = (u, v) => u[0] * v[0] + u[1] * v[1];
+  if (a.kind === 'L' && b.kind === 'L') {
+    const da = sub(a.Q, a.P), db = sub(b.Q, b.P), den = cr(da, db);
+    if (Math.abs(den) < 1e-9 * len(da) * len(db)) return null; // parallel
+    const t = cr(sub(b.P, a.P), db) / den;
+    return [[a.P[0] + da[0] * t, a.P[1] + da[1] * t]];
+  }
+  if (a.kind === 'A' && b.kind === 'L') return crossings(b, a);
+  if (a.kind === 'L') {
+    const d = sub(a.Q, a.P), f = sub(a.P, b.c), A2 = dot(d, d), B2 = 2 * dot(f, d), C2 = dot(f, f) - b.r * b.r, disc = B2 * B2 - 4 * A2 * C2;
+    if (disc < -1e-9 * A2 * b.r * b.r) return [];
+    const q = Math.sqrt(Math.max(0, disc));
+    return [(-B2 - q) / (2 * A2), (-B2 + q) / (2 * A2)].map(t => [a.P[0] + d[0] * t, a.P[1] + d[1] * t]);
+  }
+  const d = len(sub(b.c, a.c));
+  if (d < 1e-9 || d > a.r + b.r + 1e-9 || d < Math.abs(a.r - b.r) - 1e-9) return [];
+  const x = (d * d + a.r * a.r - b.r * b.r) / (2 * d), h = Math.sqrt(Math.max(0, a.r * a.r - x * x));
+  const u = [(b.c[0] - a.c[0]) / d, (b.c[1] - a.c[1]) / d], m = [a.c[0] + u[0] * x, a.c[1] + u[1] * x];
+  return [[m[0] - u[1] * h, m[1] + u[0] * h], [m[0] + u[1] * h, m[1] - u[0] * h]];
+}
+const r6 = p => [+(+p[0]).toFixed(6), +(+p[1]).toFixed(6)];
+// how one curve changes so that it ends at X and keeps the part where it was clicked (c)
+function moveTo(C, X, c) {
+  if (C.kind === 'L') {
+    const d = sub(C.Q, C.P), L2 = d[0] * d[0] + d[1] * d[1], par = q => ((q[0] - C.P[0]) * d[0] + (q[1] - C.P[1]) * d[1]) / L2;
+    const tx = par(X), side = Math.sign(par(c) - tx) || 1;
+    // ends: t = 0 (point seg) and t = 1 (point seg + 1); the one on the clicked side stays
+    const on = [0, 1].filter(t => Math.sign(t - tx) === side);
+    const moveT = on.length === 1 ? 1 - on[0] : Math.abs(0 - tx) < Math.abs(1 - tx) ? 0 : 1;
+    const k = C.seg + moveT, n = C.e.pts.length;
+    if (k !== 0 && k !== n - 1) return { error: 'Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.' };
+    const keep = C.e.pts[moveT ? C.seg : C.seg + 1].map(Number);
+    if (len(sub(keep, X)) < 1e-6) return { error: 'Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.' };
+    return { id: C.e.id, k, p: r6(X) };
+  }
+  // an arc: either its end moves to X (start stays) or its start does (end stays) – along the same circle
+  const tX = C.par(X), tc = C.par(c), eps = 1e-7;
+  const len1 = tX, len2 = norm(C.S - tX);
+  const has1 = len1 > eps && tc <= len1 + eps, has2 = len2 > eps && norm(tc - tX) <= len2 + eps;
+  let which = has1 && !has2 ? 1 : has2 && !has1 ? 2 : Math.abs(len1 - C.S) <= Math.abs(len2 - C.S) ? 1 : 2;
+  if (which === 1 && !(len1 > eps)) which = 2;
+  if (which === 2 && !(len2 > eps)) return { error: 'Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.' };
+  const at = a => [C.c[0] + C.r * Math.cos(a), C.c[1] + C.r * Math.sin(a)];
+  const aX = C.ang(X);
+  const pts = which === 1 ? [C.A, at(C.a0 + (C.dir * len1) / 2), X] : [X, at(aX + (C.dir * len2) / 2), C.B];
+  return { id: C.e.id, k: which === 1 ? 2 : 0, p: r6(X), pts: pts.map(r6) };
+}
+/**
+ * Brings two lines or arcs (from cornerLineAt) to a point where they intersect: each keeps the part on the side
+ * where it was clicked and its other end moves to the intersection – cut back where they cross, lengthened where
+ * they end short (an arc along its circle). Of two intersections (line and arc, two arcs) the one nearest to the
+ * clicks is taken. Returns { moves: [{ id, k, p, pts? }], join: [refA, refB] (the two ends that now meet), X } or
+ * { error }.
+ */
+export function meetLines(entities, A, B) {
+  if (!A || !B || A.id === B.id) return { error: 'Zwei verschiedene Linien anklicken.' };
+  const get = L => { const e = entities.find(x => x.id === L.id); return e ? curveOf(e, L.seg) : null; };
+  const a = get(A), b = get(B);
+  if (!a || !b) return { error: 'Zwei verschiedene Linien anklicken.' };
+  const xs = crossings(a, b);
+  if (!xs) return { error: 'Die Linien sind parallel – sie treffen sich nirgends.' };
+  if (!xs.length) return { error: 'Die beiden Kurven schneiden sich nirgends.' };
+  const X = xs.reduce((best, q) => (len(sub(q, A.c)) + len(sub(q, B.c)) < len(sub(best, A.c)) + len(sub(best, B.c)) ? q : best));
+  const moves = [];
+  for (const [C, L] of [[a, A], [b, B]]) {
+    const m = moveTo(C, X, L.c);
+    if (m.error) return m;
+    moves.push(m);
+  }
+  return { moves, join: moves.map(m => m.id + ':p' + m.k), X };
+}
+// the curves as they would be after meetLines (for the preview)
+export function meetPreview(entities, r) {
+  return r.moves.map(m => {
+    if (m.pts) {
+      const ci = circle3(...m.pts);
+      if (!ci) return m.pts;
+      const C = curveOf({ type: 'poly', curve: 'arc', pts: m.pts }, 0), n = Math.max(8, Math.ceil(C.S * 16));
+      return Array.from({ length: n + 1 }, (_, i) => { const t = C.a0 + (C.dir * C.S * i) / n; return [ci.c[0] + ci.r * Math.cos(t), ci.c[1] + ci.r * Math.sin(t)]; });
+    }
+    const e = entities.find(x => x.id === m.id), pts = e.pts.map(q => q.map(Number));
+    pts[m.k] = m.p;
+    return pts;
+  });
 }
 
 // ---- a rounding between a line and an arc, or between two arcs ----

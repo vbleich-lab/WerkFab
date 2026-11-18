@@ -27,7 +27,7 @@ import { StockSim, defaultFluteLen, defaultHolderDia, defaultStickout } from './
 import { exampleProject, exampleTurning, exampleMilling, exampleDesign } from './example.js';
 import { describeEntity, entityPolys, translateEntity, rotateEntity, scaleEntity, mirrorEntity as mirrorAbout, loopsAt, sameCell, cellShapes, allCells } from './profiles.js';
 import { meshInertia, zipStore } from './mesh.js';
-import { applyCorners, cornerPlan, curveCorner, filletCurves, chamferCurves, unbridge, bridgeRadius } from './sketchcorner.js';
+import { applyCorners, cornerPlan, curveCorner, filletCurves, chamferCurves, unbridge, bridgeRadius, meetLines } from './sketchcorner.js';
 import { offsetEntities } from './sketchoffset.js';
 import { parseDXF, writeDXF } from './dxf.js';
 import { inkFromRGBA, traceImage, toSketch, toSVG, toEntities, quantize, inkOfColors, simplify as simplifyLine } from './trace.js';
@@ -420,7 +420,7 @@ const sketcher = new Sketcher(vp, {
   project: e => projectFaceAt(e),
   preview: () => rebuildScene(),
   overlay: () => refreshSketchOverlay(),
-  corner: (kind, ref) => sketchCorner(kind, [ref]), offset: (id, sign) => sketchOffsetAt(id, sign), xform: (kind, data) => sketchXform(kind, data),
+  corner: (kind, ref) => sketchCorner(kind, [ref]), cornerLines: (kind, a, b) => sketchCornerLines(kind, a, b), offset: (id, sign) => sketchOffsetAt(id, sign), xform: (kind, data) => sketchXform(kind, data),
   addDim: d => createDim(d),
   evalNum: str => { const v = /^[-+]?[0-9.]+$/.test(str) ? +str : evalExpr(str, paramScope(state.project)); return Number.isFinite(v) ? v : NaN; },
   tip: (text, e) => {
@@ -2481,7 +2481,8 @@ function tgroup(label, ...items) {
   const lbl = buttons
     ? h('button', { class: 'tgroup-label dd', onclick: e => openToolDrop(e.currentTarget.closest('.tgroup')) }, label, h('span', { class: 'caret' }, '▾'))
     : h('div', { class: 'tgroup-label' }, label);
-  const g = h('div', { class: 'tgroup' }, h('div', { class: 'tgroup-items' }, ...(buttons ? [] : items)), lbl);
+  const g = h('div', { class: 'tgroup' }, h('div', { class: 'tgroup-items' }, ...(buttons ? [] : items)), lbl,
+    buttons ? h('div', { class: 'tg-grip', title: 'Ziehen: mehr oder weniger Befehle in dieser Gruppe zeigen' }) : null);
   if (buttons) { g._items = items; g._label = label; }
   return g;
 }
@@ -2508,11 +2509,158 @@ const groupKey = (tab, label) => `${state.workspace}|${tab}|${label}`;
 function pinnedIds(g) {
   return tbPins[groupKey(g._tab, g._label)] ?? g._items.slice(0, GROUP_VISIBLE[g._label] ?? g._items.length).map(cmdId);
 }
-function fillGroup(g, tab) {
+function fillGroup(g, tab, byId, used) {
   if (!g._items) return;
   g._tab = tab;
-  const ids = new Set(pinnedIds(g));
-  g.querySelector('.tgroup-items').replaceChildren(...g._items.filter(b => ids.has(cmdId(b))));
+  const own = new Map(g._items.map(b => [cmdId(b), b]));
+  const list = [];
+  for (const id of pinnedIds(g)) {
+    const b = own.get(id) || byId?.get(id);
+    if (!b || used?.has(id)) continue;
+    used?.add(id);
+    list.push(b);
+  }
+  g.querySelector('.tgroup-items').replaceChildren(...list);
+}
+const savePins = (g, ids) => { tbPins[groupKey(g._tab, g._label)] = ids; saveJ('openfab.toolbar.v1', tbPins); };
+
+// ---- toolbar layout by mouse: move commands, size of the bar, length of a group ----
+const tbSize = loadJ('openfab.tbsize.v1', {}); // { ic: icon px, w: button width px }
+function applyTbSize() {
+  const tb = $('#toolbar');
+  if (!tb) return;
+  tb.classList.toggle('tb-sized', !!(tbSize.ic || tbSize.w));
+  if (tbSize.ic) tb.style.setProperty('--tb-ic', tbSize.ic + 'px'); else tb.style.removeProperty('--tb-ic');
+  if (tbSize.w) tb.style.setProperty('--tb-w', tbSize.w + 'px'); else tb.style.removeProperty('--tb-w');
+}
+function curTbSize() {
+  const b = $('#tools .tbtn'), sv = b?.querySelector('svg');
+  return { ic: tbSize.ic || Math.round(sv?.getBoundingClientRect().height || 24), w: tbSize.w || Math.round(b ? parseFloat(getComputedStyle(b).minWidth) || 52 : 52) };
+}
+function dragPointer(e, move, done) {
+  const x0 = e.clientX, y0 = e.clientY;
+  const mv = ev => move(ev.clientX - x0, ev.clientY - y0, ev);
+  const up = ev => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); document.body.classList.remove('tb-resizing'); done?.(ev); };
+  document.body.classList.add('tb-resizing');
+  addEventListener('pointermove', mv); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+}
+const swallowClick = () => addEventListener('click', ev => { ev.stopPropagation(); ev.preventDefault(); }, { capture: true, once: true });
+function resetTbLayout() {
+  delete tbSize.ic; delete tbSize.w;
+  saveJ('openfab.tbsize.v1', tbSize);
+  for (const k of Object.keys(tbPins)) if (k.startsWith(state.workspace + '|')) delete tbPins[k];
+  saveJ('openfab.toolbar.v1', tbPins);
+  applyTbSize();
+  renderToolbar();
+  status('Werkzeugleiste zurückgesetzt');
+}
+function initToolbarLayout() {
+  const tb = $('#toolbar');
+  if (!tb || tb.dataset.layout) return;
+  tb.dataset.layout = '1';
+  applyTbSize();
+  // grips: bottom edge = height (size of the symbols), corner = height and width of the buttons
+  const gripH = h('div', { class: 'tb-grip-h', title: 'Ziehen: Höhe der Werkzeugleiste (Größe der Symbole) · Doppelklick: zurücksetzen' });
+  const gripC = h('div', { class: 'tb-grip-c', title: 'Ziehen: Höhe und Breite der Befehle · Doppelklick: Werkzeugleiste zurücksetzen' });
+  tb.append(gripH, gripC);
+  const sizeDrag = (e, withW) => {
+    e.preventDefault();
+    const s0 = curTbSize();
+    dragPointer(e, (dx, dy) => {
+      tbSize.ic = Math.max(14, Math.min(64, Math.round(s0.ic + dy / 1.4)));
+      if (withW) tbSize.w = Math.max(28, Math.min(120, Math.round(s0.w + dx / Math.max(3, $('#tools').querySelectorAll('.tbtn').length / 2))));
+      applyTbSize();
+    }, () => saveJ('openfab.tbsize.v1', tbSize));
+  };
+  gripH.addEventListener('pointerdown', e => sizeDrag(e, false));
+  gripC.addEventListener('pointerdown', e => sizeDrag(e, true));
+  gripH.addEventListener('dblclick', () => { delete tbSize.ic; saveJ('openfab.tbsize.v1', tbSize); applyTbSize(); });
+  gripC.addEventListener('dblclick', resetTbLayout);
+
+  const tools = $('#tools');
+  tools.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    // right edge of a group: show more / fewer of its commands
+    const grip = e.target.closest('.tg-grip');
+    if (grip) {
+      e.preventDefault();
+      const g = grip.closest('.tgroup');
+      const box = g.querySelector('.tgroup-items');
+      const ids0 = [...box.children].map(cmdId);
+      const step = Math.max(24, (box.getBoundingClientRect().width / Math.max(1, ids0.length)) || 50);
+      const shown = new Set([...$('#tools').querySelectorAll('.tgroup-items > .tbtn')].map(cmdId));
+      const rest = g._items.map(cmdId).filter(id => !shown.has(id));
+      let ids = ids0;
+      dragPointer(e, dx => {
+        const n = Math.max(0, Math.min(ids0.length + rest.length, ids0.length + Math.round(dx / step)));
+        const next = n <= ids0.length ? ids0.slice(0, n) : [...ids0, ...rest.slice(0, n - ids0.length)];
+        if (next.join() === ids.join()) return;
+        ids = next;
+        savePins(g, ids);
+        renderToolbar();
+      });
+      return;
+    }
+    // a command: hold and move to put it somewhere else in the bar
+    const b = e.target.closest('.tgroup-items > .tbtn');
+    const src = b?.closest('.tgroup');
+    if (!b || !src?._items) return;
+    const x0 = e.clientX, y0 = e.clientY, touch = e.pointerType === 'touch', t0 = performance.now();
+    let ghost = null, mark = null, target = null;
+    const where = ev => {
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const g = el?.closest('#tools .tgroup');
+      if (!g?._items) return null;
+      const kids = [...g.querySelector('.tgroup-items').children].filter(k => k !== b);
+      let i = kids.findIndex(k => { const r = k.getBoundingClientRect(); return ev.clientX < r.left + r.width / 2; });
+      if (i < 0) i = kids.length;
+      return { g, i, kids };
+    };
+    const mv = ev => {
+      if (!ghost) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+        if (touch && performance.now() - t0 < 350) { end(); return; } // a swipe scrolls the bar
+        ghost = b.cloneNode(true);
+        ghost.classList.add('tb-ghost');
+        document.body.append(ghost);
+        mark = h('div', { class: 'tb-mark' });
+        document.body.append(mark);
+        b.classList.add('tb-dragging');
+        document.body.classList.add('tb-moving');
+      }
+      ev.preventDefault();
+      ghost.style.left = ev.clientX - 20 + 'px';
+      ghost.style.top = ev.clientY - 16 + 'px';
+      target = where(ev);
+      mark.style.display = target ? '' : 'none';
+      if (target) {
+        const { g, i, kids } = target;
+        const box = g.querySelector('.tgroup-items').getBoundingClientRect();
+        const r = kids[i]?.getBoundingClientRect(), p = kids[i - 1]?.getBoundingClientRect();
+        const x = r ? r.left - 1 : p ? p.right + 1 : box.left + 4;
+        Object.assign(mark.style, { left: x - 1 + 'px', top: box.top + 'px', height: box.height + 'px' });
+      }
+    };
+    const end = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', cancel); };
+    const cancel = () => { end(); ghost?.remove(); mark?.remove(); b.classList.remove('tb-dragging'); document.body.classList.remove('tb-moving'); };
+    const up = ev => {
+      const moved = !!ghost;
+      cancel();
+      if (!moved) return;
+      swallowClick();
+      target = where(ev);
+      if (!target) return;
+      const id = cmdId(b);
+      const ids = [...target.g.querySelector('.tgroup-items').children].filter(k => k !== b).map(cmdId);
+      ids.splice(target.i, 0, id);
+      if (target.g !== src) savePins(src, [...src.querySelector('.tgroup-items').children].map(cmdId).filter(x => x !== id));
+      savePins(target.g, ids);
+      renderToolbar();
+    };
+    addEventListener('pointermove', mv, { passive: false });
+    addEventListener('pointerup', up);
+    addEventListener('pointercancel', cancel);
+  });
 }
 function setPinned(g, b, on) {
   const id = cmdId(b);
@@ -2543,7 +2691,7 @@ function closeToolDrop() {
 function onDropOutside(e) { if (toolDrop && !toolDrop.contains(e.target) && !e.target.closest('.tdrop-sub')) closeToolDrop(); }
 function openToolDrop(g) {
   if (toolDrop) return closeToolDrop();
-  const items = g._items;
+  const items = [...g._items, ...[...g.querySelectorAll('.tgroup-items > .tbtn')].filter(b => !g._items.includes(b))];
   toolDrop = h('div', { class: 'tdrop' }, ...items.map(it => {
     const row = h('div', { class: 'tdrop-row' },
       h('button', {
@@ -2979,8 +3127,13 @@ function renderToolbar() {
   if (state.workspace === 'cam' && !state.sketchId && (cur === 'FRÄSEN' || cur === 'DREHEN')) cur = activeSetupKind() === 'turn' ? 'DREHEN' : 'FRÄSEN';
   if (!names.includes(cur)) cur = names[0];
   $('#tabs').replaceChildren(...names.map(n => h('button', { class: n === cur ? 'on' : '', onclick: () => chooseTab(n) }, n)));
-  for (const [tab, groups] of Object.entries(tabs)) for (const g of groups) fillGroup(g, tab);
+  for (const [tab, groups] of Object.entries(tabs)) {
+    const byId = new Map(), used = new Set();
+    for (const g of groups) for (const b of g._items || []) if (!byId.has(cmdId(b))) byId.set(cmdId(b), b);
+    for (const g of groups) fillGroup(g, tab, byId, used);
+  }
   t.append(...tabs[cur]);
+  initToolbarLayout();
   // every command of every tab (shown or not), for the command search and keyboard shortcuts
   allToolButtons = [];
   const seen = new Set();
@@ -10670,14 +10823,28 @@ const sketchFillet = () => sketchCornerTool('fillet');
 const sketchChamfer = () => sketchCornerTool('chamfer');
 function sketchCornerTool(kind) {
   const rsk = resolved().features.find(f => f.id === state.sketchId);
-  const picks = sketcher.selection.filter(r => { const [id, k] = r.split(':'), e = rsk.entities.find(x => x.id === id); return k && k[0] === 'p' && (e?.type === 'rect' || (e?.type === 'poly' && !e.curve) || curveCorner(rsk.entities, r)); });
+  const picks = sketcher.selection.filter(r => { const [id, k] = r.split(':'), e = rsk.entities.find(x => x.id === id); return k && k[0] === 'p' && (e?.type === 'rect' || e?.type === 'ngon' || (e?.type === 'poly' && !e.curve) || curveCorner(rsk.entities, r)); });
   // (a rounding arc or chamfer line picked as a whole: change or remove it)
   for (const r of sketcher.selection) { const id = r.split(':')[0]; if (!picks.some(q => q.split(':')[0] === id) && bridgeRadius(rsk.entities, id) != null) picks.push(`${id}:b`); }
   if (picks.length) return sketchCorner(kind, picks);
   sketcher.setTool(kind);
   status(`${kind === 'fillet' ? 'Abrunden' : 'Fase'}: Ecke anklicken – Linienzug, Rechteck oder Treffpunkt zweier Linien. Das Werkzeug bleibt aktiv, Esc beendet.`);
 }
-async function sketchCorner(kind, picks) {
+// two lines that cross or end short of each other: once the value is entered both are brought to their
+// intersection (cut back or lengthened) and the corner there is rounded / chamfered
+function sketchCornerLines(kind, a, b) {
+  const rsk = resolved().features.find(f => f.id === state.sketchId), r = meetLines(rsk.entities, a, b);
+  if (r.error) return status(`${kind === 'fillet' ? 'Abrunden' : 'Fase'}: ${r.error}`);
+  return sketchCorner(kind, [r.join[0]], () => commitSketch(state.sketchId, sk => {
+    for (const m of r.moves) { const x = sk.entities.find(q => q.id === m.id); if (x) { if (m.pts) x.pts = m.pts; else x.pts[m.k] = m.p; } }
+    // what held the old ends (their connections, distances, a length of the changed segment) would pull them back
+    const moved = new Set(r.moves.flatMap(m => (m.pts ? [`${m.id}:p${m.k}`, `${m.id}:p1`] : [`${m.id}:p${m.k}`])));
+    const segs = new Set(r.moves.filter(m => !m.pts).map(m => `${m.id}:l${m.k === 0 ? 0 : m.k - 1}`));
+    sk.constraints = (sk.constraints || []).filter(c => !c.refs.some(x => moved.has(x)) && !(c.type === 'dim' && c.refs.length === 1 && segs.has(c.refs[0])));
+    sk.constraints.push({ id: uid('c'), type: 'coincident', refs: r.join });
+  }));
+}
+async function sketchCorner(kind, picks, before) {
   let rsk = resolved().features.find(f => f.id === state.sketchId);
   const what = kind === 'fillet' ? 'Abrunden' : 'Fase';
   if (!picks?.length) return;
@@ -10700,6 +10867,7 @@ async function sketchCorner(kind, picks) {
   const vals = typed.map(v => evalExpr(v, scope));
   if (!vals.length || vals.some(v => !Number.isFinite(v) || v < 0)) return status(`${what}: ungültiger Wert oder unbekannter Parameter`);
   const value = kind === 'chamfer' && vals.length > 1 ? vals.slice(0, 2) : vals[0];
+  if (before) { before(); rsk = resolved().features.find(f => f.id === state.sketchId); }
   // what is stored: the number, or the formula where the entry names a parameter
   const keep = typed.map((s, i) => (/[A-Za-z_]/.test(s) ? '=' + s : vals[i]));
   const stored = kind === 'chamfer' && keep.length > 1 && Math.abs(vals[1] - vals[0]) > 1e-12 ? keep.slice(0, 2) : keep[0];
@@ -10788,6 +10956,8 @@ async function sketchCorner(kind, picks) {
         const x1 = plus(r.x, r.w), y1 = plus(r.y, r.h);
         return { ...e, pts: [[r.x, r.y], [x1, r.y], [x1, y1], [r.x, y1]] };
       }
+      // polygon → polyline: its construction circle keeps the polygon's formulas (centre, radius)
+      if (e.of != null) { const { of, ...c } = e, g = raw[of]; return g?.type === 'ngon' ? { ...c, cx: g.cx, cy: g.cy, r: g.r } : c; }
       if (!r || changed.has(e.id)) return e;
       const x = { ...r };
       if (e.radii) x.radii = e.radii; else delete x.radii;

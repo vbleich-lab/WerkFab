@@ -69,8 +69,25 @@ const sq = { id: 'S', type: 'poly', closed: true, pts: [[0, 0], [20, 0], [20, 10
   ok('Rechteck bleibt rechtwinklig (H/V-Bedingungen) und Bemaßung bleibt', hv.length === 4 && r.constraints.some(c => c.id === 'd1' && J(c.refs) === J(['R:p0', 'R:p1'])), J(hv.map(c => c.type + c.refs)));
   const rr = applyCorners([{ ...rect, r: 2 }], [], ['R:p0'], 'fillet', 5, newId).entities[0];
   ok('Rechteck mit Eckenradius: übrige Ecken behalten ihn', J(rr.radii) === J({ 0: 5, 1: 2, 2: 2, 3: 2 }));
-  const blocked = applyCorners([rect], [{ id: 'm', type: 'coincident', refs: ['R:c', 'origin'] }], ['R:p0'], 'fillet', 2, newId);
-  ok('Rechteck mit Bedingung an der Mitte bleibt unverändert', blocked.done === 0 && blocked.entities[0].type === 'rect');
+  // centre rectangle on the origin: a construction diagonal keeps the centre there (midpoint on the origin)
+  const cr = applyCorners([rect], [{ id: 'm', type: 'coincident', refs: ['R:c', 'origin'] }], ['R:p0'], 'fillet', 2, newId);
+  const dg = cr.entities.find(x => x.cons);
+  ok('Mittelpunkt-Rechteck: abgerundet, Mitte über Konstruktionsdiagonale gehalten', cr.done === 1 && cr.entities[0].type === 'poly' && cr.entities[0].radii[0] === 2
+    && dg && J(dg.pts) === J([[0, 0], [30, 20]]) && !cr.constraints.some(c => c.id === 'm')
+    && cr.constraints.some(c => c.type === 'midpoint' && J(c.refs) === J(['origin', `${dg.id}:l0`]))
+    && cr.constraints.some(c => c.type === 'coincident' && J(c.refs) === J([`${dg.id}:p1`, 'R:p2'])), J(cr.constraints.slice(-3)));
+  const blocked = applyCorners([rect], [{ id: 'm', type: 'distance', refs: ['R:c', 'origin'], value: 5 }], ['R:p0'], 'fillet', 2, newId);
+  ok('Rechteck mit Abstandsmaß an der Mitte bleibt unverändert', blocked.done === 0 && blocked.entities[0].type === 'rect');
+}
+{
+  // regular polygon: corners on a construction circle that takes over the centre constraint, all sides equal
+  const ng = { id: 'N', type: 'ngon', cx: 0, cy: 0, r: 20, n: 6, rot: 0 };
+  const r = applyCorners([ng], [{ id: 'm', type: 'coincident', refs: ['N:c', 'origin'] }], ['N:p0'], 'fillet', 3, newId);
+  const e = r.entities[0], ci = r.entities.find(x => x.type === 'circle');
+  ok('Polygon → Linienzug mit Abrundung an Ecke 0', r.done === 1 && e.type === 'poly' && e.closed && e.pts.length === 6 && near(e.pts[0], [0, 20]) && e.radii[0] === 3, J(e.pts[0]));
+  ok('Polygon bleibt regelmäßig (Ecken auf Konstruktionskreis, Seiten gleich, Mitte am Ursprung)', ci?.cons && ci.r === 20 && ci.of === 'N'
+    && r.constraints.filter(c => c.type === 'coincident' && c.refs[1] === `${ci.id}:o`).length === 6 && r.constraints.filter(c => c.type === 'equal').length === 5
+    && r.constraints.some(c => c.id === 'm' && J(c.refs) === J([`${ci.id}:c`, 'origin'])));
 }
 {
   // two separate lines meeting at (10,0): joined, the corner rounded; constraints follow the new numbers
@@ -156,4 +173,49 @@ const sq = { id: 'S', type: 'poly', closed: true, pts: [[0, 0], [20, 0], [20, 10
   // an arc drawn by hand between two lines that it does not leave tangentially is no rounding; neither is a plain line
   const hand = [{ id: 'P', type: 'poly', closed: false, pts: [[0, 0], [10, 0]] }, { id: 'Q', type: 'poly', curve: 'arc', closed: false, pts: [[10, 0], [15, 3], [20, 0]] }, { id: 'R', type: 'poly', closed: false, pts: [[20, 0], [30, 0]] }, { id: 'S', type: 'poly', closed: false, pts: [[30, 0], [30, 9]] }];
   ok('Kein Entfernen an einem gezeichneten Bogen oder einer gewöhnlichen Linie', bridgeRadius(hand, 'Q') === null && bridgeRadius(hand, 'R') === null && unbridge(hand, 'Q') === null);
+}
+{
+  // two lines that do not meet in a corner: brought to their intersection, then the corner is rounded
+  const { meetLines, cornerLineAt } = await import('../js/sketchcorner.js');
+  const H = { id: 'H', type: 'poly', closed: false, pts: [[0, 0], [60, 0]] }, V = { id: 'V', type: 'poly', closed: false, pts: [[50, -10], [50, 30]] };
+  const a = cornerLineAt([H, V], [10, 0.2], 1), b = cornerLineAt([H, V], [50.2, 20], 1);
+  const r = meetLines([H, V], a, b);
+  ok('Kreuzende Linien: beide auf den Schnittpunkt gestutzt (Klickseite bleibt)', !r.error && near(r.X, [50, 0]) && J(r.moves) === J([{ id: 'H', k: 1, p: [50, 0] }, { id: 'V', k: 0, p: [50, 0] }]) && J(r.join) === J(['H:p1', 'V:p0']), J(r));
+  const r2 = meetLines([H, V], cornerLineAt([H, V], [55, 0.1], 1), cornerLineAt([H, V], [50.1, -5], 1));
+  ok('Kreuzende Linien: andere Klickseite behält die anderen Stücke', !r2.error && J(r2.moves) === J([{ id: 'H', k: 0, p: [50, 0] }, { id: 'V', k: 1, p: [50, 0] }]), J(r2));
+  const G = { id: 'G', type: 'poly', closed: false, pts: [[0, 0], [40, 0]] }, W = { id: 'W', type: 'poly', closed: false, pts: [[50, 30], [50, 8]] };
+  const r3 = meetLines([G, W], cornerLineAt([G, W], [20, 0], 1), cornerLineAt([G, W], [50, 20], 1));
+  ok('Lücke: beide Linien bis zum Schnittpunkt verlängert', !r3.error && J(r3.moves) === J([{ id: 'G', k: 1, p: [50, 0] }, { id: 'W', k: 1, p: [50, 0] }]), J(r3));
+  const ents = [G, W].map(e => ({ ...e, pts: e.pts.map(q => q.slice()) }));
+  for (const m of r3.moves) ents.find(e => e.id === m.id).pts[m.k] = m.p;
+  const f = applyCorners(ents, [{ id: 'j', type: 'coincident', refs: r3.join }], [r3.join[0]], 'fillet', 4, newId);
+  ok('Lücke: danach abgerundet (ein Linienzug)', f.done === 1 && f.entities.length === 1 && J(f.entities[0].pts) === J([[0, 0], [50, 0], [50, 30]]) && f.entities[0].radii[1] === 4, J(f.entities));
+  const P = { id: 'P', type: 'poly', closed: false, pts: [[0, 5], [40, 5]] };
+  ok('Parallele Linien: Meldung statt Änderung', /parallel/.test(meetLines([G, P], cornerLineAt([G, P], [10, 0], 1), cornerLineAt([G, P], [10, 5], 1)).error || ''));
+  const Z = { id: 'Z', type: 'poly', closed: false, pts: [[0, 10], [20, 10], [20, 40], [40, 40]] };
+  const mid = meetLines([G, Z], cornerLineAt([G, Z], [5, 0], 1), { id: 'Z', seg: 1, c: [20, 20] });
+  ok('Mittleres Stück eines Linienzugs: nicht verändert', !!mid.error, J(mid));
+}
+{
+  // a line and an arc, two arcs: brought to the intersection nearest to the clicks (the arc along its circle)
+  const { meetLines, cornerLineAt, filletCurves, curveCorner } = await import('../js/sketchcorner.js');
+  const apply = (ents, r) => ents.map(e => { const m = r.moves.find(q => q.id === e.id); if (!m) return e; const x = { ...e, pts: e.pts.map(q => q.slice()) }; if (m.pts) x.pts = m.pts; else x.pts[m.k] = m.p; return x; });
+  const onC = (p, c, r) => Math.abs(Math.hypot(p[0] - c[0], p[1] - c[1]) - r) < 1e-5;
+  const H = { id: 'H', type: 'poly', closed: false, pts: [[0, 0], [60, 0]] };
+  const U = { id: 'U', type: 'poly', curve: 'arc', closed: false, pts: [[35, 10], [50, 25], [65, 10]] };
+  const r = meetLines([H, U], cornerLineAt([H, U], [10, 0], 1), cornerLineAt([H, U], [50, 25.1], 1));
+  const x0 = 50 - Math.sqrt(125);
+  ok('Linie und Bogen mit Lücke: Linie gestutzt, Bogen auf seinem Kreis verlängert', !r.error && near(r.X, [x0, 0], 1e-5) && r.moves[0].k === 1 && r.moves[1].k === 0
+    && near(r.moves[1].pts[0], [x0, 0], 1e-5) && near(r.moves[1].pts[2], [65, 10]) && r.moves[1].pts.every(p => onC(p, [50, 10], 15)), J(r));
+  const ents = apply([H, U], r);
+  ok('… danach Abrundung zwischen Linie und Bogen möglich', curveCorner(ents, r.join[0]) && !!filletCurves(ents, r.join[0], 3, 'F', newId), J(ents));
+  const V = { id: 'V', type: 'poly', curve: 'arc', closed: false, pts: [[50, -10], [60, 0], [50, 10]] };
+  const r2 = meetLines([H, V], cornerLineAt([H, V], [55, 0.05], 1), cornerLineAt([H, V], [59.8, -2], 1));
+  ok('Linie kreuzt Bogen: beide am nächsten Schnittpunkt gestutzt', !r2.error && near(r2.X, [60, 0], 1e-6) && J(r2.moves[0]) === J({ id: 'H', k: 1, p: [60, 0] })
+    && near(r2.moves[1].pts[2], [60, 0], 1e-6) && near(r2.moves[1].pts[0], [50, -10]) && r2.moves[1].pts.every(p => onC(p, [50, 0], 10)), J(r2));
+  const W = { id: 'W', type: 'poly', curve: 'arc', closed: false, pts: [[60, -20], [70, -10], [60, 0]] };
+  const r3 = meetLines([V, W], cornerLineAt([V, W], [57.07, -7.07], 1), cornerLineAt([V, W], [70, -10], 1));
+  ok('Zwei Bögen: am Schnittpunkt ihrer Kreise', !r3.error && r3.moves.every(m => m.pts) && onC(r3.X, [50, 0], 10) && onC(r3.X, [60, -10], 10), J(r3));
+  const far = { id: 'Fa', type: 'poly', curve: 'arc', closed: false, pts: [[100, 0], [110, 10], [120, 0]] };
+  ok('Bogen weit weg: Meldung', /schneiden sich nirgends/.test(meetLines([V, far], { id: 'V', seg: 0, c: [60, 0] }, { id: 'Fa', seg: 0, c: [110, 10] }).error || ''));
 }

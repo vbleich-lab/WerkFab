@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "Klikněte na dvě různé čáry.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "Čáry jsou rovnoběžné – nikde se neprotnou.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "Oříznout nebo prodloužit lze jen konec lomené čáry.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "V tomto průsečíku by z jedné čáry nic nezbylo.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "Kliknutí: vést obě čáry k jejich průsečíku",
+ "Zweite Linie anklicken · Esc bricht ab": "Klikněte na druhou čáru · Esc zruší",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "Klikněte na druhou čáru – obě čáry se oříznou nebo prodlouží k průsečíku. Esc zruší."
+}

@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "Haga clic en dos líneas distintas.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "Las líneas son paralelas: nunca se cortan.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "Solo el extremo de una polilínea se puede recortar o alargar.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "En esta intersección no quedaría nada de una de las líneas.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "Clic: llevar ambas líneas hasta su intersección",
+ "Zweite Linie anklicken · Esc bricht ab": "Haga clic en la segunda línea · Esc cancela",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "Haga clic en la segunda línea: ambas líneas se recortan o alargan hasta su intersección. Esc cancela."
+}

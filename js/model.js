@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { R } from './kernel.js';
 import { registerKernel, activeKernel, getKernel } from './kern/index.js';
-import { entityPolys, entityOutlines, entityOutline, buildRegions, chainLoops, circle3 } from './profiles.js';
+import { entityPolys, entityOutlines, entityOutline, buildRegions, chainLoops, circle3, curvePts } from './profiles.js';
 import { cornerPlan, hasCorners } from './sketchcorner.js';
 import { basis, planeMatrix, sketchPlane, toWorld, axisRef, planeRef } from './plane.js';
 import { sheetSolid, sheetDims } from './sheetmetal.js';
@@ -42,7 +42,7 @@ export function profileItems(sketch, ids) {
   // closed loops made of separate lines / arcs / splines
   for (const L of chainLoops(ents)) {
     if (Array.isArray(ids) && !ids.includes(L.id)) continue;
-    items.push({ id: L.id, e: { id: L.id, type: 'chain' }, poly: L.poly });
+    items.push({ id: L.id, e: { id: L.id, type: 'chain', parts: L.parts.map(p => ({ e: ents.find(x => x.id === p.id), rev: p.rev })) }, poly: L.poly });
   }
   return items;
 }
@@ -68,6 +68,33 @@ function cornerDrawing(e) {
     d = s.k === 'L' ? d.lineTo(s.b) : d.threePointsArcTo(s.b, s.m);
   });
   return closed ? d.close() : d.done();
+}
+
+// a loop of separate curves (from chainLoops): lines stay lines, arcs and sketch fillets true arcs; splines as points
+function chainDrawing(parts) {
+  const segs = [];
+  for (const { e, rev } of parts) {
+    if (!e) return null;
+    const P = q => [+q[0], +q[1]], lines = p => p.slice(1).map((q, i) => ({ k: 'L', a: p[i], b: q }));
+    let s;
+    if (e.curve === 'arc' && e.pts.length === 3) s = [{ k: 'A', a: P(e.pts[0]), m: P(e.pts[1]), b: P(e.pts[2]) }];
+    else if (e.curve) s = lines(curvePts(e));
+    else if (hasCorners(e)) s = cornerPlan(e).segs.map(x => ({ ...x }));
+    else s = lines(e.pts.map(P));
+    if (rev) s = s.reverse().map(x => ({ ...x, a: x.b, b: x.a }));
+    segs.push(...s);
+  }
+  if (segs.length < 2) return null;
+  const start = segs[0].a, far = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-6;
+  segs[segs.length - 1].b = start;
+  let d = R.draw(start), pen = start;
+  segs.forEach((x, i) => {
+    if (i === segs.length - 1 && x.k === 'L') return; // close() draws it
+    if (!far(x.b, pen)) return;
+    d = x.k === 'A' ? d.threePointsArcTo(x.b, x.m) : d.lineTo(x.b);
+    pen = x.b;
+  });
+  return d.close();
 }
 
 function entityDrawing(e) {
@@ -99,6 +126,7 @@ const EXACT = new Set(['rect', 'circle', 'slot']);
 const drawingsBy = byId => id => {
   const it = byId[id];
   if (it.id === it.e.id && hasCorners(it.e) && it.e.closed) { try { const d = cornerDrawing(it.e); if (d) return d; } catch { /* fall back to the polygon */ } }
+  if (it.e.type === 'chain' && it.e.parts && it.e.parts.some(p => p.e && (p.e.curve === 'arc' || hasCorners(p.e)))) { try { const d = chainDrawing(it.e.parts); if (d) return d; } catch { /* fall back to the polygon */ } }
   return EXACT.has(it.e.type) && it.id === it.e.id ? entityDrawing(it.e) : polyDrawing(it.poly);
 };
 const polyBox = poly => poly.reduce((b, [x, y]) => [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)], [Infinity, Infinity, -Infinity, -Infinity]);

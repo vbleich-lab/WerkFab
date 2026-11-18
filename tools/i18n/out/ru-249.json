@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "Щёлкните две разные линии.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "Линии параллельны – они нигде не пересекаются.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "Обрезать или удлинить можно только конец полилинии.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "В этой точке пересечения от одной из линий ничего не останется.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "Щелчок: довести обе линии до точки пересечения",
+ "Zweite Linie anklicken · Esc bricht ab": "Щёлкните вторую линию · Esc отменяет",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "Щёлкните вторую линию – обе линии будут обрезаны или удлинены до точки пересечения. Esc отменяет."
+}

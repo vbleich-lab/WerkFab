@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "Cliquer sur deux lignes différentes.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "Les lignes sont parallèles – elles ne se rencontrent jamais.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "Seule l'extrémité d'une polyligne peut être ajustée ou prolongée.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "À cette intersection, il ne resterait rien d'une des lignes.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "Cliquer : mener les deux lignes jusqu'à leur intersection",
+ "Zweite Linie anklicken · Esc bricht ab": "Cliquer sur la deuxième ligne · Échap annule",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "Cliquer sur la deuxième ligne – les deux lignes sont ajustées ou prolongées jusqu'à leur intersection. Échap annule."
+}

@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "Click two different lines.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "The lines are parallel – they never meet.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "Only the end of a polyline can be trimmed or extended.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "At this intersection nothing would be left of one line.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "Click: run both lines to their intersection",
+ "Zweite Linie anklicken · Esc bricht ab": "Click the second line · Esc cancels",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "Click the second line – both lines are trimmed or extended to their intersection. Esc cancels."
+}

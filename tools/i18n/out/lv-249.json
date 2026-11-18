@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "Noklikšķiniet uz divām dažādām līnijām.",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "Līnijas ir paralēlas – tās nekur nekrustojas.",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "Apgriezt vai pagarināt var tikai lauztas līnijas galu.",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "Šajā krustpunktā no vienas līnijas nekas nepaliktu.",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "Klikšķis: novilkt abas līnijas līdz krustpunktam",
+ "Zweite Linie anklicken · Esc bricht ab": "Noklikšķiniet uz otrās līnijas · Esc atceļ",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "Noklikšķiniet uz otrās līnijas – abas līnijas tiek apgrieztas vai pagarinātas līdz krustpunktam. Esc atceļ."
+}

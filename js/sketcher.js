@@ -8,7 +8,7 @@ import { distToEntity, arcPts, splinePts, entityPoly } from './profiles.js';
 import { basis, planeMatrix, toLocal, toWorld } from './plane.js';
 import { sketchHandles, refKind, refEntity, dimensionFor, dimBase } from './solver.js';
 import { trimAt, extendAt, remapConstraints } from './trim.js';
-import { cornerAt, cornerPreview } from './sketchcorner.js';
+import { cornerAt, cornerPreview, cornerLineAt, meetLines, meetPreview } from './sketchcorner.js';
 import { offsetHit, offsetCurves } from './sketchoffset.js';
 import { entityOutlines, mirrorEntity, translateEntity, rotateEntity } from './profiles.js';
 import { centerRect, rect3, circle2, circleThrough, centerArc, endTangent, tangentArc } from './sketchtools.js';
@@ -143,6 +143,7 @@ export class Sketcher {
   }
 
   resetDrawing() {
+    this.cornerLine = null;
     this.pts = [];
     this.ptRefs = [];
     this.locks = {};
@@ -278,6 +279,11 @@ export class Sketcher {
       const c = cornerAt(this.entities, p, this.vp.worldPerPixel() * 16);
       this.drawPreview();
       const v = this.cornerVal[this.tool];
+      if (this.cornerLine) {
+        const ln = cornerLineAt(this.entities, p, this.vp.worldPerPixel() * 8), r = ln && meetLines(this.entities, this.cornerLine, ln);
+        this.hooks.tip(r && !r.error ? 'Klicken: beide Linien bis zum Schnittpunkt führen' : r?.error || 'Zweite Linie anklicken · Esc bricht ab', e);
+        return;
+      }
       this.hooks.tip(c ? `Klicken: ${this.tool === 'fillet' ? 'Abrundung R' : 'Fase '}${Array.isArray(v) ? v.join('/') : v} an dieser Ecke` : 'Ecke anklicken (Linienzug, Rechteck, zwei Linien) · Esc beendet', e);
       return;
     }
@@ -609,9 +615,16 @@ export class Sketcher {
       return;
     }
     if (this.tool === 'fillet' || this.tool === 'chamfer') {
-      const c = cornerAt(this.entities, raw, this.vp.worldPerPixel() * 16);
-      if (!c) { this.hooks.status?.('Keine Ecke hier – Eckpunkt eines Linienzugs, Rechtecks oder Treffpunkt zweier Linien anklicken.'); return; }
-      this.hooks.corner?.(this.tool, c.ref);
+      const c = this.cornerLine ? null : cornerAt(this.entities, raw, this.vp.worldPerPixel() * 16);
+      if (c) { this.hooks.corner?.(this.tool, c.ref); return; }
+      // two lines that cross or end short of each other: first one, then the other – both are brought to their
+      // intersection (cut back or lengthened), then the corner there is rounded / chamfered
+      const ln = cornerLineAt(this.entities, raw, this.vp.worldPerPixel() * 8);
+      const second = 'Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.';
+      if (ln && (!this.cornerLine || this.cornerLine.id === ln.id)) { this.cornerLine = ln; this.drawPreview(); this.hooks.status?.(second); return; }
+      if (ln) { const first = this.cornerLine; this.cornerLine = null; this.drawPreview(); this.hooks.cornerLines?.(this.tool, first, ln); return; }
+      if (this.cornerLine) { this.hooks.status?.(second); return; }
+      this.hooks.status?.('Keine Ecke hier – Eckpunkt eines Linienzugs, Rechtecks oder Treffpunkt zweier Linien anklicken.');
       return;
     }
     if (this.tool === 'extend') { this.extendClick(raw); return; }
@@ -882,7 +895,8 @@ export class Sketcher {
   key(e) {
     if (this.focusInput(e)) return 'focus';
     if (e.key === 'Escape') {
-      if (this.tool === 'dim' && (this.dim?.refs.length || this.dimPreview)) { this.dim = { refs: [] }; this.dimPreview = null; this.hooks.overlay(); }
+      if (this.cornerLine) { this.cornerLine = null; this.drawPreview(); }
+      else if (this.tool === 'dim' && (this.dim?.refs.length || this.dimPreview)) { this.dim = { refs: [] }; this.dimPreview = null; this.hooks.overlay(); }
       else if (this.pts.length) { this.resetDrawing(); this.drawPreview(); }
       else if (this.selection.length) { this.selection = []; this.selected = null; this.hooks.changed(); }
       else if (this.tool !== 'select') this.setTool('select');
@@ -954,12 +968,24 @@ export class Sketcher {
       }
       return;
     }
-    if (this.active && this.cur && (this.tool === 'fillet' || this.tool === 'chamfer')) {
-      const c = cornerAt(this.entities, this.cur, this.vp.worldPerPixel() * 16);
-      if (!c) return;
+    if (this.active && (this.tool === 'fillet' || this.tool === 'chamfer') && (this.cur || this.cornerLine)) {
       this.preview.matrix.copy(planeMatrix(this.sketch));
       const mat = new THREE.LineBasicMaterial({ color: 0xff7a00, depthTest: false, transparent: true });
       const add = pts => { const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts.map(q => new THREE.Vector3(q[0], q[1], 0.06))), mat); l.renderOrder = 11; this.preview.add(l); };
+      if (this.cornerLine) {
+        // the first line picked, and (over a second one) both lines as they will run to their intersection
+        const e = this.entities.find(x => x.id === this.cornerLine.id);
+        if (e?.pts) add([e.pts[this.cornerLine.seg], e.pts[this.cornerLine.seg + 1]].map(q => q.map(Number)));
+        const ln = this.cur && cornerLineAt(this.entities, this.cur, this.vp.worldPerPixel() * 8), r = ln && meetLines(this.entities, this.cornerLine, ln);
+        if (r && !r.error) {
+          for (const pts of meetPreview(this.entities, r)) add(pts);
+          const rr = this.vp.worldPerPixel() * 7;
+          add(Array.from({ length: 25 }, (_, i) => [r.X[0] + rr * Math.cos((i / 24) * Math.PI * 2), r.X[1] + rr * Math.sin((i / 24) * Math.PI * 2)]));
+        }
+        return;
+      }
+      const c = cornerAt(this.entities, this.cur, this.vp.worldPerPixel() * 16);
+      if (!c) return;
       const rr = this.vp.worldPerPixel() * 7;
       add(Array.from({ length: 25 }, (_, i) => [c.p[0] + rr * Math.cos((i / 24) * Math.PI * 2), c.p[1] + rr * Math.sin((i / 24) * Math.PI * 2)]));
       const o = cornerPreview(this.entities, c.ref, this.tool, this.cornerVal[this.tool]);

@@ -164,7 +164,7 @@ export function curvePts(e) {
 }
 
 // Open lines, arcs and splines whose ends meet form closed profiles (like common CAD/CAM).
-// Returns [{ id: 'chain:a+b+c', ids, poly }].
+// Returns [{ id: 'chain:a+b+c', ids, poly, parts: [{ id, rev }] }] (parts: the curves in order, rev = run backwards).
 export function chainLoops(entities, tol = 0.01) {
   const curves = entities
     .filter(e => e.type === 'poly' && !e.closed && e.pts.length >= 2)
@@ -174,7 +174,7 @@ export function chainLoops(entities, tol = 0.01) {
   const loops = [];
   for (const start of curves) {
     if (used.has(start.id)) continue;
-    const chain = [start];
+    const chain = [start], rev = [false];
     let pts = start.pts.slice();
     const taken = new Set([start.id]);
     let closed = near(pts[0], pts[pts.length - 1]) && pts.length > 2;
@@ -182,9 +182,10 @@ export function chainLoops(entities, tol = 0.01) {
       const end = pts[pts.length - 1];
       const nxt = curves.find(c => !taken.has(c.id) && !used.has(c.id) && (near(c.pts[0], end) || near(c.pts[c.pts.length - 1], end)));
       if (!nxt) break;
-      const seg = near(nxt.pts[0], end) ? nxt.pts : nxt.pts.slice().reverse();
+      const back = !near(nxt.pts[0], end), seg = back ? nxt.pts.slice().reverse() : nxt.pts;
       pts = pts.concat(seg.slice(1));
       chain.push(nxt);
+      rev.push(back);
       taken.add(nxt.id);
       closed = near(pts[0], pts[pts.length - 1]);
     }
@@ -193,7 +194,7 @@ export function chainLoops(entities, tol = 0.01) {
       if (Math.abs(signedArea(pts)) > 1e-6) {
         chain.forEach(c => used.add(c.id));
         const ids = chain.map(c => c.id);
-        loops.push({ id: 'chain:' + ids.join('+'), ids, poly: ensureCCW(pts) });
+        loops.push({ id: 'chain:' + ids.join('+'), ids, poly: ensureCCW(pts), parts: chain.map((c, i) => ({ id: c.id, rev: rev[i] })) });
       }
     }
   }

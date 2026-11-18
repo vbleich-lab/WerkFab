@@ -1,0 +1,9 @@
+{
+ "Zwei verschiedene Linien anklicken.": "请点击两条不同的直线。",
+ "Die Linien sind parallel – sie treffen sich nirgends.": "这两条直线平行——永远不会相交。",
+ "Nur das Ende eines Linienzugs lässt sich stutzen oder verlängern.": "只有多段线的端部可以修剪或延伸。",
+ "Bei diesem Schnittpunkt bliebe von einer Linie nichts übrig.": "在此交点处，其中一条直线将不复存在。",
+ "Klicken: beide Linien bis zum Schnittpunkt führen": "点击：将两条直线延至交点",
+ "Zweite Linie anklicken · Esc bricht ab": "点击第二条直线 · Esc 取消",
+ "Zweite Linie anklicken – beide Linien werden bis zu ihrem Schnittpunkt gestutzt oder verlängert. Esc bricht ab.": "点击第二条直线——两条直线都将修剪或延伸到交点。Esc 取消。"
+}
