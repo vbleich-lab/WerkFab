@@ -2377,18 +2377,179 @@ export function edgeRefMatches(body, edgeIndex, refs) {
 // the kernel that built a shape (OpenCascade shapes carry `wrapped`)
 const kernelOf = shape => (shape && !shape.wrapped && shape.kernel ? getKernel(shape.kernel) : occKernel);
 
-// Overlapping volume of every pair of bodies.
-export function interference(bodies) {
+// Pairs of bodies whose boxes come closer than tol (mm): a sweep along X over the boxes sorted by their lower
+// end. Bodies whose box cannot be read meet every other one. → [[P, Q], …] in the order of the body list.
+export function boxPairs(bodies, tol = 1e-6, pair = null) {
+  const box = s => { try { const b = s.boundingBox.bounds; return b && b[0].every(Number.isFinite) && b[1].every(Number.isFinite) ? b : null; } catch { return null; } };
+  const items = bodies.map((b, k) => ({ b, k, box: box(b.shape) }));
+  const inf = [-Infinity, -Infinity, -Infinity], sup = [Infinity, Infinity, Infinity];
+  const lo = it => (it.box ? it.box[0] : inf), hi = it => (it.box ? it.box[1] : sup);
+  const order = [...items].sort((p, q) => lo(p)[0] - lo(q)[0] || p.k - q.k);
   const out = [];
-  for (let i = 0; i < bodies.length; i++) {
-    for (let j = i + 1; j < bodies.length; j++) {
-      try {
-        const v = kernelOf(bodies[i].shape).intersectVolume(bodies[i].shape, bodies[j].shape);
-        if (v > 1e-4) out.push({ a: bodies[i], b: bodies[j], volume: v });
-      } catch { /* no overlap or kernel failure */ }
+  for (let a = 0; a < order.length; a++) {
+    const A = order[a];
+    for (let c = a + 1; c < order.length; c++) {
+      const B = order[c];
+      if (lo(B)[0] > hi(A)[0] + tol) break;
+      if (lo(B)[1] > hi(A)[1] + tol || lo(A)[1] > hi(B)[1] + tol || lo(B)[2] > hi(A)[2] + tol || lo(A)[2] > hi(B)[2] + tol) continue;
+      const [P, Q] = A.k < B.k ? [A, B] : [B, A];
+      if (pair && !pair(P.b, Q.b)) continue;
+      out.push([P.b, Q.b, P.k, Q.k]);
     }
   }
+  return out.sort((p, q) => p[2] - q[2] || p[3] - q[3]).map(([P, Q]) => [P, Q]);
+}
+// shortest distance between two boxes (0 when they touch or overlap)
+export const boxGap = (a, b) => gapOf(boundsOf(a), boundsOf(b));
+// hands the thread back for a moment (input, drawing); a message is not slowed down like a timer in a background tab
+export const yieldUI = () => new Promise(r => { const c = new MessageChannel(); c.port1.onmessage = () => { c.port1.close(); r(); }; c.port2.postMessage(0); });
+// work in slices of about 50 ms; pause() hands the thread back in between
+export function slicer(len = 50) {
+  let t = performance.now();
+  return {
+    due: () => performance.now() - t > len,
+    async pause() { await yieldUI(); t = performance.now(); },
+  };
+}
+const boxCache = new WeakMap();
+const boundsOf = s => {
+  if (!s || typeof s !== 'object') return null;
+  if (boxCache.has(s)) return boxCache.get(s);
+  let b = null;
+  try { b = s.boundingBox.bounds; if (!(b && b[0].every(Number.isFinite) && b[1].every(Number.isFinite))) b = null; } catch { b = null; }
+  boxCache.set(s, b);
+  return b;
+};
+const boxesMeet = (A, B, tol = 1e-6) => !A || !B || [0, 1, 2].every(k => A[0][k] <= B[1][k] + tol && B[0][k] <= A[1][k] + tol);
+const gapOf = (A, B) => {
+  if (!A || !B) return 0;
+  let d2 = 0;
+  for (let k = 0; k < 3; k++) { const g = Math.max(0, B[0][k] - A[1][k], A[0][k] - B[1][k]); d2 += g * g; }
+  return Math.sqrt(d2);
+};
+
+// A body that meets many others – the side rail of a conveyor with hundreds of bores – makes every boolean with
+// it slow (170 ms against 10 ms for simple parts). Such a body is halved along its longest side a few times,
+// once; each pair then only meets the pieces next to the other body. A generator: the async check pauses
+// between the cuts. → [{ shape, box }] or null (the kernel cannot clip, or a cut failed: the whole body is used)
+const SPLIT_FROM = 12;
+function* splitBody(shape, partners) {
+  const K = kernelOf(shape), b = boundsOf(shape);
+  if (!K.clip || !b) return null;
+  let pieces = [{ shape, box: b }];
+  for (let d = Math.min(6, Math.ceil(Math.log2(partners / 6))); d > 0; d--) {
+    const next = [];
+    for (const p of pieces) {
+      const [lo, hi] = p.box, ax = [0, 1, 2].reduce((m, k) => (hi[k] - lo[k] > hi[m] - lo[m] ? k : m), 0), mid = (lo[ax] + hi[ax]) / 2;
+      for (const half of [0, 1]) {
+        // the cutting box reaches 1 mm past the piece except at the cut itself
+        const blo = lo.map((v, k) => (k === ax && half ? mid : v - 1)), bhi = hi.map((v, k) => (k === ax && !half ? mid : v + 1));
+        let piece;
+        try { piece = K.clip(p.shape, blo, bhi); } catch { return null; }
+        yield;
+        const pb = piece && boundsOf(piece);
+        if (pb) next.push({ shape: piece, box: pb });
+      }
+    }
+    pieces = next;
+  }
+  return pieces;
+}
+// The pieces of the bodies in a pair list. Bodies with many partners (within near mm) are split on first use.
+function pieceStore(pairs, near = 1e-6) {
+  const n = new Map(), pieces = new Map();
+  for (const [P, Q] of pairs) if (gapOf(boundsOf(P.shape), boundsOf(Q.shape)) <= near) for (const B of [P, Q]) n.set(B, (n.get(B) || 0) + 1);
+  return {
+    *ready(B) {
+      if ((n.get(B) || 0) < SPLIT_FROM || pieces.has(B)) return;
+      const g = splitBody(B.shape, n.get(B));
+      let r;
+      while (!(r = g.next()).done) yield;
+      pieces.set(B, r.value);
+    },
+    of: B => pieces.get(B) || [{ shape: B.shape, box: boundsOf(B.shape) }],
+  };
+}
+// overlapping volume of two bodies from their pieces (only pieces whose boxes meet are intersected)
+function volumeOf(ps, qs) {
+  let v = 0;
+  for (const p of ps) for (const q of qs) {
+    if (!boxesMeet(p.box, q.box)) continue;
+    try { v += kernelOf(p.shape).intersectVolume(p.shape, q.shape); } catch { /* no volume */ }
+  }
+  return v;
+}
+// shortest distance of two bodies from their pieces: nearest boxes first, until no box can be nearer (NaN: unknown)
+function distanceOf(ps, qs) {
+  const cand = [];
+  for (const p of ps) for (const q of qs) cand.push([gapOf(p.box, q.box), p, q]);
+  cand.sort((x, y) => x[0] - y[0]);
+  let best = Infinity;
+  for (const [g, p, q] of cand) {
+    if (g >= best) break;
+    const K = kernelOf(p.shape);
+    if (!K.distance) return NaN;
+    try { best = Math.min(best, K.distance(p.shape, q.shape)); } catch { /* no distance */ }
+  }
+  return best === Infinity ? NaN : best;
+}
+// the work over a pair list as steps: pieces are cut on the way; yields the number of pairs done
+function* interferenceSteps(pairs, store) {
+  const out = [];
+  for (let i = 0; i < pairs.length; i++) {
+    const [P, Q] = pairs[i];
+    yield* store.ready(P);
+    yield* store.ready(Q);
+    const v = volumeOf(store.of(P), store.of(Q));
+    if (v > 1e-4) out.push({ a: P, b: Q, volume: v });
+    yield i + 1;
+  }
   return out;
+}
+function* contactSteps(pairs, store) {
+  const out = [];
+  for (let i = 0; i < pairs.length; i++) {
+    const [P, Q] = pairs[i];
+    yield* store.ready(P);
+    yield* store.ready(Q);
+    const ps = store.of(P), qs = store.of(Q), volume = volumeOf(ps, qs);
+    out.push({ a: P, b: Q, volume, gap: volume > 1e-4 ? 0 : distanceOf(ps, qs) });
+    yield i + 1;
+  }
+  return out;
+}
+const runSync = g => { let r; while (!(r = g.next()).done); return r.value; };
+// in slices so the window stays usable: progress(done, total) after each slice; stop() → true ends early (null)
+async function runAsync(g, total, { progress = null, stop = null } = {}) {
+  const slice = slicer();
+  let r, done = 0;
+  while (!(r = g.next()).done) {
+    if (typeof r.value === 'number') done = r.value;
+    if (slice.due()) {
+      progress?.(done, total);
+      await slice.pause();
+      if (stop?.()) return null;
+    }
+  }
+  progress?.(total, total);
+  return r.value;
+}
+
+// Overlapping volume of every pair of bodies. Only pairs whose boxes overlap are intersected: with hundreds
+// of bodies a boolean for every pair would take hours. pair(a, b): optional filter (e.g. moving against fixed).
+export function interference(bodies, pair = null) {
+  const pairs = boxPairs(bodies, 1e-6, pair);
+  return runSync(interferenceSteps(pairs, pieceStore(pairs)));
+}
+// The same, in slices (see runAsync).
+export function interferenceAsync(bodies, { pair = null, progress = null, stop = null } = {}) {
+  const pairs = boxPairs(bodies, 1e-6, pair);
+  return runAsync(interferenceSteps(pairs, pieceStore(pairs)), pairs.length, { progress, stop });
+}
+// Contact of the given pairs: [{ a, b, volume (overlap, mm³), gap (shortest distance, mm; NaN: unknown) }].
+// near: bodies with many partners within this distance are split first. In slices (see runAsync).
+export function contactAsync(pairs, { near = 5, progress = null, stop = null } = {}) {
+  return runAsync(contactSteps(pairs, pieceStore(pairs, near)), pairs.length, { progress, stop });
 }
 
 export function bodyProps(body) {
@@ -2422,6 +2583,12 @@ const occKernel = {
   intersectVolume(a, b) {
     const x = a.clone().intersect(b.clone());
     return x && !x.isNull ? R.measureVolume(x) : 0;
+  },
+  distance: (a, b) => R.measureDistanceBetween(a, b),
+  // the part of a body inside a box (null: nothing left)
+  clip(shape, lo, hi) {
+    const x = shape.clone().intersect(R.makeBox(lo, hi));
+    return x && !x.isNull && R.measureVolume(x) > 1e-9 ? x : null;
   },
   exportSTEP: list => R.exportSTEP(list),
 };

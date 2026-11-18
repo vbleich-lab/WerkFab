@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "Проверка пересечений … {0} из {1} пар",
+ "Prüfung abgebrochen.": "Проверка прервана.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "Проверка контактов … {0} из {1} пар",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} тел: проверены {1} пар, сближающихся до {2} мм. Остальные {3} пар находятся дальше {4} мм друг от друга."
+}

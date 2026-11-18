@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "正在检查干涉 … {1} 对中的 {0} 对",
+ "Prüfung abgebrochen.": "检查已取消。",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "正在检查接触 … {1} 对中的 {0} 对",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} 个实体：已检查相距 {2} mm 以内的 {1} 对。其余 {3} 对相距超过 {4} mm。"
+}

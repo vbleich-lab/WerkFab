@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "干渉をチェック中 … {1} 組中 {0} 組",
+ "Prüfung abgebrochen.": "チェックを中止しました。",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "接触をチェック中 … {1} 組中 {0} 組",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} 個のボディ: {2} mm 以内に近づく {1} 組をチェックしました。残りの {3} 組は {4} mm 以上離れています。"
+}

@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "Перевірка перетинів … {0} з {1} пар",
+ "Prüfung abgebrochen.": "Перевірку скасовано.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "Перевірка контактів … {0} з {1} пар",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} тіл: перевірено {1} пар, що зближуються до {2} мм. Решта {3} пар розташовані далі ніж {4} мм одна від одної."
+}

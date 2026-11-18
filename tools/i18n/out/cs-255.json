@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "Kontrola kolizí … {0} z {1} dvojic",
+ "Prüfung abgebrochen.": "Kontrola přerušena.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "Kontrola kontaktů … {0} z {1} dvojic",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} těles: zkontrolováno {1} dvojic, které se přibližují na {2} mm. Zbývajících {3} dvojic je od sebe dál než {4} mm."
+}

@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "Verifica interferenze … {0} di {1} coppie",
+ "Prüfung abgebrochen.": "Verifica annullata.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "Verifica contatti … {0} di {1} coppie",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} corpi: sono state verificate le {1} coppie che si avvicinano entro {2} mm. Le altre {3} coppie distano più di {4} mm."
+}

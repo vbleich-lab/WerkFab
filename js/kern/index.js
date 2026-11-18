@@ -10,6 +10,8 @@
 //                                   (faceGroups/edgeGroups in derselben Reihenfolge wie shape.faces/edges)
 //   props(shape)                    { volume, com, area }
 //   intersectVolume(a, b)           Volumen der Überschneidung zweier Körper (0 = keine)
+//   clip(shape, lo, hi)             optional: Teil des Körpers im Quader lo…hi (null = leer); beschleunigt die Interferenz
+//   distance(a, b)                  optional: kürzester Abstand zweier Körper (für „Kontakt prüfen“)
 //   exportSTEP([{ shape, name }])   Blob mit der STEP-Datei
 //
 // Körper (shape) bieten unabhängig vom Kern:

@@ -73,6 +73,10 @@ export function bodyMatrix(asm, bodyId, values = {}, seen = new Set()) {
   return parent.multiply(motionMatrix(j, v, v2, v3)).multiply(j.cO && j.pO ? alignMatrix(j) : own);
 }
 
+// [min, max] of the first motion when the joint has limits switched on, else null
+export function jointLimits(j) {
+  return j.limits !== false && j.min != null && j.max != null && Number.isFinite(+j.min) && Number.isFinite(+j.max) && +j.max > +j.min ? [+j.min, +j.max] : null;
+}
 // current values of a joint; a linked joint (Bewegungsverknüpfung) follows its driver: value = ratio × driver
 // Motion links: how a joint follows another one (v = the value of the driving joint).
 //   ratio (default) and gear: v · ratio (gears: ratio = −teeth₁ / teeth₂)
@@ -106,6 +110,9 @@ export function jointValues(asm, j, values = {}, depth = 0) {
   const out = [own(0) || 0, own(1) || 0, own(2) || 0];
   const drv = j.link?.from && depth < 8 && (asm.joints || []).find(q => q.id === j.link.from && q.id !== j.id);
   if (drv) out[0] = linkValue(j.link, jointValues(asm, drv, values, depth + 1)[0]);
+  // the limits hold the first motion in its range (typed values and linked joints alike)
+  const lim = jointLimits(j);
+  if (lim) out[0] = Math.min(lim[1], Math.max(lim[0], out[0]));
   return out;
 }
 

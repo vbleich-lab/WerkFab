@@ -17,7 +17,7 @@ import { meshMass, stlBinary, urdfNames, buildUrdf, buildSdf, sdfConfig, buildMj
 import { setActiveKernel, activeKernelId, getKernel } from './kern/index.js';
 import './kern/rust.js';
 import { THREAD_SIZES, meshBody, exportGeometry, setViewTessellation, viewTessellation } from './model.js';
-import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache, dropWaitingSnaps, profileItems } from './model.js';
+import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, interferenceAsync, boxPairs, contactAsync, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache, dropWaitingSnaps, profileItems } from './model.js';
 import { Sketcher } from './sketcher.js';
 import { buildHeightmap, cornerOf } from './heightmap.js';
 import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel, orientationLabel, OP_TYPES, DRILL_CYCLES, ORIGINS, TOOL_TYPES, ORIENTATIONS, RAPID_FEED, setupMatrix, sketchHorizontalIn, OPS_3D, PROBE_MODES, MANUAL_KINDS, PATTERN_KINDS, orderByTool, opCells, toolBase, STOCK_MODES, STOCK_MATERIALS, BOUNDARY_MODES, setupBodies, heightSpec, HEIGHT_KEYS, HEIGHT_FROM, applyCutData, serialNumbers, serialText, FIT_OPS, fitOffset } from './cam.js';
@@ -1909,6 +1909,7 @@ function drawExtrudeGizmo() {
   const t = dialogTarget();
   if (t?.kind !== 'feature') return;
   const f = feature(t.id);
+  if (f?.type === 'plane' && f.kind === 'offset' && !f.suppressed && !f.hidden) return drawPlaneGizmo(f);
   if (!f || f.type !== 'extrude' || f.suppressed) return;
   const rf = resolved().features.find(x => x.id === f.id), rsk = rf && resolved().features.find(x => x.id === rf.sketch);
   if (rf?.source === 'faces') return drawFaceExtrudeGizmo(f, rf);
@@ -1989,6 +1990,44 @@ function drawFaceExtrudeGizmo(f, rf) {
   }
   updateExtrudeGizmo();
 }
+// offset plane: an arrow in the middle of the plane, dragged along its normal, and a small value box
+function drawPlaneGizmo(f) {
+  const rfs = resolved().features;
+  const rf = rfs.find(x => x.id === f.id);
+  const pl = rf && constructionPlane(rf, rfs);
+  if (!pl) return;
+  const n = new THREE.Vector3(...pl.n).normalize();
+  const box = getModel().box;
+  const size = box.isEmpty() ? 60 : Math.max(30, box.getSize(new THREE.Vector3()).length() * 0.45);
+  // middle of the drawn square (centred over the model), moved back onto the reference plane
+  let c = new THREE.Vector3(...pl.o);
+  if (!box.isEmpty()) { const m = box.getCenter(new THREE.Vector3()); c = m.addScaledVector(n, -m.clone().sub(c).dot(n)); }
+  const off = +rf.offset || 0;
+  const o = c.clone().addScaledVector(n, -off);
+  const b = basis({ plane: pl }), s2 = size / 2;
+  const sq = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => o.clone().addScaledVector(b.x, u * s2).addScaledVector(b.y, v * s2));
+  const group = new THREE.Group();
+  vp.paths.add(group);
+  exGiz = { fid: f.id, o, n, b: null, loops3: [sq], loops: [], sym: false, endOnly: true, group, handles: [] };
+  const arrow = exArrowMesh();
+  arrow.matrixAutoUpdate = false;
+  group.add(arrow);
+  const inp = h('input', { type: 'text', value: String(f2(off)), spellcheck: 'false', size: 1 });
+  const fit = () => { inp.style.width = Math.max(2, inp.value.length + 0.5) + 'ch'; };
+  fit();
+  inp.addEventListener('input', fit);
+  const lbox = h('div', { class: 'exg-box exg-mini', title: 'Abstand (mm)', onpointerdown: e => e.stopPropagation() }, inp);
+  inp.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter') { e.preventDefault(); setExtrudeValue(f.id, 'offset', inp.value); }
+    if (e.key === 'Escape') { inp.value = String(f2(off)); fit(); inp.blur(); }
+  });
+  inp.addEventListener('change', () => setExtrudeValue(f.id, 'offset', inp.value));
+  const lab = new CSS2DObject(h('div', { class: 'exg-anchor' }, lbox));
+  group.add(lab);
+  exGiz.handles.push({ key: 'offset', side: 1, raw: off, pos: off, dir: off >= 0 ? 1 : -1, arrow, lab, inp, fit, mini: true });
+  updateExtrudeGizmo();
+}
 function setExtrudeValue(fid, key, text) {
   const t = String(text).trim().replace(',', '.');
   if (!t) return;
@@ -2007,7 +2046,9 @@ function updateExtrudeGizmo() {
     const base = exGiz.o.clone().addScaledVector(exGiz.n, pos);
     const q = new THREE.Quaternion().setFromUnitVectors(zAxis, exGiz.n.clone().multiplyScalar(dir || 1));
     hd.arrow.matrix.compose(base, q, new THREE.Vector3(L, L, L));
-    hd.lab.position.copy(base).addScaledVector(exGiz.n, (dir || 1) * L * 1.25);
+    hd.lab.position.copy(base).addScaledVector(exGiz.n, (dir || 1) * L * (hd.mini ? 0.86 : 1.25));
+    // the small box sits right beside the arrow head
+    if (hd.mini) hd.lab.position.addScaledVector(new THREE.Vector3().setFromMatrixColumn(vp.camera.matrixWorld, 0), L * 0.2);
   }
 }
 // closest point of the mouse ray to the extrusion axis (signed distance from the sketch plane)
@@ -2032,7 +2073,7 @@ function exPreview(hd, pos) {
   exGiz.group.children.filter(c => c.userData.preview).forEach(c => { exGiz.group.remove(c); c.geometry.dispose(); });
   const from = exGiz.sym ? -pos : 0;
   for (const loop3 of exGiz.loops3 || []) {
-    for (const off of [from, pos]) {
+    for (const off of exGiz.endOnly ? [pos] : [from, pos]) {
       const l = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(loop3.map(q => q.clone().addScaledVector(exGiz.n, off))), exPrevMat);
       l.userData.preview = true;
       l.renderOrder = 19;
@@ -2081,6 +2122,7 @@ vp.canvas.addEventListener('pointerdown', e => {
     exDrag.pos = pos;
     const val = exGiz.sym ? 2 * Math.abs(pos) : hd.side * pos;
     hd.inp.value = String(f2(val));
+    hd.fit?.();
     exPreview(hd, pos);
   };
   const up = () => {
@@ -2091,7 +2133,7 @@ vp.canvas.addEventListener('pointerdown', e => {
     exDrag = null;
     if (!d || Math.abs(d.pos - d.pos0) < 1e-9) return;
     const val = exGiz.sym ? 2 * Math.abs(d.pos) : hd.side * d.pos;
-    if (Math.abs(val) < 1e-6) return status('Abstand 0 ist nicht möglich.');
+    if (Math.abs(val) < 1e-6 && d.key !== 'offset') return status('Abstand 0 ist nicht möglich.');
     editFeature(exGiz.fid, x => { x[d.key] = +val.toFixed(4); });
   };
   addEventListener('pointermove', move, true);
@@ -3820,7 +3862,7 @@ function propsBody(b, body) {
         h('span', null, 'Volumen'), h('b', null, `${f2(pr.volume / 1000)} cm³`),
         h('span', null, 'Masse'), h('b', null, `${f2((pr.volume / 1000) * mat.density)} g`)]),
       h('span', null, 'Oberfläche'), h('b', null, `${f2(pr.area / 100)} cm²`),
-      h('span', null, 'Schwerpunkt'), h('b', null, pr.com.map(v => f2(v)).join(' / ') + ' mm'),
+      h('span', null, 'Schwerpunkt'), h('b', null, (assemblyActive() ? new THREE.Vector3(...pr.com).applyMatrix4(bodyMatrix(state.project.assembly, body.id, motionValues)).toArray() : pr.com).map(v => f2(v)).join(' / ') + ' mm'),
       ...(() => {
         // moments of inertia about the axes through the centre of mass (from the mesh, with the material's density)
         if (body.surface) return [];
@@ -5515,7 +5557,7 @@ const agentApi = {
       return { ...structuredClone(j), typeName: JOINT_TYPES[j.type], motions: dof.map(([label, unit], k) => ({ field: ['value', 'value2', 'value3'][k], unit: unit === '°' ? 'deg' : 'mm', now: r4(v[k]) })) };
     }) };
     if (collisions !== false && m.bodies.length > 1) {
-      try { out.collisions = interference(placedBodies({})).map(c => ({ a: c.a.id, b: c.b.id, volume: +c.volume.toFixed(3) })); } catch (e) { out.collisionsError = e.message; }
+      try { out.collisions = (await interferenceAsync(placedBodies({}))).map(c => ({ a: c.a.id, b: c.b.id, volume: +c.volume.toFixed(3) })); } catch (e) { out.collisionsError = e.message; }
     }
     return out;
   },
@@ -5530,9 +5572,10 @@ const agentApi = {
     const range = j => { const lim = j.limits !== false && Number.isFinite(+j.min) && Number.isFinite(+j.max) && +j.max > +j.min; return lim ? [+j.min, +j.max] : lin(j) ? [-100, 100] : [-180, 180]; };
     const r4 = q => +(+q).toFixed(4), poses = [];
     let hit = 0, first = null, worst = null;
+    const moving = movedBodies(joints);
     for (let k = 0; k <= n; k++) {
       const vals = Object.fromEntries(joints.map(j => { const [a, b] = range(j); return [j.id, r4(a + ((b - a) * k) / n)]; }));
-      const col = interference(placedBodies(vals)).map(c => ({ a: c.a.id, b: c.b.id, volume: +c.volume.toFixed(3) }));
+      const col = motionInterference(vals, moving).map(c => ({ a: c.a.id, b: c.b.id, volume: +c.volume.toFixed(3) }));
       if (col.length) { hit++; first ||= vals; const v = Math.max(...col.map(c => c.volume)); if (!worst || v > worst.volume) worst = { values: vals, volume: v }; }
       poses.push({ values: vals, collisions: col });
     }
@@ -5912,20 +5955,25 @@ async function duplicateWithJoints() {
     { key: 'hint', hint: `Kopien von „${src.name}“; Gelenke und Positionierung des Körpers werden für jede Kopie übernommen.` }], 'Duplizieren');
   if (!v) return;
   const n = Math.max(1, Math.min(50, Math.round(+v.count || 1)));
+  const srcName = bodyName(src);
   commit(p => {
-    const joints = (p.assembly?.joints || []).filter(j => j.child === src.id || j.parent === src.id);
+    // the joint that holds the body (a body is the child of one joint); joints of other bodies hanging on it
+    // stay with the original – copying them would hang their child on two parents
+    const joints = (p.assembly?.joints || []).filter(j => j.child === src.id);
     for (let i = 1; i <= n; i++) {
       const id = uid('mv');
-      p.features.push({ id, type: 'move', name: nextName(p.features, `Kopie ${src.name}`), body: src.id, copy: true, dx: f2(v.dx * i), dy: f2(v.dy * i), dz: f2(v.dz * i), rz: 0, cx: 0, cy: 0 });
+      p.features.push({ id, type: 'move', name: nextName(p.features, `Kopie ${srcName}`), body: src.id, copy: true, dx: f2(v.dx * i), dy: f2(v.dy * i), dz: f2(v.dz * i), rz: 0, cx: 0, cy: 0 });
       if (p.assembly?.placements?.[src.id]) p.assembly.placements[id] = { ...p.assembly.placements[src.id] };
+      // name, material and appearance go with the copy
+      p.bodyMeta ||= {};
+      p.bodyMeta[id] = { ...structuredClone(p.bodyMeta[src.id] || {}), name: n > 1 ? `${srcName} (Kopie ${i})` : `${srcName} (Kopie)` };
       for (const j of joints) {
-        p.assembly.joints.push({ ...JSON.parse(JSON.stringify(j)), id: uid('j'), name: nextName(p.assembly.joints, 'Gelenk'),
-          child: j.child === src.id ? id : j.child, parent: j.parent === src.id ? id : j.parent,
+        p.assembly.joints.push({ ...JSON.parse(JSON.stringify(j)), id: uid('j'), name: j.name ? (n > 1 ? `${j.name} (Kopie ${i})` : `${j.name} (Kopie)`) : nextName(p.assembly.joints, 'Gelenk'), child: id,
           origin: (j.origin || [0, 0, 0]).map((q, a) => f2(+q + [v.dx, v.dy, v.dz][a] * i)) });
       }
     }
   });
-  status(`${n} Kopie(n) von „${src.name}“ mit Gelenken erstellt`);
+  status(`${n} Kopie(n) von „${srcName}“ mit Gelenken erstellt`);
 }
 
 function propsPrimitive(b, f, ed) {
@@ -10465,6 +10513,18 @@ function createFeature(type, extra = {}) {
     const ref = state.sel?.kind === 'feature' && ['plane', 'sketch'].includes(feature(state.sel.id)?.type) ? state.sel.id : 'XY';
     f = { ...planeDefaults(ref, kind), id, type, name: nextName(p.features, { offset: 'Versatzebene', angle: 'Winkelebene', mid: 'Mittelebene', '3pt': 'Ebene durch 3 Punkte', tangent: 'Tangentialebene' }[kind]) };
     if (kind === 'tangent' && !hasBodies) return status('Tangentialebene braucht einen Körper mit Zylinderfläche.');
+    // a second offset plane on the same reference would lie exactly on the first and look as if
+    // nothing happened: step the default distance on until the plane is free
+    if (kind === 'offset') {
+      const rf = resolved().features;
+      const taken = rf.filter(x => x.type === 'plane' && !x.suppressed).map(x => constructionPlane(x, rf)).filter(Boolean);
+      const same = (A, B) => Math.abs(Math.abs(A.n[0] * B.n[0] + A.n[1] * B.n[1] + A.n[2] * B.n[2]) - 1) < 1e-6
+        && Math.abs((A.o[0] - B.o[0]) * A.n[0] + (A.o[1] - B.o[1]) * A.n[1] + (A.o[2] - B.o[2]) * A.n[2]) < 1e-6;
+      for (let k = 1; k <= 100; k++) {
+        const pl = constructionPlane({ ...f, offset: 20 * k }, rf);
+        if (!pl || !taken.some(t => same(t, pl))) { f.offset = 20 * k; break; }
+      }
+    }
   } else if (type === 'axis') {
     const kind = extra.kind || '2pt';
     if (kind === 'cyl' && !hasBodies) return status('Achse durch Zylinder braucht einen Körper mit Zylinderfläche oder Bohrung.');
@@ -11046,16 +11106,25 @@ $('#dxfInput').addEventListener('change', async e => {
   }
 });
 
-function placedBodies(values = motionValues) {
-  const bodies = getModel().bodies;
+function placedBodies(values = motionValues, only = null) {
+  const bodies = only ? getModel().bodies.filter(b => only.has(b.id)) : getModel().bodies;
   if (!assemblyActive()) return bodies;
   return bodies.map(b => ({ ...b, shape: transformShape(b.shape, bodyMatrix(state.project.assembly, b.id, values)) }));
 }
 
-function runInterference() {
+let interferenceRun = null;
+async function runInterference() {
+  if (interferenceRun) { interferenceRun.stop = true; return; }
+  if (modelBusy()) return status('Einen Moment – das Modell wird noch berechnet.');
   const bodies = placedBodies();
   if (bodies.length < 2) return status('Interferenz braucht mindestens zwei Körper.');
-  const res = interference(bodies);
+  const run = interferenceRun = { stop: false };
+  const stopBtn = h('button', { onclick: () => (run.stop = true) }, 'Abbrechen');
+  const res = await interferenceAsync(bodies, {
+    progress: (i, n) => n > 50 && showBanner([`Überschneidungen werden geprüft … ${i} von ${n} Paaren`, stopBtn]),
+    stop: () => run.stop,
+  }).finally(() => { interferenceRun = null; });
+  if (!res) return showBanner(['Prüfung abgebrochen.', h('button', { onclick: () => showBanner(null) }, 'OK')]);
   showBanner(res.length
     ? ['⚠ Überschneidungen: ' + res.map(r => `${bodyName(r.a)} ↔ ${bodyName(r.b)}: ${f2(r.volume / 1000)} cm³`).join(' · '), h('button', { onclick: () => showBanner(null) }, 'OK')]
     : ['✓ Keine Überschneidungen zwischen den Körpern.', h('button', { onclick: () => showBanner(null) }, 'OK')]);
@@ -11253,7 +11322,7 @@ function jointMotionRows(j, ed) {
     sl.oninput = () => {
       const next = { ...motionValues, [vkey(k)]: +sl.value };
       // contact stop: the component halts where it would run into another one
-      if (j.contact && jointCollides(j, next)) { sl.value = lastGood; status('Anschlag: Die Komponente berührt ein anderes Teil.'); return; }
+      if (k === 0 ? contactGuard(j) : j.contact) if (jointCollides(j, next)) { sl.value = lastGood; status('Anschlag: Die Komponente berührt ein anderes Teil.'); return; }
       lastGood = +sl.value;
       motionValues = next;
       rebuildScene();
@@ -11288,13 +11357,39 @@ function linkRows(j, ed, u0, u1) {
     hint('Ein Exzenter hebt den Stößel um 2 · e und senkt ihn wieder (Hub = 2 · Exzentrizität). Rast: so viel der Umdrehung bleibt der Stößel unten (0 … 0,95).')];
   return [R0, N('Übersetzung', 'ratio', `${u0} je ${u1}`, 1), N('Versatz', 'offset', u0, 0), hint('Dieses Gelenk bewegt sich mit dem gewählten. Negative Werte drehen gegenläufig.')];
 }
+// Bodies moved by the driven joints: their children, joints linked to them and everything hanging on these
+function movedBodies(driven) {
+  const js = state.project.assembly?.joints || [];
+  const on = new Set(driven.map(j => j.id));
+  for (let grew = true; grew;) { grew = false; for (const q of js) if (!on.has(q.id) && q.link?.from && on.has(q.link.from) && !q.suppressed) { on.add(q.id); grew = true; } }
+  const moving = new Set(js.filter(q => on.has(q.id)).map(q => q.child));
+  for (let grew = true; grew;) { grew = false; for (const q of js) if (moving.has(q.parent) && !moving.has(q.child)) { moving.add(q.child); grew = true; } }
+  return moving;
+}
+// contact stop of a joint: its own, or that of a joint which follows it (a rack that would run into a stop)
+function contactGuard(j) {
+  const js = state.project.assembly?.joints || [];
+  if (j.contact) return true;
+  const on = new Set([j.id]);
+  for (let grew = true; grew;) { grew = false; for (const q of js) if (!on.has(q.id) && q.link?.from && on.has(q.link.from)) { if (q.contact) return true; on.add(q.id); grew = true; } }
+  return false;
+}
+// Collisions in a pose of a motion: only pairs with a moving body (what stands still does not change), and
+// with Kontaktsätze only the chosen bodies – that keeps studies of large assemblies fast
+function motionInterference(values, moving) {
+  const cb = state.project.assembly?.contactBodies;
+  const set = cb?.length ? new Set(cb) : null;
+  return interference(placedBodies(values, set), (a, b) => moving.has(a.id) || moving.has(b.id));
+}
 // would the component (and what hangs on it) overlap another body at these joint values?
 function jointCollides(j, values) {
   const asm = state.project.assembly;
-  const moving = new Set([j.child]);
-  for (let grew = true; grew;) { grew = false; for (const q of asm.joints || []) if (moving.has(q.parent) && !moving.has(q.child)) { moving.add(q.child); grew = true; } }
+  // the component, the joints that follow it (gear, rack …) and everything hanging on them
+  const moving = movedBodies([j]);
+  // Kontaktsätze: only the chosen bodies (and what moves) are checked – fast on large assemblies
+  const set = asm.contactBodies?.length ? new Set([...asm.contactBodies, ...moving]) : null;
   try {
-    return interference(placedBodies(values)).some(r => (moving.has(r.a.id) !== moving.has(r.b.id)) && r.volume > 1e-3);
+    return interference(placedBodies(values, set), (a, b) => moving.has(a.id) !== moving.has(b.id)).some(r => r.volume > 1e-3);
   } catch { return false; }
 }
 // joint symbol (a ring around the joint axis with a short axis line), drawn where the joint sits
@@ -11339,19 +11434,22 @@ function motionStudy(jointId) {
   if (motion.on) { motion.on = false; cancelAnimationFrame(motion.raf); motionValues = {}; showBanner(null); renderAll(); return; }
   if (!joints.length) return status('Kein bewegliches Gelenk vorhanden (Drehgelenk oder Schiebegelenk anlegen).');
   motion.on = true;
-  const steps = 24, hits = [];
+  const steps = 24, hits = [], moving = movedBodies(joints);
+  // range: the limits, else ±180° or ±100 mm (joints without limits gave NaN before)
+  const lin = j => (JOINT_DOF[j.type]?.[0]?.[1] || '°') !== '°';
+  const rng = j => (Number.isFinite(+j.min) && Number.isFinite(+j.max) && +j.max > +j.min && j.limits !== false ? [+j.min, +j.max] : lin(j) ? [-100, 100] : [-180, 180]);
   // collision scan first (B-rep intersections), then animate
   for (let k = 0; k <= steps; k++) {
-    const vals = Object.fromEntries(joints.map(j => [j.id, +j.min + ((+j.max - +j.min) * k) / steps]));
-    const res = interference(placedBodies(vals));
-    if (res.length) hits.push(joints.map(j => `${j.name} = ${f2(vals[j.id])}${j.type === 'revolute' ? '°' : ' mm'}`).join(', '));
+    const vals = Object.fromEntries(joints.map(j => { const [lo, hi] = rng(j); return [j.id, lo + ((hi - lo) * k) / steps]; }));
+    const res = motionInterference(vals, moving);
+    if (res.length) hits.push(joints.map(j => `${j.name} = ${f2(vals[j.id])}${lin(j) ? ' mm' : '°'}`).join(', '));
   }
   showBanner([hits.length ? `⚠ Kollision bei ${hits.length} von ${steps + 1} Stellungen, z. B. ${hits[0]}` : '✓ Keine Kollision im gesamten Bewegungsbereich', h('button', { onclick: () => motionStudy() }, 'Stopp')]);
   const t0 = performance.now();
   const tick = now => {
     if (!motion.on) return;
     const ph = ((now - t0) / 3000) % 2, u = ph < 1 ? ph : 2 - ph;
-    motionValues = Object.fromEntries(joints.map(j => [j.id, +j.min + (+j.max - +j.min) * u]));
+    motionValues = Object.fromEntries(joints.map(j => { const [lo, hi] = rng(j); return [j.id, lo + (hi - lo) * u]; }));
     rebuildScene();
     motion.raf = requestAnimationFrame(tick);
   };
@@ -11494,7 +11592,9 @@ function toggleContactAll() {
 const visibleBodies = () => getModel().bodies.filter(b => !state.hiddenBodies.has(b.id));
 function massOf(b) {
   const pr = bodyProps(b), mat = MATERIALS[bodyMeta(b.id).material || 'alu'];
-  return { ...pr, mass: (pr.volume / 1000) * mat.density, mat };
+  // in an assembly the centre of mass is where the component stands, not where it was built
+  const com = assemblyActive() ? new THREE.Vector3(...pr.com).applyMatrix4(bodyMatrix(state.project.assembly, b.id, motionValues)).toArray() : pr.com;
+  return { ...pr, com, mass: (pr.volume / 1000) * mat.density, mat };
 }
 // Massenschwerpunkt: a marker at the common centre of mass of the visible bodies
 let comMarker = null;
@@ -11547,21 +11647,34 @@ function billOfMaterials() {
   w.foot.append(h('button', { onclick: () => download(`${safeName()}_Stückliste.csv`, [head, ...rows].map(r => r.map(csvCell).join(';')).join('\n'), 'text/csv') }, 'Als CSV'), h('button', { class: 'primary', onclick: w.close }, 'OK'));
 }
 // Kontakt prüfen: pairs of bodies that overlap, touch or stay apart (smallest gap)
-function contactCheck() {
+// Small assemblies: every pair. Large ones (over 40 bodies): only pairs whose boxes come within NEAR mm of each
+// other are measured – the others are listed as one line (that keeps 999 bodies at a few thousand pairs).
+let contactRun = null;
+async function contactCheck() {
+  if (contactRun) { contactRun.stop = true; return; }
+  if (modelBusy()) return status('Einen Moment – das Modell wird noch berechnet.');
   const bs = placedBodies().filter(b => !state.hiddenBodies.has(b.id) && !b.surface);
   if (bs.length < 2) return status('Kontakt prüfen braucht mindestens zwei Körper.');
-  const over = interference(bs), rows = [];
-  for (let i = 0; i < bs.length; i++) for (let k = i + 1; k < bs.length; k++) {
-    const ov = over.find(r => (r.a.id === bs[i].id && r.b.id === bs[k].id) || (r.a.id === bs[k].id && r.b.id === bs[i].id));
-    let d = NaN;
-    if (!ov) try { d = measureGap(bs[i].shape, bs[k].shape); } catch { /* no distance */ }
-    rows.push([bodyName(bs[i]), bodyName(bs[k]), ov ? `Überschneidung ${f2(ov.volume)} mm³` : d < 1e-3 ? 'Berührung' : Number.isFinite(d) ? `Abstand ${f2(d)} mm` : '–']);
-  }
+  const all = bs.length <= 40, NEAR = 5;
+  const pairs = all ? bs.flatMap((a, i) => bs.slice(i + 1).map(b => [a, b])) : boxPairs(bs, NEAR);
+  const total = (bs.length * (bs.length - 1)) / 2, run = contactRun = { stop: false }, rows = [];
+  const stopBtn = h('button', { onclick: () => (run.stop = true) }, 'Abbrechen');
+  const res = await contactAsync(pairs, {
+    near: NEAR,
+    progress: (i, n) => n > 50 && showBanner([`Kontakte werden geprüft … ${i} von ${n} Paaren`, stopBtn]),
+    stop: () => run.stop,
+  }).finally(() => { contactRun = null; });
+  if (!res) return showBanner(['Prüfung abgebrochen.', h('button', { onclick: () => showBanner(null) }, 'OK')]);
+  for (const { a, b, volume: v, gap: d } of res)
+    rows.push([bodyName(a), bodyName(b), v > 1e-4 ? `Überschneidung ${f2(v)} mm³` : d < 1e-3 ? 'Berührung' : Number.isFinite(d) ? `Abstand ${f2(d)} mm` : '–']);
+  showBanner(null);
+  const order = r => (/Über/.test(r[2]) ? 0 : /Berühr/.test(r[2]) ? 1 : 2);
+  if (!all) rows.sort((p, q) => order(p) - order(q));
   const w = modalWin('Kontakt prüfen', 620);
+  if (!all) w.body.append(h('p', { class: 'hint' }, `${bs.length} Körper: geprüft sind die ${pairs.length} Paare, die sich auf ${NEAR} mm nähern. Die übrigen ${total - pairs.length} Paare liegen weiter als ${NEAR} mm auseinander.`));
   w.body.append(h('table', { class: 'xtab' }, h('tr', null, h('th', null, 'Körper'), h('th', null, 'Körper'), h('th', null, 'Ergebnis')), ...rows.map(r => h('tr', { class: /Über/.test(r[2]) ? 'bad' : '' }, ...r.map(t => h('td', null, t))))));
   w.foot.append(h('button', { class: 'primary', onclick: w.close }, 'OK'));
 }
-const measureGap = (a, b) => { const R = getKernelR(); return R.measureDistanceBetween(a, b); };
 // Körper vergleichen: what one body has more than the other
 async function compareBodies() {
   const bs = getModel().bodies.filter(b => !b.surface);

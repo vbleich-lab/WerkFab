@@ -1086,6 +1086,9 @@ select option:disabled { color: var(--muted); }
 .exg-box { display: flex; align-items: center; gap: 4px; padding: 3px 6px; background: var(--panel); border: 1px solid var(--accent); border-radius: 3px; box-shadow: 0 2px 8px rgba(0,0,0,.35); pointer-events: auto; transform: translate(-50%, -50%); font: 500 11px "Segoe UI", system-ui, sans-serif; color: var(--muted); }
 .exg-box input { width: 64px; border: 0; background: var(--input); color: var(--text); font: 600 12px "Segoe UI", system-ui, sans-serif; padding: 2px 5px; border-radius: 2px; outline: none; }
 .exg-box input:focus { box-shadow: 0 0 0 1px var(--accent); }
+.exg-anchor { width: 0; height: 0; pointer-events: none; }
+.exg-box.exg-mini { position: absolute; left: 0; top: 0; padding: 1px; gap: 0; border-radius: 2px; transform: translate(0, -50%); }
+.exg-box.exg-mini input { min-width: 0; padding: 0 2px; font-size: 11px; text-align: center; }
 
 /* ---------- icons: two-tone shading (classes from js/icons.js) ---------- */
 /* bodies are drawn like the part of the program icon: lit from the upper left, in the accent colour */

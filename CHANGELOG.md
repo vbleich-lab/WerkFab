@@ -1,5 +1,27 @@
 # Änderungen
 
+## v1.0.0-rc.26 – 2026-11-18
+
+### Konstruktion
+- **Versatzebene mit Ziehpfeil:** Eine ausgewählte Versatzebene zeigt in ihrer Mitte einen Pfeil. Zieht man ihn, verschiebt sich die Ebene (in 0,1-mm-Schritten, mit Umschalt in 1-mm-Schritten), und ihr Umriss läuft als Vorschau mit. Direkt neben der Pfeilspitze sitzt ein kleines Eingabefeld für den Abstand. Es nimmt auch negative Werte, Parameter und Formeln an.
+- **Weitere Versatzebenen landen nicht mehr übereinander:** Eine neue Versatzebene lag bisher genau auf der vorhandenen (beide 20 mm über XY). Es sah aus, als wäre nichts passiert. Jetzt rückt der vorgeschlagene Abstand weiter (20, 40, 60 mm …), bis die Stelle frei ist. Ist eine Ebene ausgewählt, wird wie bisher von ihr aus versetzt.
+
+### Baugruppen
+- **Große Baugruppen: Kollisionsprüfung in Sekunden statt Stunden.** Interferenz, Bewegungsstudie und Anschlag verschnitten bisher jedes Körperpaar. Bei 999 Teilen sind das rund 500 000 Verschneidungen. Jetzt werden nur Paare verschnitten, deren Hüllquader sich berühren. Ein Körper, der an sehr viele andere grenzt (z. B. ein Seitenprofil mit 233 Bohrungen), wird dafür einmal in Stücke zerlegt; jedes Paar verschneidet dann nur das Stück in seiner Nähe (10 ms statt 170 ms). Eine Rollenbahn mit 999 Teilen wird in 37 s vollständig geprüft.
+- **Interferenz blockiert das Fenster nicht mehr:** Die Prüfung läuft in Abschnitten, zeigt „… 900 von 1893 Paaren“ und lässt sich abbrechen.
+- **„Kontakt prüfen“ bei großen Baugruppen:** Bisher wurde der Abstand jedes Körperpaars gemessen (bei 999 Teilen rund 500 000 Messungen). Ab 40 Körpern werden nur Paare geprüft, die sich auf 5 mm nähern; die übrigen stehen als eine Zeile darüber. Überschneidungen und Berührungen stehen oben. Die Prüfung läuft in Abschnitten mit Fortschritt und „Abbrechen“; 999 Teile brauchen gut eine Minute.
+- **Schwerpunkt in der Baugruppe:** Massenschwerpunkt, „Physikalische Eigenschaften“ und die Eigenschaften eines Körpers zeigen den Schwerpunkt dort, wo die Komponente steht (verschoben, gedreht, von einem Gelenk bewegt). Bisher galt die Lage, in der sie konstruiert wurde.
+- Interferenz und „Kontakt prüfen“ melden, wenn das Modell noch berechnet wird, statt „braucht mindestens zwei Körper“.
+- **Bewegungsstudie prüft nur, was sich bewegt:** Paare aus zwei stillstehenden Teilen ändern sich nicht und werden übersprungen. Mit Kontaktsätzen dauern 25 Stellungen der Rollenbahn 0,8 s, ohne sie 4 s je Stellung.
+- **Kontaktsätze wirken jetzt:** Die gewählten Körper wurden gespeichert, beim Bewegen aber nie berücksichtigt. Jetzt prüfen Bewegungsstudie, „Gelenke antreiben“ und der Anschlag nur diese Körper gegeneinander.
+- **Anschlag auch für verknüpfte Gelenke:** Folgt ein Gelenk einem anderen (Zahnstange, Zahnrad, Schraube, Nocken) und hat es „Kontakt (Anschlag)“, hält auch das treibende Gelenk an. Bisher fuhren z. B. Pakete auf einer Rollenbahn durch den Endanschlag, wenn man die Rolle drehte.
+- **Gelenkgrenzen gelten auch für eingetippte Werte** und für verknüpfte Gelenke. Bisher war nur der Schieberegler begrenzt, 800° bei maximal 720° wurden angenommen.
+- **Bewegungsstudie in der Werkzeugleiste** bei Gelenken ohne Grenzen: Sie fährt ±180° bzw. ±100 mm, statt mit ungültigen Werten zu rechnen.
+- **Mit Gelenken duplizieren:** Die Kopie behält Name, Werkstoff und Farbe („Paket 6 (Kopie)“ statt „Körper1000“ aus Aluminium). Gelenke anderer Körper, die am Original hängen, werden nicht mehr mitkopiert; bisher hing ihr Kind danach an zwei Eltern.
+
+### KI-Agenten
+- `add_joint` und `update_joint` behalten die Art einer Verknüpfung (Zahnrad, Zahnstange, Schraube, Nocken) mit ihren Werten. Bisher wurde jede Verknüpfung zu einer einfachen Übersetzung, auch beim Ändern eines anderen Felds.
+
 ## v1.0.0-rc.25 – 2026-11-18
 
 ### Konstruktion

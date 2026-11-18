@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "Vérification des interférences … {0} sur {1} paires",
+ "Prüfung abgebrochen.": "Vérification annulée.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "Vérification des contacts … {0} sur {1} paires",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} corps : seules les {1} paires distantes de moins de {2} mm ont été vérifiées. Les {3} autres paires sont à plus de {4} mm l’une de l’autre."
+}

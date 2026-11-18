@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "Checking for interference … {0} of {1} pairs",
+ "Prüfung abgebrochen.": "Check cancelled.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "Checking contacts … {0} of {1} pairs",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} bodies: checked are the {1} pairs that come within {2} mm of each other. The other {3} pairs are more than {4} mm apart."
+}

@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "გადაკვეთების შემოწმება … {1} წყვილიდან {0}",
+ "Prüfung abgebrochen.": "შემოწმება გაუქმდა.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "კონტაქტების შემოწმება … {1} წყვილიდან {0}",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} სხეული: შემოწმდა {1} წყვილი, რომლებიც ერთმანეთს {2} მმ-მდე უახლოვდება. დანარჩენი {3} წყვილი ერთმანეთისგან {4} მმ-ზე მეტით არის დაშორებული."
+}

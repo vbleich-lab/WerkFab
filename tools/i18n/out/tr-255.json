@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "Girişim kontrol ediliyor … {1} çiftten {0}",
+ "Prüfung abgebrochen.": "Kontrol iptal edildi.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "Temaslar kontrol ediliyor … {1} çiftten {0}",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} gövde: birbirine {2} mm’ye kadar yaklaşan {1} çift kontrol edildi. Diğer {3} çift birbirinden {4} mm’den fazla uzakta."
+}

@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "간섭 검사 중 … {1}쌍 중 {0}쌍",
+ "Prüfung abgebrochen.": "검사가 취소되었습니다.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "접촉 검사 중 … {1}쌍 중 {0}쌍",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "바디 {0}개: {2} mm 이내로 가까워지는 {1}쌍을 검사했습니다. 나머지 {3}쌍은 {4} mm 이상 떨어져 있습니다."
+}

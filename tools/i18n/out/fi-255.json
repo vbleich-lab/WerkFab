@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "Tarkistetaan päällekkäisyyksiä … {0}/{1} paria",
+ "Prüfung abgebrochen.": "Tarkistus keskeytetty.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "Tarkistetaan kosketuksia … {0}/{1} paria",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} kappaletta: tarkistettu on {1} paria, jotka tulevat {2} mm:n päähän toisistaan. Muut {3} paria ovat yli {4} mm:n päässä toisistaan."
+}

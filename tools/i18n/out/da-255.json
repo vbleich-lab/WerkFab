@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "Kontrollerer interferens … {0} af {1} par",
+ "Prüfung abgebrochen.": "Kontrol afbrudt.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "Kontrollerer kontakter … {0} af {1} par",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} legemer: kontrolleret er de {1} par, der kommer inden for {2} mm af hinanden. De øvrige {3} par ligger mere end {4} mm fra hinanden."
+}

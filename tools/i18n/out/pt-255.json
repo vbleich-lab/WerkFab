@@ -1,0 +1,6 @@
+{
+ "Überschneidungen werden geprüft … {0} von {1} Paaren": "Verificando interferências … {0} de {1} pares",
+ "Prüfung abgebrochen.": "Verificação cancelada.",
+ "Kontakte werden geprüft … {0} von {1} Paaren": "Verificando contatos … {0} de {1} pares",
+ "{0} Körper: geprüft sind die {1} Paare, die sich auf {2} mm nähern. Die übrigen {3} Paare liegen weiter als {4} mm auseinander.": "{0} corpos: foram verificados os {1} pares que ficam a menos de {2} mm. Os outros {3} pares estão a mais de {4} mm de distância."
+}
