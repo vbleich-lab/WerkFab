@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Skices plakne",
+ "Punkt {0}, {1}": "Punkts {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "Skicē nav riņķu vai punktu kā urbumu centru",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "Viena no izvēlētajām malām vai virsmām vairs netika atrasta – izvēlieties vēlreiz.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "{0} no izvēlētajām malām vai virsmām vairs netika atrastas – izvēlieties vēlreiz.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Noapaļojums ar šo rādiusu nav iespējams – samaziniet rādiusu vai izvēlieties mazāk malu (rādiuss nedrīkst sniegties pāri blakus virsmām).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Nošķēlums ar šo izmēru nav iespējams – samaziniet izmēru vai izvēlieties mazāk malu.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Slīpums nav iespējams – izvēlieties arī tangenciāli pieguļošās virsmas (piem., noapaļotus stūrus) vai samaziniet leņķi.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Čaula ar šo sieniņas biezumu nav iespējama – samaziniet biezumu (vēlams mazāku par detaļas noapaļojuma rādiusiem).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "Ģeometrijas kodols nevarēja aprēķināt šo elementu – pārbaudiet izmērus un izvēlētās malas vai virsmas."
+}

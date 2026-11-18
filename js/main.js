@@ -4336,7 +4336,7 @@ function propsHole(b, f, ed) {
   const N = (label, key, opt = {}) => row(label, num(f[key], v => ed(x => (x[key] = v)), { unit: 'mm', min: 0, ...opt }));
   b.append(
     row('Skizze', sel(sketchOptions(), f.sketch, v => ed(x => { x.sketch = v; x.points = 'all'; }))),
-    row('Mittelpunkte', profileChecks(f.sketch, f.points, v => ed(x => (x.points = v)), e => e.type === 'circle')),
+    row('Mittelpunkte', profileChecks(f.sketch, f.points, v => ed(x => (x.points = v)), e => e.type === 'circle' || e.type === 'point')),
     row('Typ', sel([['simple', 'Einfach'], ['cbore', 'Senkbohrung (Zylinder)'], ['csink', 'Senkung (Kegel)']], f.kind, v => ed(x => (x.kind = v)))),
     row('Gewindebohrung', chk(!!f.tapped, v => ed(x => { x.tapped = v; if (v && !x.threadSize) x.threadSize = (THREAD_SIZES.find(t => t[3] >= (+x.dia || 0) - 0.21) || THREAD_SIZES[4])[0]; }))),
     f.tapped ? row('Gewinde', sel(THREAD_SIZES.map(t => [t[0], `${t[0]} × ${String(t[2]).replace('.', ',')} (Kernloch Ø${String(t[3]).replace('.', ',')})`]), f.threadSize || 'M8', v => ed(x => (x.threadSize = v)))) : N('Durchmesser', 'dia'),
@@ -5328,6 +5328,29 @@ function stdPartDialog(hasBody) {
     document.body.append(back);
   });
 }
+// picture for an agent: the whole view, without the shift that keeps the centre above a panel (setInset)
+function agentShot() {
+  const inset = vp.inset;
+  if (inset) { vp.inset = 0; vp.applyInset(); }
+  try { return thumbnail(vp.renderer, vp.scene, vp.camera, isDark() ? '#2a323b' : '#e4e9ee', 960, 640); } finally { if (inset) { vp.inset = inset; vp.applyInset(); } }
+}
+// the box around the visible meshes of a group (hidden parts and helpers left out)
+function visibleBox(obj) {
+  const box = new THREE.Box3();
+  obj.updateMatrixWorld(true);
+  obj.traverseVisible(o => {
+    if (!o.isMesh || !o.geometry) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    box.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld));
+  });
+  return box;
+}
+// a camera move (setView) ends by a timer when the window is hidden, and timers there run late: wait for its end
+async function viewSettled() {
+  for (let i = 0; i < 60 && vp.anim; i++) await new Promise(r => setTimeout(r, 50));
+  await new Promise(r => setTimeout(r, 150));
+}
+
 // ----- KI-Agenten: what the page lends to the tools of js/agent.js. The desktop app passes the calls of a
 // connected agent on (electron/main.cjs); window.werkfabAgent offers the same tools to scripts in the page. -----
 const agentApi = {
@@ -5385,9 +5408,11 @@ const agentApi = {
       const f = Number.isFinite(+at) && at !== null && at !== undefined ? Math.min(1, Math.max(0, +at)) : 1;
       seek(sim.total * f);
       const st = sim.turn ? turnSim.compareStats() : stockSim.compareStats(), pct = v => +(100 * v).toFixed(1);
-      if (view !== 'current') vp.setView(view || 'iso', m.box.isEmpty() ? null : m.box);
-      await new Promise(r => setTimeout(r, 500));
-      const image = thumbnail(vp.renderer, vp.scene, vp.camera, isDark() ? '#2a323b' : '#e4e9ee', 960, 640);
+      // fit to what the simulation shows: a turning setup stands in its own coordinates, not where the model is
+      const simBox = visibleBox((sim.turn ? turnSim : stockSim).group), fitBox = !simBox.isEmpty() ? simBox : m.box;
+      if (view !== 'current') vp.setView(view || 'iso', fitBox.isEmpty() ? null : fitBox);
+      await viewSettled();
+      const image = agentShot();
       const hits = sim.collisions || [];
       return { image, setup: sid, at: f, time: +(sim.t || 0).toFixed(1), totalTime: +(sim.total || 0).toFixed(1),
         collisions: { count: hits.length, first: hits.slice(0, 20).map(c => ({ kind: c.type, operation: c.op, at: [c.p.x, c.p.y, c.p.z].map(q => +q.toFixed(2)) })) },
@@ -5470,9 +5495,9 @@ const agentApi = {
   async picture(view, fit) {
     const m = await agentApi.settled();
     if (view !== 'current') vp.setView(view, fit && !m.box.isEmpty() ? m.box : null); else if (fit) fitView();
+    await viewSettled();
     renderAll();
-    await new Promise(r => setTimeout(r, 450));
-    return thumbnail(vp.renderer, vp.scene, vp.camera, isDark() ? '#2a323b' : '#e4e9ee', 960, 640);
+    return agentShot();
   },
   // the assembly: where every body stands now, the joints, and bodies that run into each other
   async assembly(collisions) {
@@ -7376,7 +7401,7 @@ const OP_TABS = [
   ['link', 'Verknüpfung', '<svg viewBox="0 0 24 24" class="colored"><rect x="3" y="14" width="18" height="6" fill="#e9ecef"/><path d="M5 14V8h14v6" fill="none" stroke="#51cf66" stroke-width="2"/><path d="M5 8h14" stroke="#ffd43b" stroke-width="2"/></svg>'],
 ];
 const H_LABEL = { safe: 'Sicherheitshöhe', retract: 'Rückzugshöhe', feed: 'Vorschubhöhe', top: 'Obere Höhe', bottom: 'Endhöhe' };
-const H_FROM_LABEL = { retract: 'Rückzugshöhe', stockTop: 'Rohteiloberkante', stockBottom: 'Rohteilunterkante', modelTop: 'Modelloberkante', modelBottom: 'Modellunterkante', top: 'Obere Höhe', bottom: 'Endhöhe', feed: 'Vorschubhöhe', origin: 'Ursprung (absolut)', pick: 'Auswahl' };
+const H_FROM_LABEL = { retract: 'Rückzugshöhe', stockTop: 'Rohteiloberkante', stockBottom: 'Rohteilunterkante', modelTop: 'Modelloberkante', modelBottom: 'Modellunterkante', sketch: 'Skizzenebene', top: 'Obere Höhe', bottom: 'Endhöhe', feed: 'Vorschubhöhe', origin: 'Ursprung (absolut)', pick: 'Auswahl' };
 const COMP_TYPES = [['computer', 'Im Computer'], ['control', 'An Steuerung'], ['wear', 'Verschleiß'], ['inverseWear', 'Invers Verschleiß'], ['off', 'Aus']];
 const RAPID_MODES = [['preserve', 'Eilgangbewegungen beibehalten'], ['clearance', 'Eilgang nur auf Rückzugs-/Sicherheitshöhe'], ['highFeed', 'Hohen Vorschub statt Eilgang']];
 const PICK_IC = '<svg viewBox="0 0 16 16" width="13" height="13"><path d="M4 1.5v11l3-2.6 2 4.4 1.8-.8-2-4.3 4-.3z" fill="currentColor"/></svg>';

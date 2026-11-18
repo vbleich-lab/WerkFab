@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Plano do esboço",
+ "Punkt {0}, {1}": "Ponto {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "Nenhum círculo ou ponto no esboço como centro de furo",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "Uma das arestas ou faces selecionadas não foi mais encontrada – selecione novamente.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "{0} das arestas ou faces selecionadas não foram mais encontradas – selecione novamente.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Arredondamento impossível com este raio – reduza o raio ou selecione menos arestas (o raio não pode ultrapassar as faces adjacentes).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Chanfro impossível com esta medida – reduza a medida ou selecione menos arestas.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Ângulo de saída impossível – selecione também as faces tangentes adjacentes (p. ex. cantos arredondados) ou reduza o ângulo.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Casca impossível com esta espessura – reduza a espessura (de preferência abaixo dos raios de arredondamento da peça).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "O núcleo geométrico não conseguiu calcular este recurso – verifique as medidas e as arestas ou faces selecionadas."
+}

@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Płaszczyzna szkicu",
+ "Punkt {0}, {1}": "Punkt {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "Brak okręgów lub punktów w szkicu jako środków otworów",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "Nie znaleziono już jednej z wybranych krawędzi lub ścian – wybierz ponownie.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "Nie znaleziono już {0} z wybranych krawędzi lub ścian – wybierz ponownie.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Zaokrąglenie o tym promieniu niemożliwe – zmniejsz promień lub wybierz mniej krawędzi (promień nie może wychodzić poza sąsiednie ściany).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Fazowanie o tym wymiarze niemożliwe – zmniejsz wymiar lub wybierz mniej krawędzi.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Pochylenie niemożliwe – wybierz też stycznie przylegające ściany (np. zaokrąglone narożniki) lub zmniejsz kąt.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Skorupa o tej grubości ścianki niemożliwa – zmniejsz grubość (najlepiej poniżej promieni zaokrągleń części).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "Jądro geometryczne nie mogło obliczyć tego elementu – sprawdź wymiary oraz wybrane krawędzie lub ściany."
+}

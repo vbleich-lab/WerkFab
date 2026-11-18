@@ -93,3 +93,11 @@ const near = (a, b, rel = 1e-6) => Math.abs(a - b) <= rel * Math.max(1, Math.abs
   ok('Profile: Rechteck ohne die Kreise hat ein Loch', ring.length === 1 && ring[0].holes.length === 1 && Math.abs(Math.abs(signedArea(ring[0].outer)) - 2800) < 0.01);
   ok('Profile: Bereich mit gelöschter Kontur gibt nichts', cellShapes(items, ['a', 'x']).length === 0);
 }
+
+// ---- hole centres: circles and sketch points of the sketch ----
+{
+  const { holeCentres } = await import('../js/model.js');
+  const sk = { entities: [{ id: 'c', type: 'circle', cx: 5, cy: 6, r: 2 }, { id: 'p', type: 'point', x: -30, y: 15 }, { id: 'l', type: 'poly', pts: [[0, 0], [1, 1]] }] };
+  const all = holeCentres(sk, { points: 'all' }), some = holeCentres(sk, { points: ['p'] });
+  ok('Bohrung: Mittelpunkte aus Kreisen und Skizzenpunkten', all.length === 2 && all.some(q => q[0] === -30 && q[1] === 15) && some.length === 1 && some[0][0] === -30, JSON.stringify(all));
+}

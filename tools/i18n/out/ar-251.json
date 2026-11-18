@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "مستوى الرسم التخطيطي",
+ "Punkt {0}, {1}": "نقطة {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "لا توجد دوائر أو نقاط في الرسم التخطيطي كمراكز للثقوب",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "لم يعد يُعثر على إحدى الحواف أو الأوجه المحددة – حدّد من جديد.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "لم يعد يُعثر على {0} من الحواف أو الأوجه المحددة – حدّد من جديد.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "التقويس بهذا نصف القطر غير ممكن – صغّر نصف القطر أو حدّد حوافًا أقل (يجب ألا يتجاوز نصف القطر الأوجه المجاورة).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "الشطف بهذا المقاس غير ممكن – صغّر المقاس أو حدّد حوافًا أقل.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "زاوية السحب غير ممكنة – حدّد أيضًا الأوجه المتصلة المماسة (مثل الزوايا المقوسة) أو صغّر الزاوية.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "التجويف بسماكة الجدار هذه غير ممكن – قلّل السماكة (ويُفضّل أقل من أنصاف أقطار التقويس في القطعة).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "تعذّر على نواة الهندسة حساب هذه الميزة – تحقق من المقاسات والحواف أو الأوجه المحددة."
+}

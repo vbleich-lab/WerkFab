@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Плоскость эскиза",
+ "Punkt {0}, {1}": "Точка {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "В эскизе нет окружностей или точек в качестве центров отверстий",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "Одно из выбранных рёбер или граней больше не найдено – выберите заново.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "{0} из выбранных рёбер или граней больше не найдены – выберите заново.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Скругление с этим радиусом невозможно – уменьшите радиус или выберите меньше рёбер (радиус не должен выходить за смежные грани).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Фаска с этим размером невозможна – уменьшите размер или выберите меньше рёбер.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Уклон невозможен – выберите также касательно примыкающие грани (напр. скруглённые углы) или уменьшите угол.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Оболочка с этой толщиной стенки невозможна – уменьшите толщину (лучше меньше радиусов скругления детали).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "Геометрическое ядро не смогло рассчитать этот элемент – проверьте размеры и выбранные рёбра или грани."
+}

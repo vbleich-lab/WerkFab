@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Skitseplan",
+ "Punkt {0}, {1}": "Punkt {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "Ingen cirkler eller punkter i skitsen som hulcentre",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "En af de valgte kanter eller flader blev ikke længere fundet – vælg igen.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "{0} af de valgte kanter eller flader blev ikke længere fundet – vælg igen.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Afrunding med denne radius er ikke mulig – formindsk radius eller vælg færre kanter (radius må ikke gå ud over tilstødende flader).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Affasning med dette mål er ikke mulig – formindsk målet eller vælg færre kanter.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Slipvinkel er ikke mulig – vælg også tangentielt tilstødende flader (f.eks. afrundede hjørner) eller formindsk vinklen.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Skal med denne vægtykkelse er ikke mulig – formindsk tykkelsen (helst under emnets afrundingsradier).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "Geometrikernen kunne ikke beregne denne funktion – kontrollér mål og de valgte kanter eller flader."
+}

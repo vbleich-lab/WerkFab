@@ -359,6 +359,7 @@ export function describeEntity(e) {
   switch (e.type) {
     case 'rect': return `Rechteck ${f1(e.w)}×${f1(e.h)}`;
     case 'circle': return `Kreis Ø${f1(e.r * 2)}`;
+    case 'point': return `Punkt ${f1(e.x)}, ${f1(e.y)}`;
     case 'ngon': return `${e.n}-Eck R${f1(e.r)}`;
     case 'poly': return e.curve === 'arc' ? 'Bogen' : e.curve === 'spline' ? `Spline${e.closed ? ' (geschlossen)' : ''} (${e.pts.length} Pkt.)` : `${e.closed ? 'Kontur' : e.pts.length === 2 ? 'Linie' : 'Linienzug'} (${e.pts.length} Pkt.)`;
     case 'text': return `Text „${e.text}“`;

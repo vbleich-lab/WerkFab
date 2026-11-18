@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Schetsvlak",
+ "Punkt {0}, {1}": "Punt {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "Geen cirkels of punten in de schets als gatmiddelpunten",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "Een van de gekozen randen of vlakken is niet meer gevonden – opnieuw kiezen.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "{0} van de gekozen randen of vlakken zijn niet meer gevonden – opnieuw kiezen.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Afronding met deze straal niet mogelijk – straal verkleinen of minder randen kiezen (de straal mag niet voorbij aangrenzende vlakken reiken).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Afschuining met deze maat niet mogelijk – maat verkleinen of minder randen kiezen.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Lossingshoek niet mogelijk – ook tangentieel aansluitende vlakken (bijv. afgeronde hoeken) kiezen of de hoek verkleinen.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Schaal met deze wanddikte niet mogelijk – wanddikte verkleinen (liefst kleiner dan de afrondingsstralen van het onderdeel).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "De geometriekernel kon deze feature niet berekenen – maten en gekozen randen of vlakken controleren."
+}

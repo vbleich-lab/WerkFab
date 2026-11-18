@@ -145,6 +145,8 @@ export function migrate(p) {
   }
   const have = new Set(p.cam.tools.map(t => t.id));
   for (const t of defaultTools()) if (!have.has(t.id) && !p.cam.tools.some(x => x.number === t.number)) p.cam.tools.push(t);
+  // a milling cutter's stepover is a share of its diameter; an older example library had 6 (meant as mm)
+  for (const t of p.cam.tools) if (+t.stepover > 1 && +t.dia > 0 && !/^(turn|turnbore|groove|tthread)$/.test(t.type)) t.stepover = Math.min(0.9, +t.stepover / +t.dia);
   p.version = 2;
   return p;
 }

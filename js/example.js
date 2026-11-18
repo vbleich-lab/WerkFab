@@ -121,7 +121,7 @@ export function exampleMilling() {
     ] },
   ];
   p.cam.tools.push(
-    { id: 'T9', number: 9, name: 'Schaftfräser Ø12', type: 'flat', dia: 12, fluteLen: 42, length: 100, flutes: 3, rpm: 8000, feed: 1500, plunge: 400, stepdown: 4, stepover: 6 },
+    { id: 'T9', number: 9, name: 'Schaftfräser Ø12', type: 'flat', dia: 12, fluteLen: 42, length: 100, flutes: 3, rpm: 8000, feed: 1500, plunge: 400, stepdown: 4, stepover: 0.5 },
     { id: 'T10', number: 10, name: 'Kugelfräser R2', type: 'ball', dia: 4, fluteLen: 22, stickout: 40, flutes: 2, rpm: 12000, feed: 900, plunge: 300, stepdown: 0.5, stepover: 0.4 },
   );
   // reach of the standard tools for this part: the 3D strategies work down to the pocket floor (Z20)

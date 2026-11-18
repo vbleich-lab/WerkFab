@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "מישור השרטוט",
+ "Punkt {0}, {1}": "נקודה {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "אין בשרטוט מעגלים או נקודות כמרכזי קדחים",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "אחת מהקצוות או הפאות שנבחרו לא נמצאה עוד – בחר מחדש.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "{0} מהקצוות או הפאות שנבחרו לא נמצאו עוד – בחר מחדש.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "עיגול ברדיוס זה אינו אפשרי – הקטן את הרדיוס או בחר פחות קצוות (הרדיוס אסור שיחרוג מעבר לפאות הסמוכות).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "שיפוע בגודל זה אינו אפשרי – הקטן את המידה או בחר פחות קצוות.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "זווית שליפה אינה אפשרית – בחר גם את הפאות הצמודות המשיקות (למשל פינות מעוגלות) או הקטן את הזווית.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "קליפה בעובי דופן זה אינה אפשרית – הקטן את העובי (רצוי מתחת לרדיוסי העיגול של החלק).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "ליבת הגאומטריה לא הצליחה לחשב תכונה זו – בדוק את המידות ואת הקצוות או הפאות שנבחרו."
+}

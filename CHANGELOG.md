@@ -1,5 +1,31 @@
 # Änderungen
 
+## v1.0.0-rc.25 – 2026-11-18
+
+### Konstruktion
+- **Bohrungen auf Skizzenpunkten:** Neben Kreisen dienen jetzt auch Skizzenpunkte als Bohrungsmittelpunkte (wie schon beim Dom).
+- **Gewählte Kanten und Flächen wandern mit:**
+  - Ändert sich ein Maß, findet eine Verrundung, Fase, Schale, Formschräge usw. ihre Kanten und Flächen wieder, auch wenn sie sich verschoben oder vergrößert haben. Gesucht wird nach derselben Art (Ebene, Zylinder …), derselben Richtung und der kleinsten Entfernung.
+  - Beispiele: Die Fase am Außendurchmesser eines Flanschs bleibt bei Ø80 → Ø100 erhalten. Die Randverrundung eines Gehäuses bleibt bei 80 → 100 mm Länge erhalten.
+  - Lässt sich eine Kante oder Fläche nicht eindeutig wiederfinden, zeigt die Zeitachse einen Hinweis. Bisher fiel sie stillschweigend weg.
+- **Kreiskanten lassen sich an jeder Stelle wählen**, nicht nur in ihrer Mitte.
+- **Formschräge ohne getroffene Flächen** meldet jetzt einen Fehler, statt nichts zu tun.
+- **Verständliche Fehlermeldungen:** Scheitert eine Verrundung, Fase, Formschräge oder Schale im Geometriekern, steht dort jetzt, woran es meist liegt, statt „[object WebAssembly.Exception]“.
+
+### Fertigung
+- **Endhöhe „Skizzenebene“:** Die Endhöhe einer Operation lässt sich ab der Ebene ihrer Skizze angeben, z. B. 10 mm darunter. Das passt für Skizzen, die nur die Kontur zeigen und selbst keine Tiefe haben.
+- **Planfräser im Beispiel:** Der Schaftfräser Ø12 der Beispielbibliothek hatte die seitliche Zustellung 6 statt 0,5 × Ø. Planfräsen fuhr deshalb Bahnen 72 mm auseinander und ließ fast alles stehen. Gespeicherte Bibliotheken werden beim Öffnen korrigiert.
+
+### KI-Agenten
+- **„depth“ bei 2D-Operationen wirkt:** Tasche, Kontur, Nut usw. schneiden jetzt so tief unter die Skizzenebene, wie „depth“ angibt. Bisher blieb es ohne Wirkung, und die Tasche wurde nur auf der Skizzenebene gefahren.
+- **Hinweise im Modell:** get_model gibt jetzt auch die Hinweise der Features aus (z. B. verlorene Kanten).
+- **Bilder richtig eingepasst:**
+  - screenshot und simulate warten das Ende der Kamerafahrt ab. Bei verborgenem Fenster war das Teil sonst angeschnitten.
+  - Das Simulationsbild zeigt das Rohteil mittig, auch beim Drehen. Die Verschiebung über dem Simulationsfenster fließt nicht mehr ins Bild ein.
+- **set_params** nimmt auch „value“ statt „expr“. Fehlt beides, gibt es einen Fehler. Bisher wurde wörtlich „undefined“ als Formel gespeichert.
+- **add_operation** übernimmt Felder auch, wenn sie neben „fields“ statt darin stehen. Bisher wurden sie stillschweigend ignoriert.
+- **Experimenteller Rust-Kern:** Bohrungen auch auf Skizzenpunkten.
+
 ## v1.0.0-rc.24 – 2026-11-18
 
 ### Oberfläche

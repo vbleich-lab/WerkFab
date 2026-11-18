@@ -694,3 +694,29 @@ const bbox = pts => pts.reduce((b, q) => q.map((v, i) => [Math.min(b[i][0], v), 
   const fx = mk(20, [{ id: 'clamp', geometry: clamp }], ['clamp']).m.get('o1');
   ok('Halter: Spannmittel neben der Bahn bestimmt die Ausspannlänge', fx && fx.touch && fx.what === 'fixture' && fx.need > 20, JSON.stringify(fx && { need: fx.need, what: fx.what }));
 }
+
+// ---- the bottom height "Skizzenebene": an operation that cuts a given depth below the plane of its sketch ----
+{
+  const zmin = r => Math.min(...r.moves.filter(m => m.t === 'f' && Number.isFinite(m.z)).map(m => m.z));
+  const at = off => run({ type: 'pocket', tool: 'T2', sketch: 'skPocket', entities: 'all', heights: { bottom: { from: 'sketch', offset: off } } }).r;
+  const a = at(-2), b = at(-5), auto = run({ type: 'pocket', tool: 'T2', sketch: 'skPocket', entities: 'all' }).r;
+  ok('Endhöhe ab Skizzenebene: 3 mm mehr Versatz → 3 mm tiefer', !a.error && !b.error && Math.abs(zmin(a) - zmin(b) - 3) < 1e-6, `${zmin(a)} / ${zmin(b)}`);
+  const z0 = at(0);
+  ok('Endhöhe ab Skizzenebene: Versatz −2 liegt 2 mm unter der Skizze (Versatz 0 = Skizzenebene = auto bei Skizze ohne Tiefe)', Math.abs(zmin(z0) - zmin(a) - 2) < 1e-6 && Math.abs(zmin(z0) - zmin(auto)) < 1e-6, `${zmin(z0)} / ${zmin(a)} (auto ${zmin(auto)})`);
+  const { depthAsBottom } = await import('../js/agent.js');
+  const f = depthAsBottom('pocket', { depth: 10, stepdown: 2 });
+  ok('Agent: "depth" einer 2D-Operation wird zur Endhöhe unter der Skizzenebene', !('depth' in f) && f.heights.bottom.from === 'sketch' && f.heights.bottom.offset === -10 && f.stepdown === 2, JSON.stringify(f));
+  ok('Agent: "depth" anderer Operationen bleibt (z. B. Gravieren)', depthAsBottom('trace', { depth: 0.3 }).depth === 0.3);
+}
+
+// ---- library migration: a milling cutter's stepover is a share of its diameter (an old example had 6 for 6 mm) ----
+{
+  const { migrate } = await import('../js/state.js');
+  const p = project();
+  p.version = 1;
+  p.cam.tools.push({ id: 'Tx', number: 90, name: 'Planfräser alt', type: 'flat', dia: 12, rpm: 8000, feed: 1000, plunge: 300, stepdown: 2, stepover: 6 },
+    { id: 'Tl', number: 91, name: 'Drehmeißel', type: 'turn', dia: 12, rpm: 2000, feed: 300, plunge: 150, stepdown: 1.5, stepover: 2 });
+  migrate(p);
+  const tx = p.cam.tools.find(t => t.id === 'Tx'), tl = p.cam.tools.find(t => t.id === 'Tl');
+  ok('Migration: Zustellung 6 bei Ø12 → 0,5 × Ø; Drehwerkzeug unverändert', Math.abs(tx.stepover - 0.5) < 1e-9 && tl.stepover === 2, `${tx.stepover} / ${tl.stepover}`);
+}

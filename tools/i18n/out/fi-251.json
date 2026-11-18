@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Luonnostaso",
+ "Punkt {0}, {1}": "Piste {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "Luonnoksessa ei ole ympyröitä tai pisteitä reikien keskipisteiksi",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "Yhtä valituista särmistä tai pinnoista ei enää löytynyt – valitse uudelleen.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "{0} valituista särmistä tai pinnoista ei enää löytynyt – valitse uudelleen.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Pyöristys tällä säteellä ei ole mahdollinen – pienennä sädettä tai valitse vähemmän särmiä (säde ei saa ulottua viereisten pintojen yli).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Viiste tällä mitalla ei ole mahdollinen – pienennä mittaa tai valitse vähemmän särmiä.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Päästökulma ei ole mahdollinen – valitse myös tangentiaalisesti liittyvät pinnat (esim. pyöristetyt kulmat) tai pienennä kulmaa.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Kuori tällä seinämänpaksuudella ei ole mahdollinen – pienennä paksuutta (mieluiten osan pyöristyssäteitä pienemmäksi).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "Geometriaydin ei pystynyt laskemaan tätä piirrettä – tarkista mitat ja valitut särmät tai pinnat."
+}

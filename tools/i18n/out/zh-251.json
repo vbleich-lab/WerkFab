@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "草图平面",
+ "Punkt {0}, {1}": "点 {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "草图中没有可作为孔中心的圆或点",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "已找不到所选的一条边或一个面 – 请重新选择。",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "已找不到所选边或面中的 {0} 个 – 请重新选择。",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "无法以此半径倒圆角 – 请减小半径或少选几条边（半径不得超出相邻面）。",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "无法以此尺寸倒角 – 请减小尺寸或少选几条边。",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "无法创建拔模 – 请同时选择相切相连的面（如圆角）或减小角度。",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "无法以此壁厚抽壳 – 请减小壁厚（最好小于零件的圆角半径）。",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "几何内核无法计算此特征 – 请检查尺寸以及所选的边或面。"
+}

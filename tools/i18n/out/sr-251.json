@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Раван скице",
+ "Punkt {0}, {1}": "Тачка {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "У скици нема кружница ни тачака као средишта рупа",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "Једна од изабраних ивица или површина више није пронађена – изаберите поново.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "{0} од изабраних ивица или површина више није пронађено – изаберите поново.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Заобљење са овим полупречником није могуће – смањите полупречник или изаберите мање ивица (полупречник не сме прелазити суседне површине).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Обарање ивице са овом мером није могуће – смањите меру или изаберите мање ивица.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Нагиб није могућ – изаберите и тангенцијално суседне површине (нпр. заобљене углове) или смањите угао.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Љуска са овом дебљином зида није могућа – смањите дебљину (најбоље испод полупречника заобљења дела).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "Геометријско језгро није могло да израчуна ову карактеристику – проверите мере и изабране ивице или површине."
+}

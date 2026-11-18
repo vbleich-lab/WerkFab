@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Площина ескізу",
+ "Punkt {0}, {1}": "Точка {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "В ескізі немає кіл або точок як центрів отворів",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "Одне з вибраних ребер або граней більше не знайдено – виберіть знову.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "{0} з вибраних ребер або граней більше не знайдено – виберіть знову.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Заокруглення з цим радіусом неможливе – зменште радіус або виберіть менше ребер (радіус не повинен виходити за суміжні грані).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Фаска з цим розміром неможлива – зменште розмір або виберіть менше ребер.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Ухил неможливий – виберіть також дотично прилеглі грані (напр. заокруглені кути) або зменште кут.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Оболонка з цією товщиною стінки неможлива – зменште товщину (бажано менше за радіуси заокруглень деталі).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "Геометричне ядро не змогло обчислити цей елемент – перевірте розміри та вибрані ребра або грані."
+}

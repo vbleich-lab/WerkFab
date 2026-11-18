@@ -176,8 +176,9 @@ function revolveTool(sk, f, features = []) {
 // Holes from overlapping cylinders (extruded circles) – truck handles these reliably, revolved profiles not.
 function holeTool(sk, f, bodies) {
   const b = basis(sk);
-  const circles = sk.entities.filter(e => e.type === 'circle' && (!Array.isArray(f.points) || f.points.includes(e.id)));
-  if (!circles.length) fail('Keine Kreise als Bohrungsmittelpunkte in der Skizze');
+  // centres: circles and sketch points
+  const circles = sk.entities.filter(e => (e.type === 'circle' || e.type === 'point') && (!Array.isArray(f.points) || f.points.includes(e.id))).map(e => (e.type === 'point' ? { cx: +e.x, cy: +e.y } : e));
+  if (!circles.length) fail('Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze');
   if (!(f.dia > 0)) fail('Durchmesser fehlt');
   const into = b.n.clone().negate();
   let out = null;

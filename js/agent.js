@@ -6,6 +6,17 @@ import { FEATURE_TYPES } from './model.js';
 import { STD_FAMILIES, stdFamily, stdPartName } from './stdparts.js';
 import { OP_TYPES, TOOL_TYPES } from './cam.js';
 
+// 2D operations have no depth field of their own: their bottom is a height ("auto" = the deepest point of the
+// sketch's features). "depth" from an agent means that far below the sketch plane → the bottom height.
+const DEPTH_OPS = ['contour', 'pocket', 'adaptive', 'drill', 'bore', 'thread', 'slot', 'circular'];
+export function depthAsBottom(type, fields) {
+  if (!DEPTH_OPS.includes(type) || !fields || fields.depth == null) return fields;
+  const d = +fields.depth;
+  delete fields.depth;
+  if (Number.isFinite(d) && d > 0) fields.heights = { ...(fields.heights || {}), bottom: { from: 'sketch', offset: -d } };
+  return fields;
+}
+
 const obj = (properties = {}, required = []) => ({ type: 'object', properties, required, additionalProperties: false });
 
 export const AGENT_GUIDE = `WerkFab is a parametric CAD/CAM app. A design is one JSON project; its "features" array is the timeline:
@@ -186,7 +197,10 @@ export async function agentCall(name, a, api) {
     }
     case 'set_params': {
       for (const q of a.params || []) if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(q?.name || '')) throw new Error(`"${q?.name}" is no parameter name (letters, digits, underscore)`);
-      api.commit(p => { p.params ||= []; for (const q of a.params || []) { const old = p.params.find(x => x.name === q.name); if (old) old.expr = String(q.expr); else p.params.push({ name: q.name, expr: String(q.expr) }); } });
+      // the value is "expr"; "value" is taken too (a common slip) – but never the text "undefined"
+      const exprOf = q => q.expr ?? q.value;
+      for (const q of a.params || []) if (exprOf(q) == null || String(exprOf(q)).trim() === '') throw new Error(`Parameter "${q.name}": "expr" (number or expression) is missing`);
+      api.commit(p => { p.params ||= []; for (const q of a.params || []) { const ex = String(exprOf(q)), old = p.params.find(x => x.name === q.name); if (old) old.expr = ex; else p.params.push({ name: q.name, expr: ex }); } });
       return { params: api.project().params, ...(await errorsNow()) };
     }
     case 'set_project': {
@@ -203,7 +217,7 @@ export async function agentCall(name, a, api) {
     }
     case 'get_model': {
       const m = await api.settled();
-      return { bodies: m.bodies.map(api.bodyInfo), errors: m.errors || {}, kernel: m.kernel };
+      return { bodies: m.bodies.map(api.bodyInfo), errors: m.errors || {}, ...(m.notes && Object.keys(m.notes).length ? { notes: m.notes } : {}), kernel: m.kernel };
     }
     case 'screenshot': return { image: await api.picture(a.view || 'iso', a.fit !== false) };
     case 'export': return api.exportText(a.format);
@@ -233,6 +247,10 @@ export async function agentCall(name, a, api) {
       return tool;
     }
     case 'add_operation': {
+      // fields given next to type / setup / tool (instead of inside "fields") count as fields too
+      const loose = Object.fromEntries(Object.entries(a).filter(([k]) => !['type', 'setup', 'tool', 'fields'].includes(k)));
+      if (Object.keys(loose).length) a.fields = { ...loose, ...(a.fields || {}) };
+      if (a.fields) a.fields = depthAsBottom(a.type, structuredClone(a.fields));
       if (!OP_TYPES[a.type]) throw new Error(`Unknown operation type "${a.type}". Types: ${Object.keys(OP_TYPES).join(', ')}`);
       const p = api.project();
       if (a.setup && !p.cam.setups.some(s => s.id === a.setup)) throw new Error(`No setup "${a.setup}"`);
@@ -245,7 +263,8 @@ export async function agentCall(name, a, api) {
     case 'update_operation': {
       if (!api.project().cam.ops.some(o => o.id === a.id)) throw new Error(`No operation with the id "${a.id}"`);
       if (!a.patch || typeof a.patch !== 'object' || 'id' in a.patch) throw new Error('patch: an object with the fields to change is needed (not the id)');
-      api.commit(p => { const o = p.cam.ops.find(q => q.id === a.id); for (const [k, v] of Object.entries(structuredClone(a.patch))) { if (v === null) delete o[k]; else o[k] = v; } });
+      const patch = depthAsBottom(api.project().cam.ops.find(o => o.id === a.id).type, structuredClone(a.patch));
+      api.commit(p => { const o = p.cam.ops.find(q => q.id === a.id); for (const [k, v] of Object.entries(patch)) { if (v === null) delete o[k]; else if (k === 'heights') o.heights = { ...(o.heights || {}), ...v }; else o[k] = v; } });
       await api.settled();
       return api.opResult(a.id);
     }

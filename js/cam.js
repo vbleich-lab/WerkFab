@@ -589,7 +589,7 @@ export const HEIGHT_FROM = {
   retract: ['stockTop', 'top', 'modelTop', 'origin', 'pick'],
   feed: ['top', 'retract', 'stockTop', 'bottom', 'origin', 'pick'],
   top: ['stockTop', 'modelTop', 'stockBottom', 'modelBottom', 'origin', 'pick'],
-  bottom: ['auto', 'stockBottom', 'modelBottom', 'modelTop', 'stockTop', 'top', 'origin', 'pick'],
+  bottom: ['auto', 'sketch', 'stockBottom', 'modelBottom', 'modelTop', 'stockTop', 'top', 'origin', 'pick'],
 };
 // The five heights of an operation; old projects (bottom / bottomOffset, setup safeZ / retract) map onto them.
 export function heightSpec(op, setup) {
@@ -607,13 +607,13 @@ export function heightSpec(op, setup) {
 
 export function opHeights(op, project, stock, setup) {
   const spec = heightSpec(op, setup);
-  let autoBottom, edge = stock.modelTop;
+  let autoBottom, edge = stock.modelTop, sketchZ = null;
   if (op.type === 'face') autoBottom = stock.modelTop;
   else if (OPS_3D.includes(op.type)) autoBottom = stock.modelBottom;
   else {
     const zs = featureZs(op, project, stock);
     autoBottom = zs ? Math.min(...zs) : stock.bottom;
-    if (zs) edge = Math.max(...zs);
+    if (zs) { edge = Math.max(...zs); sketchZ = zs[0]; }
   }
   const out = {};
   const get = (k, depth = 0) => {
@@ -622,7 +622,7 @@ export function opHeights(op, project, stock, setup) {
     if (depth > 6) return stock.top;
     const base = {
       stockTop: stock.top, stockBottom: stock.bottom, modelTop: stock.modelTop, modelBottom: stock.modelBottom, origin: 0,
-      auto: autoBottom, pick: Number.isFinite(+sp.z) ? +sp.z : stock.top,
+      auto: autoBottom, sketch: sketchZ ?? autoBottom, pick: Number.isFinite(+sp.z) ? +sp.z : stock.top,
     }[sp.from] ?? (HEIGHT_KEYS.includes(sp.from) && sp.from !== k ? get(sp.from, depth + 1) : stock.top);
     return (out[k] = base + (+sp.offset || 0));
   };

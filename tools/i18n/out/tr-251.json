@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Eskiz düzlemi",
+ "Punkt {0}, {1}": "Nokta {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "Eskizde delik merkezi olarak çember veya nokta yok",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "Seçilen kenar veya yüzeylerden biri artık bulunamadı – yeniden seçin.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "Seçilen kenar veya yüzeylerden {0} tanesi artık bulunamadı – yeniden seçin.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Bu yarıçapla yuvarlatma mümkün değil – yarıçapı küçültün veya daha az kenar seçin (yarıçap komşu yüzeylerin ötesine geçmemeli).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Bu ölçüyle pah mümkün değil – ölçüyü küçültün veya daha az kenar seçin.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Kalıp açısı mümkün değil – teğet bağlanan yüzeyleri de (ör. yuvarlatılmış köşeler) seçin veya açıyı küçültün.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Bu et kalınlığıyla kabuk mümkün değil – kalınlığı küçültün (tercihen parçanın yuvarlatma yarıçaplarından küçük).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "Geometri çekirdeği bu özelliği hesaplayamadı – ölçüleri ve seçilen kenar veya yüzeyleri kontrol edin."
+}

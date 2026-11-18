@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Rovina náčrtu",
+ "Punkt {0}, {1}": "Bod {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "V náčrtu nejsou kružnice ani body jako středy děr",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "Jedna z vybraných hran nebo ploch již nebyla nalezena – vyberte znovu.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "{0} z vybraných hran nebo ploch již nebylo nalezeno – vyberte znovu.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Zaoblení s tímto poloměrem není možné – zmenšete poloměr nebo vyberte méně hran (poloměr nesmí přesahovat sousední plochy).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Zkosení s tímto rozměrem není možné – zmenšete rozměr nebo vyberte méně hran.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Úkos není možný – vyberte i tečně navazující plochy (např. zaoblené rohy) nebo zmenšete úhel.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Skořepina s touto tloušťkou stěny není možná – zmenšete tloušťku (nejlépe pod poloměry zaoblení dílu).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "Geometrické jádro nemohlo tento prvek vypočítat – zkontrolujte rozměry a vybrané hrany nebo plochy."
+}

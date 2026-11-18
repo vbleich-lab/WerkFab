@@ -309,10 +309,10 @@ export function tappedHole(f) {
   return { name: t[0], D: t[1], P: t[2], core: t[3] };
 }
 
-// Centres of a hole feature in sketch coordinates: every chosen circle, repeated by the feature's own pattern
+// Centres of a hole feature in sketch coordinates: every chosen circle or sketch point, repeated by the feature's own pattern
 // ("Bohrbild"): a grid (n1 × n2 with spacings in sketch X / Y) or a circle of holes around a centre.
 export function holeCentres(sk, f) {
-  const base = sk.entities.filter(e => e.type === 'circle' && (!Array.isArray(f.points) || f.points.includes(e.id))).map(e => [+e.cx, +e.cy]);
+  const base = sk.entities.filter(e => (e.type === 'circle' || e.type === 'point') && (!Array.isArray(f.points) || f.points.includes(e.id))).map(e => (e.type === 'point' ? [+e.x, +e.y] : [+e.cx, +e.cy]));
   const kind = f.patKind || 'none', out = [];
   const add = p => { if (!out.some(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 1e-6)) out.push(p); };
   for (const [x, y] of base) {
@@ -334,7 +334,7 @@ function holeTool(sk, f) {
   if (tap) f = { ...f, dia: tap.core };
   const b = basis(sk);
   const circles = holeCentres(sk, f).map(([cx, cy]) => ({ cx, cy }));
-  if (!circles.length) fail('Keine Kreise als Bohrungsmittelpunkte in der Skizze');
+  if (!circles.length) fail('Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze');
   if (!(f.dia > 0)) fail('Durchmesser fehlt');
   const prof = holeProfile(f);
   return fuseAll(circles.map(c => {
@@ -1177,6 +1177,21 @@ function edgeMatcher(shape, refs) {
   return { count: chosen.size, fn };
 }
 
+// The message of a failed feature: an exception from inside the geometry kernel (WebAssembly) carries no text –
+// say instead what usually makes this kind of feature fail.
+const KERNEL_HINTS = {
+  fillet: 'Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).',
+  chamfer: 'Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.',
+  draft: 'Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.',
+  shell: 'Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).',
+};
+function kernelError(f, err) {
+  if (typeof err === 'string') return err;
+  const msg = err && typeof err.message === 'string' ? err.message : '';
+  if (msg) return msg;
+  return KERNEL_HINTS[f.type] || 'Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.';
+}
+
 // Holes that do not meet any body ("Bohrung außerhalb"): the hole axis is sampled from the sketch plane down to
 // the hole depth; a hole counts as outside when none of the samples lies in a solid. A hole whose axis is in
 // the material but whose rim leaves the body sideways counts as partly outside: a rim point in the open with
@@ -1416,8 +1431,133 @@ const EXTRA_HELPERS = {
   get sewSheets() { return sewSheets; }, get curveWires() { return curveWires; }, get pickedEdges() { return pickedEdges; },
   get bodiesWithPoints() { return bodiesWithPoints; }, get profileItems() { return profileItems; }, get planeRef() { return planeRef; }, get offsetPlane() { return offsetPlane; },
 };
-function runFeature(f, ctx) {
+// ---- picked faces and edges after a change ("Referenzen nachführen") ----
+// Faces and edges are picked as points on them (faces: a point on the face, edges: the edge's midpoint). When a
+// dimension changes, a point may no longer lie on its face. Whenever a pick is found, what it hit is remembered
+// (kind of surface or curve, direction, where); when it is lost later, the face or edge of the same kind and
+// direction nearest to the old point takes its place – but only when that one is clearly the nearest.
+const REF_FACES = ['fillet', 'chamfer', 'shell', 'draft', 'thread', 'offsetface', 'delface', 'replaceface', 'splitface'];
+const REF_EDGES = ['fillet', 'chamfer'];
+const refSigs = new Map();
+const rememberRef = (key, sig) => { if (refSigs.size > 20000) refSigs.clear(); refSigs.set(key, sig); };
+const v3 = q => [q.x, q.y, q.z];
+const unit = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+// distance from a point to a shape and the nearest point on it
+function closestOn(shape, p) {
+  const oc = R.getOC(), d = new oc.BRepExtrema_DistShapeShape(), vx = R.makeVertex(p);
+  try {
+    d.LoadS1(vx.wrapped); d.LoadS2(shape.wrapped); d.Perform();
+    if (!d.IsDone() || d.NbSolution() < 1) return null;
+    const q = d.PointOnShape2(1), out = { d: d.Value(), q: [q.X(), q.Y(), q.Z()] };
+    q.delete();
+    return out;
+  } catch { return null; } finally { d.delete(); }
+}
+const facesAt = (shape, p) => new R.FaceFinder().containsPoint(p).find(shape);
+// a point inside the face near q (q itself may lie on its border, where it would also pick the neighbour)
+function insidePoint(shape, face, q) {
+  if (facesAt(shape, q).length === 1) return q;
+  try {
+    const { uMin, uMax, vMin, vMax } = face.UVBounds, [U, V] = face.uvCoordinates(q);
+    const un = (U - uMin) / (uMax - uMin || 1), vn = (V - vMin) / (vMax - vMin || 1);
+    for (const st of [0.002, 0.01, 0.03, 0.08]) for (let k = 0; k < 8; k++) {
+      const a = (k * Math.PI) / 4, c = v3(face.pointOnSurface(Math.min(1, Math.max(0, un + st * Math.cos(a))), Math.min(1, Math.max(0, vn + st * Math.sin(a)))));
+      const at = facesAt(shape, c);
+      if (at.length === 1 && at[0].isSame(face)) return c.map(x => +x.toFixed(6));
+    }
+  } catch { /* no inner point */ }
+  return null;
+}
+// a curved face is compared by its normal in the middle of the face (a moved face meets the old point elsewhere)
+const midNormal = face => unit(v3(face.normalAt(face.pointOnSurface(0.5, 0.5))));
+function faceSig(face, p) {
+  try { return { t: face.geomType, n: face.geomType === 'PLANE' ? unit(v3(face.normalAt(p))) : midNormal(face), p: p.slice() }; } catch { return null; }
+}
+function edgeSig(e) {
+  try { return { t: e.geomType, dir: unit(v3(e.tangentAt(0.5))), p: v3(e.pointAt(0.5)) }; } catch { return null; }
+}
+// of the candidates [{ d, … }] the nearest, when it is clearly nearer than the next one
+function clearBest(c) {
+  c.sort((a, b) => a.d - b.d);
+  return c.length && (c.length === 1 || c[0].d < 0.6 * c[1].d) ? c[0] : null;
+}
+function refindFace(bodies, sig) {
+  const c = [];
+  for (const b of bodies) for (const face of b.shape.faces) {
+    if (face.geomType !== sig.t) continue;
+    const hit = closestOn(face, sig.p);
+    if (!hit) continue;
+    let n;
+    try { n = sig.t === 'PLANE' ? unit(v3(face.normalAt(hit.q))) : midNormal(face); } catch { continue; }
+    if (dot3(n, sig.n) < 0.94) continue;
+    c.push({ d: hit.d, b, face, q: hit.q });
+  }
+  const best = clearBest(c);
+  return best ? insidePoint(best.b.shape, best.face, best.q) : null;
+}
+function refindEdge(bodies, sig) {
+  const c = [];
+  for (const b of bodies) for (const e of b.shape.edges) {
+    if (e.geomType !== sig.t) continue;
+    let es;
+    try { es = edgeSig(e); } catch { continue; }
+    if (!es || (sig.t === 'LINE' && Math.abs(dot3(es.dir, sig.dir)) < 0.94)) continue;
+    c.push({ d: Math.hypot(es.p[0] - sig.p[0], es.p[1] - sig.p[1], es.p[2] - sig.p[2]), q: es.p });
+  }
+  const best = clearBest(c);
+  return best ? best.q.map(x => +x.toFixed(6)) : null;
+}
+const inBox = (b, p) => { const bb = b.shape.boundingBox.bounds; return [0, 1, 2].every(k => p[k] >= bb[0][k] - 1e-3 && p[k] <= bb[1][k] + 1e-3); };
+// the feature with its picks brought up to date; lost: how many picks found nothing
+export function healRefs(f, bodies) {
+  let faces = f.faces, edges = f.edges, lost = 0;
+  const live = bodies.filter(b => b.shape && b.shape.faces);
+  if (REF_FACES.includes(f.type) && Array.isArray(f.faces) && f.faces.length) {
+    faces = f.faces.map(p => {
+      if (!Array.isArray(p) || p.length < 3) return p;
+      const key = `${f.id}|f|${p.join(',')}`;
+      for (const b of live) {
+        if (!inBox(b, p)) continue;
+        const at = facesAt(b.shape, p);
+        if (at.length) { const sg = faceSig(at[0], p); if (sg) rememberRef(key, sg); return p; }
+      }
+      const sig = refSigs.get(key), q = sig && refindFace(live, sig);
+      if (q) return q;
+      lost++;
+      return p;
+    });
+  }
+  if (REF_EDGES.includes(f.type) && !f.all && Array.isArray(f.edges) && f.edges.length) {
+    edges = f.edges.map(p => {
+      if (!Array.isArray(p) || p.length < 3) return p;
+      const key = `${f.id}|e|${p.join(',')}`;
+      let onCurve = null;
+      for (const b of live) {
+        if (!inBox(b, p)) continue;
+        for (const e of b.shape.edges) {
+          const m = e.pointAt(0.5);
+          if (Math.hypot(m.x - p[0], m.y - p[1], m.z - p[2]) < 1) { const sg = edgeSig(e); if (sg) rememberRef(key, sg); return p; }
+          // a point anywhere on the edge (e.g. on a circle) stands for the edge
+          if (!onCurve) { const h = closestOn(e, p); if (h && h.d < 0.05) onCurve = v3(m).map(x => +x.toFixed(6)); }
+        }
+      }
+      if (onCurve) return onCurve;
+      const sig = refSigs.get(key), q = sig && refindEdge(live, sig);
+      if (q) return q;
+      lost++;
+      return p;
+    });
+  }
+  return { f: faces !== f.faces || edges !== f.edges ? { ...f, faces, edges } : f, lost };
+}
+
+function runFeature(f0, ctx) {
   const { bodies, sketches, tools } = ctx;
+  // picks that a change moved off their face or edge are brought up to date; what stays lost is noted
+  const healed = REF_FACES.includes(f0.type) || REF_EDGES.includes(f0.type) ? healRefs(f0, bodies) : { f: f0, lost: 0 };
+  const f = healed.f;
+  if (healed.lost > 0 && ctx.notes) ctx.notes[f.id] = healed.lost === 1 ? 'Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.' : `${healed.lost} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.`;
   if (EXTRA_TYPES[f.type]) return runExtra(f, ctx, EXTRA_HELPERS);
   if (f.type === 'import') {
     // STEP data (IGES is converted to STEP on import); every solid becomes a body
@@ -1813,7 +1953,7 @@ function runFeature(f, ctx) {
   if (f.type === 'draft') {
     if (!+f.angle) fail('Winkel fehlt');
     const hits = bodiesWithPoints(bodies, f.faces || []);
-    if (!hits.length) fail('Flächen wählen, die geneigt werden sollen');
+    if (!hits.length || healed.lost >= (f.faces || []).length) fail('Flächen wählen, die geneigt werden sollen (oder nicht mehr gefunden)');
     const neutral = new R.Plane([0, 0, +f.z || 0], [1, 0, 0], [0, 0, 1]);
     for (const { b, own } of hits) b.shape = b.shape.draft(+f.angle, faceFilter(own), neutral);
     return;
@@ -2178,7 +2318,7 @@ function* regenSteps(project, upTo = null) {
       try {
         K.runFeature(f, ctx);
       } catch (err) {
-        errors[f.id] = typeof err === 'string' ? err : err.message || String(err);
+        errors[f.id] = kernelError(f, err);
       }
       const dt = performance.now() - t0;
       featTime.set(keys[i], dt);

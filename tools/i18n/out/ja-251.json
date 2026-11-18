@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "スケッチ平面",
+ "Punkt {0}, {1}": "点 {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "スケッチに穴の中心となる円または点がありません",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "選択したエッジまたは面の1つが見つからなくなりました – 選択し直してください。",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "選択したエッジまたは面のうち {0} 個が見つからなくなりました – 選択し直してください。",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "この半径ではフィレットできません – 半径を小さくするか、選択するエッジを減らしてください（半径が隣接面を越えてはいけません）。",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "この寸法では面取りできません – 寸法を小さくするか、選択するエッジを減らしてください。",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "抜き勾配を作成できません – 接して続く面（丸めた角など）も選択するか、角度を小さくしてください。",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "この肉厚ではシェルできません – 肉厚を小さくしてください（部品のフィレット半径より小さいのが望ましい）。",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "ジオメトリカーネルがこのフィーチャーを計算できませんでした – 寸法と選択したエッジまたは面を確認してください。"
+}

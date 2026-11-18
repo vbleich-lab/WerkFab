@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "Ravnina skice",
+ "Punkt {0}, {1}": "Točka {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "U skici nema kružnica ni točaka kao središta provrta",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "Jedan od odabranih rubova ili ploha više nije pronađen – odaberite ponovno.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "{0} od odabranih rubova ili ploha više nije pronađeno – odaberite ponovno.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "Zaobljenje s ovim polumjerom nije moguće – smanjite polumjer ili odaberite manje rubova (polumjer ne smije prelaziti susjedne plohe).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "Skošenje s ovom mjerom nije moguće – smanjite mjeru ili odaberite manje rubova.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "Nagib nije moguć – odaberite i tangencijalno susjedne plohe (npr. zaobljene kutove) ili smanjite kut.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "Ljuska s ovom debljinom stijenke nije moguća – smanjite debljinu (najbolje ispod polumjera zaobljenja dijela).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "Geometrijska jezgra nije mogla izračunati ovu značajku – provjerite mjere i odabrane rubove ili plohe."
+}

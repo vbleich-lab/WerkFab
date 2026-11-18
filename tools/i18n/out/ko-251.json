@@ -1,0 +1,12 @@
+{
+ "Skizzenebene": "스케치 평면",
+ "Punkt {0}, {1}": "점 {0}, {1}",
+ "Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze": "스케치에 구멍 중심으로 쓸 원이나 점이 없습니다",
+ "Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.": "선택한 모서리 또는 면 중 하나를 더 이상 찾을 수 없습니다 – 다시 선택하십시오.",
+ "{0} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.": "선택한 모서리 또는 면 중 {0}개를 더 이상 찾을 수 없습니다 – 다시 선택하십시오.",
+ "Verrundung mit diesem Radius nicht möglich – Radius verkleinern oder weniger Kanten wählen (der Radius darf nicht über angrenzende Flächen hinausreichen).": "이 반지름으로는 필렛할 수 없습니다 – 반지름을 줄이거나 모서리를 적게 선택하십시오(반지름이 인접 면을 넘어서면 안 됩니다).",
+ "Fase mit diesem Maß nicht möglich – Maß verkleinern oder weniger Kanten wählen.": "이 치수로는 모따기할 수 없습니다 – 치수를 줄이거나 모서리를 적게 선택하십시오.",
+ "Formschräge nicht möglich – tangential anschließende Flächen (z. B. gerundete Ecken) mitwählen oder den Winkel verkleinern.": "구배를 만들 수 없습니다 – 접하여 이어지는 면(예: 둥근 모서리)도 선택하거나 각도를 줄이십시오.",
+ "Schale mit dieser Wandstärke nicht möglich – Wandstärke verkleinern (am besten kleiner als die Rundungsradien des Teils).": "이 벽 두께로는 쉘을 만들 수 없습니다 – 두께를 줄이십시오(부품의 필렛 반지름보다 작게 하는 것이 좋습니다).",
+ "Der Geometriekern konnte dieses Feature nicht berechnen – Maße und gewählte Kanten oder Flächen prüfen.": "형상 커널이 이 피처를 계산하지 못했습니다 – 치수와 선택한 모서리 또는 면을 확인하십시오."
+}
