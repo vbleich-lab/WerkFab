@@ -672,3 +672,25 @@ const bbox = pts => pts.reduce((b, q) => q.map((v, i) => [Math.min(b[i][0], v), 
     ok('Außengewinde im vollen Material: Warnung, nach dem Freifräsen keine', ext.fullStock > 0.5 && /vollen Material/.test(ext.warning || '') && !c1.error && !cleared.error && !cleared.fullStock && !cleared.warning, `voll ${Math.round((ext.fullStock || 0) * 100)} %, nach Kontur ${Math.round((cleared.fullStock || 0) * 100)} %${c1.error ? ' – ' + c1.error : ''}`);
   }
 }
+
+// ---- holder check: minimum stick-out against stock and fixtures ----
+{
+  const { holderReach } = await import('../js/reach.js');
+  const mk = (stick, extraBodies = [], fixtures = []) => {
+    const q = project();
+    q.cam.tools.find(t => t.id === 'T1').stickout = stick;
+    q.cam.setups[0].fixtures = fixtures;
+    q.cam.ops = [{ id: 'o1', name: 'Tasche', setup: 'S1', enabled: true, type: 'pocket', tool: 'T1', sketch: 'skPocket', entities: 'all' }];
+    const all = [...bodies, ...extraBodies];
+    const g = cam.generateSetup(q, all, q.cam.setups[0], null, null);
+    return { m: holderReach(g, all, q.cam.setups[0]), r: g.results.get('o1') };
+  };
+  const long = mk(30), short = mk(10);
+  const a = long.m.get('o1'), b = short.m.get('o1');
+  ok('Halter: Mindest-Ausspannlänge = Taschentiefe + 2 mm', a && Math.abs(a.need - 15) < 0.6 && !a.touch && !/Halter/.test(long.r.warning || ''), JSON.stringify(a && { need: a.need, have: a.have }));
+  ok('Halter: zu kurz ausgespannt → Warnung mit Mindestlänge', b?.touch && b.what === 'stock' && /Halter berührt das Material.*mindestens 15/.test(short.r.warning || ''), short.r.warning || '');
+  // a clamp 40 mm high at the edge of the stock next to the pocket: the holder hits it before the stock
+  const clamp = new THREE.BoxGeometry(10, 20, 40).translate(125, 30, 20).toNonIndexed();
+  const fx = mk(20, [{ id: 'clamp', geometry: clamp }], ['clamp']).m.get('o1');
+  ok('Halter: Spannmittel neben der Bahn bestimmt die Ausspannlänge', fx && fx.touch && fx.what === 'fixture' && fx.need > 20, JSON.stringify(fx && { need: fx.need, what: fx.what }));
+}

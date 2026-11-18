@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Click areas of the sketch",
+ "{0} Profil{1}": "{0} profile(s){1}",
+ "Ganze Skizze": "Whole sketch",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Click edges in the model (click again to remove)",
+ "{0} Kante{1}": "{0} edge(s){1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Click edges to add or remove them – the result shows in the model right away. Edges clicked before the command are already selected. Enter = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Click profiles – the areas of the sketch that are extruded (click again to remove).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "There is no closed area of the sketch here.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "{0} profile(s){1} selected – Extrude (E) or Revolve takes them. Shift/Ctrl + click: more profiles.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "{0} edge(s){1} selected – Fillet (F) or Chamfer takes them. Shift/Ctrl + click: more edges.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "No profile selected yet – click areas of the sketch."
+}

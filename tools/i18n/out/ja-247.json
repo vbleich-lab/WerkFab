@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "スケッチの領域をクリック",
+ "{0} Profil{1}": "プロファイル {0}{1}",
+ "Ganze Skizze": "スケッチ全体",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "モデルのエッジをクリック（再度クリックで解除）",
+ "{0} Kante{1}": "エッジ {0}{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "エッジをクリックして追加または解除します。結果はすぐにモデルに表示されます。コマンドの前にクリックしたエッジはすでに選択されています。Enter = OK。",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "プロファイルをクリック：押し出すスケッチの領域です（再度クリックで解除）。",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "ここにはスケッチの閉じた領域がありません。",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "プロファイル {0}{1} を選択済み：押し出し（E）または回転で使用されます。Shift/Ctrl + クリック：プロファイルを追加。",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "エッジ {0}{1} を選択済み：フィレット（F）または面取りで使用されます。Shift/Ctrl + クリック：エッジを追加。",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "プロファイルが未選択です。スケッチの領域をクリックしてください。"
+}

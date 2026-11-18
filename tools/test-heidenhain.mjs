@@ -72,6 +72,41 @@ for (const [vname, props] of Object.entries(VARIANTS)) {
       ok('Nut als Steuerungszyklus: CYCL DEF 253 mit Länge 19 und Breite 7', sOn.r.pocketCycle && /CYCL DEF 253 /.test(sOn.part) && /Q218=\+?19(\.0+)? /.test(sOn.part) && /Q219=\+?7(\.0+)? /.test(sOn.part) && /M99/.test(sOn.part) && /Q202=\+?8\.000 /.test(sOn.part) && !/Q202=\+?1000000/.test(sOn.part), (sOn.r.pocketCycleWhy || '') + ' ' + (sOn.part.match(/Q21[89]=\S+/g) || []).join(' '));
       ok('Nut ohne Schalter: Bahn mit Koordinaten, kein 253', !/CYCL DEF 253 /.test(sOff.part) && / L X/.test(sOff.part));
       ok('Nut als Steuerungszyklus: Klartext fehlerfrei', lintHeidenhain(sOn.code, { lineNumbers: props.lineNumbers !== false }).length === 0);
+      // face / bore / thread milling with "Als Steuerungszyklus ausgeben": 232, 208, 262
+      const pm = structuredClone(p);
+      for (const o of pm.cam.ops) if (['face', 'bore', 'thread'].includes(o.type)) { o.ctrlCycle = true; if (o.type === 'thread') { o.threadPasses = 1; o.threadSpring = false; } }
+      const st1 = pm.cam.setups[0], gm = cam.generateSetup(pm, bodies, st1, null, null); gm.setup = st1;
+      const resM = post.postProcess(pm, gm, null, { postId: 'heidenhain', props }), cm = resM.code;
+      const whys = pm.cam.ops.filter(o => o.setup === st1.id || !o.setup).map(o => gm.results.get(o.id)).filter(x => x?.millCycleWhy).map(x => x.millCycleWhy);
+      ok('Planfräsen als CYCL DEF 232 mit Rohteilmaß', /CYCL DEF 232 PLANFRAESEN/.test(cm) && /Q218=\+?\d/.test(cm) && /\nCYCL CALL|\d+ CYCL CALL/.test(cm), whys.join(' | '));
+      ok('Bohrfräsen als CYCL DEF 208, Aufruf je Bohrung', /CYCL DEF 208 BOHRFRAESEN/.test(cm) && /Q335=\+?\d/.test(cm) && /M99/.test(cm));
+      ok('Gewindefräsen als CYCL DEF 262 mit Steigung', /CYCL DEF 262 GEWINDEFRAESEN/.test(cm) && /Q239=[+-]\d/.test(cm));
+      const lintM = lintHeidenhain(cm, { lineNumbers: props.lineNumbers !== false });
+      ok('Zyklen 232/208/262: Klartext fehlerfrei', lintM.length === 0, lintSummary(lintM).slice(0, 4).map(s => `${s.n}× ${s.msg} [${s.first}]`).join(' ‖ '));
+      const pw = structuredClone(pm), tw = pw.cam.ops.find(o => o.type === 'thread'); tw.threadPasses = 3;
+      const gw = cam.generateSetup(pw, bodies, pw.cam.setups[0], null, null);
+      ok('Gewindefräsen mit mehreren Zustellungen: Hinweis, als Bahn', /Zustellungen/.test(gw.results.get(tw.id).millCycleWhy || ''));
+      // any outline: pocket with an island as SL cycles 14/20/22, an L-shaped contour as contour train 25
+      const ps2 = structuredClone(p);
+      ps2.features.push({ id: 'skL', type: 'sketch', name: 'L-Tasche', plane: structuredClone(ps2.features.find(f => f.id === 'skBig').plane), entities: [
+        { id: 'l1', type: 'poly', closed: true, pts: [[15, 45], [55, 45], [55, 60], [35, 60], [35, 78], [15, 78]] },
+        { id: 'l2', type: 'circle', cx: 25, cy: 55, r: 4 },
+      ] });
+      ps2.cam.ops = [
+        { setup: 'S1', enabled: true, entities: 'all', id: 'slp', name: 'L-Tasche mit Insel', type: 'pocket', tool: 'T2', sketch: 'skL', ctrlCycle: true, heights: { bottom: { from: 'top', offset: -8 }, top: { from: 'pick', z: 10, offset: 0 } } },
+        { setup: 'S1', enabled: true, entities: ['l1'], id: 'slc', name: 'L-Kontur', type: 'contour', tool: 'T2', sketch: 'skL', side: 'outside', ctrlCycle: true, heights: { bottom: { from: 'top', offset: -8 }, top: { from: 'pick', z: 10, offset: 0 } } },
+      ];
+      const gl = cam.generateSetup(ps2, bodies, ps2.cam.setups[0], null, null); gl.setup = ps2.cam.setups[0];
+      const rp = gl.results.get('slp'), rc = gl.results.get('slc');
+      const cl = post.postProcess(ps2, gl, null, { postId: 'heidenhain', props }).code;
+      ok('SL-Tasche: Außenkontur und Insel erkannt', rp.slCycle?.regions?.length === 1 && rp.slCycle.regions[0].islands.length === 1, rp.error || rp.pocketCycleWhy || '');
+      ok('SL-Tasche: CYCL DEF 14 mit zwei Labels, 20, 22, CYCL CALL', /CYCL DEF 14\.1 KONTURLABEL \d+ \/\d+/.test(cl) && /CYCL DEF 20 KONTUR-DATEN/.test(cl) && /CYCL DEF 22 RAEUMEN/.test(cl), (cl.match(/.*KONTURLABEL.*/) || [''])[0]);
+      ok('Kontur als Konturzug: CYCL DEF 25 mit eigenem Label', rc.contourCycle && /CYCL DEF 25 KONTUR-ZUG/.test(cl), rc.contourCycleWhy || rc.error || '');
+      const subsL = cl.slice(cl.search(/\n\d* ?M30|\nM30/));
+      ok('Unterprogramme nach M30: Tasche RL, Insel RR, Kreisbogen mit CC/C', (subsL.match(/LBL [1-9]/g) || []).length === 3 && / RL\n/.test(subsL) && / RR\n/.test(subsL) && /CC X[+-][\d.]+ Y[+-][\d.]+\n\d* ?C X[+-][\d.]+ Y[+-][\d.]+ DR[+-]/.test(subsL), (subsL.match(/LBL \d+/g) || []).join(' '));
+      const lintL = lintHeidenhain(cl, { lineNumbers: props.lineNumbers !== false });
+      ok('SL-Zyklen und Konturzug: Klartext fehlerfrei', lintL.length === 0, lintSummary(lintL).slice(0, 4).map(s => `${s.n}× ${s.msg} [${s.first}]`).join(' ‖ '));
+      if (dumpDir) fs.writeFileSync(`${dumpDir}/hh_sl.h`, cl);
       ok('Standard: APPR/DEP mit RL und RR', /APPR (CT|LCT) .* RL/.test(c) && /APPR LN .* RL/.test(c) && /DEP (CT|LCT)/.test(c) && /DEP LN/.test(c), (c.match(/.*APPR.*/g) || []).slice(0, 3).join(' | '));
       ok('Standard: Radiuskorrektur RR ohne Anfahrbewegung ein- und ausgeschaltet', / RR /.test(c) || / RR$/m.test(c));
       ok('Standard: Schraubenlinien als CP mit IPA/IZ', /CP IPA[+-][\d.]+ IZ[+-][\d.]+ DR[+-]/.test(c), (c.match(/.*CP IPA.*/) || ['–'])[0]);

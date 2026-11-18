@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Kliknij obszary szkicu",
+ "{0} Profil{1}": "{0} profil(e){1}",
+ "Ganze Skizze": "Cały szkic",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Kliknij krawędzie w modelu (ponowne kliknięcie usuwa)",
+ "{0} Kante{1}": "{0} krawędź/i{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Klikaj krawędzie, aby je dodać lub usunąć – wynik od razu pojawia się w modelu. Krawędzie kliknięte przed poleceniem są już wybrane. Enter = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Kliknij profile – obszary szkicu, które zostaną wyciągnięte (ponowne kliknięcie usuwa).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Tutaj nie ma zamkniętego obszaru szkicu.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "Wybrano profili: {0}{1} – użyje ich Wyciągnięcie (E) lub Obrót. Shift/Ctrl + klik: kolejne profile.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "Wybrano krawędzi: {0}{1} – użyje ich Zaokrąglenie (F) lub Fazowanie. Shift/Ctrl + klik: kolejne krawędzie.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Nie wybrano jeszcze profilu – kliknij obszary szkicu."
+}

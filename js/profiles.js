@@ -366,3 +366,61 @@ export function describeEntity(e) {
   }
   return e.type;
 }
+
+// ---- areas of a sketch ("Profile"), as they are clicked for an extrusion ----
+// An area is the set of closed loops it lies in: inside all of them, outside every other loop. Two overlapping
+// circles give three areas (both moon shapes and the lens between them), a circle inside a rectangle two (the ring
+// and the disc).
+export function loopsAt(items, q) {
+  return items.filter(it => it.poly.length >= 3 && pointInPoly(q, it.poly)).map(it => it.id).sort();
+}
+export const sameCell = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+// the outline(s) of one area for drawing it: [{ outer, holes }]
+export function cellShapes(items, cell) {
+  const CL = globalThis.ClipperLib;
+  if (!CL || !cell?.length) return [];
+  const S = 1000, byId = new Map(items.map(i => [i.id, i]));
+  if (!cell.every(id => byId.has(id))) return [];
+  const path = poly => ensureCCW(poly).map(([x, y]) => ({ X: Math.round(x * S), Y: Math.round(y * S) }));
+  const run = (type, a, b, tree) => {
+    const c = new CL.Clipper();
+    c.AddPaths(a, CL.PolyType.ptSubject, true);
+    if (b.length) c.AddPaths(b, CL.PolyType.ptClip, true);
+    const out = tree ? new CL.PolyTree() : new CL.Paths();
+    c.Execute(type, out, CL.PolyFillType.pftNonZero, CL.PolyFillType.pftNonZero);
+    return out;
+  };
+  let subj = [path(byId.get(cell[0]).poly)];
+  for (const id of cell.slice(1)) subj = run(CL.ClipType.ctIntersection, subj, [path(byId.get(id).poly)]);
+  const others = items.filter(i => !cell.includes(i.id) && i.poly.length >= 3).map(i => path(i.poly));
+  const tree = run(CL.ClipType.ctDifference, subj, others, true);
+  const pt = p => [p.X / S, p.Y / S], res = [];
+  const walk = node => {
+    for (const ch of node.Childs()) {
+      if (ch.IsHole()) continue;
+      res.push({ outer: ch.Contour().map(pt), holes: ch.Childs().map(hh => hh.Contour().map(pt)) });
+      for (const hh of ch.Childs()) walk(hh);
+    }
+  };
+  walk(tree);
+  return res;
+}
+// every area of the sketch (a few hundred probe points over the loops; used to count them and to show them all)
+export function allCells(items) {
+  const loops = items.filter(i => i.poly.length >= 3);
+  if (!loops.length) return [];
+  const found = new Map();
+  const add = q => { const c = loopsAt(loops, q); if (c.length) found.set(c.join('|'), c); };
+  for (const it of loops) {
+    // points just inside and just outside every edge midpoint of every loop
+    const p = ensureCCW(it.poly), n = p.length, step = Math.max(1, Math.floor(n / 64));
+    for (let i = 0; i < n; i += step) {
+      const a = p[i], b = p[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+      if (L < 1e-9) continue;
+      const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, e = Math.min(L / 4, 1e-3 + L * 1e-3);
+      add([mx - (dy / L) * e, my + (dx / L) * e]);
+      add([mx + (dy / L) * e, my - (dx / L) * e]);
+    }
+  }
+  return [...found.values()];
+}

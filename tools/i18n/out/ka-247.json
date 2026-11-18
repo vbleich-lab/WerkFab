@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "დააწკაპუნეთ ესკიზის არეებზე",
+ "{0} Profil{1}": "პროფილები: {0}{1}",
+ "Ganze Skizze": "მთლიანი ესკიზი",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "დააწკაპუნეთ მოდელის წიბოებზე (განმეორებითი დაწკაპუნება აცილებს)",
+ "{0} Kante{1}": "წიბოები: {0}{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "დააწკაპუნეთ წიბოებზე დასამატებლად ან მოსაშორებლად – შედეგი მაშინვე ჩანს მოდელში. ბრძანებამდე არჩეული წიბოები უკვე არჩეულია. Enter = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "დააწკაპუნეთ პროფილებზე – ესკიზის არეებზე, რომლებიც ამოიწევა (განმეორებითი დაწკაპუნება აცილებს).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "აქ ესკიზის ჩაკეტილი არე არ არის.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "არჩეულია პროფილები: {0}{1} – მათ იყენებს ამოწევა (E) ან ბრუნვით აგება. Shift/Ctrl + დაწკაპუნება: დამატებითი პროფილები.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "არჩეულია წიბოები: {0}{1} – მათ იყენებს მომრგვალება (F) ან ფასკა. Shift/Ctrl + დაწკაპუნება: დამატებითი წიბოები.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "პროფილი ჯერ არ არის არჩეული – დააწკაპუნეთ ესკიზის არეებზე."
+}

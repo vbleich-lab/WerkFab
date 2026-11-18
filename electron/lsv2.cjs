@@ -133,6 +133,26 @@ class Lsv2 {
     else await this.send('T_FD', undefined, false);
   }
 
+  // a file from the control. Text mode: the control separates lines with NUL, they become CR LF.
+  async getFile(path, onProgress = null) {
+    const name = String(path).replace(/\//g, '\\');
+    let r = await this.send('R_FL', str0(name)); // text mode: no mode byte (binary would append 1)
+    const parts = [];
+    let got = 0;
+    for (;;) {
+      if (r.cmd === 'S_FL') {
+        parts.push(Buffer.from(r.data));
+        got += r.data.length;
+        onProgress?.(got);
+        r = await this.send('T_OK');
+      } else if (r.cmd === 'T_FD') break;
+      else throw this.err(r, `Datei ${name} lesen`);
+    }
+    // a control that answers T_FD with nothing more: confirm it like pyLSV2 does
+    await this.send('T_OK', Buffer.alloc(0), false);
+    return Buffer.concat(parts);
+  }
+
   async close() {
     try { if (this.sock && !this.sock.destroyed) await this.send('A_LO', Buffer.alloc(0), false); } catch { /* closing anyway */ }
     this.waiting = null;
@@ -161,6 +181,20 @@ async function sendProgram({ host, port, password, dir, name, text, overwrite = 
   }
 }
 
+// a text file from the control (NC program, TOOL.T): NUL line separators become CR LF, latin1 → string
+async function receiveFile({ host, port, password, path }, onProgress) {
+  const c = new Lsv2(host, +port || 19000);
+  try {
+    await c.start(password);
+    const where = String(path).split('/').join('\\');
+    const data = await c.getFile(where, onProgress);
+    const text = data.toString('latin1').split(String.fromCharCode(0)).join('\r\n');
+    return { ok: true, control: c.control, path: where, bytes: data.length, text };
+  } finally {
+    await c.close();
+  }
+}
+
 // only connect and read the control type ("Verbindung testen")
 async function testConnection({ host, port, password }) {
   const c = new Lsv2(host, +port || 19000);
@@ -172,4 +206,4 @@ async function testConnection({ host, port, password }) {
   }
 }
 
-module.exports = { Lsv2, sendProgram, testConnection, ERRORS };
+module.exports = { Lsv2, sendProgram, receiveFile, testConnection, ERRORS };

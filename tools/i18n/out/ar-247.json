@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "انقر على مناطق الرسم التخطيطي",
+ "{0} Profil{1}": "{0} مقطع/مقاطع{1}",
+ "Ganze Skizze": "الرسم التخطيطي بالكامل",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "انقر على الحواف في النموذج (النقر مرة أخرى يزيلها)",
+ "{0} Kante{1}": "{0} حافة/حواف{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "انقر على الحواف لإضافتها أو إزالتها – تظهر النتيجة فورًا في النموذج. الحواف التي نُقر عليها قبل الأمر محددة بالفعل. Enter = موافق.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "انقر على المقاطع – وهي مناطق الرسم التخطيطي التي سيتم بثقها (النقر مرة أخرى يزيلها).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "لا توجد هنا منطقة مغلقة في الرسم التخطيطي.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "تم تحديد {0} مقطع/مقاطع{1} – يستخدمها البثق (E) أو الدوران. Shift/Ctrl + نقر: مقاطع أخرى.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "تم تحديد {0} حافة/حواف{1} – يستخدمها تدوير الحواف (F) أو الشطف. Shift/Ctrl + نقر: حواف أخرى.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "لم يتم تحديد أي مقطع بعد – انقر على مناطق الرسم التخطيطي."
+}

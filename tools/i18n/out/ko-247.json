@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "스케치 영역 클릭",
+ "{0} Profil{1}": "프로파일 {0}개{1}",
+ "Ganze Skizze": "스케치 전체",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "모델의 모서리 클릭 (다시 클릭하면 제거)",
+ "{0} Kante{1}": "모서리 {0}개{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "모서리를 클릭하여 추가하거나 제거합니다. 결과가 바로 모델에 표시됩니다. 명령 실행 전에 클릭한 모서리는 이미 선택되어 있습니다. Enter = 확인.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "프로파일을 클릭하십시오. 돌출될 스케치 영역입니다 (다시 클릭하면 제거).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "여기에는 스케치의 닫힌 영역이 없습니다.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "프로파일 {0}개{1} 선택됨 – 돌출(E) 또는 회전에서 사용합니다. Shift/Ctrl + 클릭: 프로파일 추가.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "모서리 {0}개{1} 선택됨 – 필렛(F) 또는 모따기에서 사용합니다. Shift/Ctrl + 클릭: 모서리 추가.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "선택된 프로파일이 없습니다. 스케치 영역을 클릭하십시오."
+}

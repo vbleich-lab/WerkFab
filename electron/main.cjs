@@ -88,24 +88,85 @@ ipcMain.handle('slicer:open', async (_e, { name, data, exe }) => {
     return { error: String(err.message || err) };
   }
 });
-// "An Maschine senden": NC program to a Heidenhain control over LSV2 (the protocol of TNCremo, TCP port 19000)
+// "An Maschine senden": NC program to the control. proto lsv2 = Heidenhain (the protocol of TNCremo, TCP port
+// 19000), ftp = FTP server of the control, share = network folder, dnc = drip feed over a serial device server
 const lsv2 = require('./lsv2.cjs');
-const lsv2Args = c => ({ host: String(c?.host || '').trim(), port: Math.round(+c?.port) || 19000, password: String(c?.password || ''), dir: String(c?.dir || ''), name: String(c?.name || ''), text: String(c?.text ?? ''), overwrite: c?.overwrite !== false });
+const netsend = require('./netsend.cjs');
+const PROTO_PORT = { lsv2: 19000, ftp: 21, dnc: 4001 };
+const machineArgs = c => {
+  const proto = ['lsv2', 'ftp', 'share', 'dnc'].includes(c?.proto) ? c.proto : 'lsv2';
+  return {
+    proto, host: String(c?.host || '').trim(), port: Math.round(+c?.port) || PROTO_PORT[proto] || 0, user: String(c?.user || ''), password: String(c?.password || ''),
+    dir: String(c?.dir || ''), name: String(c?.name || ''), text: String(c?.text ?? ''), overwrite: c?.overwrite !== false,
+    baud: Math.max(0, Math.round(+c?.baud) || 0), xonxoff: c?.xonxoff !== false,
+  };
+};
+const progressTo = e => f => { try { e.sender.send('machine:progress', f); } catch { /* window closed */ } };
 ipcMain.handle('machine:send', async (e, c) => {
-  const a = lsv2Args(c);
-  if (!a.host) return { error: 'IP-Adresse der Steuerung eintragen' };
-  if (!/^[\w\-. ]{1,60}\.(h|H|i|I|nc|NC)$/.test(a.name)) return { error: `Ungültiger Programmname: ${a.name}` };
-  try { return await lsv2.sendProgram(a, f => { try { e.sender.send('machine:progress', f); } catch { /* window closed */ } }); } catch (err) { return { error: String(err.message || err) }; }
+  const a = machineArgs(c);
+  if (a.proto !== 'share' && !a.host) return { error: 'IP-Adresse der Steuerung eintragen' };
+  if (!/^[\w\-. ]{1,60}\.[A-Za-z0-9]{1,5}$/.test(a.name)) return { error: `Ungültiger Programmname: ${a.name}` };
+  try {
+    if (a.proto === 'ftp') return await netsend.ftpSend(a, progressTo(e));
+    if (a.proto === 'share') return await netsend.shareSend(a);
+    if (a.proto === 'dnc') return await netsend.dncSend({ ...a, baud: c?.baud == null ? 9600 : a.baud }, progressTo(e));
+    return await lsv2.sendProgram(a, progressTo(e));
+  } catch (err) { return { error: String(err.message || err) }; }
+});
+// a file from the control (program to compare, TOOL.T): path like TNC:\nc_prog\1001.h, /NC/TEIL.MPF, \\host\nc\x.nc
+ipcMain.handle('machine:get', async (e, c) => {
+  const a = machineArgs(c);
+  const path = String(c?.path || '');
+  if (a.proto === 'dnc') return { error: 'Über DNC lässt sich nichts zurücklesen' };
+  if (a.proto !== 'share' && !a.host) return { error: 'IP-Adresse der Steuerung eintragen' };
+  if (!/^([A-Za-z]{1,5}:)?[\\/]{0,2}[\w\-. $\\/]{1,200}$/.test(path)) return { error: `Ungültiger Pfad: ${path}` };
+  try {
+    if (a.proto === 'ftp') return await netsend.ftpGet({ ...a, path }, progressTo(e));
+    if (a.proto === 'share') return await netsend.shareGet({ path });
+    return await lsv2.receiveFile({ ...a, path }, progressTo(e));
+  } catch (err) { return { error: String(err.message || err) }; }
 });
 ipcMain.handle('machine:test', async (_e, c) => {
-  const a = lsv2Args(c);
-  if (!a.host) return { error: 'IP-Adresse der Steuerung eintragen' };
-  try { return await lsv2.testConnection(a); } catch (err) { return { error: String(err.message || err) }; }
+  const a = machineArgs(c);
+  try {
+    if (a.proto === 'share') { await require('fs').promises.access(a.dir); return { ok: true, control: 'Netzwerkordner ' + a.dir }; }
+    if (!a.host) return { error: 'IP-Adresse der Steuerung eintragen' };
+    if (a.proto === 'ftp') {
+      const f = new netsend.Ftp(a.host, a.port);
+      await f.open();
+      try { await f.login(a.user, a.password); if (a.dir) await f.cmd(`CWD ${a.dir}`, [2], 'Ordner wechseln'); } finally { await f.close(); }
+      return { ok: true, control: 'FTP ' + a.host };
+    }
+    if (a.proto === 'dnc') {
+      const net = require('net');
+      await new Promise((res, rej) => { const s = net.createConnection({ host: a.host, port: a.port }, () => { s.destroy(); res(); }); s.once('error', rej); s.setTimeout(5000, () => { s.destroy(); rej(new Error('keine Antwort')); }); });
+      return { ok: true, control: `Wandler ${a.host}:${a.port}` };
+    }
+    return await lsv2.testConnection(a);
+  } catch (err) { return { error: String(err.message || err) }; }
 });
 ipcMain.handle('slicer:pick', async e => {
   const w = BrowserWindow.fromWebContents(e.sender);
   const r = await dialog.showOpenDialog(w, { properties: ['openFile'], filters: process.platform === 'win32' ? [{ name: 'Programme', extensions: ['exe'] }] : [] });
   return r.canceled ? '' : r.filePaths[0] || '';
+});
+// a page (setup sheet, inspection plan) as PDF: rendered in a hidden window, saved where the user says
+ipcMain.handle('pdf:save', async (e, { html, name, landscape }) => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  const safe = String(name || 'WerkFab').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 120) || 'WerkFab';
+  const r = await dialog.showSaveDialog(w, { defaultPath: safe.endsWith('.pdf') ? safe : safe + '.pdf', filters: [{ name: 'PDF', extensions: ['pdf'] }] });
+  if (r.canceled || !r.filePath) return { canceled: true };
+  const tmp = path.join(app.getPath('temp'), `werkfab-${crypto.randomBytes(6).toString('hex')}.html`);
+  const pw = new BrowserWindow({ show: false, webPreferences: { javascript: false, sandbox: true } });
+  try {
+    fs.writeFileSync(tmp, String(html || ''), 'utf8');
+    await pw.loadFile(tmp);
+    const pdf = await pw.webContents.printToPDF({ pageSize: 'A4', landscape: !!landscape, printBackground: true, margins: { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 } });
+    fs.writeFileSync(r.filePath, pdf);
+    shell.openPath(r.filePath);
+    return { ok: true, path: r.filePath };
+  } catch (err) { return { error: String(err.message || err) }; }
+  finally { pw.destroy(); fs.rm(tmp, () => {}); }
 });
 ipcMain.handle('win:fullscreen', (e, on) => {
   const w = BrowserWindow.fromWebContents(e.sender);

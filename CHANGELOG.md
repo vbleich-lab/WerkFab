@@ -1,5 +1,48 @@
 # Änderungen
 
+## v1.0.0-rc.23 – 2026-11-18
+
+### Konstruktion
+- **Profile anklicken bei Extrusion und Rotation:** Hat eine Skizze mehrere Bereiche, wählt man die gewünschten Bereiche im Modell per Klick, statt die ganze Skizze zu nehmen. Zum Beispiel ergeben zwei überlappende Kreise drei Bereiche: zwei Monde und die Linse. Ein Kreis im Rechteck ergibt zwei Bereiche: den Ring und die Scheibe.
+  - Die Bereiche werden exakt aus den Konturen gebildet; Kreisbögen bleiben echte Zylinder.
+  - Bereiche, die vor dem Befehl angeklickt wurden (Umschalt/Strg für mehrere), sind sofort gewählt.
+  - „Ganze Skizze“ stellt das bisherige Verhalten wieder her.
+- **Verrundung und Fase:**
+  - Im Fenster steht die Kantenwahl oben, darunter der Radius.
+  - Vorher angeklickte Kanten sind schon gewählt.
+  - Das Ergebnis erscheint schon während der Auswahl im Modell.
+  - Eingabe übernimmt, Esc bricht den ganzen Befehl ab.
+
+### An der Maschine
+- **Programm von der Maschine holen und vergleichen:** Im NC-Fenster gibt es jetzt den Knopf „Mit Maschine vergleichen“. Er liest das Programm über LSV2 oder FTP bzw. aus der Netzwerkfreigabe und zeigt die Unterschiede zum frisch erzeugten Programm.
+- **Werkzeugtabelle der Maschine lesen:** Die Werkzeugbibliothek liest TOOL.T (TNC 640: `TNC:\table\tool.t`, iTNC 530: `TNC:\TOOL.T`) und vergleicht sie mit der Bibliothek:
+  - fehlende Werkzeuge
+  - abweichende Radien
+  - Länge L + DL
+
+  Die gemessenen Längen lassen sich übernehmen.
+- **Neue Verbindungsarten zum Senden:**
+  - FTP, z. B. für Sinumerik, Fanuc mit Ethernet und Mazak
+  - Netzwerkfreigabe (Ordner)
+  - DNC über einen seriellen Geräteserver (RS-232 über TCP) mit Baudrate und XON/XOFF
+
+### Postprozessor (Heidenhain)
+- **Taschen mit Inseln und freie Taschen als SL-Zyklus:**
+  - CYCL DEF 14 (Konturen), 20 (Konturdaten) und 22 (Räumen)
+  - Taschen- und Inselkonturen kommen als Unterprogramme (LBL) nach dem Programmende, mit RL/RR und Kreisbögen als CC/C.
+- **Kontur als Konturzug:** Konturen, die kein Rechteck- oder Kreiszapfen sind, gehen mit „Als Steuerungszyklus ausgeben“ als CYCL DEF 25 heraus. Die Radiuskorrektur macht dann die Steuerung.
+- **Weitere Zyklen**, jeweils mit dem Schalter „Als Steuerungszyklus ausgeben“:
+  - Planfräsen: CYCL DEF 232
+  - Bohrfräsen: CYCL DEF 208
+  - Gewindefräsen (Innengewinde): CYCL DEF 262
+
+### Fertigung
+- **Halterprüfung:** Für jede Operation wird geprüft, ob Halter oder Spindelnase das Material oder ein Spannmittel berühren. Ist das Werkzeug zu kurz ausgespannt, gibt es eine Warnung mit der nötigen Mindest-Ausspannlänge.
+- **Einrichteblatt:**
+  - Bild der Aufspannung mit Nullpunkt und Spannmitteln
+  - eingestellte und mindestens nötige Ausspannlänge je Werkzeug und je Operation
+  - in der Desktop-App der Knopf „Als PDF speichern …“
+
 ## v1.0.0-rc.22 – 2026-11-17
 
 ### Fertigung

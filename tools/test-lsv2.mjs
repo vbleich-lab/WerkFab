@@ -10,7 +10,7 @@ const ok = (n, c, x = '') => { console.log((c ? 'OK   ' : 'FEHL ') + n + '  ' + 
 // a control: files in a Map, every telegram is logged
 function fakeControl({ control = 'TNC640', maxBlock = 4096, secure = true, password = null, readonly = false } = {}) {
   const files = new Map([['TNC:\\nc_prog\\ALT.h', Buffer.from('alt')]]), log = [];
-  let open = null, block = 256;
+  let open = null, block = 256, reading = null;
   const server = net.createServer(sock => {
     let buf = Buffer.alloc(0);
     const reply = (cmd, data = Buffer.alloc(0)) => { const h = Buffer.alloc(4); h.writeUInt32BE(data.length, 0); sock.write(Buffer.concat([h, Buffer.from(cmd), data])); };
@@ -35,6 +35,17 @@ function fakeControl({ control = 'TNC640', maxBlock = 4096, secure = true, passw
         } else if (cmd === 'C_FD') { files.delete(strs[0]); reply('T_OK'); }
         else if (cmd === 'S_FL') { open.parts.push(Buffer.from(data)); reply('T_OK'); }
         else if (cmd === 'T_FD') { files.set(open.name, Buffer.concat(open.parts)); open = null; if (secure) reply('T_OK'); }
+        else if (cmd === 'R_FL') {
+          // text mode: lines separated by NUL, sent in blocks the client confirms with T_OK
+          const f = files.get(strs[0]);
+          if (!f) err(32);
+          else {
+            const raw = Buffer.from(f.toString('latin1').split('\r\n').join('\u0000'), 'latin1'), q = [];
+            for (let at = 0; at < raw.length; at += block - 8) q.push(raw.subarray(at, at + block - 8));
+            reading = q;
+            reply('S_FL', reading.shift());
+          }
+        } else if (cmd === 'T_OK') { if (reading) { if (reading.length) reply('S_FL', reading.shift()); else { reading = null; reply('T_FD'); } } }
         else if (cmd === 'A_LO') sock.end();
         else err(22);
       }
@@ -85,6 +96,22 @@ const prog = Array.from({ length: 400 }, (_, i) => `${i} L X+${i} Y+0 R0 FMAX`).
   try { await sendProgram({ host: '127.0.0.1', port: ro.port, name: 'A.h', text: 'x' }); } catch (x) { e = x; }
   ok('LSV2: Steuerung verweigert Schreiben → Meldung', /kein Schreibzugriff/.test(e?.message || ''), e?.message);
   ro.close();
+}
+{
+  // reading: a program back from the control (for comparing) and the tool table
+  const { receiveFile } = createRequire(import.meta.url)('../electron/lsv2.cjs');
+  const c = await fakeControl({ maxBlock: 1024 });
+  const tool = ['BEGIN TOOL .T MM', 'T    NAME             L           R', '0    NULLWERKZEUG     +0          +0', '5    FRAESER D10      +85.123     +5', '[END]'].join('\r\n');
+  c.files.set('TNC:\\table\\tool.t', Buffer.from(tool, 'latin1'));
+  c.files.set('TNC:\\nc_prog\\1001.h', Buffer.from(prog.replace(/\n/g, '\r\n'), 'latin1'));
+  const r = await receiveFile({ host: '127.0.0.1', port: c.port, path: 'TNC:/nc_prog/1001.h' });
+  ok('LSV2: Programm von der Steuerung holen (mehrere Blöcke)', r.ok && r.text.replace(/\r\n/g, '\n').replace(/\n$/, '') === prog && c.log.filter(l => l.cmd === 'T_OK').length > 3, r.bytes + ' Byte');
+  const t = await receiveFile({ host: '127.0.0.1', port: c.port, path: 'TNC:\\table\\tool.t' });
+  ok('LSV2: TOOL.T lesen', t.ok && /FRAESER D10\s+\+85\.123/.test(t.text) && t.text.split('\r\n').length >= 5);
+  let e = null;
+  try { await receiveFile({ host: '127.0.0.1', port: c.port, path: 'TNC:\\nc_prog\\FEHLT.h' }); } catch (x) { e = x; }
+  ok('LSV2: fehlende Datei → Meldung', /nicht gefunden/.test(e?.message || ''), e?.message);
+  c.close();
 }
 {
   // nobody listening

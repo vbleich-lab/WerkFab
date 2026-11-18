@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Fare clic sulle aree dello schizzo",
+ "{0} Profil{1}": "{0} profilo/i{1}",
+ "Ganze Skizze": "Intero schizzo",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Fare clic sugli spigoli nel modello (un altro clic li rimuove)",
+ "{0} Kante{1}": "{0} spigolo/i{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Fare clic sugli spigoli per aggiungerli o rimuoverli – il risultato compare subito nel modello. Gli spigoli selezionati prima del comando sono già scelti. Invio = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Fare clic sui profili – le aree dello schizzo che vengono estruse (un altro clic le rimuove).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Qui non c'è nessuna area chiusa dello schizzo.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "{0} profilo/i{1} selezionato/i – li usa Estrusione (E) o Rivoluzione. Maiusc/Ctrl + clic: altri profili.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "{0} spigolo/i{1} selezionato/i – li usa Raccordo (F) o Smusso. Maiusc/Ctrl + clic: altri spigoli.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Nessun profilo selezionato – fare clic sulle aree dello schizzo."
+}

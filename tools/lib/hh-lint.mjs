@@ -290,7 +290,11 @@ export function lintHeidenhain(code, opts = {}) {
   if (!st.ended) issues.push({ line: rows.length, text: '', msg: 'Programmende M30/M2 fehlt' });
   if (st.inCycl) issues.push({ line: rows.length, text: '', msg: 'Zyklus am Programmende nicht abgeschlossen' });
   for (const c of calls) if (!labels.has(c.id)) issues.push({ line: c.line, text: c.text, msg: `CALL LBL ${c.id}: Label fehlt` });
-  for (const [id, k] of lblAt) if (!calls.some(c => c.id === id)) issues.push({ line: k + 1, text: rows[k], msg: `LBL ${id} wird nie aufgerufen` });
+  // SL / contour-train cycles: the contour subprograms are named in CYCL DEF 14.1 KONTURLABEL 1 /2 /3 (or in
+  // cycle 25 via 14.1) – they count as called
+  const slUsed = new Set();
+  for (const t of rows) { const m = /CYCL DEF 14\.1 KONTURLABEL\s*([\d /]+)/.exec(t); if (m) for (const n of m[1].split('/')) if (n.trim()) slUsed.add(n.trim()); }
+  for (const [id, k] of lblAt) if (!slUsed.has(String(id)) && !calls.some(c => c.id === id)) issues.push({ line: k + 1, text: rows[k], msg: `LBL ${id} wird nie aufgerufen` });
   return issues;
 }
 
@@ -328,6 +332,16 @@ function cycleParams(no, q, probe) {
   if (no === 251 || no === 256) { need(218, 219, 220); pos(218, 219); nonNeg(220); if (has(220) && v(220) > Math.min(v(218), v(219)) / 2 + 1e-6) out.push(`Zyklus ${no}: Eckenradius Q220 größer als die halbe Seitenlänge`); }
   if (no === 253) { need(218, 219); pos(218, 219); if (has(218) && has(219) && v(218) < v(219)) out.push('Zyklus 253: Nutlänge Q218 kleiner als Nutbreite Q219'); }
   if (no === 252) { need(223); pos(223); }
+  if (no === 25) { need(1, 5, 7, 10, 11, 12, 15); if (has(1) && !(v(1) < 0)) out.push('Zyklus 25: Frästiefe Q1 muss negativ sein'); if (has(15) && Math.abs(v(15)) !== 1) out.push('Zyklus 25: Fräsart Q15 muss +1 oder -1 sein'); }
+  if (no === 20) { need(1, 2, 3, 4, 5, 6, 7, 9); if (has(1) && !(v(1) < 0)) out.push('Zyklus 20: Frästiefe Q1 muss negativ sein'); if (has(2) && !(v(2) > 0 && v(2) < 2)) out.push('Zyklus 20: Bahnüberlappung Q2 außerhalb 0…1,9999'); if (has(9) && Math.abs(v(9)) !== 1) out.push('Zyklus 20: Drehsinn Q9 muss +1 oder -1 sein'); }
+  if (no === 22) { need(10, 11, 12); pos(11, 12); }
+  if (no === 208) { need(206, 334, 335, 351); pos(206, 334, 335); if (has(351) && Math.abs(v(351)) !== 1) out.push('Zyklus 208: Fräsart Q351 muss +1 oder -1 sein'); }
+  if (no === 262) { need(335, 239, 207, 351); pos(335, 207); if (has(239) && v(239) === 0) out.push('Zyklus 262: Steigung Q239 ist 0'); if (has(351) && Math.abs(v(351)) !== 1) out.push('Zyklus 262: Fräsart Q351 muss +1 oder -1 sein'); }
+  if (no === 232) {
+    need(225, 226, 227, 386, 218, 219, 202, 207, 200, 204); pos(218, 219, 202, 207); nonNeg(200, 204);
+    if (has(227) && has(386) && !(v(386) < v(227))) out.push('Zyklus 232: Endpunkt Q386 liegt nicht unter dem Startpunkt Q227');
+    if (has(370) && !(v(370) >= 0.1 && v(370) <= 1.9999)) out.push(`Zyklus 232: Überlappung Q370 außerhalb 0,1…1,9999 (${v(370)})`);
+  }
   if (no === 256) { need(424, 425); if (has(424) && v(424) < v(218)) out.push('Zyklus 256: Rohteilmaß Q424 kleiner als das Fertigmaß Q218'); if (has(425) && v(425) < v(219)) out.push('Zyklus 256: Rohteilmaß Q425 kleiner als das Fertigmaß Q219'); }
   if (no === 257) { need(223, 222); pos(223); if (has(222) && v(222) <= v(223)) out.push('Zyklus 257: Rohteil-Ø Q222 ist nicht größer als der Fertigteil-Ø Q223'); }
   if (no === 220) { need(216, 217, 244, 245, 246, 247, 241, 200, 203, 204); pos(244, 241); }

@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Klik kawasan lakaran",
+ "{0} Profil{1}": "{0} profil{1}",
+ "Ganze Skizze": "Seluruh lakaran",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Klik tepi pada model (klik semula untuk mengalih keluar)",
+ "{0} Kante{1}": "{0} tepi{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Klik tepi untuk menambah atau mengalih keluarnya – hasil terus muncul pada model. Tepi yang diklik sebelum arahan sudah dipilih. Enter = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Klik profil – kawasan lakaran yang akan diekstrusi (klik semula untuk mengalih keluar).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Tiada kawasan tertutup lakaran di sini.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "{0} profil{1} dipilih – Ekstrusi (E) atau Putaran menggunakannya. Shift/Ctrl + klik: profil lain.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "{0} tepi{1} dipilih – Fillet (F) atau Chamfer menggunakannya. Shift/Ctrl + klik: tepi lain.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Belum ada profil dipilih – klik kawasan lakaran."
+}

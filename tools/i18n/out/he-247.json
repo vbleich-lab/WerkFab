@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "לחץ על אזורים בסקיצה",
+ "{0} Profil{1}": "{0} פרופיל(ים){1}",
+ "Ganze Skizze": "כל הסקיצה",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "לחץ על קצוות במודל (לחיצה נוספת מסירה)",
+ "{0} Kante{1}": "{0} קצה/ות{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "לחץ על קצוות כדי להוסיף או להסיר אותם – התוצאה מופיעה מיד במודל. קצוות שנלחצו לפני הפקודה כבר נבחרו. Enter = אישור.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "לחץ על פרופילים – אזורי הסקיצה שישוחלו (לחיצה נוספת מסירה).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "אין כאן אזור סגור בסקיצה.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "נבחרו {0} פרופיל(ים){1} – שיחול (E) או סיבוב משתמשים בהם. Shift/Ctrl + לחיצה: פרופילים נוספים.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "נבחרו {0} קצה/ות{1} – עיגול פינות (F) או פאזה משתמשים בהם. Shift/Ctrl + לחיצה: קצוות נוספים.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "עדיין לא נבחר פרופיל – לחץ על אזורים בסקיצה."
+}

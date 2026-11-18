@@ -9,14 +9,15 @@ import { AGENT_TOOLS, agentCall } from './agent.js';
 import { initFusion, fusionButtons, storedScripts, importPythonFiles, runEntry, stopEntry, isRunning, runCommand as runPyCommand, startAddins, addTemplate, updateEntry, removeEntry, showOutput as showPyOutput } from './fusionapi.js';
 import { exportGLB } from './gltf.js';
 import { compareRows } from './nccompare.js';
-import { toolTable, TOOL_TABLE_FORMATS } from './tooltable.js';
+import { holderReach } from './reach.js';
+import { toolTable, TOOL_TABLE_FORMATS, parseToolT, compareToolTable } from './tooltable.js';
 import { parseFit, fitLimits, fitMid, COMMON_FITS } from './fits.js';
 import { inspectionItems, inspectionCsv, GENERAL_CLASSES } from './inspect.js';
 import { meshMass, stlBinary, urdfNames, buildUrdf, buildSdf, sdfConfig, buildMjcf, convexHull, URDF_CHAIN } from './urdf.js';
 import { setActiveKernel, activeKernelId, getKernel } from './kern/index.js';
 import './kern/rust.js';
 import { THREAD_SIZES, meshBody, exportGeometry, setViewTessellation, viewTessellation } from './model.js';
-import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache, dropWaitingSnaps } from './model.js';
+import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache, dropWaitingSnaps, profileItems } from './model.js';
 import { Sketcher } from './sketcher.js';
 import { buildHeightmap, cornerOf } from './heightmap.js';
 import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel, orientationLabel, OP_TYPES, DRILL_CYCLES, ORIGINS, TOOL_TYPES, ORIENTATIONS, RAPID_FEED, setupMatrix, sketchHorizontalIn, OPS_3D, PROBE_MODES, MANUAL_KINDS, PATTERN_KINDS, orderByTool, opCells, toolBase, STOCK_MODES, STOCK_MATERIALS, BOUNDARY_MODES, setupBodies, heightSpec, HEIGHT_KEYS, HEIGHT_FROM, applyCutData, serialNumbers, serialText, FIT_OPS, fitOffset } from './cam.js';
@@ -24,7 +25,7 @@ import { postProcess, runPost, allPosts, findPost, copyPost, setPostLibrary, SEC
 import { allMachines, findMachine, copyMachine, newMachine, machineChecks, KIN_TYPES, kinAngles } from './machines.js';
 import { StockSim, defaultFluteLen, defaultHolderDia, defaultStickout } from './sim.js';
 import { exampleProject, exampleTurning, exampleMilling, exampleDesign } from './example.js';
-import { describeEntity, entityPolys, translateEntity, rotateEntity, scaleEntity, mirrorEntity as mirrorAbout } from './profiles.js';
+import { describeEntity, entityPolys, translateEntity, rotateEntity, scaleEntity, mirrorEntity as mirrorAbout, loopsAt, sameCell, cellShapes, allCells } from './profiles.js';
 import { meshInertia, zipStore } from './mesh.js';
 import { applyCorners, cornerPlan, curveCorner, filletCurves, chamferCurves, unbridge, bridgeRadius } from './sketchcorner.js';
 import { offsetEntities } from './sketchoffset.js';
@@ -149,60 +150,156 @@ async function exportToolTable(tools) {
   status(`${res.rows.length} Werkzeuge → ${name} ${where}${res.warnings.length ? ' · ⚠ ' + res.warnings.join(' · ') : ''}`);
 }
 
-// ----- An Maschine senden: NC program over the network into a Heidenhain control (LSV2, port 19000, as TNCremo) -----
+// ----- An Maschine senden: NC program over the network into the control -----
+// Heidenhain over LSV2 (port 19000, as TNCremo); other controls over FTP, a network folder or DNC (drip feed through
+// a serial device server in front of the RS-232 port)
 const MACHINE_KEY = 'werkfab.machineLink';
 const MACHINE_CONTROLS = {
-  tnc640: { label: 'Heidenhain TNC 640 / TNC 620', dir: 'TNC:\\nc_prog\\' },
-  itnc530: { label: 'Heidenhain iTNC 530', dir: 'TNC:\\' },
+  tnc640: { label: 'Heidenhain TNC 640 / TNC 620', proto: 'lsv2', port: 19000, dir: 'TNC:\\nc_prog\\', sep: '\\', toolT: 'TNC:\\table\\tool.t' },
+  itnc530: { label: 'Heidenhain iTNC 530', proto: 'lsv2', port: 19000, dir: 'TNC:\\', sep: '\\', toolT: 'TNC:\\TOOL.T' },
+  ftp: { label: 'FTP (Sinumerik 840D sl / 828D, Fanuc mit FTP, Haas …)', proto: 'ftp', port: 21, dir: '', sep: '/' },
+  share: { label: 'Netzwerkordner (Freigabe an der Maschine oder am Maschinen-PC)', proto: 'share', port: 0, dir: '', sep: '\\' },
+  dnc: { label: 'DNC / Drip-Feed über Seriell-Ethernet-Wandler (RS-232)', proto: 'dnc', port: 4001, dir: '', sep: '' },
 };
+const PROTO_PORTS = [19000, 21, 4001, 0];
+const machineCtl = link => MACHINE_CONTROLS[link?.control] || MACHINE_CONTROLS.tnc640;
+// enough to connect: a host, or for the network folder a folder
+const machineReady = link => !!link && (machineCtl(link).proto === 'share' ? !!link.dir : !!link.host);
+const machineWhere = link => (machineCtl(link).proto === 'share' ? link.dir : link.host);
 function machineLink() {
   try { return JSON.parse(localStorage.getItem(MACHINE_KEY)) || null; } catch { return null; }
 }
 async function machineLinkDialog() {
   const m = window.werkfabApp?.machine;
-  const c = machineLink() || { control: 'tnc640', host: '', port: 19000, password: '', dir: '', overwrite: true };
+  const c = machineLink() || { control: 'tnc640', host: '', port: 19000, user: '', password: '', dir: '', overwrite: true, baud: 9600, xonxoff: true };
   const v = await formDialog('Verbindung zur Maschine', [
-    { key: 'control', label: 'Steuerung', value: c.control in MACHINE_CONTROLS ? c.control : 'tnc640', options: Object.entries(MACHINE_CONTROLS).map(([k, x]) => [k, x.label]) },
-    { key: 'host', label: 'IP-Adresse der Steuerung', value: c.host || '', text: true },
-    { key: 'port', label: 'Port', value: +c.port || 19000 },
+    { key: 'control', label: 'Steuerung / Weg', value: c.control in MACHINE_CONTROLS ? c.control : 'tnc640', options: Object.entries(MACHINE_CONTROLS).map(([k, x]) => [k, x.label]) },
+    { key: 'host', label: 'IP-Adresse (Steuerung oder Wandler)', value: c.host || '', text: true },
+    { key: 'port', label: 'Port (leer = Standard)', value: PROTO_PORTS.includes(+c.port) ? '' : String(c.port), text: true },
+    { key: 'user', label: 'Benutzer (FTP)', value: c.user || '', text: true },
     { key: 'password', label: 'Passwort (nur falls gesetzt)', value: c.password || '', text: true },
     { key: 'dir', label: 'Zielordner (leer = Standard)', value: c.dir || '', text: true },
     { key: 'overwrite', label: 'Vorhandenes Programm überschreiben', value: c.overwrite !== false, check: true },
+    { key: 'baud', label: 'DNC: Baudrate der seriellen Leitung', value: +c.baud || 9600 },
+    { key: 'xonxoff', label: 'DNC: XON/XOFF der Steuerung beachten', value: c.xonxoff !== false, check: true },
     { key: 'test', label: 'Verbindung jetzt testen', value: !!m, check: true },
-    { hint: 'An der Steuerung muss die Datenübertragung über Ethernet freigegeben sein (wie für TNCremo, LSV2, Port 19000). Standardordner: TNC 640 TNC:\\nc_prog\\, iTNC 530 TNC:\\.' },
+    { hint: 'Heidenhain: an der Steuerung die Datenübertragung über Ethernet freigeben (wie für TNCremo, LSV2, Port 19000); Standardordner TNC 640 TNC:\\nc_prog\\, iTNC 530 TNC:\\. FTP: Port 21, Ordner z. B. /_N_WKS_DIR oder /NC. Netzwerkordner: Pfad wie \\\\MASCHINE\\NC oder Z:\\NC. DNC: Wandler als TCP-Server (raw), meist Port 4001; an der Steuerung „Abarbeiten extern“, DNC oder TAPE starten.' },
   ], 'Speichern');
   if (!v) return null;
-  const link = { control: v.control, host: String(v.host || '').trim(), port: Math.round(+v.port) || 19000, password: v.password || '', dir: String(v.dir || '').trim(), overwrite: !!v.overwrite };
+  const ctl = MACHINE_CONTROLS[v.control] || MACHINE_CONTROLS.tnc640;
+  const link = {
+    control: v.control, host: String(v.host || '').trim(), port: Math.round(+String(v.port || '').trim()) || ctl.port, user: String(v.user || '').trim(), password: v.password || '',
+    dir: String(v.dir || '').trim(), overwrite: !!v.overwrite, baud: Math.max(0, Math.round(+v.baud) || 0), xonxoff: !!v.xonxoff, proto: ctl.proto,
+  };
   try { localStorage.setItem(MACHINE_KEY, JSON.stringify(link)); } catch { /* storage full */ }
-  if (v.test && m && link.host) {
-    status(`Verbinde mit ${link.host} …`);
+  if (v.test && m && machineReady(link)) {
+    status(`Verbinde mit ${machineWhere(link)} …`);
     const r = await m.test(link);
-    status(r?.error ? '⚠ ' + r.error : `Verbindung in Ordnung: ${r.control || 'Steuerung'} (Blockgröße ${r.block} Byte)`);
+    status(r?.error ? '⚠ ' + r.error : `Verbindung in Ordnung: ${r.control || 'Steuerung'}${r.block ? ` (Blockgröße ${r.block} Byte)` : ''}`);
   }
   return link;
 }
-// file name for the control: letters, digits, - _ . and blanks; .h (Klartext) or .i (ISO)
-function machineFileName(file) {
+// the saved link, or the dialog when there is none yet
+async function machineLinkOrAsk() {
+  const link = machineLink();
+  if (machineReady(link)) return { ...link, proto: machineCtl(link).proto };
+  const n = await machineLinkDialog();
+  return machineReady(n) ? n : null;
+}
+// file name for the control: letters, digits, - _ . and blanks. Heidenhain .h (Klartext) or .i (ISO); others keep
+// the extension of the post processor (.mpf, .nc, .tap …)
+function machineFileName(file, ctl = MACHINE_CONTROLS.tnc640) {
   const base = String(file || 'PGM').replace(/^.*[\\/]/, '');
-  const ext = /\.i$/i.test(base) ? '.i' : '.h';
   const stem = base.replace(/\.[^.]*$/, '').replace(/[^\w\-. ]/g, '_').slice(0, 56) || 'PGM';
-  return stem + ext;
+  if (ctl.proto === 'lsv2') return stem + (/\.i$/i.test(base) ? '.i' : '.h');
+  const ext = (/\.([A-Za-z0-9]{1,5})$/.exec(base) || [])[1];
+  return stem + '.' + (ext || 'nc');
+}
+const machineJoin = (ctl, dir, name) => (dir ? dir.replace(/[\\/]?$/, ctl.sep || '/') : '') + name;
+// a file from the control with progress in the status line; null (with a message) if it fails
+async function machineFetch(path, what, link) {
+  const m = window.werkfabApp?.machine;
+  if (!m?.get) { status('Von der Maschine lesen geht nur in der Desktop-App.'); return null; }
+  link ||= await machineLinkOrAsk();
+  if (!link) return null;
+  status(`Lese ${what} von ${machineWhere(link)} …`);
+  m.onProgress?.(n => status(`Lese ${what} von ${machineWhere(link)} … ${Math.round(n / 1024)} kB`));
+  try {
+    const res = await m.get({ ...link, path });
+    if (res?.error) { status('⚠ Lesen fehlgeschlagen: ' + res.error); return null; }
+    status(`✓ ${res.path} gelesen (${res.bytes} Byte)`);
+    return res;
+  } catch (e) {
+    status('⚠ Lesen fehlgeschlagen: ' + (e?.message || e));
+    return null;
+  }
+}
+async function compareWithMachine(r) {
+  const link = await machineLinkOrAsk();
+  if (!link) return;
+  const ctl = machineCtl(link);
+  if (ctl.proto === 'dnc') return status('Über DNC lässt sich kein Programm von der Steuerung zurücklesen.');
+  const def = machineJoin(ctl, link.dir || ctl.dir, machineFileName(r.file, ctl));
+  const v = await formDialog('Mit Maschine vergleichen', [{ key: 'path', label: 'Programm auf der Steuerung', value: def, text: true }], 'Holen');
+  if (!v?.path?.trim()) return;
+  const res = await machineFetch(v.path.trim(), 'Programm', link);
+  if (res) ncCompareDialog(r.file, r.code, `Maschine: ${res.path}`, res.text);
+}
+// TOOL.T of the control next to the tool library: lengths to take over, tools the program needs but the machine lacks
+async function machineToolCompare(lib, tools) {
+  const link = await machineLinkOrAsk();
+  if (!link) return;
+  const ctl = machineCtl(link);
+  if (!ctl.toolT) return status('Die Werkzeugtabelle lässt sich nur von Heidenhain-Steuerungen lesen (TOOL.T über LSV2).');
+  const res = await machineFetch(ctl.toolT, 'Werkzeugtabelle', link);
+  if (!res) return;
+  let parsed;
+  try { parsed = parseToolT(res.text); } catch (e) { return status('⚠ ' + e.message); }
+  const p = state.project, usedIds = new Set(p.cam.ops.filter(o => o.enabled !== false).map(o => o.tool));
+  const used = new Set(tools.filter(t => usedIds.has(t.id)).map(t => Math.round(+t.number)));
+  const rows = compareToolTable(tools, parsed.rows, used);
+  const take = new Set(rows.filter(x => x.status === 'length').map(x => x.id));
+  const back = h('div', { class: 'modal-back' });
+  const close = () => back.remove();
+  const ICON = { ok: '✓', length: '↔', warn: '⚠', missing: '✖', absent: '–', extra: '+' };
+  const body = h('tbody', null, ...rows.map(x => h('tr', { class: 'mt-' + x.status },
+    h('td', null, x.canTake ? chk(take.has(x.id), v => (v ? take.add(x.id) : take.delete(x.id))) : ICON[x.status]),
+    h('td', null, 'T' + x.t), h('td', null, tools.find(t => t.id === x.id)?.name || ''), h('td', null, x.machineName || ''),
+    h('td', { class: 'num' }, x.lLib != null ? f2(x.lLib) : ''), h('td', { class: 'num' }, x.lMachine != null ? f2(x.lMachine) : ''),
+    h('td', { class: 'num' }, x.rMachine != null ? f2(x.rMachine) : ''), h('td', null, (x.need ? '● ' : '') + (x.msg || '')))));
+  const missing = rows.filter(x => x.status === 'missing').length;
+  back.append(h('div', { class: 'modal', style: 'height:auto;max-height:86vh;width:min(860px,calc(100vw - 32px));display:flex;flex-direction:column' },
+    h('div', { class: 'modal-head' }, `WERKZEUGTABELLE DER MASCHINE – ${res.control || ctl.label}`, h('button', { onclick: close }, '✕')),
+    h('p', { class: 'hint', style: 'margin:8px 16px' }, `${res.path}: ${parsed.rows.length} Werkzeuge. Länge Maschine = L + DL. ● = vom Programm benötigt.${missing ? ` ⚠ ${missing} Werkzeug(e) des Programms fehlen an der Maschine.` : ''}`),
+    h('div', { style: 'overflow:auto;padding:0 16px' }, h('table', { class: 'mt-table' },
+      h('thead', null, h('tr', null, ...['', 'Nr.', 'Bibliothek', 'Maschine', 'Länge hier', 'Länge Maschine', 'Radius Maschine', 'Hinweis'].map(c => h('th', null, c)))), body)),
+    h('div', { class: 'modal-foot' },
+      h('span', { class: 'hint', style: 'margin-right:auto' }, 'Angehakt: die gemessene Länge als Messlänge in die Bibliothek übernehmen.'),
+      h('button', { onclick: close }, 'Schließen'),
+      h('button', { class: 'primary', disabled: !rows.some(x => x.canTake), onclick: () => {
+        const by = new Map(rows.map(x => [x.id, x]));
+        editLib(lib, ts => { for (const t of ts) if (take.has(t.id)) t.gauge = +by.get(t.id).lMachine.toFixed(4); });
+        status(`${take.size} Werkzeuglänge(n) von der Maschine übernommen`);
+        close();
+      } }, 'Längen übernehmen'))));
+  back.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  document.body.append(back);
 }
 async function sendToMachine(r) {
   const m = window.werkfabApp?.machine;
   if (!m) return status('An die Maschine senden geht nur in der Desktop-App.');
-  let link = machineLink();
-  if (!link?.host) link = await machineLinkDialog();
-  if (!link?.host) return;
-  const ctl = MACHINE_CONTROLS[link.control] || MACHINE_CONTROLS.tnc640;
-  const dir = link.dir || ctl.dir, name = machineFileName(r.file);
+  const link = await machineLinkOrAsk();
+  if (!link) return;
+  const ctl = machineCtl(link);
+  const dir = link.dir || ctl.dir, name = machineFileName(r.file, ctl);
   const fam = postFamily(findPost(state.project, r.postId) || findPost(state.project, state.project.post?.flavor) || {});
-  const foreign = fam !== 'heidenhain' && !/\.i$/i.test(name) ? '\n\n⚠ Das Programm ist nicht für Heidenhain geschrieben (Postprozessor wählen).' : '';
-  if (!confirm(`Programm an ${ctl.label} (${link.host}) senden?\n\nZiel: ${dir.replace(/\\?$/, '\\')}${name}${link.overwrite ? '' : '\n(ein vorhandenes Programm wird nicht überschrieben)'}${foreign}`)) return;
-  status(`Sende ${name} an ${link.host} …`);
-  const off = m.onProgress?.(f => status(`Sende ${name} an ${link.host} … ${Math.round(f * 100)} %`));
+  const foreign = ctl.proto === 'lsv2' && fam !== 'heidenhain' && !/\.i$/i.test(name) ? '\n\n⚠ Das Programm ist nicht für Heidenhain geschrieben (Postprozessor wählen).' : '';
+  const target = ctl.proto === 'dnc' ? `DNC ${link.host}:${link.port || ctl.port}, ${link.baud || 'ohne Begrenzung'} Baud – an der Steuerung „Abarbeiten extern“ / DNC starten` : machineJoin(ctl, dir, name);
+  if (!confirm(`Programm an ${ctl.label} (${machineWhere(link)}) senden?\n\nZiel: ${target}${link.overwrite || ctl.proto === 'dnc' ? '' : '\n(ein vorhandenes Programm wird nicht überschrieben)'}${foreign}`)) return;
+  status(`Sende ${name} an ${machineWhere(link)} …`);
+  const off = m.onProgress?.(f => status(`Sende ${name} an ${machineWhere(link)} … ${Math.round(f * 100)} %`));
   try {
-    const res = await m.send({ ...link, dir, name, text: r.code });
+    const res = await m.send({ ...link, proto: ctl.proto, dir, name, text: r.code });
     if (res?.error) status('⚠ Senden fehlgeschlagen: ' + res.error);
     else status(`✓ ${res.path} an ${res.control || ctl.label} übertragen (${res.bytes} Byte)`);
   } catch (e) {
@@ -652,6 +749,8 @@ function getCam() {
     prevG = g;
     for (const [id, msg] of faceErr) { const r = g.results.get(id); if (r) { r.error = msg; r.moves = []; } }
     g.setup = st;
+    // holder / spindle nose against stock and fixtures: minimum stick-out per operation (warning when too short)
+    if (st.kind !== 'turn') { try { g.reach = holderReach(g, camBodies, st); } catch (e) { console.warn('Halterprüfung', e); } }
     setups.set(st.id, g);
     g.results.forEach((r, id) => results.set(id, r));
   }
@@ -1295,6 +1394,33 @@ function highlightedFaces() {
 // pre-highlight of the face under the mouse while picking
 const hoverGroup = new THREE.Group();
 vp.overlay.add(hoverGroup);
+// live result while edges / faces are picked for a modification (Verrundung, Fase, Wandstärke …): the result is
+// shown, the model before the step stays underneath for picking (its faces invisible, its edges drawn)
+const previewGroup = new THREE.Group();
+vp.scene.add(previewGroup);
+const PREVIEW_TYPES = ['fillet', 'chamfer', 'shell', 'draft', 'offsetface'];
+let pickPrev = { key: null, bodies: null };
+function pickPreview() {
+  const pk = state.pick;
+  if (!pk || (pk.mode !== 'edges' && pk.mode !== 'faces') || state.workspace !== 'design') return null;
+  const f = feature(pk.id);
+  if (!f || !PREVIEW_TYPES.includes(f.type) || !((f.edges || []).length || (f.faces || []).length || f.all)) return null;
+  const rp = resolved(), i = rp.features.findIndex(x => x.id === f.id);
+  if (i < 0) return null;
+  const key = modelKey(rp, i + 1);
+  if (pickPrev.key !== key) {
+    pickPrev.bodies?.forEach(b => { b.geometry.dispose(); b.edges.dispose(); });
+    pickPrev = { key, bodies: null };
+    // slow models: no preview (the result comes with OK)
+    if (estimateRegen(rp, i + 1).ms > 1500) return null;
+    try {
+      const r = regenerate(rp, i + 1);
+      if (r.errors?.[f.id]) r.bodies.forEach(b => { b.geometry.dispose(); b.edges.dispose(); });
+      else pickPrev.bodies = r.bodies;
+    } catch { /* no preview */ }
+  }
+  return pickPrev.bodies;
+}
 let hoverKey = null, hoverRaf = 0;
 const matEdgeHover = new THREE.MeshBasicMaterial({ color: 0x0b0d10, depthTest: false, transparent: true });
 const matEdgeSelMesh = new THREE.MeshBasicMaterial({ color: 0x9fdcff, depthTest: false, transparent: true });
@@ -1331,6 +1457,22 @@ function updateFaceHover(e) {
   const mode = state.pick?.mode;
   const off = state.sketchId || e.buttons || (sim.open && sim.playing) || document.querySelector('.modal-back, .prefs-back') || getSettings().hoverHighlight === false;
   if (off) { if (hoverKey) { vp.clear(hoverGroup); hoverKey = null; } setHoverPlane(null); return; }
+  if (mode === 'regions' || (!mode && state.workspace === 'design')) {
+    const f = mode ? feature(state.pick.id) : null;
+    let r = null;
+    if (f?.sketch) r = regionAt(e, f.sketch);
+    else if (!mode) for (const id of visibleSketchIds()) { const q = regionAt(e, id); if (q?.cell.length && (!r || q.dist < r.dist)) r = q; }
+    if (r && !mode && r.cell.length) {
+      const mh = vp.raycast(e, vp.model.children.filter(o => o.isMesh && o.visible))[0];
+      if (mh && mh.distance < r.dist - vp.worldPerPixel() * 3) r = null;
+    }
+    if (r?.cell.length) {
+      const key = 'r' + r.rsk.id + ':' + r.cell.join('|');
+      if (key !== hoverKey) { vp.clear(hoverGroup); hoverKey = key; const m = cellMesh(r.rsk, r.items, r.cell, matCellHover); if (m) hoverGroup.add(m); }
+      return;
+    }
+    if (mode) { if (hoverKey) { vp.clear(hoverGroup); hoverKey = null; } return; }
+  }
   if (mode === 'plane') {
     const pl = planeUnderMouse(e);
     setHoverPlane(pl);
@@ -1382,6 +1524,7 @@ vp.canvas.addEventListener('pointerleave', () => { vp.clear(hoverGroup); hoverKe
 vp.canvas.addEventListener('pointerdown', () => { if (hoverKey) { vp.clear(hoverGroup); hoverKey = null; } });
 
 function rebuildScene() {
+  previewGroup.clear();
   vp.clear(vp.model);
   vp.clear(vp.sketches);
   vp.clear(vp.paths);
@@ -1488,6 +1631,17 @@ function rebuildScene() {
     const dots = new THREE.Points(g.clone(), new THREE.PointsMaterial({ color: 0xff7a00, size: 8, sizeAttenuation: false, depthTest: false, transparent: true }));
     vp.paths.add(l, dots);
   }
+  {
+    const pv = !cam && display !== 'wire' ? pickPreview() : null;
+    if (pv) {
+      for (const o of vp.model.children) if (o.isMesh && o.userData.body != null) o.visible = false;
+      for (const b of pv) {
+        if (state.hiddenBodies.has(b.id)) continue;
+        previewGroup.add(new THREE.Mesh(b.geometry, bodyMaterial(b.id)));
+        previewGroup.add(new THREE.LineSegments(b.edges, matEdge));
+      }
+    }
+  }
   hoverPlane = null;
   vp.canvas.style.cursor = '';
   if (!cam) drawPlanes();
@@ -1504,6 +1658,7 @@ function rebuildScene() {
       vp.sketches.add(sketchVisual(sk, { active, selectedId: active ? sketcher.selected : null, dark: isDark(), constrained: dof === 0, fill: getSettings().sketchFill !== false }));
       if (active) vp.sketches.add(sketchOverlay(sk));
     }
+    drawRegionCells();
   } else if (cam) {
     drawCam();
   }
@@ -2210,6 +2365,7 @@ function sketchOverlay(sk) {
 
 function selectedEdgeRefs() {
   if (state.workspace !== 'design') return [];
+  if (!state.pick && state.preEdges?.length) return state.preEdges;
   const id = state.pick?.mode === 'edges' ? state.pick.id : state.sel?.kind === 'feature' ? state.sel.id : null;
   const f = id && feature(id);
   if (!f || (f.type !== 'fillet' && f.type !== 'chamfer' && state.pick?.mode !== 'edges') || f.all) return [];
@@ -3973,6 +4129,19 @@ function profileChecks(sketchId, current, set, filter = e => e.type !== 'poly' |
 
 const opSelect = (f, ed, allowed = Object.keys(OPS)) => row('Operation', sel(allowed.map(k => [k, OPS[k]]), f.op, v => ed(x => (x.op = v))));
 
+// "Profil": button that starts / ends clicking areas, count, clear; "Ganze Skizze" = every closed area (as before)
+function profilePickRows(f, ed) {
+  if (Array.isArray(f.profiles)) return [row('Profile', profileChecks(f.sketch, f.profiles, v => ed(x => (x.profiles = v))))];
+  const picking = state.pick?.mode === 'regions' && state.pick.id === f.id;
+  const pick = f.profiles === 'pick', n = pick ? (f.regions || []).length : 0;
+  return [
+    h('div', { class: 'gsel' }, h('span', null, 'Profil'),
+      h('button', { class: 'pickbtn' + (picking ? ' on' : ''), title: 'Bereiche der Skizze anklicken', html: PICK_IC + (pick ? (n ? ` ${n} Profil${n > 1 ? 'e' : ''}` : ' Auswählen') : ' Ganze Skizze'), onclick: () => { if (!pick) ed(x => { x.profiles = 'pick'; x.regions = []; }); togglePick('regions', f.id); } }),
+      pick && n ? h('button', { class: 'gx', title: 'Auswahl leeren', onclick: () => ed(x => (x.regions = [])) }, '✕') : null),
+    pick ? h('div', { class: 'btns' }, btn('Ganze Skizze', () => { if (picking) togglePick('regions', f.id); ed(x => { x.profiles = 'all'; delete x.regions; }); })) : null,
+  ];
+}
+
 function propsExtrude(b, f, ed) {
   const fromFaces = f.source === 'faces';
   const picking = state.pick?.mode === 'faces' && state.pick.id === f.id;
@@ -3985,8 +4154,8 @@ function propsExtrude(b, f, ed) {
     fromFaces ? h('div', { class: 'gsel' }, h('span', null, 'Flächen'),
       h('button', { class: 'pickbtn' + (picking ? ' on' : ''), html: PICK_IC + (nf ? ` ${nf} Fläche${nf > 1 ? 'n' : ''}` : ' Auswählen'), onclick: () => togglePick('faces', f.id) }),
       nf ? h('button', { class: 'gx', title: 'Auswahl leeren', onclick: () => ed(x => (x.faces = [])) }, '✕') : null) : null,
-    fromFaces ? null : row('Skizze', sel(sketchOptions(), f.sketch, v => ed(x => { x.sketch = v; x.profiles = 'all'; }))),
-    fromFaces ? null : row('Profile', profileChecks(f.sketch, f.profiles, v => ed(x => (x.profiles = v)))),
+    fromFaces ? null : row('Skizze', sel(sketchOptions(), f.sketch, v => ed(x => { x.sketch = v; x.profiles = 'all'; delete x.regions; }))),
+    ...(fromFaces ? [] : profilePickRows(f, ed)),
     row('Ausdehnung', sel([['one', 'Eine Seite'], ['sym', 'Symmetrisch'], ['two', 'Zwei Seiten']], f.extent || 'one', v => ed(x => (x.extent = v)))),
     row(f.extent === 'sym' ? 'Gesamtabstand' : 'Abstand', num(f.distance, v => ed(x => (x.distance = v)), { unit: 'mm' })),
     f.extent === 'two' ? row('Abstand 2', num(f.distance2 || 0, v => ed(x => (x.distance2 = v)), { unit: 'mm' })) : null,
@@ -4001,8 +4170,8 @@ function propsRevolve(b, f, ed) {
   const sk = resolved().features.find(x => x.id === f.sketch);
   const lines = sk ? sk.entities.filter(e => e.type === 'poly' && !e.closed) : [];
   b.append(
-    row('Skizze', sel(sketchOptions(), f.sketch, v => ed(x => { x.sketch = v; x.profiles = 'all'; }))),
-    row('Profile', profileChecks(f.sketch, f.profiles, v => ed(x => (x.profiles = v)))),
+    row('Skizze', sel(sketchOptions(), f.sketch, v => ed(x => { x.sketch = v; x.profiles = 'all'; delete x.regions; }))),
+    ...profilePickRows(f, ed),
     row('Achse', sel([['x', 'Skizzen-X-Achse'], ['y', 'Skizzen-Y-Achse'], ...lines.map(e => [e.id, describeEntity(e)]), ...axisRefOptions(f.id)], f.axis, v => ed(x => (x.axis = v)))),
     row('Winkel', num(f.angle, v => ed(x => (x.angle = v)), { unit: '°' })),
     opSelect(f, ed),
@@ -5593,6 +5762,11 @@ function propsPrimitive(b, f, ed) {
 function propsEdgeMod(b, f, ed) {
   const fillet = f.type === 'fillet';
   const picking = state.pick?.mode === 'edges' && state.pick.id === f.id;
+  // the selection first (as in the usual command dialogs), then the size
+  const ne = (f.edges || []).length;
+  if (!f.all) b.append(h('div', { class: 'gsel' }, h('span', null, 'Kanten'),
+    h('button', { class: 'pickbtn' + (picking ? ' on' : ''), title: 'Kanten im Modell anklicken (erneut klicken entfernt)', html: PICK_IC + (ne ? ` ${ne} Kante${ne > 1 ? 'n' : ''}` : ' Auswählen'), onclick: () => togglePick('edges', f.id) }),
+    ne ? h('button', { class: 'gx', title: 'Auswahl leeren', onclick: () => ed(x => (x.edges = [])) }, '✕') : null));
   b.append(
     row(fillet ? (f.variable ? 'Radius am Anfang' : 'Radius') : 'Abstand', num(fillet ? f.radius : f.distance, v => ed(x => (fillet ? (x.radius = v) : (x.distance = v))), { unit: 'mm', min: 0.01 })),
     fillet ? row('Veränderlicher Radius', chk(f.variable, v => ed(x => { x.variable = v; if (v) { x.all = false; x.radius2 ??= +(2 * (+x.radius || 1)).toFixed(3); } }))) : '',
@@ -5620,17 +5794,13 @@ function propsEdgeMod(b, f, ed) {
     const pickF = state.pick?.mode === 'faces' && state.pick.id === f.id;
     const plain = !f.variable && (fillet || !f.chamferKind || f.chamferKind === 'equal');
     b.append(
-      row('Kanten', h('span', null, `${(f.edges || []).length} gewählt`)),
-      h('div', { class: 'btns' },
-        btn(picking ? '✓ Auswahl beenden' : 'Kanten wählen', () => togglePick('edges', f.id), picking ? 'on' : 'primary'),
-        btn('Auswahl leeren', () => ed(x => (x.edges = [])))),
       row('Flächen (alle Kanten ringsum)', h('span', null, `${(f.faces || []).length} gewählt`)),
       h('div', { class: 'btns' },
         btn(pickF ? '✓ Auswahl beenden' : 'Flächen wählen', () => togglePick('faces', f.id), pickF ? 'on' : ''),
         btn('Auswahl leeren', () => ed(x => (x.faces = [])))),
       !plain && !fillet && (f.faces || []).length ? h('p', { class: 'hint' }, 'Bei Kanten einer gewählten Fläche wird der erste Abstand auf dieser Fläche gemessen.') : '',
       !plain && fillet && (f.faces || []).length ? h('p', { class: 'hint' }, 'Der Rand einer Fläche ist eine geschlossene Kette: Mit „durchlaufend“ läuft der Radius einmal ringsum, ohne diese Option auf jeder Kante für sich vom Anfangs- zum Endradius.') : '',
-      h('p', { class: 'hint' }, 'Während der Auswahl wird das Modell vor diesem Schritt gezeigt. Kanten anklicken zum Hinzufügen/Entfernen.'),
+      h('p', { class: 'hint' }, 'Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.'),
     );
   }
 }
@@ -7407,12 +7577,20 @@ function propsOp(b, op) {
     put('passes', csec('Rohteil-Aufmaß', on, v => ed(x => (x.stockOn = v))));
     if (on) put('passes', N('Radiales Aufmaß', 'stockToLeave'), axial ? N('Axiales Aufmaß', 'axialStock') : null);
   };
+  // "Als Steuerungszyklus ausgeben" for face / bore / thread milling: switch and what came out of it
+  const millCycleRow = what => {
+    const els = [C('Als Steuerungszyklus ausgeben', 'ctrlCycle'),
+      h('p', { class: 'hint' }, !op.ctrlCycle ? 'Aus: die Bahn wird mit Koordinaten ausgegeben.' : r?.millCycle ? what + ' Die Steuerung fräst mit ihrer eigenen Strategie; die Simulation hier zeigt die Bahn.' : r?.millCycleWhy ? `⚠ ${r.millCycleWhy} – wird als Bahn ausgegeben.` : what)];
+    put('passes', ...els);
+    return els[0];
+  };
   put('passes', sec(op.type === 'drill' ? 'Zyklus' : 'Durchgänge'), tol());
   switch (op.type) {
     case 'face':
       put('passes', stepoverPct('Bahnabstand'));
       depthSec('Max. Zustellung');
       stockSec();
+      millCycleRow('Planfräsen über das ganze Rohteil – Heidenhain: CYCL DEF 232 (mäanderförmig).');
       break;
     case 'probe':
       put('passes', N('Messtiefe', 'probeDepth', { min: 0 }), N('Sicherheitsabstand', 'probeClear', { min: 0.5 }),
@@ -7430,7 +7608,7 @@ function propsOp(b, op) {
         row('Seitliche Kompensation', sel([['climb', 'Links'], ['conventional', 'Rechts']], op.direction || 'climb', v => ed(x => (x.direction = v)))),
         row('Kompensationstyp', sel(COMP_TYPES, ct, v => ed(x => (x.compType = v)))),
         C('Als Steuerungszyklus ausgeben (Zapfen)', 'ctrlCycle'),
-        op.ctrlCycle ? h('p', { class: 'hint' }, r?.studCycle ? `Rechteck-/Kreiszapfen erkannt (${r.studCycle.pockets.length}) – Heidenhain: CYCL DEF 256/257. Rohteilmaß = Fertigmaß + Abtrag dieser Operation.` : r?.studCycleWhy ? `⚠ ${r.studCycleWhy} – wird als Bahn ausgegeben.` : 'Außenkonturen um Rechtecke und Kreise gehen als Zapfenzyklus der Steuerung (Heidenhain 256/257).') : null,
+        op.ctrlCycle ? h('p', { class: 'hint' }, r?.studCycle ? `Rechteck-/Kreiszapfen erkannt (${r.studCycle.pockets.length}) – Heidenhain: CYCL DEF 256/257. Rohteilmaß = Fertigmaß + Abtrag dieser Operation.` : r?.contourCycle ? `Konturzug (${r.contourCycle.loops.length} Kontur${r.contourCycle.loops.length === 1 ? '' : 'en'}) – Heidenhain: CYCL DEF 14 + 25, die Kontur als Unterprogramm (LBL) mit R${r.contourCycle.comp}. Der Radius wird an der Steuerung korrigiert.` : r?.studCycleWhy ? `⚠ ${r.studCycleWhy}${r.contourCycleWhy ? ` / ${r.contourCycleWhy}` : ''} – wird als Bahn ausgegeben.` : 'Außenkonturen um Rechtecke und Kreise gehen als Zapfenzyklus (Heidenhain 256/257), andere Konturen als Konturzug (Heidenhain 25).') : null,
         ct !== 'computer' && ct !== 'off' ? h('p', { class: 'hint' }, ct === 'control' ? 'Bahn liegt auf der Kontur, die Steuerung korrigiert mit dem Werkzeugradius (G41/G42 bzw. RL/RR). Einfahrt einschalten, damit die Korrektur auf der Anfahrt aufgebaut wird.' : 'Bahn mit Werkzeugradius plus Korrektur an der Steuerung (nur Verschleißwerte in der Werkzeugtabelle).') : null,
         C('Scharfe Ecken erzeugen', 'sharpCorners'),
         N('Minimaler Schneidradius', 'minCutRadius', { min: 0 }),
@@ -7455,7 +7633,7 @@ function propsOp(b, op) {
     }
     case 'pocket':
       put('passes', dirRow(), stepoverPct(), C('Als Steuerungszyklus ausgeben', 'ctrlCycle'),
-        op.ctrlCycle ? h('p', { class: 'hint' }, r?.pocketCycle ? `Rechteck-/Kreistasche erkannt (${r.pocketCycle.pockets.length}) – Heidenhain: CYCL DEF 251/252 an der Taschenmitte. Die Steuerung fräst mit ihrer eigenen Strategie; Simulation und Bahn hier sind die WerkFab-Bahn.` : r?.pocketCycleWhy ? `⚠ ${r.pocketCycleWhy} – wird als Bahn ausgegeben.` : 'Rechteck- und Kreistaschen ohne Inseln gehen als Zyklus der Steuerung (Heidenhain 251/252).') : null);
+        op.ctrlCycle ? h('p', { class: 'hint' }, r?.pocketCycle ? `Rechteck-/Kreistasche erkannt (${r.pocketCycle.pockets.length}) – Heidenhain: CYCL DEF 251/252 an der Taschenmitte. Die Steuerung fräst mit ihrer eigenen Strategie; Simulation und Bahn hier sind die WerkFab-Bahn.` : r?.slCycle ? `Freie Tasche (${r.slCycle.regions.length}, ${r.slCycle.regions.reduce((n, g) => n + g.islands.length, 0)} Inseln) – Heidenhain: SL-Zyklen 14/20/22, Taschen- und Inselkonturen als Unterprogramme (LBL). Andere Steuerungen bekommen die Bahn.` : r?.pocketCycleWhy ? `⚠ ${r.pocketCycleWhy} – wird als Bahn ausgegeben.` : 'Rechteck- und Kreistaschen gehen als Taschenzyklus (Heidenhain 251/252), freie Taschen und Taschen mit Inseln als SL-Zyklus (Heidenhain 14/20/22).') : null);
       depthSec();
       stockSec();
       break;
@@ -7486,6 +7664,7 @@ function propsOp(b, op) {
       put('passes', dirRow(), N('Steigung je Umdrehung', 'stepdown', { allowEmpty: true, ph: tdPh }));
       holeOrderRow();
       stockSec(false);
+      millCycleRow('Bohrfräsen auf der Schraubenlinie – Heidenhain: CYCL DEF 208, aufgerufen an jeder Bohrung.');
       break;
     case 'thread':
       put('passes', N('Nenn-Ø (Außen-Ø)', 'majorDia', { allowEmpty: true, ph: 'aus Kreis' }), N('Steigung', 'pitch', { min: 0.1 }),
@@ -7494,6 +7673,7 @@ function propsOp(b, op) {
       holeOrderRow();
       put('passes', row('Zustellungen (radial)', num(op.threadPasses ?? 1, v => ed(x => (x.threadPasses = Math.max(1, Math.round(v ?? 1)))), { min: 1 })), C('Leerdurchgang am Ende', 'threadSpring'),
         h('p', { class: 'hint' }, 'Mit mehreren Zustellungen wird die Gewindetiefe in Schritten gefräst, die jeweils etwa gleich viel abnehmen – schont kleine Gewindefräser und harte Werkstoffe. Der Leerdurchgang fährt die letzte Bahn noch einmal ohne Zustellung.'));
+      millCycleRow('Innengewinde – Heidenhain: CYCL DEF 262, aufgerufen an jeder Bohrung (ein Umlauf, ohne mehrere Zustellungen).');
       break;
     case 'trace':
       put('passes', N('Tiefe', 'depth', { min: 0.01 }));
@@ -9397,6 +9577,7 @@ function renderToolLib() {
     ib(I.dup, 'Duplizieren', () => { tl.clip = JSON.parse(JSON.stringify(libTools().filter(t => tl.sel.has(t.id)))); pasteTools(); }, !tl.sel.size || !editable),
     ib(I.print, 'Werkzeugliste drucken', () => printTools(tools), !tools.length),
     ib(I.ttab, 'Werkzeugtabelle für die Steuerung …', () => exportToolTable(tools), !tools.length),
+    ...(window.werkfabApp?.machine?.get ? [ib(I.ttab, 'Werkzeugtabelle der Maschine lesen (TOOL.T) und mit der Bibliothek vergleichen …', () => machineToolCompare(tl.lib, tools), !tools.length)] : []),
     ib(I.renum, 'Werkzeuge in Tabellenreihenfolge neu nummerieren', () => {
       if (!confirm(`Alle ${tools.length} angezeigten Werkzeuge in der aktuellen Reihenfolge ab T1 neu nummerieren?`)) return;
       const order = tools.map(t => t.id);
@@ -9692,7 +9873,7 @@ function togglePick(mode, id, key = null) {
   const on = !(state.pick?.mode === mode && state.pick.id === id && (state.pick.key || mode) === (key || mode));
   state.pick = on ? { mode, id, ...(key && key !== mode ? { key } : {}) } : null;
   const ft = feature(id)?.type;
-  showBanner(on ? [mode === 'edges' ? 'Kanten anklicken (erneut klicken entfernt).' : ft === 'extrude' ? 'Ebene Flächen anklicken, die extrudiert werden (erneut klicken entfernt).' : ({ surftrim: 'Bereiche der Fläche anklicken, die weggetrimmt werden (erneut klicken nimmt zurück).', offsetsurf: 'Flächen anklicken, die versetzt werden (erneut klicken entfernt).', thicken: 'Flächen anklicken, die aufgedickt werden (erneut klicken entfernt).', draft: 'Flächen anklicken, die geneigt werden (erneut klicken entfernt).', thread: 'Zylinderfläche für das Gewinde anklicken.', offsetface: 'Flächen anklicken, die versetzt werden (erneut klicken entfernt).', replaceface: 'Fläche anklicken, die ersetzt wird.', splitface: 'Flächen anklicken, die geteilt werden (erneut klicken entfernt).', delface: 'Flächen anklicken, die gelöscht werden (erneut klicken entfernt).', lip: 'Randfläche der Schale anklicken, an der die Lippe sitzt.', untrim: 'Flächen mit Löchern anklicken (erneut klicken entfernt).', straighten: 'Flächen anklicken, die begradigt werden (erneut klicken entfernt).', endcap: 'Offene Stirnfläche eines Rohrs oder Profils anklicken.' }[ft] || (mode === 'edges2' || state.pick?.key === 'edges2' ? 'Zweite Kante anklicken.' : 'Flächen anklicken, die offen sein sollen.')), h('button', { onclick: () => togglePick(mode, id) }, 'Fertig')] : null);
+  showBanner(on ? [mode === 'regions' ? 'Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).' : mode === 'edges' ? 'Kanten anklicken (erneut klicken entfernt).' : ft === 'extrude' ? 'Ebene Flächen anklicken, die extrudiert werden (erneut klicken entfernt).' : ({ surftrim: 'Bereiche der Fläche anklicken, die weggetrimmt werden (erneut klicken nimmt zurück).', offsetsurf: 'Flächen anklicken, die versetzt werden (erneut klicken entfernt).', thicken: 'Flächen anklicken, die aufgedickt werden (erneut klicken entfernt).', draft: 'Flächen anklicken, die geneigt werden (erneut klicken entfernt).', thread: 'Zylinderfläche für das Gewinde anklicken.', offsetface: 'Flächen anklicken, die versetzt werden (erneut klicken entfernt).', replaceface: 'Fläche anklicken, die ersetzt wird.', splitface: 'Flächen anklicken, die geteilt werden (erneut klicken entfernt).', delface: 'Flächen anklicken, die gelöscht werden (erneut klicken entfernt).', lip: 'Randfläche der Schale anklicken, an der die Lippe sitzt.', untrim: 'Flächen mit Löchern anklicken (erneut klicken entfernt).', straighten: 'Flächen anklicken, die begradigt werden (erneut klicken entfernt).', endcap: 'Offene Stirnfläche eines Rohrs oder Profils anklicken.' }[ft] || (mode === 'edges2' || state.pick?.key === 'edges2' ? 'Zweite Kante anklicken.' : 'Flächen anklicken, die offen sein sollen.')), h('button', { onclick: () => togglePick(mode, id) }, 'Fertig')] : null);
   renderAll();
 }
 
@@ -9704,6 +9885,90 @@ function toggleMeasure() {
   showBanner(on ? 'Messen: zwei Punkte auf dem Modell anklicken.' : null);
   renderToolbar();
   rebuildScene();
+}
+
+// ---- sketch areas ("Profile"): clicked for an extrusion or a rotation, like the profiles of the usual CAD programs ----
+// the area of a sketch under the mouse: the closed loops the point lies in (empty = outside every loop)
+const itemsMemo = new WeakMap(); // resolved sketch → its closed loops (the hover asks on every mouse move)
+function regionAt(e, sketchId) {
+  const rsk = resolved().features.find(x => x.id === sketchId);
+  if (!rsk || rsk.type !== 'sketch') return null;
+  const b = basis(rsk);
+  const p = vp.raycastPlaneN(e, b.n, b.o);
+  if (!p) return null;
+  const d = p.clone().sub(b.o), q = [d.dot(b.x), d.dot(b.y)];
+  let items = itemsMemo.get(rsk);
+  if (!items) { items = profileItems(rsk); itemsMemo.set(rsk, items); }
+  return { rsk, items, cell: loopsAt(items, q), p, dist: p.distanceTo(vp.camera.position) };
+}
+function regionPickClick(e) {
+  const f = feature(state.pick.id);
+  if (!f?.sketch) return;
+  const r = regionAt(e, f.sketch);
+  if (!r?.cell.length) return status('Hier liegt kein geschlossener Bereich der Skizze.');
+  editFeature(f.id, x => {
+    if (x.profiles !== 'pick') { x.profiles = 'pick'; x.regions = []; }
+    x.regions ||= [];
+    const k = x.regions.findIndex(c => sameCell(c, r.cell));
+    if (k >= 0) x.regions.splice(k, 1); else x.regions.push(r.cell);
+  });
+}
+// without a command: a click into an area of a visible sketch selects it (Umschalt/Strg: more of them); the next
+// Extrusion / Rotation takes the selected areas
+function visibleSketchIds() {
+  const n = replayCount(), rf = resolved().features;
+  return rf.slice(0, n ?? undefined).filter(f => f.type === 'sketch' && !f.hidden && !f.suppressed).map(f => f.id);
+}
+function preRegionClick(e) {
+  let best = null;
+  for (const id of visibleSketchIds()) {
+    const r = regionAt(e, id);
+    if (r?.cell.length && (!best || r.dist < best.dist)) best = r;
+  }
+  if (!best) return false;
+  const mh = vp.raycast(e, vp.model.children.filter(o => o.isMesh && o.visible))[0];
+  if (mh && mh.distance < best.dist - vp.worldPerPixel() * 3) return false; // a body is in front of the sketch
+  const add = e.shiftKey || e.ctrlKey || e.metaKey;
+  const cur = state.preRegions?.sketch === best.rsk.id ? state.preRegions.cells : [];
+  const k = cur.findIndex(c => sameCell(c, best.cell));
+  const cells = add ? (k >= 0 ? cur.filter((_, i) => i !== k) : [...cur, best.cell]) : k >= 0 && cur.length === 1 ? [] : [best.cell];
+  state.preRegions = cells.length ? { sketch: best.rsk.id, cells } : null;
+  state.preEdges = null;
+  status(cells.length ? `${cells.length} Profil${cells.length > 1 ? 'e' : ''} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.` : '');
+  rebuildScene();
+  return true;
+}
+// areas of a sketch drawn on its plane: the picked ones blue, the others (while picking) faintly
+const matCellAll = new THREE.MeshBasicMaterial({ color: 0x8fc8f0, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthTest: false, depthWrite: false });
+const matCellSel = new THREE.MeshBasicMaterial({ color: 0x0696d7, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthTest: false, depthWrite: false });
+const matCellHover = new THREE.MeshBasicMaterial({ color: 0x38b2f0, transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthTest: false, depthWrite: false });
+const cellCache = new Map();
+function cellMesh(rsk, items, cell, mat) {
+  const key = JSON.stringify([rsk.entities, cell]);
+  let shapes = cellCache.get(key);
+  if (!shapes) {
+    shapes = cellShapes(items, cell);
+    cellCache.set(key, shapes);
+    if (cellCache.size > 300) cellCache.delete(cellCache.keys().next().value);
+  }
+  if (!shapes.length) return null;
+  const v2 = p => new THREE.Vector2(p[0], p[1]);
+  const geo = new THREE.ShapeGeometry(shapes.map(sh => { const t = new THREE.Shape(sh.outer.map(v2)); for (const hh of sh.holes) t.holes.push(new THREE.Path(hh.map(v2))); return t; }));
+  const m = new THREE.Mesh(geo, mat);
+  m.matrixAutoUpdate = false;
+  m.matrix.copy(planeMatrixOf(rsk)).multiply(new THREE.Matrix4().makeTranslation(0, 0, 0.03));
+  m.renderOrder = 6;
+  return m;
+}
+function drawRegionCells() {
+  const pickF = state.pick?.mode === 'regions' ? feature(state.pick.id) : null;
+  const want = pickF?.sketch ? { sketch: pickF.sketch, cells: pickF.profiles === 'pick' ? pickF.regions || [] : [], all: true } : state.preRegions && !state.pick ? { ...state.preRegions, all: false } : null;
+  if (!want) return;
+  const rsk = resolved().features.find(x => x.id === want.sketch);
+  if (!rsk) return;
+  const items = profileItems(rsk);
+  if (want.all) for (const c of allCells(items)) { if (want.cells.some(x => sameCell(x, c))) continue; const m = cellMesh(rsk, items, c, matCellAll); if (m) vp.sketches.add(m); }
+  for (const c of want.cells) { const m = cellMesh(rsk, items, c, matCellSel); if (m) vp.sketches.add(m); }
 }
 
 function viewportClick(e) {
@@ -9742,6 +10007,7 @@ function viewportClick(e) {
     }
     return createSketch(planeFromFace(hit.point, n));
   }
+  if (state.pick?.mode === 'regions') return regionPickClick(e);
   if (state.pick?.mode === 'edges') {
     const lines = vp.model.children.filter(o => o.userData.edges);
     const hit = vp.raycast(e, lines, 7)[0];
@@ -9875,6 +10141,14 @@ function lastSolidSource() {
 
 const planeDefaults = (ref, kind) => (kind === '3pt' ? { kind, pts: [] } : kind === 'tangent' ? { kind, pts: [], r: 0, base: ref, angle: 0 } : { kind, base: ref, ...(kind === 'offset' ? { offset: 20 } : kind === 'angle' ? { axis: 'x', angle: 45 } : { base2: 'XY', offset: undefined }) });
 
+// which areas an extrusion / rotation starts with: the pre-selected ones; one area only → that one;
+// several → none yet, they are clicked (the command waits for them)
+function profileStart(rsk, preR) {
+  state.preRegions = null;
+  if (preR?.cells?.length) return { profiles: 'pick', regions: preR.cells.map(c => [...c]) };
+  return allCells(profileItems(rsk)).length > 1 ? { profiles: 'pick', regions: [] } : { profiles: 'all' };
+}
+
 function createFeature(type, extra = {}) {
   if (state.sketchId) return;
   const p = state.project;
@@ -9884,7 +10158,8 @@ function createFeature(type, extra = {}) {
   const base = { id, type, name: nextName(p.features, FEATURE_TYPES[type]) };
   let f;
   if (type === 'extrude' || type === 'revolve' || type === 'hole') {
-    const sk = pickSketch();
+    const preR = type !== 'hole' && state.preRegions ? state.preRegions : null;
+    const sk = preR ? feature(preR.sketch) : pickSketch();
     if (!sk && type === 'extrude' && hasBodies) {
       // no sketch: extrude faces of the body (lets you pick a face as the profile)
       f = { ...base, source: 'faces', faces: [], extent: 'one', distance: 5, distance2: 5, op: 'auto' };
@@ -9898,10 +10173,10 @@ function createFeature(type, extra = {}) {
     if (type === 'extrude') {
       const b = basis(rsk);
       const onTop = hasBodies && Math.abs(b.n.z) > 0.99 && Math.abs(b.o.z - (b.n.z > 0 ? m.box.max.z : m.box.min.z)) < 1e-3;
-      f = { ...base, sketch: sk.id, profiles: 'all', extent: 'one', distance: onTop ? -5 : +getSettings().defaultExtrude || 10, distance2: 5, op: onTop ? 'cut' : hasBodies ? 'join' : 'new' };
+      f = { ...base, sketch: sk.id, ...profileStart(rsk, preR), extent: 'one', distance: onTop ? -5 : +getSettings().defaultExtrude || 10, distance2: 5, op: onTop ? 'cut' : hasBodies ? 'join' : 'new' };
     } else if (type === 'revolve') {
       const axisLine = rsk.entities.find(e => e.type === 'poly' && !e.closed);
-      f = { ...base, sketch: sk.id, profiles: 'all', axis: axisLine ? axisLine.id : 'y', angle: 360, op: hasBodies ? 'join' : 'new' };
+      f = { ...base, sketch: sk.id, ...profileStart(rsk, preR), axis: axisLine ? axisLine.id : 'y', angle: 360, op: hasBodies ? 'join' : 'new' };
     } else {
       if (!hasBodies) return status('Bohrungen brauchen einen Körper.');
       f = { ...base, sketch: sk.id, points: 'all', kind: 'simple', dia: +getSettings().holeDia || 6, depth: 10, through: false, cbDia: 11, cbDepth: 6, csDia: 12, csAngle: 90, tip: true };
@@ -9978,7 +10253,9 @@ function createFeature(type, extra = {}) {
   } else if (type === 'fillet' || type === 'chamfer' || type === 'shell') {
     if (!hasBodies) return status('Zuerst einen Körper erstellen.');
     const S = getSettings();
-    f = type === 'fillet' ? { ...base, radius: +S.filletRadius || 2, edges: [], all: false } : type === 'chamfer' ? { ...base, distance: +S.chamferDist || 1, edges: [], all: false } : { ...base, thickness: +S.shellThickness || 2, faces: [] };
+    const pre = state.preEdges?.length ? state.preEdges.map(r => [...r]) : [];
+    state.preEdges = null;
+    f = type === 'fillet' ? { ...base, radius: +S.filletRadius || 2, edges: pre, all: false } : type === 'chamfer' ? { ...base, distance: +S.chamferDist || 1, edges: pre, all: false } : { ...base, thickness: +S.shellThickness || 2, faces: [] };
   } else if (type === 'delface') {
     if (!hasBodies) return status('Zuerst einen Körper erstellen.');
     requestFullKernel();
@@ -10044,6 +10321,7 @@ function createFeature(type, extra = {}) {
   insertFeature(f);
   state.sel = { kind: 'feature', id };
   if (type === 'fillet' || type === 'chamfer' || type === 'surfextend' || type === 'fill') togglePick('edges', id);
+  else if ((type === 'extrude' || type === 'revolve') && f.profiles === 'pick') togglePick('regions', id);
   else if (type === 'delface' || type === 'replaceface' || type === 'offsetface' || type === 'align' || type === 'shell' || type === 'draft' || type === 'thread' || type === 'thicken' || type === 'offsetsurf' || type === 'surftrim') togglePick('faces', id);
   else if (type === 'axis' && f.kind === 'cyl') { state.pick = { mode: 'axiscyl', id }; showBanner(['Zylinderfläche oder Bohrung anklicken.', h('button', { onclick: () => { state.pick = null; showBanner(null); renderAll(); } }, 'Abbrechen')]); renderAll(); }
   else if (type === 'axis' && f.kind === '2pt') startPointPick(id, 'pts', 2);
@@ -11472,6 +11750,9 @@ state.selFilter ||= { body: true, face: false, edge: false, vertex: false, sketc
 function toggleSelFilter(k) { state.selFilter[k] = !state.selFilter[k]; renderToolbar(); status(`Auswahl: ${Object.entries(SEL_FILTERS).filter(([q]) => state.selFilter[q]).map(([, l]) => l).join(', ') || 'nichts'}`); }
 function filteredClick(e) {
   const m = getModel(), F = state.selFilter;
+  if (preRegionClick(e)) return;
+  if (preEdgeClick(e)) return;
+  if (state.preRegions || state.preEdges) { state.preRegions = null; state.preEdges = null; rebuildScene(); }
   if (F.vertex || F.edge) {
     const eh = vp.raycast(e, edgePickObjects(), 6)[0];
     if (eh) {
@@ -11499,6 +11780,25 @@ function filteredClick(e) {
     const pl = planeUnderMouse(e);
     if (pl?.userData.plane) return select('feature', pl.userData.plane);
   }
+}
+// an edge clicked without a command is remembered for Verrundung / Fase (Umschalt/Strg: more edges)
+function preEdgeClick(e) {
+  const objs = edgePickObjects();
+  const eh = objs.length ? vp.raycast(e, objs, 5)[0] : null;
+  if (!eh) return false;
+  const mh = vp.raycast(e, vp.model.children.filter(o => o.isMesh && o.visible))[0];
+  if (mh && eh.distance > mh.distance + vp.worldPerPixel() * 6) return false;
+  const m = getModel(), eb = m.bodies[eh.object.userData.body];
+  if (!eb) return false;
+  const ref = edgeMidpoint(eb, eb.segEdge[Math.floor(eh.index / 2)]);
+  const add = e.shiftKey || e.ctrlKey || e.metaKey, cur = state.preEdges || [];
+  const k = cur.findIndex(r => Math.hypot(r[0] - ref[0], r[1] - ref[1], r[2] - ref[2]) < 1e-3);
+  const list = add ? (k >= 0 ? cur.filter((_, i) => i !== k) : [...cur, ref]) : k >= 0 && cur.length === 1 ? [] : [ref];
+  state.preEdges = list.length ? list : null;
+  state.preRegions = null;
+  select('body', eb.id);
+  status(list.length ? `${list.length} Kante${list.length > 1 ? 'n' : ''} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.` : '');
+  return true;
 }
 // Lasso: drag a frame in the view – the bodies inside are selected (for appearance, material, hiding)
 function startLasso() {
@@ -12113,12 +12413,39 @@ function mirrorEntity(sketchId, e, axis) {
 }
 
 // ---------- setup sheet ----------
+// picture for the setup sheet: part, stock, datum and fixtures from the front right, without grid and toolpaths
+function setupSheetShot() {
+  const cam = vp.camera, keep = { pos: cam.position.clone(), up: cam.up.clone(), q: cam.quaternion.clone(), grid: vp.grid?.visible, paths: vp.paths.visible, sk: vp.sketches.visible };
+  try {
+    if (vp.grid) vp.grid.visible = false;
+    vp.paths.visible = false;
+    vp.sketches.visible = false;
+    const box = new THREE.Box3();
+    for (const g of [vp.model, vp.sim]) if (g?.visible) box.expandByObject(g);
+    if (!box.isEmpty()) {
+      const c = box.getCenter(new THREE.Vector3()), r = Math.max(5, box.getSize(new THREE.Vector3()).length() / 2);
+      const dist = (r * 1.05) / Math.sin(THREE.MathUtils.degToRad(cam.fov / 2));
+      cam.position.copy(c).addScaledVector(new THREE.Vector3(0.75, -1.2, 0.9).normalize(), dist);
+      cam.up.set(0, 0, 1);
+      cam.lookAt(c);
+      cam.updateMatrixWorld();
+    }
+    return thumbnail(vp.renderer, vp.scene, cam, '#ffffff', 1400, 800);
+  } catch { return ''; } finally {
+    cam.position.copy(keep.pos); cam.up.copy(keep.up); cam.quaternion.copy(keep.q); cam.updateMatrixWorld();
+    if (vp.grid) vp.grid.visible = keep.grid;
+    vp.paths.visible = keep.paths;
+    vp.sketches.visible = keep.sk;
+    vp.renderer.render(vp.scene, cam);
+  }
+}
+
 function openSetupSheet() {
   const p = state.project;
   const cam = getCam();
   const esc = v => String(v).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]);
   let total = 0, stops = 0;
-  const used = new Map();
+  const used = new Map(), reachOf = new Map();
   const setupsHtml = p.cam.setups.map(st => {
     const g = cam.setups.get(st.id);
     if (!g?.stock) return `<h2>${esc(st.name)}</h2><p>Kein Rohteil.</p>`;
@@ -12136,15 +12463,16 @@ function openSetupSheet() {
       if (r?.dogbones) notes.push(tr(`${r.dogbones} Eckenfreistiche`));
       if (r?.threadPasses > 1) notes.push(tr(`${r.threadPasses} Zustellungen`));
       if (op.note) notes.push(op.note);
+      if (r?.reach) { const k = reachOf.get(op.tool); if (!k || r.reach.need > k.need) reachOf.set(op.tool, r.reach); }
       if (mn?.kind === 'stop') stops++;
       const toolCell = op.type === 'manual' ? '–' : `T${t?.number ?? '?'} ${esc(tr(t?.name ?? ''))}`;
-      return `<tr${mn?.kind === 'stop' ? ' class="stop"' : ''}><td>${esc(tr(op.name))}</td><td>${esc(op.type === 'manual' ? MANUAL_KINDS[mn?.kind || op.manualKind] || OP_TYPES.manual : OP_TYPES[op.type])}</td><td>${toolCell}</td><td>${op.enabled === false ? 'inaktiv' : r?.error ? '⚠ ' + esc(tr(r.error)) : op.type === 'manual' && !(r?.time > 0) ? '' : fmtTime(r?.time || 0)}</td><td>${minZ == null ? '' : f2(minZ)}</td><td>${esc(notes.filter(Boolean).join(' · '))}</td></tr>`;
+      return `<tr${mn?.kind === 'stop' ? ' class="stop"' : ''}><td>${esc(tr(op.name))}</td><td>${esc(op.type === 'manual' ? MANUAL_KINDS[mn?.kind || op.manualKind] || OP_TYPES.manual : OP_TYPES[op.type])}</td><td>${toolCell}</td><td>${op.enabled === false ? 'inaktiv' : r?.error ? '⚠ ' + esc(tr(r.error)) : op.type === 'manual' && !(r?.time > 0) ? '' : fmtTime(r?.time || 0)}</td><td>${minZ == null ? '' : f2(minZ)}</td><td${r?.reach?.touch ? ' class="bad"' : ''}>${r?.reach ? f2(r.reach.need) : ''}</td><td>${esc(notes.filter(Boolean).join(' · '))}</td></tr>`;
     }).join('');
     return `<h2>${esc(st.name)} – ${esc(tr(ORIENTATIONS[st.orientation]))}</h2>
       <table class="kv"><tr><th>Rohteil</th><td>${f2(s.maxX - s.minX)} × ${f2(s.maxY - s.minY)} × ${f2(s.top - s.bottom)} mm</td></tr>
       <tr><th>Nullpunkt</th><td>${esc(ORIGINS[st.origin])}</td></tr>
       <tr><th>${esc(tr('Sicherheits-/Rückzugshöhe'))}</th><td>${esc(tr(`${st.safeZ} / ${st.retract} mm über Rohteil`))}</td></tr></table>
-      <table><tr><th>Operation</th><th>Strategie</th><th>Werkzeug</th><th>Zeit</th><th>${esc(tr('tiefstes Z'))}</th><th>Hinweis</th></tr>${rows}</table>`;
+      <table><tr><th>Operation</th><th>Strategie</th><th>Werkzeug</th><th>Zeit</th><th>${esc(tr('tiefstes Z'))}</th><th>${esc(tr('Ausspannlänge mind.'))}</th><th>Hinweis</th></tr>${rows}</table>`;
   }).join('');
   // the tools as a table for a spreadsheet (semicolons and decimal commas, as German Excel reads them)
   // languages with a decimal comma: semicolons and decimal commas; the others: commas and decimal points
@@ -12156,20 +12484,30 @@ function openSetupSheet() {
   const csv = [['Nr.', 'Name', 'Typ', 'Durchmesser mm', 'Eckenradius mm', 'Schneidenlänge mm', 'Schneiden', 'Drehzahl U/min', 'Vorschub mm/min', 'Eintauchen mm/min', 'Einsatzzeit min', 'Operationen'].map(x => csvCell(tr(x))).join(sep),
     ...[...used.values()].sort((a, b) => a.number - b.number).map(t => [`T${t.number}`, tr(t.name), tr(TOOL_TYPES[t.type] || t.type), de(t.dia), de(t.cornerR || ''), de(t.fluteLen || ''), t.flutes ?? '', t.rpm ?? '', t.feed ?? '', t.plunge ?? '', de(+((toolTime.get(t.id) || 0) / 60).toFixed(1)), (toolOps.get(t.id) || []).map(x => tr(x)).join(' / ')].map(csvCell).join(sep))].join('\r\n');
   const csvHref = 'data:text/csv;charset=utf-8,' + encodeURIComponent('\ufeff' + csv);
-  const tools = [...used.values()].sort((a, b) => a.number - b.number).map(t => `<tr><td>T${t.number}</td><td>${esc(tr(t.name))}</td><td>${esc(tr(TOOL_TYPES[t.type]))}</td><td>${t.dia}</td><td>${t.rpm}</td><td>${t.feed}</td><td>${t.plunge}</td></tr>`).join('');
+  const tools = [...used.values()].sort((a, b) => a.number - b.number).map(t => `<tr><td>T${t.number}</td><td>${esc(tr(t.name))}</td><td>${esc(tr(TOOL_TYPES[t.type]))}</td><td>${t.dia}</td><td>${t.rpm}</td><td>${t.feed}</td><td>${t.plunge}</td><td>${f2(toolStick(t))}</td><td${reachOf.get(t.id)?.touch ? ' class="bad"' : ''}>${reachOf.has(t.id) ? f2(reachOf.get(t.id).need) : ''}</td></tr>`).join('');
   const locale = { de: 'de-DE', en: 'en-GB', zh: 'zh-CN', fr: 'fr-FR', es: 'es-ES', it: 'it-IT', pt: 'pt-BR', nl: 'nl-NL', pl: 'pl-PL', tr: 'tr-TR', ja: 'ja-JP', ko: 'ko-KR', gb: 'en-GB', cs: 'cs-CZ', da: 'da-DK', fi: 'fi-FI', nb: 'nb-NO', uk: 'uk-UA', hr: 'hr-HR', bs: 'bs-BA', sr: 'sr-RS', ka: 'ka-GE', lv: 'lv-LV', ms: 'ms-MY', gl: 'gl-ES', ru: 'ru-RU', ar: 'ar', he: 'he-IL' }[uiLang] || 'de-DE';
   const meta = [tr(`Erstellt ${new Date().toLocaleString(locale)}`), tr(`Steuerung: ${findPost(p, p.post.flavor).name}`), tr(`Gesamtzeit ca. ${fmtTime(total)}`), ...(stops ? [tr(`${stops} Programmhalt(e) – die Maschine wartet dort auf den Bediener`)] : [])].map(esc).join(' · ');
+  const shot = setupSheetShot();
+  const pdf = window.werkfabApp?.savePdf;
   const html = `<!doctype html><html lang="${uiLang}"><head><meta charset="utf-8"><title>${esc(tr(`Einrichteblatt – ${p.name}`))}</title>
     <style>body{font:13px/1.4 "Segoe UI",system-ui,sans-serif;color:#111;margin:24px;max-width:900px}h1{margin:0 0 4px}h2{margin:24px 0 8px;border-bottom:2px solid #0696d7;padding-bottom:4px}
     table{border-collapse:collapse;width:100%;margin:6px 0}th,td{border:1px solid #ccc;padding:4px 8px;text-align:left}th{background:#f0f3f6}table.kv{width:auto}.meta{color:#555}
-    tr.stop td{background:#fff3cd;font-weight:600}a.csv{margin-left:8px;color:#0b6aa2}@media print{a.csv{display:none}}button{margin:12px 0;padding:6px 14px}@media print{button{display:none}}</style></head><body>
-    <button onclick="print()">${esc(tr('Drucken'))}</button> <a class="csv" download="${esc(tr('Werkzeugliste'))} ${esc(p.name)}.csv" href="${csvHref}">${esc(tr('Werkzeugliste als CSV'))}</a>
+    tr.stop td{background:#fff3cd;font-weight:600}td.bad{background:#fde2e1;color:#a40000;font-weight:600}img.view{width:100%;border:1px solid #ccc;margin:6px 0}h2,table{break-inside:avoid}a.csv{margin-left:8px;color:#0b6aa2}@media print{a.csv{display:none}}button{margin:12px 0;padding:6px 14px}@media print{button{display:none}}</style></head><body>
+    <button onclick="print()">${esc(tr('Drucken'))}</button>${pdf ? ` <button onclick="opener && opener.werkfabSheetPdf && opener.werkfabSheetPdf()">${esc(tr('Als PDF speichern …'))}</button>` : ''} <a class="csv" download="${esc(tr('Werkzeugliste'))} ${esc(p.name)}.csv" href="${csvHref}">${esc(tr('Werkzeugliste als CSV'))}</a>
     <h1>${esc(tr(`Einrichteblatt: ${p.name}`))}</h1><div class="meta">${meta}</div>
-    <h2>${esc(tr('Werkzeuge'))}</h2><table><tr><th>Nr.</th><th>Name</th><th>Typ</th><th>Ø mm</th><th>U/min</th><th>Vorschub</th><th>Eintauchen</th></tr>${tools}</table>
+    ${shot ? `<img class="view" src="${shot}" alt=""><div class="meta">${esc(tr('Ansicht wie im Programm: Teil, Rohteil, Nullpunkt und Spannmittel.'))}</div>` : ''}
+    <h2>${esc(tr('Werkzeuge'))}</h2><table><tr><th>Nr.</th><th>Name</th><th>Typ</th><th>Ø mm</th><th>U/min</th><th>Vorschub</th><th>Eintauchen</th><th>${esc(tr('Ausspannlänge'))}</th><th>${esc(tr('mindestens'))}</th></tr>${tools}</table>
+    <p class="meta">${esc(tr('Ausspannlänge = Länge des Werkzeugs unter dem Halter. „mindestens“: damit Halter und Spindel 2 mm über Material und Spannmitteln bleiben (rot = zu kurz eingestellt).'))}</p>
     ${setupsHtml}</body></html>`;
   const w = window.open('', '_blank');
   if (!w) return status('Popup blockiert – bitte Popups für diese Seite erlauben.');
-  w.document.write(tHtml(html));
+  const page = tHtml(html);
+  // the PDF button of the sheet window: rendered by the desktop app without the buttons (print styles)
+  window.werkfabSheetPdf = async () => {
+    const r = await pdf({ html: page, name: tr(`Einrichteblatt ${p.name}`) });
+    if (r?.error) status('PDF: ' + r.error); else if (r?.ok) status(`PDF gespeichert: ${r.path}`);
+  };
+  w.document.write(page);
   w.document.close();
 }
 
@@ -12742,7 +13080,10 @@ window.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && k === 'n') { e.preventDefault(); newDoc(); return; }
   if (state.sketchId) { const r = sketcher.key(e); if (r) { if (r !== 'focus') e.preventDefault(); return; } }
   if (e.key === 'Escape') {
-    if (state.pick) { state.pick = null; measure.pts = []; showBanner(null); renderAll(); }
+    // a command dialog that is picking: Esc cancels the command (as Abbrechen); a selection made without a command goes
+    if (state.pick && state.pick.mode !== 'measure' && dialogTarget()?.kind === 'feature' && state.pick.id === dialogTarget().id) { measure.pts = []; dialogCancel(); }
+    else if (state.pick) { state.pick = null; measure.pts = []; showBanner(null); renderAll(); }
+    else if (state.preRegions || state.preEdges) { state.preRegions = null; state.preEdges = null; status(''); rebuildScene(); }
     else if (state.sketchId) {
       // "Esc zweimal": a single Esc too many must not close a sketch
       const now = performance.now();
@@ -15821,7 +16162,8 @@ Abbrechen = eine Datei wählen`) ? { name: others[0].file, text: others[0].code 
       h('button', { onclick: () => download(results[i].file, results[i].code, 'text/plain') }, 'Herunterladen'),
       ...(window.werkfabApp?.machine ? [
         h('button', { title: 'Verbindung zur Maschine einstellen (IP-Adresse, Steuerung, Zielordner)', onclick: () => machineLinkDialog() }, '⚙'),
-        h('button', { title: 'Programm über das Netzwerk direkt in die Steuerung übertragen (Heidenhain iTNC 530 / TNC 640, LSV2 wie TNCremo)', onclick: () => sendToMachine(editing ? { ...results[i], code: ta.value } : results[i]) }, '➜ An Maschine senden'),
+        h('button', { title: 'Das Programm gleichen Namens von der Steuerung holen und mit diesem vergleichen (z. B. Änderungen des Bedieners)', onclick: () => compareWithMachine(editing ? { ...results[i], code: ta.value } : results[i]) }, '⇣ Mit Maschine vergleichen'),
+        h('button', { title: 'Programm über das Netzwerk an die Steuerung übertragen (Heidenhain über LSV2 wie TNCremo, FTP, Netzwerkordner oder DNC)', onclick: () => sendToMachine(editing ? { ...results[i], code: ta.value } : results[i]) }, '➜ An Maschine senden'),
       ] : []),
       h('button', { class: 'primary', onclick: close }, 'Schließen')));
   document.body.append(win);

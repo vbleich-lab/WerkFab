@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Cliquer sur des zones de l'esquisse",
+ "{0} Profil{1}": "{0} profil(s){1}",
+ "Ganze Skizze": "Esquisse entière",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Cliquer sur des arêtes du modèle (un nouveau clic les retire)",
+ "{0} Kante{1}": "{0} arête(s){1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Cliquer sur des arêtes pour les ajouter ou les retirer – le résultat apparaît aussitôt dans le modèle. Les arêtes cliquées avant la commande sont déjà sélectionnées. Entrée = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Cliquer sur des profils – les zones de l'esquisse à extruder (un nouveau clic les retire).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Il n'y a pas ici de zone fermée de l'esquisse.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "{0} profil(s){1} sélectionné(s) – Extrusion (E) ou Révolution les utilise. Maj/Ctrl + clic : autres profils.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "{0} arête(s){1} sélectionnée(s) – Congé (F) ou Chanfrein les utilise. Maj/Ctrl + clic : autres arêtes.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Aucun profil sélectionné – cliquer sur des zones de l'esquisse."
+}

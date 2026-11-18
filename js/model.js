@@ -95,16 +95,47 @@ const offsetPlane = (p, off) => (p && +off ? { ...p, o: p.o.map((c, i) => c + p.
 
 const EXACT = new Set(['rect', 'circle', 'slot']);
 
-function regionDrawings(sk, ids) {
+// exact arcs for native shapes, polygons for everything else (text, polylines)
+const drawingsBy = byId => id => {
+  const it = byId[id];
+  if (it.id === it.e.id && hasCorners(it.e) && it.e.closed) { try { const d = cornerDrawing(it.e); if (d) return d; } catch { /* fall back to the polygon */ } }
+  return EXACT.has(it.e.type) && it.id === it.e.id ? entityDrawing(it.e) : polyDrawing(it.poly);
+};
+const polyBox = poly => poly.reduce((b, [x, y]) => [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)], [Infinity, Infinity, -Infinity, -Infinity]);
+
+// Clicked areas of the sketch ("Profile"): every area is the set of closed loops it lies in – inside all of them,
+// outside every other loop. Built exactly: the loops intersected, the others cut away. A loop that is gone
+// (deleted in the sketch) drops its area.
+function cellDrawings(sk, cells) {
+  const items = profileItems(sk);
+  const byId = Object.fromEntries(items.map(i => [i.id, i]));
+  const drawingOf = drawingsBy(byId);
+  const out = [];
+  for (const cell of cells) {
+    if (!Array.isArray(cell) || !cell.length || !cell.every(id => byId[id])) continue;
+    let d = drawingOf(cell[0]), box = polyBox(byId[cell[0]].poly);
+    for (const id of cell.slice(1)) {
+      d = d.intersect(drawingOf(id));
+      const b = polyBox(byId[id].poly);
+      box = [Math.max(box[0], b[0]), Math.max(box[1], b[1]), Math.min(box[2], b[2]), Math.min(box[3], b[3])];
+    }
+    for (const it of items) {
+      if (cell.includes(it.id)) continue;
+      const b = polyBox(it.poly);
+      if (b[0] > box[2] || b[2] < box[0] || b[1] > box[3] || b[3] < box[1]) continue;
+      d = d.cut(drawingOf(it.id));
+    }
+    out.push(d);
+  }
+  return out;
+}
+
+function regionDrawings(sk, ids, cells) {
+  if (Array.isArray(cells) && cells.length) return cellDrawings(sk, cells);
   const items = profileItems(sk, ids);
   const { regions } = buildRegions(items);
   const byId = Object.fromEntries(items.map(i => [i.id, i]));
-  // exact arcs for native shapes, polygons for everything else (text, polylines)
-  const drawingOf = id => {
-    const it = byId[id];
-    if (it.id === it.e.id && hasCorners(it.e) && it.e.closed) { try { const d = cornerDrawing(it.e); if (d) return d; } catch { /* fall back to the polygon */ } }
-    return EXACT.has(it.e.type) && it.id === it.e.id ? entityDrawing(it.e) : polyDrawing(it.poly);
-  };
+  const drawingOf = drawingsBy(byId);
   return regions.map(r => {
     let d = drawingOf(r.id);
     for (const h of r.holeIds) d = d.cut(drawingOf(h));
@@ -117,7 +148,7 @@ function regionDrawings(sk, ids) {
 const fuseAll = shapes => shapes.reduce((a, b) => (a ? a.fuse(b) : b), null);
 
 function extrudeTool(sk, f) {
-  const ds = regionDrawings(sk, f.profiles);
+  const ds = regionDrawings(sk, f.profiles, f.regions);
   if (!ds.length) fail('Kein geschlossenes Profil');
   const d = +f.distance;
   if (!d) fail('Abstand ist 0');
@@ -220,7 +251,7 @@ function revolveAxis(sk, f, features = []) {
   return { dir, origin };
 }
 function revolveTool(sk, f, features = []) {
-  const ds = regionDrawings(sk, f.profiles);
+  const ds = regionDrawings(sk, f.profiles, f.regions);
   if (!ds.length) fail('Kein geschlossenes Profil');
   const { dir, origin } = revolveAxis(sk, f, features);
   const angle = +f.angle || 360;
@@ -339,7 +370,7 @@ function sweepTool(f, sketches) {
   if (!sk) fail('Profil-Skizze fehlt');
   const e = ps && ps.entities.find(x => x.id === f.pathEntity);
   if (!e || e.type !== 'poly') fail('Pfad wählen (Linie/Linienzug in einer Skizze)');
-  const ds = regionDrawings(sk, f.profiles);
+  const ds = regionDrawings(sk, f.profiles, f.regions);
   if (!ds.length) fail('Kein geschlossenes Profil');
   const spine = () => {
     const pp = pathPts(e);
@@ -569,7 +600,7 @@ function surfRevolveTool(sk, f, features) {
 }
 // Flicken: closed profiles become flat faces
 function patchTool(sk, f) {
-  const ds = regionDrawings(sk, f.profiles);
+  const ds = regionDrawings(sk, f.profiles, f.regions);
   if (!ds.length) fail('Kein geschlossenes Profil');
   const faces = [];
   for (const d of ds) {
@@ -1411,6 +1442,11 @@ function runFeature(f, ctx) {
     } else if (f.type === 'extrude' || f.type === 'revolve' || f.type === 'hole') {
       const sk = sketches[f.sketch];
       if (!sk) fail('Skizze fehlt');
+      // the profiles are picked by clicking areas of the sketch: none picked yet → nothing to make (no error)
+      if (f.type !== 'hole' && f.profiles === 'pick' && !(Array.isArray(f.regions) && f.regions.length)) {
+        if (ctx.notes) ctx.notes[f.id] = 'Noch kein Profil gewählt – Bereiche der Skizze anklicken.';
+        return;
+      }
       tool = f.type === 'extrude' ? extrudeTool(sk, f) : f.type === 'revolve' ? revolveTool(sk, f, ctx.features) : holeTool(sk, f);
       // tapped holes carry their thread (drawn as a cosmetic thread, named in drawings): it starts below a
       // counterbore / countersink and runs as deep as given, or down the whole hole

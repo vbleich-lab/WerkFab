@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Klik på områder i skitsen",
+ "{0} Profil{1}": "{0} profil(er){1}",
+ "Ganze Skizze": "Hele skitsen",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Klik på kanter i modellen (klik igen fjerner)",
+ "{0} Kante{1}": "{0} kant(er){1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Klik på kanter for at tilføje eller fjerne dem – resultatet vises straks i modellen. Kanter, der blev klikket på før kommandoen, er allerede valgt. Enter = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Klik på profiler – de områder i skitsen, der ekstruderes (klik igen fjerner).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Her er der intet lukket område i skitsen.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "{0} profil(er){1} valgt – Ekstrudering (E) eller Rotation bruger dem. Shift/Ctrl + klik: flere profiler.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "{0} kant(er){1} valgt – Afrunding (F) eller Affasning bruger dem. Shift/Ctrl + klik: flere kanter.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Ingen profil valgt endnu – klik på områder i skitsen."
+}

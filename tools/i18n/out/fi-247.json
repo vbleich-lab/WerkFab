@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Napsauta luonnoksen alueita",
+ "{0} Profil{1}": "{0} profiili(a){1}",
+ "Ganze Skizze": "Koko luonnos",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Napsauta mallin reunoja (uusi napsautus poistaa)",
+ "{0} Kante{1}": "{0} reuna(a){1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Napsauta reunoja lisätäksesi tai poistaaksesi ne – tulos näkyy heti mallissa. Ennen komentoa napsautetut reunat on jo valittu. Enter = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Napsauta profiileja – luonnoksen alueita, jotka pursotetaan (uusi napsautus poistaa).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Tässä ei ole luonnoksen suljettua aluetta.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "{0} profiili(a){1} valittu – Pursotus (E) tai Pyöräytys käyttää niitä. Vaihto/Ctrl + napsautus: lisää profiileja.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "{0} reuna(a){1} valittu – Pyöristys (F) tai Viiste käyttää niitä. Vaihto/Ctrl + napsautus: lisää reunoja.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Profiilia ei ole vielä valittu – napsauta luonnoksen alueita."
+}

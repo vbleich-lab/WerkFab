@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Klikněte na oblasti skici",
+ "{0} Profil{1}": "Profily: {0}{1}",
+ "Ganze Skizze": "Celá skica",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Klikněte na hrany v modelu (opětovné kliknutí odebere)",
+ "{0} Kante{1}": "Hrany: {0}{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Klikáním na hrany je přidáte nebo odeberete – výsledek se hned zobrazí v modelu. Hrany vybrané před příkazem jsou již zvoleny. Enter = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Klikněte na profily – oblasti skici, které se vysunou (opětovné kliknutí odebere).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Zde není žádná uzavřená oblast skici.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "Vybrané profily: {0}{1} – použije je Vysunutí (E) nebo Rotace. Shift/Ctrl + klik: další profily.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "Vybrané hrany: {0}{1} – použije je Zaoblení (F) nebo Zkosení. Shift/Ctrl + klik: další hrany.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Dosud není vybrán žádný profil – klikněte na oblasti skici."
+}

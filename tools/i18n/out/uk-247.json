@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Клацнути області ескіза",
+ "{0} Profil{1}": "Профілів: {0}{1}",
+ "Ganze Skizze": "Увесь ескіз",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Клацнути ребра в моделі (повторне клацання скасовує вибір)",
+ "{0} Kante{1}": "Ребер: {0}{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Клацайте ребра, щоб додати або прибрати їх, – результат одразу видно в моделі. Ребра, вибрані до команди, уже вибрані. Enter = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Клацніть профілі – області ескіза, які буде витиснуто (повторне клацання скасовує вибір).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Тут немає замкненої області ескіза.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "Вибрано профілів: {0}{1} – їх використовує Витискання (E) або Обертання. Shift/Ctrl + клацання: інші профілі.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "Вибрано ребер: {0}{1} – їх використовує Скруглення (F) або Фаска. Shift/Ctrl + клацання: інші ребра.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Профіль ще не вибрано – клацніть області ескіза."
+}

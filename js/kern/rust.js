@@ -138,6 +138,7 @@ function supports(f) {
 }
 
 function extrudeTool(sk, f, plain) {
+  if (Array.isArray(f.regions) && f.regions.length) fail('Einzeln angeklickte Skizzenbereiche rechnet nur der OCC-Kern');
   const regions = regionLoops(sk, f.profiles);
   if (!regions.length) fail('Kein geschlossenes Profil');
   const d = +f.distance;
@@ -153,6 +154,7 @@ function extrudeTool(sk, f, plain) {
 }
 
 function revolveTool(sk, f, features = []) {
+  if (Array.isArray(f.regions) && f.regions.length) fail('Einzeln angeklickte Skizzenbereiche rechnet nur der OCC-Kern');
   const regions = regionLoops(sk, f.profiles);
   if (!regions.length) fail('Kein geschlossenes Profil');
   const b = basis(sk);

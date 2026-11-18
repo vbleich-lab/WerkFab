@@ -76,3 +76,20 @@ const near = (a, b, rel = 1e-6) => Math.abs(a - b) <= rel * Math.max(1, Math.abs
   const e = curveEntity(half);
   ok('Kante: Halbkreis wird ein Drei-Punkt-Bogen', e.curve === 'arc' && e.pts.length === 3 && e.pts[0][0] === 14 && e.pts[1][1] === 14 && e.pts[2][0] === 6, JSON.stringify(e.pts));
 }
+
+// ---- sketch areas ("Profile") clicked for an extrusion ----
+{
+  const { allCells, cellShapes, loopsAt, signedArea } = await import('../js/profiles.js');
+  const { profileItems } = await import('../js/model.js');
+  const sk = { entities: [{ id: 'a', type: 'circle', cx: 0, cy: 0, r: 10 }, { id: 'b', type: 'circle', cx: 12, cy: 0, r: 10 }, { id: 'r', type: 'rect', x: -30, y: -20, w: 70, h: 40 }, { id: 'k', type: 'poly', closed: false, pts: [[-40, 30], [50, 30]] }] };
+  const items = profileItems(sk);
+  const cells = allCells(items).map(c => c.join('+')).sort();
+  ok('Profile: zwei überlappende Kreise im Rechteck = 4 Bereiche', cells.join(' ') === 'a+b+r a+r b+r r', cells.join(' '));
+  ok('Profile: Klick in die Linse liegt in beiden Kreisen und im Rechteck', loopsAt(items, [6, 0]).join('+') === 'a+b+r' && loopsAt(items, [-5, 0]).join('+') === 'a+r' && loopsAt(items, [100, 0]).length === 0);
+  // lens area: 2 r² acos(d / 2r) − (d / 2) √(4r² − d²)
+  const lens = 2 * 100 * Math.acos(12 / 20) - 6 * Math.sqrt(400 - 144);
+  const sh = cellShapes(items, ['a', 'b', 'r']), ring = cellShapes(items, ['r']);
+  ok('Profile: Fläche der Linse', sh.length === 1 && Math.abs(Math.abs(signedArea(sh[0].outer)) - lens) < 0.5, `${Math.abs(signedArea(sh[0]?.outer || [])).toFixed(2)} / ${lens.toFixed(2)}`);
+  ok('Profile: Rechteck ohne die Kreise hat ein Loch', ring.length === 1 && ring[0].holes.length === 1 && Math.abs(Math.abs(signedArea(ring[0].outer)) - 2800) < 0.01);
+  ok('Profile: Bereich mit gelöschter Kontur gibt nichts', cellShapes(items, ['a', 'x']).length === 0);
+}

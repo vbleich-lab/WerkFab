@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Klik op gebieden van de schets",
+ "{0} Profil{1}": "{0} profiel(en){1}",
+ "Ganze Skizze": "Hele schets",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Klik op randen in het model (nogmaals klikken verwijdert)",
+ "{0} Kante{1}": "{0} rand(en){1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Klik op randen om ze toe te voegen of te verwijderen – het resultaat verschijnt meteen in het model. Randen die vóór de opdracht zijn aangeklikt, zijn al geselecteerd. Enter = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Klik op profielen – de gebieden van de schets die worden geëxtrudeerd (nogmaals klikken verwijdert).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Hier ligt geen gesloten gebied van de schets.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "{0} profiel(en){1} geselecteerd – Extrusie (E) of Rotatie gebruikt ze. Shift/Ctrl + klik: meer profielen.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "{0} rand(en){1} geselecteerd – Afronding (F) of Afschuining gebruikt ze. Shift/Ctrl + klik: meer randen.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Nog geen profiel geselecteerd – klik op gebieden van de schets."
+}

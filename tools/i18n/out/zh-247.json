@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "点击草图区域",
+ "{0} Profil{1}": "{0} 个轮廓{1}",
+ "Ganze Skizze": "整个草图",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "点击模型中的边（再次点击可取消）",
+ "{0} Kante{1}": "{0} 条边{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "点击边即可添加或移除，结果会立即显示在模型中。在执行命令之前点击的边已被选中。Enter = 确定。",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "点击轮廓：即要拉伸的草图区域（再次点击可取消）。",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "此处没有草图的封闭区域。",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "已选择 {0} 个轮廓{1}：由拉伸（E）或旋转使用。Shift/Ctrl + 点击：添加更多轮廓。",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "已选择 {0} 条边{1}：由圆角（F）或倒角使用。Shift/Ctrl + 点击：添加更多边。",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "尚未选择轮廓：请点击草图区域。"
+}

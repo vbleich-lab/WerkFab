@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Clicar em áreas do esboço",
+ "{0} Profil{1}": "{0} perfil(is){1}",
+ "Ganze Skizze": "Esboço inteiro",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Clicar em arestas do modelo (clicar de novo remove)",
+ "{0} Kante{1}": "{0} aresta(s){1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Clicar em arestas para adicionar ou remover – o resultado aparece logo no modelo. As arestas clicadas antes do comando já estão selecionadas. Enter = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Clicar em perfis – as áreas do esboço que são extrudadas (clicar de novo remove).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Aqui não há nenhuma área fechada do esboço.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "{0} perfil(is){1} selecionado(s) – Extrusão (E) ou Revolução os utiliza. Shift/Ctrl + clique: mais perfis.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "{0} aresta(s){1} selecionada(s) – Arredondamento (F) ou Chanfro as utiliza. Shift/Ctrl + clique: mais arestas.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Nenhum perfil selecionado – clicar em áreas do esboço."
+}

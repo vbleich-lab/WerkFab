@@ -32,7 +32,7 @@ export function toolTableRows(tools) {
     .map(t => {
       const r = (+t.dia || 0) / 2;
       return {
-        t: Math.round(+t.number), name: ascii(t.name).toUpperCase().split('"').join('').slice(0, 32), comment: ascii(t.name),
+        id: t.id, t: Math.round(+t.number), name: ascii(t.name).toUpperCase().split('"').join('').slice(0, 32), comment: ascii(t.name),
         l: gaugeLen(t), r, r2: Math.min(r, cornerOf(t)), lcuts: fluteLen(t), lu: shoulderLen(t),
         rn: +t.neckDia > 0 ? +t.neckDia / 2 : 0, cut: Math.max(0, Math.round(+t.flutes || 0)), lenOffset: Math.round(+(t.lengthOffset ?? t.number)),
         type: t.type, probe: t.type === 'probe',
@@ -74,4 +74,53 @@ export function toolTable(tools, format) {
   } else throw new Error('Unbekanntes Format: ' + format);
   if (!rows.length) warnings.push('Keine Werkzeuge für die Maschinentabelle');
   return { text, rows, warnings, ext: TOOL_TABLE_FORMATS[format].ext };
+}
+
+// ----- TOOL.T read from the control (Heidenhain): fixed columns, the header line gives where each column starts -----
+//   BEGIN TOOL .T MM
+//   T    NAME             L           R          R2   DL    DR ...
+//   5    FRAESER D10      +85.123     +5         +0   +0    +0
+//   [END]
+export function parseToolT(text) {
+  const lines = String(text || '').split(/\r?\n/);
+  const begin = lines.findIndex(l => /^\s*BEGIN\s+\S*TOOL/i.test(l));
+  const unit = begin >= 0 && /\bINCH\b/i.test(lines[begin]) ? 'inch' : 'mm';
+  const hi = lines.findIndex((l, i) => i > begin && /^\s*T\s+NAME\b/.test(l));
+  if (hi < 0) throw new Error('Keine Werkzeugtabelle (Kopfzeile „T NAME …“ fehlt)');
+  const head = lines[hi], cols = [];
+  for (const m of head.matchAll(/\S+/g)) cols.push({ name: m[0].toUpperCase(), at: m.index });
+  const rows = [];
+  for (const l of lines.slice(hi + 1)) {
+    if (/^\s*\[END\]/i.test(l)) break;
+    if (!l.trim()) continue;
+    const f = {};
+    cols.forEach((c, k) => { f[c.name] = l.slice(c.at, k + 1 < cols.length ? cols[k + 1].at : undefined).trim(); });
+    const t = parseInt(f.T, 10);
+    if (!Number.isFinite(t)) continue;
+    const num = k => { const v = parseFloat(String(f[k] ?? '').replace(',', '.')); return Number.isFinite(v) ? v : 0; };
+    rows.push({ t, name: f.NAME || '', l: num('L'), r: num('R'), r2: num('R2'), dl: num('DL'), dr: num('DR'), locked: /^L$/i.test(f.TL || ''), raw: f });
+  }
+  return { unit, rows, cols: cols.map(c => c.name) };
+}
+
+// the tools of the library next to the table of the machine: length / radius differences, tools of the program
+// that are missing at the machine. used: numbers of the tools the program needs.
+export function compareToolTable(tools, rows, used = new Set(), tol = 0.005) {
+  const byT = new Map(rows.map(r => [r.t, r]));
+  const out = [];
+  for (const x of toolTableRows(tools)) {
+    const m = byT.get(x.t), need = used.has(x.t);
+    if (!m) { out.push({ id: x.id, t: x.t, name: x.comment, need, status: need ? 'missing' : 'absent', msg: need ? 'fehlt an der Maschine – das Programm braucht es' : 'nicht in der Maschine' }); continue; }
+    const lm = m.l + m.dl, rm = m.r + m.dr, notes = [];
+    if (m.locked) notes.push('gesperrt (TL)');
+    if (Math.abs(rm - x.r) > Math.max(tol, 0.01)) notes.push(`Radius Maschine ${n3(rm)} ≠ ${n3(x.r)}`);
+    if (!(m.l > 0)) notes.push('Länge an der Maschine nicht vermessen (L 0)');
+    out.push({
+      id: x.id, t: x.t, name: x.comment, machineName: m.name, need, lMachine: lm, rMachine: rm, lLib: x.l, rLib: x.r,
+      lDiff: m.l > 0 ? lm - x.l : null, canTake: m.l > 0 && Math.abs(lm - x.l) > tol, status: m.locked || notes.some(n => n.startsWith('Radius')) ? 'warn' : m.l > 0 && Math.abs(lm - x.l) > tol ? 'length' : m.l > 0 ? 'ok' : 'warn', msg: notes.join(' · '),
+    });
+  }
+  const mine = new Set(out.map(o => o.t));
+  for (const r of rows) if (!mine.has(r.t) && r.t > 0) out.push({ t: r.t, name: '', machineName: r.name, need: false, lMachine: r.l + r.dl, rMachine: r.r + r.dr, status: 'extra', msg: 'nur in der Maschine' });
+  return out.sort((a, b) => a.t - b.t);
 }

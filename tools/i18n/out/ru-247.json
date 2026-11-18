@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Щёлкнуть области эскиза",
+ "{0} Profil{1}": "Профилей: {0}{1}",
+ "Ganze Skizze": "Весь эскиз",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Щёлкнуть рёбра в модели (повторный щелчок снимает выбор)",
+ "{0} Kante{1}": "Рёбер: {0}{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Щёлкайте рёбра, чтобы добавить или убрать их, – результат сразу виден в модели. Рёбра, выбранные до команды, уже выбраны. Enter = OK.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Щёлкните профили – области эскиза, которые будут выдавлены (повторный щелчок снимает выбор).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Здесь нет замкнутой области эскиза.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "Выбрано профилей: {0}{1} – их использует Выдавливание (E) или Вращение. Shift/Ctrl + щелчок: другие профили.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "Выбрано рёбер: {0}{1} – их использует Скругление (F) или Фаска. Shift/Ctrl + щелчок: другие рёбра.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Профиль ещё не выбран – щёлкните области эскиза."
+}

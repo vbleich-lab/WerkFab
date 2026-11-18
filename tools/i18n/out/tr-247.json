@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Eskiz alanlarına tıklayın",
+ "{0} Profil{1}": "{0} profil{1}",
+ "Ganze Skizze": "Tüm eskiz",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Modeldeki kenarlara tıklayın (tekrar tıklamak kaldırır)",
+ "{0} Kante{1}": "{0} kenar{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Kenarlara tıklayarak ekleyin veya kaldırın – sonuç hemen modelde görünür. Komuttan önce seçilen kenarlar zaten seçilidir. Enter = Tamam.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Profillere tıklayın – eskizin ekstrüzyon yapılacak alanları (tekrar tıklamak kaldırır).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Burada eskizin kapalı bir alanı yok.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "{0} profil{1} seçildi – Ekstrüzyon (E) veya Döndürme bunları kullanır. Shift/Ctrl + tıklama: diğer profiller.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "{0} kenar{1} seçildi – Yuvarlatma (F) veya Pah kırma bunları kullanır. Shift/Ctrl + tıklama: diğer kenarlar.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Henüz profil seçilmedi – eskiz alanlarına tıklayın."
+}

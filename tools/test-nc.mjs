@@ -59,3 +59,36 @@ const ok = (n, c, x = '') => { console.log((c ? 'OK   ' : 'FEHL ') + n + '  ' + 
   ok('Werkzeugtabelle Sinumerik: $TC_DP', /\$TC_DP1\[1,1\]=110/.test(si) && /\$TC_DP3\[3,1\]=40/.test(si) && /\$TC_DP6\[5,1\]=6/.test(si));
   ok('Werkzeugtabelle: doppelte Nummer gemeldet', toolTable([...tools, { id: 'x', number: 3, name: 'Bohrer', type: 'drill', dia: 5 }], 'heidenhain').warnings.some(w => /T3 ist doppelt/.test(w)));
 }
+
+{
+  // TOOL.T from the control next to the library
+  const { parseToolT, compareToolTable } = await import('../js/tooltable.js');
+  const T = [
+    'BEGIN TOOL .T MM',
+    'T    NAME             L           R           R2          DL      DR      TL',
+    '0    NULLWERKZEUG     +0          +0          +0          +0      +0',
+    '1    KUGEL R3         +87.5       +3          +3          +0      +0',
+    '3    SCHAFT D10       +112.345    +5          +0          -0.02   +0',
+    '5    TORUS            +0          +6          +1          +0      +0',
+    '7    FREMD            +60         +2          +0          +0      +0      L',
+    '[END]',
+  ].join('\r\n');
+  const p = parseToolT(T);
+  ok('TOOL.T: Spalten und Zeilen gelesen', p.unit === 'mm' && p.rows.length === 5 && p.rows[2].name === 'SCHAFT D10' && p.rows[2].l === 112.345 && p.rows[2].dl === -0.02 && p.rows[4].locked, JSON.stringify(p.rows[2]));
+  const lib = [
+    { id: 'a', number: 3, name: 'Schaftfräser Ø10', type: 'flat', dia: 10, stickout: 40 },
+    { id: 'b', number: 1, name: 'Kugel', type: 'ball', dia: 6, gauge: 87.5 },
+    { id: 'c', number: 5, name: 'Torus', type: 'torus', dia: 12, cornerR: 1 },
+    { id: 'd', number: 8, name: 'Bohrer', type: 'drill', dia: 8 },
+  ];
+  const c = compareToolTable(lib, p.rows, new Set([3, 8]));
+  const by = Object.fromEntries(c.map(x => [x.t, x]));
+  ok('Vergleich: gleiche Länge = ok', by[1].status === 'ok');
+  ok('Vergleich: andere Länge (L+DL) erkannt', by[3].status === 'length' && Math.abs(by[3].lMachine - 112.325) < 1e-9 && Math.abs(by[3].lDiff - (112.325 - 40)) < 1e-9, JSON.stringify(by[3]));
+  ok('Vergleich: L 0 an der Maschine = nicht vermessen', by[5].status === 'warn' && /nicht vermessen/.test(by[5].msg));
+  ok('Vergleich: Programm braucht T8, Maschine hat es nicht', by[8].status === 'missing' && by[8].need);
+  ok('Vergleich: Werkzeug nur in der Maschine', by[7].status === 'extra');
+  let e = null;
+  try { parseToolT('irgendwas'); } catch (x) { e = x; }
+  ok('TOOL.T: keine Tabelle → Meldung', /Kopfzeile/.test(e?.message || ''));
+}

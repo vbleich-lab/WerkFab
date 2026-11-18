@@ -26,8 +26,11 @@ contextBridge.exposeInMainWorld('werkfabApp', {
   machine: {
     send: c => ipcRenderer.invoke('machine:send', c),
     test: c => ipcRenderer.invoke('machine:test', c),
+    get: c => ipcRenderer.invoke('machine:get', c),
     onProgress: fn => { ipcRenderer.removeAllListeners('machine:progress'); ipcRenderer.on('machine:progress', (_e, f) => fn(f)); },
   },
+  // an HTML page as PDF file (save dialog, then opened): savePdf({ html, name, landscape })
+  savePdf: c => ipcRenderer.invoke('pdf:save', c),
   // size of the whole interface (Einstellungen → Benutzeroberfläche)
   zoom: f => { try { webFrame.setZoomFactor(Math.max(0.5, Math.min(3, +f || 1))); } catch { /* keeps the size */ } },
 });

@@ -881,6 +881,15 @@ function genFace(op, t, P, h, stock) {
     P.retract();
   }
   if (!n) throw new Error('Kein Material zum Planfräsen – das Rohteil ist hier schon abgetragen');
+  if (!op.ctrlCycle) return {};
+  // "Steuerungszyklus": the control mills the rectangle of the stock itself (Heidenhain 232, meander)
+  if (hm) return { millCycle: null, millCycleWhy: 'Rohteil mit Höhenfeld (schon bearbeitet) – der Zyklus kennt nur einen Quader' };
+  return {
+    millCycle: {
+      kind: 'face', x: stock.minX, y: stock.minY, len: stock.maxX - stock.minX, wid: stock.maxY - stock.minY, top: h.top, bottom: h.bottom,
+      stepdown: Math.min(+op.stepdown || t.stepdown, Math.max(0.01, h.top - h.bottom)), overlap: Math.min(1.9999, Math.max(0.1, so / r)), feed: t.feed, plunge: t.plunge, clear: P.clear,
+    },
+  };
 }
 
 function contourLoops(op, g, offset, inside) {
@@ -1106,13 +1115,27 @@ function genContour(op, t, P, h, project) {
   }
   if (bonesC) return { dogbones: bonesC, ...(op.ctrlCycle ? { studCycle: null, studCycleWhy: 'Eckenfreistiche gibt es nur als Bahn' } : {}) };
   if (!op.ctrlCycle) return {};
+  // any contour: the control's contour train (Heidenhain 25) along the finished contour, compensation RL/RR at
+  // the control – used when no stud cycle fits
+  const train = () => {
+    const why2 = op.tabs ? 'Haltestege gehen nicht mit dem Steuerungszyklus' : nr || nf ? 'Mehrere Schrupp- oder Schlichtdurchgänge gibt es nur als Bahn' : null;
+    if (why2) return { contourCycle: null, contourCycleWhy: why2 };
+    const loops = contourLoops({ ...op, minCutRadius: 0, smoothing: false }, g, 0, inside).filter(l => l.length >= 3);
+    if (!loops.length) return { contourCycle: null, contourCycleWhy: 'Keine geschlossene Kontur' };
+    return {
+      contourCycle: {
+        loops, comp: climb ? 'L' : 'R', top: cycleTop(h), bottom: h.bottom, stepdown: lv.length > 1 ? Math.abs(lv[0] - lv[1]) || (h.top - h.bottom) : h.top - h.bottom,
+        stl, climb, feed: fFinal, plunge: t.plunge, clear: P.clear,
+      },
+    };
+  };
   // "Steuerungszyklus": an outside contour around a rectangle or circle is the control's stud cycle
   // (blank size = finished size + what this operation removes)
-  const why = inside ? 'Nur Außenkonturen (Zapfen) gehen als Steuerungszyklus' : op.tabs ? 'Haltestege gehen nicht mit dem Steuerungszyklus' : null;
-  if (why) return { studCycle: null, studCycleWhy: why };
+  const why = inside ? 'Nur Außenkonturen (Zapfen) gehen als Zapfenzyklus' : op.tabs ? 'Haltestege gehen nicht mit dem Steuerungszyklus' : null;
+  if (why) return { studCycle: null, studCycleWhy: why, ...train() };
   const outers = Array.isArray(op.entities) ? g.items.map(i => i.poly) : g.regions.map(r => r.outer);
   const fit = pocketShapes(outers, { dia: 0 });
-  if (fit.why) return { studCycle: null, studCycleWhy: fit.why.replace('Tasche', 'Kontur') };
+  if (fit.why) return { studCycle: null, studCycleWhy: fit.why.replace('Tasche', 'Kontur'), ...train() };
   const removal = Math.max(0.5, offsets[0] - base);
   const resC = {
     studCycle: {
@@ -1257,7 +1280,16 @@ function genPocket(op, t, P, h, project) {
   // "Steuerungszyklus": rectangular / circular pockets go to the control's own pocket cycle (the moves here
   // stay for the simulation and for controls without one)
   const fit = pocketShapes(paths, t);
-  if (fit.why) return { pocketCycle: null, pocketCycleWhy: fit.why };
+  if (fit.why) {
+    // any outline, also with islands: the SL cycles of the control (Heidenhain 14 contour, 20 data, 22 clearing)
+    const regs = Array.isArray(op.entities) ? g.items.map(i => ({ outer: i.poly, holes: [] })) : g.regions;
+    const slCycle = regs.length ? {
+      regions: regs.map(r => ({ outer: ensureCCW(r.outer.slice()), islands: (r.holes || []).map(q => ensureCCW(q.slice())) })),
+      top: cycleTop(h), bottom: h.bottom, stepdown: +op.stepdown || t.stepdown, stl: +op.stockToLeave || 0,
+      overlap: Math.min(1.9999, Math.max(0.0001, so / (t.dia / 2))), climb: op.direction !== 'conventional', feed: t.feed, plunge: t.plunge, clear: P.clear, toolR: t.dia / 2,
+    } : null;
+    return { pocketCycle: null, pocketCycleWhy: fit.why, slCycle };
+  }
   return {
     pocketCycle: {
       pockets: fit.shapes, top: cycleTop(h), bottom: h.bottom, stepdown: +op.stepdown || t.stepdown, stl: +op.stockToLeave || 0,
@@ -1503,7 +1535,16 @@ function genThread(op, t, P, h, project) {
     });
     P.retract();
   }
-  return { threadPasses: steps.length };
+  if (!op.ctrlCycle) return { threadPasses: steps.length };
+  const why = external ? 'Außengewinde gibt es nur als Bahn' : steps.length > 1 ? 'Mehrere Zustellungen und Leerdurchgang gibt es nur als Bahn' : null;
+  if (why) return { threadPasses: steps.length, millCycle: null, millCycleWhy: why };
+  return {
+    threadPasses: steps.length,
+    millCycle: {
+      kind: 'thread', holes: holes.map(({ p, r }) => ({ x: p[0], y: p[1], dia: +op.majorDia || 2 * r })), top: cycleTop(h), bottom: h.bottom,
+      pitch, right: rightHand, climb: true, feed: t.feed, plunge: t.plunge, clear: P.clear,
+    },
+  };
 }
 
 function genBore(op, t, P, h, project) {
@@ -1532,6 +1573,14 @@ function genBore(op, t, P, h, project) {
     P.feed(cx, cy, h.bottom, t.feed);
     P.rapid(cx, cy, P.clear);
   }
+  if (!op.ctrlCycle) return {};
+  const stl = +op.stockToLeave || 0;
+  return {
+    millCycle: {
+      kind: 'bore', holes: holes.map(({ p, r }) => ({ x: p[0], y: p[1], dia: 2 * r - 2 * stl })), top: cycleTop(h), bottom: h.bottom,
+      pitch, climb: !conv, feed: t.feed, plunge: t.plunge, clear: P.clear,
+    },
+  };
 }
 
 // ---------- 3D strategies ----------
@@ -3518,13 +3567,13 @@ function generateOpInner(op, project, stock, ctx, t, s) {
   let extra = {};
   if (op.type === 'rotary' || op.type === 'rotaryRough' || op.type === 'rotaryWrap') return genRotary(op, t, stock, ctx, h, project);
   switch (op.type) {
-    case 'face': genFace(op, t, P, h, stock); break;
+    case 'face': extra = genFace(op, t, P, h, stock) || {}; break;
     case 'contour': extra = genContour(op, t, P, h, project) || {}; break;
     case 'pocket': extra = genPocket(op, t, P, h, project) || {}; break;
     case 'adaptive': genAdaptive(op, t, P, h, project, stock); break;
     case 'chamfer': genChamfer(op, t, P, h, project); break;
     case 'drill': extra = genDrill(op, t, P, h, project) || {}; break;
-    case 'bore': genBore(op, t, P, h, project); break;
+    case 'bore': extra = genBore(op, t, P, h, project) || {}; break;
     case 'thread': extra = genThread(op, t, P, h, project) || {}; break;
     case 'trace': genTrace(op, t, P, h, project); break;
     case 'rough3d': genRough3d(op, t, P, h, stock, ctx); break;
@@ -3602,9 +3651,9 @@ function rapidMode(moves, op, h) {
 // The material as it stands while the setup is machined: a height field (top of stock or model per cell, never
 // below the model), cut by every feed move. Cells count as cut only where the tool surely was, so the field
 // errs on the side of more material.
-class StockField {
-  constructor(stock, model) {
-    const res = this.res = Math.max(0.3, Math.min(1, Math.max(stock.maxX - stock.minX, stock.maxY - stock.minY) / 250));
+export class StockField {
+  constructor(stock, model, resOverride) {
+    const res = this.res = resOverride || Math.max(0.3, Math.min(1, Math.max(stock.maxX - stock.minX, stock.maxY - stock.minY) / 250));
     this.minX = stock.minX; this.minY = stock.minY;
     const nx = this.nx = Math.max(2, Math.round((stock.maxX - stock.minX) / res) + 1), ny = this.ny = Math.max(2, Math.round((stock.maxY - stock.minY) / res) + 1);
     const G = this.G = new Float32Array(nx * ny), M = this.M = new Float32Array(nx * ny).fill(-Infinity);

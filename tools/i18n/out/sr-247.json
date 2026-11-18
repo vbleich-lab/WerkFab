@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Кликните области скице",
+ "{0} Profil{1}": "Профили: {0}{1}",
+ "Ganze Skizze": "Цела скица",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Кликните ивице на моделу (поновни клик уклања)",
+ "{0} Kante{1}": "Ивице: {0}{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Кликните ивице да их додате или уклоните – резултат се одмах приказује на моделу. Ивице кликнуте пре наредбе већ су изабране. Enter = У реду.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Кликните профиле – области скице које се екструдирају (поновни клик уклања).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Овде нема затворене области скице.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "Изабрани профили: {0}{1} – користи их Екструзија (E) или Ротација. Shift/Ctrl + клик: додатни профили.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "Изабране ивице: {0}{1} – користи их Заобљење (F) или Скошење. Shift/Ctrl + клик: додатне ивице.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Профил још није изабран – кликните области скице."
+}

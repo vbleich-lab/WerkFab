@@ -1,0 +1,13 @@
+{
+ "Bereiche der Skizze anklicken": "Noklikšķiniet uz skices apgabaliem",
+ "{0} Profil{1}": "Profili: {0}{1}",
+ "Ganze Skizze": "Visa skice",
+ "Kanten im Modell anklicken (erneut klicken entfernt)": "Noklikšķiniet uz modeļa malām (atkārtots klikšķis noņem)",
+ "{0} Kante{1}": "Malas: {0}{1}",
+ "Kanten anklicken zum Hinzufügen oder Entfernen – das Ergebnis erscheint gleich im Modell. Kanten, die vor dem Befehl angeklickt wurden, sind schon gewählt. Eingabe = OK.": "Noklikšķiniet uz malām, lai tās pievienotu vai noņemtu – rezultāts uzreiz parādās modelī. Malas, uz kurām noklikšķināts pirms komandas, jau ir izvēlētas. Enter = Labi.",
+ "Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).": "Noklikšķiniet uz profiliem – skices apgabaliem, kas tiks izspiesti (atkārtots klikšķis noņem).",
+ "Hier liegt kein geschlossener Bereich der Skizze.": "Šeit nav slēgta skices apgabala.",
+ "{0} Profil{1} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "Izvēlēti profili: {0}{1} – tos izmanto Izspiešana (E) vai Rotācija. Shift/Ctrl + klikšķis: vairāk profilu.",
+ "{0} Kante{1} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.": "Izvēlētas malas: {0}{1} – tās izmanto Noapaļojums (F) vai Nošķēlums. Shift/Ctrl + klikšķis: vairāk malu.",
+ "Noch kein Profil gewählt – Bereiche der Skizze anklicken.": "Profils vēl nav izvēlēts – noklikšķiniet uz skices apgabaliem."
+}

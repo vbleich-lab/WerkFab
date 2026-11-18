@@ -35,6 +35,8 @@ export const SECTIONS = [
   ['helixCW', 'Schraubenlinie im Uhrzeigersinn (leer = Kreisbogen mit Z)'], ['helixCCW', 'Schraubenlinie gegen Uhrzeigersinn (leer = Kreisbogen mit Z)'],
   ['cyclePocketRect', 'Zyklus Rechtecktasche'], ['cyclePocketCirc', 'Zyklus Kreistasche'], ['cyclePocketSlot', 'Zyklus Nut / Langloch (leer = Rechtecktasche)'],
   ['cycleStudRect', 'Zyklus Rechteckzapfen'], ['cycleStudCirc', 'Zyklus Kreiszapfen'],
+  ['cycleBoreMill', 'Zyklus Bohrfräsen'], ['cycleThreadMill', 'Zyklus Gewindefräsen'], ['cycleFace', 'Zyklus Planfräsen'],
+  ['cycleContourList', 'SL: Konturen ({labels} = Unterprogramme)'], ['cycleContourTrain', 'Zyklus Konturzug (Kontur im Unterprogramm)'], ['cycleSLData', 'SL: Konturdaten'], ['cycleSLClear', 'SL: Räumen (Tasche mit Inseln)'],
   ['approach', 'Anfahren an die Kontur (Radiuskorrektur an der Steuerung)'], ['depart', 'Abfahren von der Kontur'],
   ['dwell', 'Verweilzeit'],
   ['cycleDrill', 'Zyklus Bohren'], ['cycleDwell', 'Zyklus Bohren mit Verweilzeit'], ['cyclePeck', 'Zyklus Tieflochbohren'], ['cycleChip', 'Zyklus Spanbruch'],
@@ -181,6 +183,13 @@ export const BUILTIN_POSTS = [
     cyclePocketSlot: 'CYCL DEF 253 NUTENFRAESEN ~\n  Q215=1 ;BEARBEITUNGS-UMFANG ~\n  Q218={plen1} ;NUTLAENGE ~\n  Q219={plen2} ;NUTBREITE ~\n  Q368={stl} ;AUFMASS SEITE ~\n  Q374={pang} ;DREHLAGE ~\n  Q367=+0 ;NUTLAGE ~\n  Q207={pfeed} ;VORSCHUB FRAESEN ~\n  Q351={climb} ;FRAESART ~\n  Q201={depth} ;TIEFE ~\n  Q202={stepdown} ;ZUSTELL-TIEFE ~\n  Q369=+0 ;AUFMASS TIEFE ~\n  Q206={dfeed} ;VORSCHUB TIEFENZ. ~\n  Q338=+0 ;ZUST. SCHLICHTEN ~\n  Q200={q200} ;SICHERHEITS-ABST. ~\n  Q203={dtop} ;KOOR. OBERFLAECHE ~\n  Q204={q204} ;2. SICHERHEITS-ABST. ~\n  Q366={slotplunge} ;EINTAUCHEN ~\n  Q385={pfeed} ;VORSCHUB SCHLICHTEN',
     cycleStudRect: 'CYCL DEF 256 RECHTECKZAPFEN ~\n  Q218={plen1} ;1. SEITEN-LAENGE ~\n  Q424={blank1} ;ROHTEILMASS 1 ~\n  Q219={plen2} ;2. SEITEN-LAENGE ~\n  Q425={blank2} ;ROHTEILMASS 2 ~\n  Q220={pcr} ;ECKENRADIUS ~\n  Q368={stl} ;AUFMASS SEITE ~\n  Q224={pang} ;DREHLAGE ~\n  Q367=+0 ;ZAPFENLAGE ~\n  Q207={pfeed} ;VORSCHUB FRAESEN ~\n  Q351={climb} ;FRAESART ~\n  Q201={depth} ;TIEFE ~\n  Q202={stepdown} ;ZUSTELL-TIEFE ~\n  Q206={dfeed} ;VORSCHUB TIEFENZ. ~\n  Q200={q200} ;SICHERHEITS-ABST. ~\n  Q203={dtop} ;KOOR. OBERFLAECHE ~\n  Q204={q204} ;2. SICHERHEITS-ABST. ~\n  Q370={overlap} ;BAHN-UEBERLAPPUNG',
     cycleStudCirc: 'CYCL DEF 257 KREISZAPFEN ~\n  Q223={pdia} ;FERTIGTEIL-DURCHM. ~\n  Q222={pblank} ;ROHTEIL-DURCHMESSER ~\n  Q368={stl} ;AUFMASS SEITE ~\n  Q207={pfeed} ;VORSCHUB FRAESEN ~\n  Q351={climb} ;FRAESART ~\n  Q201={depth} ;TIEFE ~\n  Q202={stepdown} ;ZUSTELL-TIEFE ~\n  Q206={dfeed} ;VORSCHUB TIEFENZ. ~\n  Q200={q200} ;SICHERHEITS-ABST. ~\n  Q203={dtop} ;KOOR. OBERFLAECHE ~\n  Q204={q204} ;2. SICHERHEITS-ABST. ~\n  Q370={overlap} ;BAHN-UEBERLAPPUNG',
+    cycleContourList: 'CYCL DEF 14.0 KONTUR\nCYCL DEF 14.1 KONTURLABEL {labels}',
+    cycleContourTrain: 'CYCL DEF 25 KONTUR-ZUG ~\n  Q1={depth} ;FRAESTIEFE ~\n  Q3={stl} ;AUFMASS SEITE ~\n  Q5={dtop} ;KOOR. OBERFLAECHE ~\n  Q7={zsafe} ;SICHERE HOEHE ~\n  Q10={plungedepth} ;ZUSTELL-TIEFE ~\n  Q11={dfeed} ;VORSCHUB TIEFENZ. ~\n  Q12={pfeed} ;VORSCHUB FRAESEN ~\n  Q15={climb} ;FRAESART\nCYCL CALL',
+    cycleSLData: 'CYCL DEF 20 KONTUR-DATEN ~\n  Q1={depth} ;FRAESTIEFE ~\n  Q2={overlap} ;BAHN-UEBERLAPPUNG ~\n  Q3={stl} ;AUFMASS SEITE ~\n  Q4=+0 ;AUFMASS TIEFE ~\n  Q5={dtop} ;KOOR. OBERFLAECHE ~\n  Q6={q200} ;SICHERHEITS-ABST. ~\n  Q7={zsafe} ;SICHERE HOEHE ~\n  Q8=+0 ;RUNDUNGSRADIUS ~\n  Q9={climb} ;DREHSINN',
+    cycleSLClear: 'CYCL DEF 22 RAEUMEN ~\n  Q10={plungedepth} ;ZUSTELL-TIEFE ~\n  Q11={dfeed} ;VORSCHUB TIEFENZ. ~\n  Q12={pfeed} ;VORSCHUB RAEUMEN ~\n  Q18=+0 ;VORRAEUM-WERKZEUG ~\n  Q19=+0 ;VORSCHUB PENDELN ~\n  Q208=99999 ;VORSCHUB RUECKZUG ~\n  Q401=100 ;VORSCHUBFAKTOR ~\n  Q404=+0 ;NACHRAEUMSTRATEGIE\nCYCL CALL',
+    cycleBoreMill: 'CYCL DEF 208 BOHRFRAESEN ~\n  Q200={q200} ;SICHERHEITS-ABST. ~\n  Q201={depth} ;TIEFE ~\n  Q206={pfeed} ;VORSCHUB TIEFENZ. ~\n  Q334={pitch} ;ZUSTELLTIEFE ~\n  Q203={dtop} ;KOOR. OBERFLAECHE ~\n  Q204={q204} ;2. SICHERHEITS-ABST. ~\n  Q335={hdia} ;SOLL-DURCHMESSER ~\n  Q342=+0 ;VORGEB. DURCHMESSER ~\n  Q351={climb} ;FRAESART',
+    cycleThreadMill: 'CYCL DEF 262 GEWINDEFRAESEN ~\n  Q335={hdia} ;SOLL-DURCHMESSER ~\n  Q239={pitchsigned} ;STEIGUNG ~\n  Q201={depth} ;GEWINDETIEFE ~\n  Q355=+1 ;NACHSETZEN ~\n  Q253=750 ;VORSCHUB VORPOS. ~\n  Q351={climb} ;FRAESART ~\n  Q200={q200} ;SICHERHEITS-ABST. ~\n  Q203={dtop} ;KOOR. OBERFLAECHE ~\n  Q204={q204} ;2. SICHERHEITS-ABST. ~\n  Q207={pfeed} ;VORSCHUB FRAESEN',
+    cycleFace: 'CYCL DEF 232 PLANFRAESEN ~\n  Q389=+0 ;STRATEGIE ~\n  Q225={fx} ;STARTPUNKT 1. ACHSE ~\n  Q226={fy} ;STARTPUNKT 2. ACHSE ~\n  Q227={fstart} ;STARTPUNKT 3. ACHSE ~\n  Q386={fend} ;ENDPUNKT 3. ACHSE ~\n  Q218={flen} ;1. SEITEN-LAENGE ~\n  Q219={fwid} ;2. SEITEN-LAENGE ~\n  Q202={stepdown} ;MAX. ZUSTELL-TIEFE ~\n  Q369=+0 ;AUFMASS TIEFE ~\n  Q370={overlap} ;MAX. UEBERLAPPUNG ~\n  Q207={pfeed} ;VORSCHUB FRAESEN ~\n  Q385={pfeed} ;VORSCHUB SCHLICHTEN ~\n  Q253=750 ;VORSCHUB VORPOS. ~\n  Q200={q200} ;SICHERHEITS-ABST. ~\n  Q357=+2 ;SI.-ABSTAND SEITE ~\n  Q204={q204} ;2. SICHERHEITS-ABST.\nCYCL CALL',
     cyclePocketCirc: 'CYCL DEF 252 KREISTASCHE ~\n  Q215=1 ;BEARBEITUNGS-UMFANG ~\n  Q223={pdia} ;KREISDURCHMESSER ~\n  Q368={stl} ;AUFMASS SEITE ~\n  Q207={pfeed} ;VORSCHUB FRAESEN ~\n  Q351={climb} ;FRAESART ~\n  Q201={depth} ;TIEFE ~\n  Q202={stepdown} ;ZUSTELL-TIEFE ~\n  Q369=+0 ;AUFMASS TIEFE ~\n  Q206={dfeed} ;VORSCHUB TIEFENZ. ~\n  Q338=+0 ;ZUST. SCHLICHTEN ~\n  Q200={q200} ;SICHERHEITS-ABST. ~\n  Q203={dtop} ;KOOR. OBERFLAECHE ~\n  Q204={q204} ;2. SICHERHEITS-ABST. ~\n  Q370={overlap} ;BAHN-UEBERLAPPUNG ~\n  Q366={plungemode} ;EINTAUCHEN ~\n  Q385={pfeed} ;VORSCHUB SCHLICHTEN',
     cycleDrill: CYCL200, cycleDwell: CYCL200, cyclePeck: CYCL200,
     cycleChip: 'CYCL DEF 203 UNIVERSAL-BOHREN ~\n  Q200={q200} ;SICHERHEITS-ABST. ~\n  Q201={depth} ;TIEFE ~\n  Q206={dfeed} ;VORSCHUB TIEFENZ. ~\n  Q202={peck} ;ZUSTELL-TIEFE ~\n  Q210=+0 ;VERWEILZEIT OBEN ~\n  Q203={dtop} ;KOOR. OBERFLAECHE ~\n  Q204={q204} ;2. SICHERHEITS-ABST. ~\n  Q212=+0 ;ABNAHMEBETRAG ~\n  Q213=+0 ;ANZ. SPANBRUECHE ~\n  Q205=+0 ;MIN. ZUSTELL-TIEFE ~\n  Q211={dwell} ;VERWEILZEIT UNTEN ~\n  Q208=+99999 ;VORSCHUB RUECKZUG ~\n  Q256=+0.2 ;RZ BEI SPANBRUCH',
@@ -1266,6 +1275,43 @@ export function runPost(def, project, gen, opts = {}) {
     // pocket / stud as the control's cycle (rectangle, circle, slot): Heidenhain defines it once per shape and
     // calls it at the centre (M99); Sinumerik-style calls carry the centre themselves ({px}/{py})
     const studOp = op.type === 'contour';
+    // any contour / pocket with islands as the control's SL cycles: the outlines as subprograms (LBL) after the
+    // end of the program, in Heidenhain plain language with the compensation that tells pocket from island
+    if (!done && hh && !lathe && op.ctrlCycle && ((studOp && !r.studCycle && r.contourCycle) || (op.type === 'pocket' && !r.pocketCycle && r.slCycle))) {
+      const cc = studOp ? r.contourCycle : r.slCycle;
+      const keys = studOp ? ['cycleContourList', 'cycleContourTrain'] : ['cycleContourList', 'cycleSLData', 'cycleSLClear'];
+      if (keys.every(k => def[k]) && cc.top - cc.bottom > 1e-6) {
+        const hn = v => { const t = W.num(v); return /^[+-]/.test(t) ? t : '+' + t; };
+        // one closed outline: L … RL/RR at its start, then lines and arcs (CC + C DR±) back to the start
+        const contourBody = (loop, comp) => {
+          const pts = loop.map(([x, y]) => ({ t: 'f', x: x - o.x, y: y - o.y, z: 0, f: 1 }));
+          pts.push({ ...pts[0] });
+          const mv = fitArcs([{ t: 'r', ...pts[0] }, ...pts.slice(1)], 0.005, false);
+          const rows = [{ text: `L X${hn(pts[0].x)} Y${hn(pts[0].y)} R${comp}` }];
+          for (const m of mv.slice(1)) {
+            if (m.t === 'a') rows.push({ text: `CC X${hn(m.cx)} Y${hn(m.cy)}` }, { text: `C X${hn(m.x)} Y${hn(m.y)} DR${m.cw ? '-' : '+'}` });
+            else rows.push({ text: `L X${hn(m.x)} Y${hn(m.y)}` });
+          }
+          return rows;
+        };
+        const lbls = [];
+        const addLabel = (name, body) => { const n = labels.length + 1; labels.push({ n, name, body }); lbls.push(n); };
+        if (studOp) cc.loops.forEach((l, k) => addLabel(`${op.name} – Kontur ${k + 1}`, contourBody(l, cc.comp)));
+        else cc.regions.forEach((rg, k) => {
+          // pocket: described inside (counter-clockwise with RL); island: outside (counter-clockwise with RR)
+          addLabel(`${op.name} – Tasche ${k + 1}`, contourBody(rg.outer, 'L'));
+          rg.islands.forEach((isl, j) => addLabel(`${op.name} – Insel ${k + 1}.${j + 1}`, contourBody(isl, 'R')));
+        });
+        const v = {
+          ...tv, labels: lbls.join(' /'), depth: cc.bottom - cc.top, stl: cc.stl || 0, dtop: cc.top - o.z, zsafe: safe - o.z, q200: Math.max(0.5, (cc.clear ?? clear) - cc.top),
+          plungedepth: -Math.max(0.01, Math.min(cc.stepdown || (cc.top - cc.bottom), cc.top - cc.bottom)), dfeed: String(Math.round(feedOf(cc.plunge))), pfeed: String(Math.round(feedOf(cc.feed))),
+          climb: cc.climb === false ? '-1' : '+1', overlap: +(cc.overlap ?? 1).toFixed(4),
+        };
+        for (const k of keys) W.expand(W.tag(def[k], k), v);
+        W.resetModal();
+        done = true;
+      }
+    }
     if (!done && (op.type === 'pocket' || op.type === 'slot' || studOp) && op.ctrlCycle) {
       const pc = studOp ? r.studCycle : r.pocketCycle, why = studOp ? r.studCycleWhy : r.pocketCycleWhy;
       const keyOf = s => (studOp ? (s.kind === 'circ' ? 'cycleStudCirc' : 'cycleStudRect')
@@ -1299,6 +1345,36 @@ export function runPost(def, project, gen, opts = {}) {
           W.expand(pointTpl, v, { x: s.cx - o.x, y: s.cy - o.y, z: pc.top - o.z, f: null, arc: true });
         }
         if (pc.pockets.some(s => !/\{px\}/.test(def[keyOf(s)]))) W.expand(def.cycleEnd, pv);
+        W.resetModal();
+        done = true;
+      }
+    }
+    // bore milling, thread milling, face milling as the control's cycle: defined once per diameter, called at each
+    // hole (face: once, the cycle knows its rectangle)
+    if (!done && !lathe && op.ctrlCycle && ['face', 'bore', 'thread'].includes(op.type)) {
+      const mc = r.millCycle, key = { face: 'cycleFace', bore: 'cycleBoreMill', thread: 'cycleThreadMill' }[op.type];
+      const what = { face: 'Planfräszyklus', bore: 'Bohrfräszyklus', thread: 'Gewindefräszyklus' }[op.type];
+      if (!mc) warnings.push(`${op.name}: Steuerungszyklus nicht möglich (${r.millCycleWhy || 'keine Zyklusdaten'}) – als Bahn ausgegeben`);
+      else if (!def[key] || (mc.kind !== 'face' && !pointTpl)) warnings.push(`${op.name}: Postprozessor ohne ${what} – als Bahn ausgegeben`);
+      else if (!(mc.top - mc.bottom > 1e-6)) warnings.push(`${op.name}: Steuerungszyklus nicht möglich (Tiefe 0) – als Bahn ausgegeben`);
+      else {
+        const tpl = W.tag(def[key], key);
+        const base = {
+          ...tv, q200: Math.max(0.5, (mc.clear ?? clear) - mc.top), sdis: Math.max(0.5, (mc.clear ?? clear) - mc.top), dtop: mc.top - o.z, ztop: mc.top - o.z, zbottom: mc.bottom - o.z,
+          q204: safe - mc.top, depth: mc.bottom - mc.top, pfeed: String(Math.round(feedOf(mc.feed))), dfeed: String(Math.round(feedOf(mc.plunge))), climb: mc.climb === false ? '-1' : '+1',
+        };
+        if (mc.kind === 'face') {
+          W.expand(tpl, { ...base, fx: mc.x - o.x, fy: mc.y - o.y, fstart: mc.top - o.z, fend: mc.bottom - o.z, flen: mc.len, fwid: mc.wid, stepdown: mc.stepdown, overlap: +mc.overlap.toFixed(4) });
+        } else {
+          let last = null;
+          for (const hole of mc.holes) {
+            const v = { ...base, hdia: hole.dia, pitch: mc.pitch, pitchsigned: (mc.right === false ? -1 : 1) * mc.pitch };
+            const sig = JSON.stringify([hole.dia]);
+            if (sig !== last) { W.expand(tpl, v); last = sig; }
+            W.expand(pointTpl, v, { x: hole.x - o.x, y: hole.y - o.y, z: mc.top - o.z, f: null, arc: true });
+          }
+          W.expand(def.cycleEnd, base);
+        }
         W.resetModal();
         done = true;
       }
