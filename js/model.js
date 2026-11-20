@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { R } from './kernel.js';
 import { registerKernel, activeKernel, getKernel } from './kern/index.js';
-import { entityPolys, entityOutlines, entityOutline, buildRegions, chainLoops, circle3, curvePts } from './profiles.js';
+import { entityPolys, entityOutlines, entityOutline, buildRegions, chainLoops, circle3, curvePts, cellShapes } from './profiles.js';
 import { cornerPlan, hasCorners } from './sketchcorner.js';
 import { basis, planeMatrix, sketchPlane, toWorld, axisRef, planeRef } from './plane.js';
 import { sheetSolid, sheetDims } from './sheetmetal.js';
@@ -875,7 +875,7 @@ function embossTool(sk, f, bodies) {
   const d = +f.depth;
   if (!(d > 0)) fail('Tiefe fehlt');
   const raise = f.mode !== 'deboss';
-  if (f.wrap !== 'cyl') return extrudeTool(sk, { profiles: f.profiles, extent: 'one', distance: raise ? d : -d });
+  if (f.wrap !== 'cyl') return extrudeTool(sk, { profiles: f.profiles, regions: f.regions, extent: 'one', distance: raise ? d : -d });
   followCylinder(f, bodies);
   if (!Array.isArray(f.pts) || f.pts.length !== 2 || !(+f.r > 0)) fail('Zylinderfläche wählen');
   const R0 = +f.r;
@@ -897,7 +897,10 @@ function embossTool(sk, f, bodies) {
   // strip width: the flat chord stays within ~0.02 mm of the true cylinder
   const step = Math.max(0.05, Math.min(R0 * 0.12, 2 * Math.sqrt(2 * R0 * 0.02))), SC = 1e5;
   const grid = v => Math.round(v * SC) / SC;
-  const { regions } = buildRegions(profileItems(sk, f.profiles));
+  // clicked areas of the sketch, or the closed profiles (all or the ticked ones)
+  const regions = Array.isArray(f.regions) && f.regions.length
+    ? (items => f.regions.flatMap(c => cellShapes(items, c)))(profileItems(sk))
+    : buildRegions(profileItems(sk, f.profiles)).regions;
   if (!regions.length) fail('Kein geschlossenes Profil');
   const solids = [];
   for (const rg of regions) {
@@ -1606,6 +1609,10 @@ function runFeature(f0, ctx) {
     } else if (f.type === 'emboss') {
       const sk = sketches[f.sketch];
       if (!sk) fail('Skizze fehlt');
+      if (f.profiles === 'pick' && !(Array.isArray(f.regions) && f.regions.length)) {
+        if (ctx.notes) ctx.notes[f.id] = 'Noch kein Profil gewählt – Bereiche der Skizze anklicken.';
+        return;
+      }
       tool = embossTool(sk, f, bodies);
     } else if (f.type === 'extrude' || f.type === 'revolve' || f.type === 'hole') {
       const sk = sketches[f.sketch];

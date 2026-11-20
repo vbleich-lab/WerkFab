@@ -1,0 +1,5 @@
+{
+ "Profile anklicken – die Bereiche der Skizze, die geprägt werden (erneut klicken entfernt).": "Клацніть профілі – області ескіза, які буде витиснено тисненням (повторне клацання скасовує вибір).",
+ "Profile anklicken – die Bereiche der Skizze, die gedreht werden (erneut klicken entfernt).": "Клацніть профілі – області ескіза, які буде обернуто (повторне клацання скасовує вибір).",
+ "{0} Profil{1} gewählt – Extrusion (E), Rotation oder Prägen nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "Вибрано профілів: {0}{1} – їх використовує Витискання (E), Обертання або Тиснення. Shift/Ctrl + клацання: інші профілі."
+}

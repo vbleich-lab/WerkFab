@@ -1,0 +1,5 @@
+{
+ "Profile anklicken – die Bereiche der Skizze, die geprägt werden (erneut klicken entfernt).": "Kliknij profile – obszary szkicu, które zostaną wytłoczone (ponowne kliknięcie usuwa).",
+ "Profile anklicken – die Bereiche der Skizze, die gedreht werden (erneut klicken entfernt).": "Kliknij profile – obszary szkicu, które zostaną obrócone (ponowne kliknięcie usuwa).",
+ "{0} Profil{1} gewählt – Extrusion (E), Rotation oder Prägen nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "Wybrano profili: {0}{1} – użyje ich Wyciągnięcie (E), Obrót lub Tłoczenie. Shift/Ctrl + klik: kolejne profile."
+}

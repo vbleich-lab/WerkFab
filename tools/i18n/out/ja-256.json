@@ -1,0 +1,5 @@
+{
+ "Profile anklicken – die Bereiche der Skizze, die geprägt werden (erneut klicken entfernt).": "プロファイルをクリック：エンボスするスケッチの領域です（再度クリックで解除）。",
+ "Profile anklicken – die Bereiche der Skizze, die gedreht werden (erneut klicken entfernt).": "プロファイルをクリック：回転するスケッチの領域です（再度クリックで解除）。",
+ "{0} Profil{1} gewählt – Extrusion (E), Rotation oder Prägen nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "プロファイル {0}{1} を選択済み：押し出し（E）、回転またはエンボスで使用されます。Shift/Ctrl + クリック：プロファイルを追加。"
+}

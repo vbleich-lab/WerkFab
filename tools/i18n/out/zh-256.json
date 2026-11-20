@@ -1,0 +1,5 @@
+{
+ "Profile anklicken – die Bereiche der Skizze, die geprägt werden (erneut klicken entfernt).": "点击轮廓：即要凸雕的草图区域（再次点击可取消）。",
+ "Profile anklicken – die Bereiche der Skizze, die gedreht werden (erneut klicken entfernt).": "点击轮廓：即要旋转的草图区域（再次点击可取消）。",
+ "{0} Profil{1} gewählt – Extrusion (E), Rotation oder Prägen nimmt sie. Umschalt/Strg + Klick: weitere Profile.": "已选择 {0} 个轮廓{1}：由拉伸（E）、旋转或凸雕使用。Shift/Ctrl + 点击：添加更多轮廓。"
+}

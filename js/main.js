@@ -4481,8 +4481,8 @@ function propsEmboss(b, f, ed) {
   const picking = state.pick?.mode === 'axiscyl' && state.pick.id === f.id;
   const pickCyl = () => { state.pick = { mode: 'axiscyl', id: f.id }; showBanner(['Zylinderfläche anklicken, auf die geprägt wird.', h('button', { onclick: () => { state.pick = null; showBanner(null); renderAll(); } }, 'Abbrechen')]); renderAll(); };
   b.append(
-    row('Skizze', sel(sketchOptions(), f.sketch, v => ed(x => { x.sketch = v; x.profiles = 'all'; }))),
-    row('Profile', profileChecks(f.sketch, f.profiles, v => ed(x => (x.profiles = v)))),
+    row('Skizze', sel(sketchOptions(), f.sketch, v => { if (state.pick?.mode === 'regions' && state.pick.id === f.id) togglePick('regions', f.id); ed(x => { x.sketch = v; x.profiles = 'all'; delete x.regions; }); })),
+    ...profilePickRows(f, ed),
     row('Art', sel([['emboss', 'Erhaben (Material hinzufügen)'], ['deboss', 'Vertieft (gravieren)']], f.mode || 'emboss', v => ed(x => (x.mode = v)))),
     row('Tiefe', num(f.depth, v => ed(x => (x.depth = v)), { unit: 'mm', min: 0.01 })),
     row('Fläche', sel([['plane', 'Eben (Skizzenebene)'], ['cyl', 'Zylinder (umwickeln)']], f.wrap || 'plane', v => { ed(x => (x.wrap = v)); if (v === 'cyl' && !(f.pts || []).length) pickCyl(); })),
@@ -10099,7 +10099,7 @@ function togglePick(mode, id, key = null) {
   const on = !(state.pick?.mode === mode && state.pick.id === id && (state.pick.key || mode) === (key || mode));
   state.pick = on ? { mode, id, ...(key && key !== mode ? { key } : {}) } : null;
   const ft = feature(id)?.type;
-  showBanner(on ? [mode === 'regions' ? 'Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).' : mode === 'edges' ? 'Kanten anklicken (erneut klicken entfernt).' : ft === 'extrude' ? 'Ebene Flächen anklicken, die extrudiert werden (erneut klicken entfernt).' : ({ surftrim: 'Bereiche der Fläche anklicken, die weggetrimmt werden (erneut klicken nimmt zurück).', offsetsurf: 'Flächen anklicken, die versetzt werden (erneut klicken entfernt).', thicken: 'Flächen anklicken, die aufgedickt werden (erneut klicken entfernt).', draft: 'Flächen anklicken, die geneigt werden (erneut klicken entfernt).', thread: 'Zylinderfläche für das Gewinde anklicken.', offsetface: 'Flächen anklicken, die versetzt werden (erneut klicken entfernt).', replaceface: 'Fläche anklicken, die ersetzt wird.', splitface: 'Flächen anklicken, die geteilt werden (erneut klicken entfernt).', delface: 'Flächen anklicken, die gelöscht werden (erneut klicken entfernt).', lip: 'Randfläche der Schale anklicken, an der die Lippe sitzt.', untrim: 'Flächen mit Löchern anklicken (erneut klicken entfernt).', straighten: 'Flächen anklicken, die begradigt werden (erneut klicken entfernt).', endcap: 'Offene Stirnfläche eines Rohrs oder Profils anklicken.' }[ft] || (mode === 'edges2' || state.pick?.key === 'edges2' ? 'Zweite Kante anklicken.' : 'Flächen anklicken, die offen sein sollen.')), h('button', { onclick: () => togglePick(mode, id) }, 'Fertig')] : null);
+  showBanner(on ? [mode === 'regions' ? (ft === 'emboss' ? 'Profile anklicken – die Bereiche der Skizze, die geprägt werden (erneut klicken entfernt).' : ft === 'revolve' ? 'Profile anklicken – die Bereiche der Skizze, die gedreht werden (erneut klicken entfernt).' : 'Profile anklicken – die Bereiche der Skizze, die extrudiert werden (erneut klicken entfernt).') : mode === 'edges' ? 'Kanten anklicken (erneut klicken entfernt).' : ft === 'extrude' ? 'Ebene Flächen anklicken, die extrudiert werden (erneut klicken entfernt).' : ({ surftrim: 'Bereiche der Fläche anklicken, die weggetrimmt werden (erneut klicken nimmt zurück).', offsetsurf: 'Flächen anklicken, die versetzt werden (erneut klicken entfernt).', thicken: 'Flächen anklicken, die aufgedickt werden (erneut klicken entfernt).', draft: 'Flächen anklicken, die geneigt werden (erneut klicken entfernt).', thread: 'Zylinderfläche für das Gewinde anklicken.', offsetface: 'Flächen anklicken, die versetzt werden (erneut klicken entfernt).', replaceface: 'Fläche anklicken, die ersetzt wird.', splitface: 'Flächen anklicken, die geteilt werden (erneut klicken entfernt).', delface: 'Flächen anklicken, die gelöscht werden (erneut klicken entfernt).', lip: 'Randfläche der Schale anklicken, an der die Lippe sitzt.', untrim: 'Flächen mit Löchern anklicken (erneut klicken entfernt).', straighten: 'Flächen anklicken, die begradigt werden (erneut klicken entfernt).', endcap: 'Offene Stirnfläche eines Rohrs oder Profils anklicken.' }[ft] || (mode === 'edges2' || state.pick?.key === 'edges2' ? 'Zweite Kante anklicken.' : 'Flächen anklicken, die offen sein sollen.')), h('button', { onclick: () => togglePick(mode, id) }, 'Fertig')] : null);
   renderAll();
 }
 
@@ -10160,7 +10160,7 @@ function preRegionClick(e) {
   const cells = add ? (k >= 0 ? cur.filter((_, i) => i !== k) : [...cur, best.cell]) : k >= 0 && cur.length === 1 ? [] : [best.cell];
   state.preRegions = cells.length ? { sketch: best.rsk.id, cells } : null;
   state.preEdges = null;
-  status(cells.length ? `${cells.length} Profil${cells.length > 1 ? 'e' : ''} gewählt – Extrusion (E) oder Rotation nimmt sie. Umschalt/Strg + Klick: weitere Profile.` : '');
+  status(cells.length ? `${cells.length} Profil${cells.length > 1 ? 'e' : ''} gewählt – Extrusion (E), Rotation oder Prägen nimmt sie. Umschalt/Strg + Klick: weitere Profile.` : '');
   rebuildScene();
   return true;
 }
@@ -10533,12 +10533,16 @@ function createFeature(type, extra = {}) {
     f = { ...base, x: 0, y: 0, z: 0 };
   } else if (type === 'emboss') {
     if (!hasBodies) return status('Prägen braucht einen Körper.');
-    const sk = pickSketch();
+    const preR = state.preRegions;
+    const sk = preR ? feature(preR.sketch) : pickSketch();
     if (!sk) return status('Zuerst eine Skizze mit Text oder Kontur erstellen (z. B. auf einer Tangentialebene).');
+    // the profile: areas clicked beforehand; else, with several areas, they are clicked now – text is taken whole
+    const rsk = resolved().features.find(x => x.id === sk.id);
+    const prof = preR || !rsk.entities.some(e => e.type === 'text') ? profileStart(rsk, preR) : (state.preRegions = null, { profiles: 'all' });
     // sketch on a tangent plane → wrap onto that cylinder right away
     const tp = sk.planeRef && feature(sk.planeRef);
     const onCyl = tp?.type === 'plane' && tp.kind === 'tangent' && tp.pts?.length === 2;
-    f = { ...base, sketch: sk.id, profiles: 'all', mode: 'emboss', depth: 0.5, wrap: onCyl ? 'cyl' : 'plane', pts: onCyl ? tp.pts : [], r: onCyl ? tp.r : 0 };
+    f = { ...base, sketch: sk.id, ...prof, mode: 'emboss', depth: 0.5, wrap: onCyl ? 'cyl' : 'plane', pts: onCyl ? tp.pts : [], r: onCyl ? tp.r : 0 };
   } else if (type === 'rib') {
     const sk = [...p.features].reverse().find(x => x.type === 'sketch' && x.entities.some(e => e.type === 'poly' && !e.closed));
     if (!sk) return status('Rippe: zuerst eine Skizze mit einer offenen Linie zeichnen.');
@@ -10559,7 +10563,7 @@ function createFeature(type, extra = {}) {
   insertFeature(f);
   state.sel = { kind: 'feature', id };
   if (type === 'fillet' || type === 'chamfer' || type === 'surfextend' || type === 'fill') togglePick('edges', id);
-  else if ((type === 'extrude' || type === 'revolve') && f.profiles === 'pick') togglePick('regions', id);
+  else if ((type === 'extrude' || type === 'revolve' || type === 'emboss') && f.profiles === 'pick') togglePick('regions', id);
   else if (type === 'delface' || type === 'replaceface' || type === 'offsetface' || type === 'align' || type === 'shell' || type === 'draft' || type === 'thread' || type === 'thicken' || type === 'offsetsurf' || type === 'surftrim') togglePick('faces', id);
   else if (type === 'axis' && f.kind === 'cyl') { state.pick = { mode: 'axiscyl', id }; showBanner(['Zylinderfläche oder Bohrung anklicken.', h('button', { onclick: () => { state.pick = null; showBanner(null); renderAll(); } }, 'Abbrechen')]); renderAll(); }
   else if (type === 'axis' && f.kind === '2pt') startPointPick(id, 'pts', 2);

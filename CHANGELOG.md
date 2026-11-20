@@ -1,5 +1,10 @@
 # Änderungen
 
+## v1.0.0-rc.27 – 2026-11-20
+
+### Konstruktion
+- **Prägen: Profile im Bild anklicken.** Bisher ließen sich die Profile nur über eine Liste mit Häkchen wählen. Jetzt geht es wie bei Extrusion und Rotation: Bereiche der Skizze anklicken (erneut klicken entfernt), „Ganze Skizze“ nimmt alle. Vorher angeklickte Bereiche übernimmt Prägen direkt. Hat die Skizze mehrere Bereiche, startet die Auswahl gleich. Bei Text bleibt es bei der ganzen Skizze. Das gilt auch für Prägen auf einem Zylinder.
+
 ## v1.0.0-rc.26 – 2026-11-18
 
 ### Konstruktion
