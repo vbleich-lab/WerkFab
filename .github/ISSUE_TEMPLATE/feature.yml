@@ -1,0 +1,39 @@
+name: Feature request / Wunsch
+description: Something is missing or could work better. / Etwas fehlt oder könnte besser gehen.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: English or German are both fine. / Deutsch oder Englisch – beides geht.
+  - type: textarea
+    id: task
+    attributes:
+      label: What do you want to do? / Was möchtest du erreichen?
+      description: Describe the task, not only the button you have in mind. / Beschreibe die Aufgabe, nicht nur den Knopf, den du dir vorstellst.
+      placeholder: e.g. I mill aluminium housings and need … / z. B. Ich fräse Alu-Gehäuse und brauche …
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: How do you do it today? / Wie machst du es heute?
+      description: Workaround in WerkFab or another program. / Umweg in WerkFab oder einem anderen Programm.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area / Bereich
+      options:
+        - Design / Konstruktion
+        - Assembly / Baugruppe
+        - Sheet metal / Blech
+        - Mesh / Netz
+        - Manufacture / Fertigung
+        - Drawing / Zeichnung
+        - Import / export
+        - AI agents / KI-Agenten
+        - Other / Sonstiges
+  - type: textarea
+    id: example
+    attributes:
+      label: Example / Beispiel
+      description: A sketch, drawing or part that shows it (only if you may share it). / Skizze, Zeichnung oder Teil, das es zeigt (nur wenn du es teilen darfst).

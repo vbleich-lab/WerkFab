@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "Tilspænding med rundakse",
+ "wie programmiert (mm/min)": "som programmeret (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "omregnet (grader tæller som mm)",
+ "zeitreziprok (G93)": "invers tid (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "4-aksede blokke med X/Y/Z og A sammen: Mange styringer regner her grader som millimeter, og fræseren kører så for langsomt eller for hurtigt på emnet. „Omregnet“ skriver F-værdien, så en sådan styring kører den ønskede tilspænding ved skæret. „Invers tid“ skifter til G93 og angiver 1/tid i hver blok – entydigt, hvis styringen kender G93.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1 styrer kun X, Y og Z: Rundaksen A kræver en 4-akset variant (f.eks. grblHAL) – ellers stopper programmet ved det første A-ord",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "Blokke med X/Y/Z og A sammen: Tilspændingen står i mm/min i programmet, men mange styringer regner her grader som millimeter – sæt postprocessorens indstilling „Tilspænding med rundakse“ til „omregnet“ eller „invers tid (G93)“"
+}

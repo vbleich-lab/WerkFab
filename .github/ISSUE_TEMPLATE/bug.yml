@@ -1,0 +1,79 @@
+name: Bug report / Fehler melden
+description: Something does not work as it should. / Etwas funktioniert nicht wie erwartet.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! English or German are both fine. / Danke für die Meldung! Deutsch oder Englisch – beides geht.
+        **Never attach drawings or programs you are not allowed to share.** / **Keine Zeichnungen oder Programme anhängen, die du nicht weitergeben darfst.**
+  - type: input
+    id: version
+    attributes:
+      label: WerkFab version / Version
+      description: Settings → About WerkFab, or the file name of the installer. / Einstellungen → Über WerkFab, oder der Name der Installationsdatei.
+      placeholder: 1.0.0-rc.27
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen? / Wo tritt es auf?
+      options:
+        - Desktop app – Windows
+        - Desktop app – Linux
+        - Desktop app – macOS
+        - Online demo / Browser
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area / Bereich
+      options:
+        - Design (sketch, features) / Konstruktion (Skizze, Features)
+        - Assembly / Baugruppe
+        - Sheet metal / Blech
+        - Mesh / Netz
+        - Manufacture – milling / Fertigung – Fräsen
+        - Manufacture – turning / Fertigung – Drehen
+        - NC program, post processor, sending to the machine / NC-Programm, Postprozessor, Senden an die Maschine
+        - Drawing / Zeichnung
+        - Import / export
+        - Other / Sonstiges
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Schritte
+      description: What did you click, step by step? / Was hast du Schritt für Schritt gemacht?
+      placeholder: |
+        1. New design, sketch on XY, rectangle 40 × 20
+        2. Extrude 10 mm
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect? / Was hast du erwartet?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead? / Was ist stattdessen passiert?
+      description: Error messages, notes in the timeline, screenshots. / Fehlermeldungen, Hinweise in der Zeitleiste, Bildschirmfotos.
+    validations:
+      required: true
+  - type: input
+    id: controller
+    attributes:
+      label: Machine / controller (for NC problems) / Maschine / Steuerung (bei NC-Problemen)
+      placeholder: e.g. Heidenhain TNC 640, Siemens 840D, Fanuc 0i
+  - type: textarea
+    id: files
+    attributes:
+      label: Files / Dateien
+      description: If you can share it, drag the .ofab file (zip it first) or the NC program here. / Wenn möglich, die .ofab-Datei (gezippt) oder das NC-Programm hierher ziehen.

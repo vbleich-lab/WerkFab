@@ -26,7 +26,7 @@ import { allMachines, findMachine, copyMachine, newMachine, machineChecks, KIN_T
 import { StockSim, defaultFluteLen, defaultHolderDia, defaultStickout } from './sim.js';
 import { exampleProject, exampleTurning, exampleMilling, exampleDesign } from './example.js';
 import { describeEntity, entityPolys, translateEntity, rotateEntity, scaleEntity, mirrorEntity as mirrorAbout, loopsAt, sameCell, cellShapes, allCells } from './profiles.js';
-import { meshInertia, zipStore } from './mesh.js';
+import { meshInertia, rotateInertia, zipStore } from './mesh.js';
 import { applyCorners, cornerPlan, curveCorner, filletCurves, chamferCurves, unbridge, bridgeRadius, meetLines } from './sketchcorner.js';
 import { offsetEntities } from './sketchoffset.js';
 import { parseDXF, writeDXF } from './dxf.js';
@@ -38,7 +38,7 @@ import { BASE_PLANES, sketchPlane, planeLabel, planeOffset, planeFromFace, basis
 import { resolveProject, paramScope, evalExpr } from './params.js';
 import { ICONS } from './icons.js';
 import { getSettings, saveSettings, resetSettings, DEFAULTS, MOUSE_PRESETS, ACCENTS, DESIGNS, UI_FONTS, LOOK_KEYS, getProfiles, saveProfile, deleteProfile } from './settings.js';
-import { getBlob, putBlob, loadBlobs, withBlobs, takeBlobs, igesToStep, stepToIges, meshToStep, onFullKernel, requestFullKernel, fullKernelReady, parseToolLibrary, convertCps } from './interop.js';
+import { getBlob, putBlob, loadBlobs, withBlobs, takeBlobs, igesToStep, stepToIges, meshToStep, cleanSlivers, onFullKernel, requestFullKernel, fullKernelReady, parseToolLibrary, convertCps } from './interop.js';
 import { makeDrawing, SHEETS, VIEWS as DRAW_VIEWS } from './drawing.js';
 import { bodyMatrix, hasAssembly, transformShape, JOINT_TYPES, JOINT_DOF, jointValues, jointFrame, jointMotion, LINK_KINDS, linkRatio } from './assembly.js';
 import { parsePointCloud, cloudBounds, cloudHeights } from './pointcloud.js';
@@ -131,7 +131,7 @@ function sel(options, value, set) {
 const chk = (checked, set) => h('input', { type: 'checkbox', checked: !!checked, onchange: e => set(e.target.checked) });
 const row = (label, ctl) => h('div', { class: 'row' }, h('label', null, label), ctl);
 const sec = t => h('div', { class: 'sec' }, t);
-const btn = (label, onClick, cls = '') => h('button', { class: 'btn ' + cls, onclick: onClick }, label);
+const btn = (label, onClick, cls = '', title = null) => h('button', { class: 'btn ' + cls, onclick: onClick, title }, label);
 const fmtTime = s => { if (!Number.isFinite(+s)) return "–"; s = Math.round(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 let PREC = 2; // Anzeigegenauigkeit (Voreinstellungen)
 const f2 = v => +(+v).toFixed(PREC);
@@ -1539,9 +1539,10 @@ function rebuildScene() {
   const flatShown = drawFlatPattern();
   for (const [bi, b] of flatShown ? [] : m.bodies.entries()) {
     if (state.hiddenBodies.has(b.id)) continue;
-    const mesh = new THREE.Mesh(b.geometry, ghost ? matGhost : display === 'wire' ? matWire : bodyMaterial(b.id));
+    const mesh = new THREE.Mesh(b.geometry, ghost ? matGhost : xpl.hl?.has(b.id) ? matXplHl : display === 'wire' ? matWire : bodyMaterial(b.id));
     // assembly placement/joints; switched off while picking edges/faces in model coordinates
-    const am = assemblyActive() ? bodyMatrix(state.project.assembly, b.id, motionValues) : null;
+    const am0 = assemblyActive() ? bodyMatrix(state.project.assembly, b.id, motionValues) : null, xm = xplMatrix(b.id);
+    const am = xm ? (am0 ? xm.multiply(am0) : xm) : am0; // exploded view: moved on top of placement and joints
     if (am) { mesh.matrixAutoUpdate = false; mesh.matrix.copy(am); }
     mesh.userData = { cached: true, body: bi };
     const edges = new THREE.LineSegments(b.edges, ghost ? matEdgeGhost : matEdge);
@@ -1559,6 +1560,7 @@ function rebuildScene() {
       void pts; void pos;
     }
   }
+  drawExplodeTrails();
   // selected faces in blue (whole face)
   vp.clear(hoverGroup);
   hoverKey = null;
@@ -2891,7 +2893,7 @@ function toolbarTabs() {
   if (state.workspace === 'design') {
     const C = (icon, label, type, extra, key) => tbtn(icon, label, () => createFeature(type, extra), '', key ? `${label} (${key})` : label);
     const SKETCH = () => tbtn('sketch', 'Skizze', startPickPlane, state.pick?.mode === 'plane' ? 'active' : '', 'Skizze erstellen (K)');
-    const PRUEFEN = () => tgroup('PRÜFEN', tbtn('measure', 'Messen', toggleMeasure, state.pick?.mode === 'measure' ? 'active' : ''), tbtn('section', 'Schnitt', toggleSection, state.section ? 'active' : ''),
+    const PRUEFEN = () => tgroup('PRÜFEN', tbtn('measure', 'Messen', toggleMeasure, state.pick?.mode === 'measure' ? 'active' : '', 'Messen (I)'), tbtn('section', 'Schnitt', toggleSection, state.section ? 'active' : ''),
       tbtn('zebra', 'Zebra', () => setAnalysis('zebra'), analysis.mode === 'zebra' ? 'active' : '', 'Zebra-Analyse: Stetigkeit der Flächenübergänge'),
       tbtn('draftAn', 'Entformung', () => setAnalysis('draft'), analysis.mode === 'draft' ? 'active' : '', 'Formschräge-Analyse: Entformbarkeit'),
       tbtn('combine', 'Interferenz', runInterference, '', 'Überschneidungen zwischen Körpern finden'), tbtn('fit', 'Einpassen', fitView, '', 'Einpassen (F6)'));
@@ -2927,6 +2929,8 @@ function toolbarTabs() {
         tbtn('replaceface', 'Fläche ersetzen', () => createFeature('replaceface'), '', 'Fläche ersetzen: eine ebene Fläche auf eine andere Ebene legen – der Körper wächst oder wird gekürzt'),
         tbtn('splitface', 'Fläche teilen', () => createFeature('splitface'), '', 'Fläche teilen: Trennkante entlang einer Ebene oder Skizze, der Körper bleibt ein Stück'),
         tbtn('delface', 'Fläche löschen', () => createFeature('delface'), '', 'Fläche löschen: Bohrungen, Taschen, Verrundungen oder Fasen entfernen – die Nachbarflächen schließen die Lücke'),
+        tbtn('movefaces', 'Flächen verschieben', () => createFeature('movefaces'), '', 'Flächen verschieben: eine Bohrung, Tasche oder einen Zapfen versetzen oder kopieren – auch bei importierten Teilen ohne Verlauf'),
+        tbtn('holeFind', 'Bohrungen erkennen', () => holesToFeatures(), '', 'Bohrungen erkennen: runde Bohrungen eines importierten oder umgewandelten Körpers werden wieder Bohrungsschritte mit änderbarem Durchmesser'),
         C('shell', 'Schale', 'shell'), C('combine', 'Kombinieren', 'combine'), C('split', 'Körper teilen', 'split'), C('scale', 'Skalieren', 'scale'),
         tbtn('removebody', 'Körper entfernen', () => createFeature('removebody'), '', 'Körper entfernen: ein Körper verschwindet ab hier aus dem Modell'),
         tbtn('thicken', 'In Blech umwandeln', () => bodyToSheet(), '', 'In Blech umwandeln: einen Körper gleicher Dicke als Blech mit Abwicklung übernehmen'),
@@ -2979,7 +2983,9 @@ function toolbarTabs() {
         tbtn('capturePos', 'Position erfassen', capturePosition, '', 'Position erfassen: die Stellung aller Gelenke unter einem Namen merken'),
         tbtn('resetPos', 'Position zurücksetzen', resetPosition, '', 'Position zurücksetzen: eine gemerkte Stellung oder die Nullstellung')),
       tgroup('BEWEGUNG', tbtn('sim', 'Gelenke antreiben', () => motionStudy(), motion.on ? 'active' : '', 'Gelenke antreiben: alle freien Gelenke durch ihren Bereich fahren, mit Kollisionsprüfung'),
-        tbtn('combine', 'Interferenz', runInterference, '', 'Überschneidungen zwischen Körpern finden')),
+        tbtn('motionPlan', 'Bewegungsablauf', () => motionPlanPanel(), study.el ? 'active' : '', 'Bewegungsablauf: Gelenke Schritt für Schritt über die Zeit fahren, abspielen und Kollisionen mit Zeitpunkt protokollieren'),
+        tbtn('combine', 'Interferenz', runInterference, '', 'Überschneidungen zwischen Körpern finden'),
+        tbtn('explode', 'Explosionsansicht', () => explodePanel(), xpl.el ? 'active' : '', 'Explosionsansicht: Teile schrittweise auseinanderfahren, mit Wegelinien – und daraus eine Montageanleitung mit Bildern')),
       tgroup('KONTAKT', tbtn('contactSet', 'Kontaktsätze', contactSets, '', 'Kontaktsätze: welche Körper beim Bewegen gegeneinander geprüft werden'),
         tbtn('contact', 'Kontakt', toggleContactAll, movableJoints().length && movableJoints().every(j => j.contact) ? 'active' : '', 'Kontakt: Gelenke halten an, wo sich Teile berühren (ein/aus)')),
     ];
@@ -3100,8 +3106,10 @@ function toolbarTabs() {
         MO('mesh_remesh', 'Neu vernetzen', 'remesh'), MO('mesh_offset', 'Versatz', 'offset'), MO('mesh_hollow', 'Aushöhlen', 'hollow')),
       tgroup('3D-DRUCK', MO('mesh_layflat', 'Auf Fläche legen', 'layflat'),
         tbtn('mesh_overhang', 'Überhänge', toggleOverhang, state.overhang ? 'active' : '', 'Überhänge, die Stützen brauchen, rot zeigen'),
+        tbtn('mesh_arrange', 'Anordnen', () => arrangeDialog(), '', 'Sichtbare Netze und Körper auf der Bauplatte verteilen – mit Vorschau, Anzahl je Teil und mehreren Platten'),
         tbtn('mesh_slicer', 'An Slicer senden', () => sendToSlicer(), '', 'Sichtbare Netze und Körper als 3MF an den Slicer geben (Einstellungen → 3D-Druck)')),
       tgroup('UMWANDELN', tbtn('mesh_tobody', 'Netz → Körper', () => meshToBody(), '', 'Ein geschlossenes Netz in einen Volumenkörper umwandeln (jedes Dreieck wird eine Fläche)'),
+        tbtn('holeFind', 'Bohrungen erkennen', () => holesToFeatures(), '', 'Nach „Netz → Körper“: runde Bohrungen werden Bohrungsschritte mit änderbarem Durchmesser und Tiefe'),
         tbtn('mesh_section', 'Schnitt als Skizze', () => meshSectionDialog(), '', 'Die Schnittkontur des Netzes mit einer Ebene als Skizze anlegen')),
       tgroup('PRÜFEN', tbtn('measure', 'Messen', toggleMeasure, state.pick?.mode === 'measure' ? 'active' : ''), tbtn('section', 'Schnitt', toggleSection, state.section ? 'active' : ''), tbtn('fit', 'Einpassen', fitView, '', 'Einpassen (F)')),
       tgroup('EXPORT', ...[['stl', 'STL', 'Sichtbare Netze als STL speichern'], ['obj', 'OBJ', 'Sichtbare Netze als OBJ speichern'], ['3mf', '3MF', 'Sichtbare Netze als 3MF speichern (für 3D-Druck)']].map(([fmt, label, tip]) =>
@@ -3113,6 +3121,8 @@ function toolbarTabs() {
       tgroup('VERWALTEN', tbtn('params', 'Parameter', () => select('params')), tbtn('spacemouse', 'SpaceMouse kalibrieren', () => openSmCalibration(), '', 'Nullpunkt, Totzone, Empfindlichkeit und Richtung der 3D-Maus'), tbtn('gear', 'Einstellungen', openSettings)),
       ADDINS(),
     ];
+    // measuring and checking are at hand in every tab one designs in (the tab PRÜFEN has the full set)
+    for (const k of ['MODELL', 'FLÄCHE', 'ZUSAMMENBAU', 'BLECH', 'SCHWEISSTEILE']) tabs[k]?.push(PRUEFEN());
     if (fusionButtons().length) tabs['MODELL'].push(ADDINS());
     return tabs;
   }
@@ -3160,6 +3170,7 @@ function chooseTab(name) {
 let allToolButtons = [];
 function renderToolbar() {
   const t = $('#tools');
+  document.querySelector('#navBar [data-nav="measure"]')?.classList.toggle('on', state.pick?.mode === 'measure');
   t.replaceChildren();
   $('#workspace').value = state.workspace;
   $('#workspace').disabled = !!state.sketchId;
@@ -3869,6 +3880,8 @@ function propsBody(b, body) {
         let mi = null;
         try { mi = meshInertia(body.geometry); } catch { /* open mesh */ }
         if (!mi) return [];
+        // a component turned in the assembly: the axes stay X, Y, Z of the assembly, the body turns
+        if (assemblyActive()) mi = { ...mi, I: rotateInertia(mi.I, bodyMatrix(state.project.assembly, body.id, motionValues).elements) };
         const k = (mat.density / 1000) / 100, fmt = x => (Math.abs(x) >= 1000 ? Math.round(x).toLocaleString('de-DE') : String(+x.toPrecision(4)).replace('.', ','));
         return [h('span', { title: 'Massenträgheitsmomente um die Achsen durch den Schwerpunkt, parallel zu X, Y und Z' }, 'Trägheitsmomente Ixx / Iyy / Izz'), h('b', null, mi.I.slice(0, 3).map(x => fmt(x * k)).join(' / ') + ' g·cm²')];
       })(),
@@ -4163,7 +4176,7 @@ function propsFeature(b, f) {
   const builder = {
     sketch: propsSketch, extrude: propsExtrude, revolve: propsRevolve, hole: propsHole,
     box: propsPrimitive, cylinder: propsPrimitive, sphere: propsPrimitive,
-    fillet: propsEdgeMod, chamfer: propsEdgeMod, shell: propsShell, delface: propsDelFace, replaceface: propsReplaceFace, offsetface: propsOffsetFace, align: propsAlign, thicken: propsThicken,
+    fillet: propsEdgeMod, chamfer: propsEdgeMod, shell: propsShell, delface: propsDelFace, movefaces: propsMoveFaces, replaceface: propsReplaceFace, offsetface: propsOffsetFace, align: propsAlign, thicken: propsThicken,
     surfloft: propsSurfLoft, surftrim: propsTrim, surfextend: propsEdgeSurf, fill: propsEdgeSurf, surfextrude: propsSurfCurves, surfrevolve: propsSurfCurves, patch: propsPatch, offsetsurf: propsOffsetSurf, stitch: propsStitch, draft: propsDraft, split: propsSplit, loft: propsLoft, sweep: propsSweep, freeform: propsFreeform, sheet: propsSheet,
     pattern: propsPattern, mirror: propsMirror, move: propsMove, combine: propsCombine, import: propsImport, canvas: propsImage, decal: propsImage,
     pipe: propsPipe, coil: propsCoil, scale: propsScale, thread: propsThread,
@@ -4528,6 +4541,8 @@ function propsExtra(b, f, ed) {
   const S = (label, key, opts) => row(label, sel(opts, f[key] ?? opts[0][0], v => ed(x => (x[key] = v))));
   const C = (label, key) => row(label, chk(f[key], v => ed(x => (x[key] = v))));
   const SK = (opts = sketchOptions()) => row('Skizze', sel([['', '–'], ...opts], f.sketch || '', v => ed(x => (x.sketch = v))));
+  // a sketch whose areas are picked: another sketch starts with all of its profiles again
+  const SKP = () => row('Skizze', sel(sketchOptions(), f.sketch || '', v => { if (state.pick?.mode === 'regions' && state.pick.id === f.id) togglePick('regions', f.id); ed(x => { x.sketch = v; x.profiles = 'all'; delete x.regions; }); }));
   const BODY = (key = 'body', label = 'Körper') => row(label, sel([['', '–'], ...bodyOptions()], f[key] || '', v => ed(x => (x[key] = v))));
   const hint = t => h('p', { class: 'hint' }, t);
   const AXIS = S('Achse', 'axis', [['z', 'Z'], ['x', 'X'], ['y', 'Y']]);
@@ -4562,7 +4577,7 @@ function propsExtra(b, f, ed) {
         hint('Eine federnde Zunge mit Rasthaken. Der Haken steht zur Seite +X der Zunge; Drehung dreht ihn um die Richtung.'));
       break;
     case 'rest':
-      b.append(SK(), N('Breite', 'width', { min: 0.01 }), N('Höhe', 'height'), opSelect(f, ed),
+      b.append(SKP(), ...profilePickRows(f, ed), N('Breite', 'width', { min: 0.01 }), N('Höhe', 'height'), opSelect(f, ed),
         hint('Eine Wand entlang der Innenseite des geschlossenen Profils – Auflage für eine Platine oder einen Deckel.'));
       break;
     case 'removebody':
@@ -4594,7 +4609,7 @@ function propsExtra(b, f, ed) {
       b.append(BODY('body', 'Flächenkörper'), hint('Die Vorder- und Rückseite der Flächen werden vertauscht (z. B. vor dem Aufdicken).'));
       break;
     case 'perforate':
-      b.append(SK(), N('Lochdurchmesser', 'dia', { min: 0.01 }), N('Teilung', 'pitch', { min: 0.01 }), N('Randabstand', 'margin', { min: 0 }), C('Versetzt (60°)', 'stagger'), N('Tiefe (0 = durch)', 'depth', { min: 0 }),
+      b.append(SKP(), ...profilePickRows(f, ed), N('Lochdurchmesser', 'dia', { min: 0.01 }), N('Teilung', 'pitch', { min: 0.01 }), N('Randabstand', 'margin', { min: 0 }), C('Versetzt (60°)', 'stagger'), N('Tiefe (0 = durch)', 'depth', { min: 0 }),
         hint('Ein Lochfeld im geschlossenen Profil der Skizze; Ausschnitte im Profil bleiben frei.'));
       break;
     case 'pathflange': {
@@ -5583,6 +5598,26 @@ const agentApi = {
       ...(first ? { firstCollision: first, deepestCollision: worst } : {}), collidingPoses: poses.filter(q => q.collisions.length),
       notice: 'All listed joints move together from "from" to "to" in equal steps; linked joints follow their drivers. Between two steps nothing is checked – take more steps for thin parts. The design itself is not changed.' };
   },
+  // a plan of steps over time: the time spans in which bodies collide
+  async motionPlan(plan, rate, save) {
+    await agentApi.settled();
+    const MP = await import('./motionplan.js');
+    const js = studyJoints(), steps = plan.map((s, i) => {
+      const j = js.find(q => q.id === s.joint || q.name === s.joint);
+      if (!j) throw new Error(`Step ${i + 1}: no joint "${s.joint}" that moves on its own (${js.map(q => q.id).join(', ') || 'none'})`);
+      if (!Number.isFinite(+s.to)) throw new Error(`Step ${i + 1}: "to" must be a number`);
+      return { joint: j.id, to: +s.to, dur: Math.max(0, +s.dur || 0), ...(s.with ? { with: true } : {}), ...(s.ease === 'smooth' ? { ease: 'smooth' } : {}) };
+    });
+    const r = Math.max(0.5, Math.min(100, +rate || 10));
+    if (save) studyEdit(st => { st.steps = steps; st.rate = r; });
+    const times = MP.sampleTimes(steps, r), start = studyStart(), moving = movedBodies(js.filter(j => steps.some(s => s.joint === j.id)));
+    if (times.length > 2000) throw new Error(`${times.length} poses to check – lower rate or shorten the plan (at most 2000)`);
+    const samples = times.map(t => ({ t, hits: motionInterference(MP.valuesAt(steps, t, start), moving).filter(c => c.volume > 1e-3).map(c => ({ a: c.a.id, b: c.b.id, volume: +c.volume.toFixed(3) })) }));
+    const iv = MP.collisionIntervals(samples), r4 = x => +(+x).toFixed(4);
+    return { duration: r4(MP.duration(steps)), schedule: MP.schedule(steps).map(s => ({ joint: s.joint, to: s.to, from_s: r4(s.t0), to_s: r4(s.t1) })), posesChecked: samples.length, clear: !iv.length,
+      collisions: iv.map(c => ({ from_s: r4(c.t0), to_s: r4(c.t1), freeUntil_s: c.free == null ? null : r4(c.free), clearAgainAt_s: c.clearAt == null ? null : r4(c.clearAt), pairs: c.pairs.map(p => ({ a: p.a, b: p.b, maxVolume: +p.volume.toFixed(3), at_s: r4(p.t) })) })),
+      notice: `Checked every ${r4(1 / r)} s; between two checks nothing is seen – raise rate for thin parts or fast motions. ${save ? 'The plan is kept in the design.' : 'The design is not changed.'}` };
+  },
   robot(format, pkg, meshes, collision) {
     const r = urdfExport({ format, pkg, collision });
     if (!r) throw new Error('The design has no body');
@@ -5603,7 +5638,29 @@ const agentApi = {
   },
   insertPart: (v, at) => buildStdPart(v, new THREE.Vector3(...at), new THREE.Vector3(0, 0, 1)),
 };
+// For click tests (browser preview, tools): where a point of the model is on the screen, and a real click there.
+// p in mm, in the coordinates of the body as built (body: its id – the shown body may be moved by the assembly).
+const testApi = {
+  screen(p, body) {
+    const v = new THREE.Vector3(...p);
+    const bi = body == null ? -1 : getModel().bodies.findIndex(b => b.id === body);
+    const mesh = bi >= 0 && vp.model.children.find(o => o.isMesh && o.userData.body === bi);
+    if (mesh) { mesh.updateMatrixWorld(); v.applyMatrix4(mesh.matrixWorld); }
+    const s = vp.screenPos(v), r = vp.canvas.getBoundingClientRect();
+    return { x: r.left + s.x, y: r.top + s.y };
+  },
+  click(p, body) {
+    const { x, y } = testApi.screen(p, body), o = { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, pointerId: 1, isPrimary: true };
+    for (const t of ['pointermove', 'pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) vp.canvas.dispatchEvent(new (t.startsWith('pointer') ? PointerEvent : MouseEvent)(t, o));
+    return { x, y };
+  },
+  pick: () => state.pick && { ...state.pick },
+  assembly: () => JSON.parse(JSON.stringify(state.project.assembly || null)),
+  status: () => document.querySelector('#status')?.textContent || '',
+  run: name => ({ joint: addJoint, jointOrigin: addJointOrigin })[name]?.(),
+};
 function initAgent() {
+  window.werkfabTest = testApi;
   window.werkfabAgent = { tools: AGENT_TOOLS, call: (name, args) => agentCall(name, args, agentApi) };
   const ag = window.werkfabApp?.agent;
   if (!ag) return;
@@ -6055,6 +6112,21 @@ function propsDelFace(b, f, ed) {
       btn('Auswahl leeren', () => ed(x => (x.faces = [])))),
     h('p', { class: 'hint' }, 'Alle Flächen wählen, die verschwinden sollen (bei einer Tasche Wände und Boden, bei einer Bohrung die Wand, bei einer Verrundung die Rundung). Die Nachbarflächen werden über die Lücke verlängert. Der Schritt rechnet bei Änderungen am Körper mit; beim ersten Mal lädt dafür der große Geometriekern (einige Sekunden).'));
 }
+// "Flächen verschieben": the faces of a hole, pocket or boss move by a vector (direct edit, also for imports)
+function propsMoveFaces(b, f, ed) {
+  const picking = state.pick?.mode === 'faces' && state.pick.id === f.id;
+  requestFullKernel();
+  b.append(
+    row('Flächen', h('span', null, `${(f.faces || []).length} gewählt`)),
+    h('div', { class: 'btns' },
+      btn(picking ? '✓ Auswahl beenden' : 'Flächen wählen', () => togglePick('faces', f.id), picking ? 'on' : 'primary'),
+      btn('Auswahl leeren', () => ed(x => (x.faces = [])))),
+    row('X', num(f.dx, v => ed(x => (x.dx = v)), { unit: 'mm' })),
+    row('Y', num(f.dy, v => ed(x => (x.dy = v)), { unit: 'mm' })),
+    row('Z', num(f.dz, v => ed(x => (x.dz = v)), { unit: 'mm' })),
+    row('Kopieren (Original bleibt)', chk(f.copy, v => ed(x => (x.copy = v)))),
+    h('p', { class: 'hint' }, 'Alle Flächen des Merkmals wählen: bei einer Bohrung die Wand (und Senkung, Boden), bei einer Tasche Wände und Boden, bei einem Zapfen Mantel und Stirnfläche. Das Merkmal wandert um X/Y/Z; die alte Stelle wird geschlossen. Geht auch bei importierten STEP-Teilen ohne Verlauf. Beim ersten Mal lädt der große Geometriekern (einige Sekunden).'));
+}
 // "Fläche versetzen": faces move along their normal (holes and pins change their diameter)
 function propsOffsetFace(b, f, ed) {
   const picking = state.pick?.mode === 'faces' && state.pick.id === f.id;
@@ -6118,7 +6190,7 @@ function propsSurfCurves(b, f, ed) {
 function propsPatch(b, f, ed) {
   b.append(
     row('Skizze', sel(sketchOptions(), f.sketch, v => ed(x => { x.sketch = v; x.profiles = 'all'; }))),
-    row('Profile', profileChecks(f.sketch, f.profiles, v => ed(x => (x.profiles = v)))),
+    ...profilePickRows(f, ed),
     h('p', { class: 'hint' }, 'Geschlossene Profile werden zu ebenen Flächen – z. B. Deckel und Boden, um Flächen anschließend zu einem Körper zusammenzufügen.'));
 }
 function propsOffsetSurf(b, f, ed) {
@@ -6222,7 +6294,7 @@ function propsSweep(b, f, ed) {
   const paths = ps ? ps.entities.filter(e => e.type === 'poly') : [];
   b.append(
     row('Profil-Skizze', sel(sketchOptions(), f.sketch, v => ed(x => { x.sketch = v; x.profiles = 'all'; }))),
-    row('Profile', profileChecks(f.sketch, f.profiles, v => ed(x => (x.profiles = v)))),
+    ...profilePickRows(f, ed),
     row('Pfad-Skizze', sel(sketchOptions(), f.pathSketch, v => ed(x => { x.pathSketch = v; x.pathEntity = ''; }))),
     row('Pfad', sel([['', '– wählen –'], ...paths.map(e => [e.id, describeEntity(e)])], f.pathEntity || '', v => ed(x => (x.pathEntity = v)))),
     opSelect(f, ed),
@@ -7206,6 +7278,7 @@ function propsSetup(b) {
     nb ? null : h('p', { class: 'hint' }, 'Keine Auswahl = alle Körper (außer Spannmitteln) werden bearbeitet.'));
   b.append(fsec('Spannmittel'),
     row('Spannmittel', pickButton('fixtures', s, nf, `${nf} Körper`, () => ed(x => (x.fixtures = [])))),
+    turn ? null : h('div', { class: 'btns' }, btn('Spannmittel einfügen …', () => insertFixtures(id), '', 'Schraubstock, Spannpratzen oder Unterlage passend zum Rohteil als Körper anlegen und hier eintragen')),
     row('Radialer Sicherheitsabstand', num(s.fixRadial ?? 5, v => ed(x => (x.fixRadial = v)), { unit: 'mm', min: 0 })),
     row('Axialer Sicherheitsabstand', num(s.fixAxial ?? 5, v => ed(x => (x.fixAxial = v)), { unit: 'mm', min: 0 })));
   {
@@ -7550,6 +7623,38 @@ function opPointPick(e, meshes) {
   editOp(op.id, o => { o.entryPts = [...(o.entryPts || []), [+q.x.toFixed(3), +q.y.toFixed(3)]]; });
 }
 
+// standard workholding (js/fixtures.js) around the stock of a setup: bodies in the design, marked as fixtures
+async function insertFixtures(setupId) {
+  const g = getCam().setups.get(setupId), st = g?.stock;
+  if (!st || !g.T) return status('Das Setup hat noch kein Rohteil.');
+  const F = await import('./fixtures.js');
+  const v = await formDialog('Spannmittel einfügen', [
+    { key: 'kind', label: 'Art', value: 'vise', options: Object.entries(F.FIXTURE_KINDS) },
+    { key: 'jaw', label: 'Backenbreite (Schraubstock)', value: 0, unit: 'mm' },
+    { key: 'grip', label: 'Spanntiefe (Schraubstock)', value: 0, unit: 'mm' },
+    { key: 'parallel', label: 'Parallelunterlagen, Höhe (0 = keine)', value: 0, unit: 'mm' },
+    { key: 'overlap', label: 'Auflage der Pratzen auf dem Rohteil', value: 10, unit: 'mm' },
+    { key: 'hint', hint: 'Schraubstock: die Backen greifen quer zur X-Achse des Setups (an Y-min und Y-max des Rohteils); 0 = Größe und Spanntiefe passend wählen. Die Spannmittel werden einfache Körper am Ende der Zeitleiste und hier als Spannmittel eingetragen: Halter- und Kollisionsprüfung, Sicherheitsabstände und Einrichteblatt berücksichtigen sie.' }], 'Einfügen');
+  if (!v) return;
+  let r;
+  try { r = F.fixtureBoxes(v.kind, { minX: st.minX, maxX: st.maxX, minY: st.minY, maxY: st.maxY, bottom: st.bottom, top: st.top }, v); } catch (err) { return status(err.message); }
+  // setup frame → model frame; every block becomes a sketch rectangle on its bottom face plus an extrusion
+  const inv = g.T.clone().invert(), P = a => new THREE.Vector3(...a).applyMatrix4(inv), D = a => new THREE.Vector3(...a).transformDirection(inv);
+  const r6 = x => Math.round(x * 1e6) / 1e6, ids = [];
+  commit(pp => {
+    for (const bx of r.boxes) {
+      const sk = uid('sk'), ex = uid('fx');
+      const o = P(bx.min), xd = D([1, 0, 0]), n = D([0, 0, 1]);
+      pp.features.push({ id: sk, type: 'sketch', name: `${bx.name} (Skizze)`, hidden: true, plane: { o: o.toArray().map(r6), x: xd.toArray().map(r6), n: n.toArray().map(r6) },
+        entities: [{ id: uid('e'), type: 'rect', x: 0, y: 0, w: r6(bx.max[0] - bx.min[0]), h: r6(bx.max[1] - bx.min[1]), r: 0 }] });
+      pp.features.push({ id: ex, type: 'extrude', name: bx.name, sketch: sk, profiles: 'all', distance: r6(bx.max[2] - bx.min[2]), extent: 'one', op: 'new', fixture: true });
+      ids.push(ex);
+    }
+    const su = pp.cam.setups.find(x => x.id === setupId);
+    su.fixtures = [...new Set([...(su.fixtures || []), ...ids])];
+  });
+  status(`${F.FIXTURE_KINDS[v.kind]} eingefügt: ${r.boxes.length} Körper als Spannmittel des Setups – ${r.note}`);
+}
 // ----- common CAD/CAM "Flächen-Manager": face groups that are machined, avoided, ignored or treated as fixtures -----
 const FG_ACTIONS = {
   avoid: ['Vermeiden', 'Das Werkzeug vermeidet diese Flächen, während es in der Nähe liegende Flächen bearbeitet, und hält die Sicherheitsabstände ein.', '<svg viewBox="0 0 20 20"><rect x="2" y="13" width="16" height="4" fill="#e03131"/><path d="M12 2h3v7h-3z" fill="#ced4da"/><path d="M12 9h3l-1.5 2z" fill="#adb5bd"/></svg>'],
@@ -10356,6 +10461,8 @@ function finishSketch() {
 
 function pickSketch() {
   const sks = state.project.features.filter(f => f.type === 'sketch');
+  // areas clicked beforehand name their sketch
+  if (state.preRegions && feature(state.preRegions.sketch)) return feature(state.preRegions.sketch);
   if (state.sel?.kind === 'feature' && feature(state.sel.id)?.type === 'sketch') return feature(state.sel.id);
   return sks[sks.length - 1];
 }
@@ -10486,6 +10593,10 @@ function createFeature(type, extra = {}) {
     if (!hasBodies) return status('Zuerst einen Körper erstellen.');
     requestFullKernel();
     f = { ...base, faces: [] };
+  } else if (type === 'movefaces') {
+    if (!hasBodies) return status('Zuerst einen Körper erstellen.');
+    requestFullKernel();
+    f = { ...base, faces: [], dx: 10, dy: 0, dz: 0, copy: false };
   } else if (type === 'replaceface') {
     if (!hasBodies) return status('Zuerst einen Körper erstellen.');
     f = { ...base, faces: [], planeRef: 'XY', offset: 0 };
@@ -10558,13 +10669,16 @@ function createFeature(type, extra = {}) {
     f = { ...base, ...more };
   }
   // "Neue Komponente": the first shape after it makes a body of its own
+  // areas of the sketch clicked beforehand become the profile of any command that takes the whole sketch
+  if (f?.profiles === 'all' && f.sketch && state.preRegions?.sketch === f.sketch) { f.profiles = 'pick'; f.regions = state.preRegions.cells.map(c => [...c]); }
+  if (f) state.preRegions = null;
   if (state.newBody && f && 'op' in f && type !== 'sketch') { f.op = 'new'; delete f.target; state.newBody = false; }
   pendingNew = { id, depth: undoDepth() };
   insertFeature(f);
   state.sel = { kind: 'feature', id };
   if (type === 'fillet' || type === 'chamfer' || type === 'surfextend' || type === 'fill') togglePick('edges', id);
-  else if ((type === 'extrude' || type === 'revolve' || type === 'emboss') && f.profiles === 'pick') togglePick('regions', id);
-  else if (type === 'delface' || type === 'replaceface' || type === 'offsetface' || type === 'align' || type === 'shell' || type === 'draft' || type === 'thread' || type === 'thicken' || type === 'offsetsurf' || type === 'surftrim') togglePick('faces', id);
+  else if (f.profiles === 'pick' && type !== 'hole') togglePick('regions', id);
+  else if (type === 'delface' || type === 'movefaces' || type === 'replaceface' || type === 'offsetface' || type === 'align' || type === 'shell' || type === 'draft' || type === 'thread' || type === 'thicken' || type === 'offsetsurf' || type === 'surftrim') togglePick('faces', id);
   else if (type === 'axis' && f.kind === 'cyl') { state.pick = { mode: 'axiscyl', id }; showBanner(['Zylinderfläche oder Bohrung anklicken.', h('button', { onclick: () => { state.pick = null; showBanner(null); renderAll(); } }, 'Abbrechen')]); renderAll(); }
   else if (type === 'axis' && f.kind === '2pt') startPointPick(id, 'pts', 2);
   else if (type === 'plane' && f.kind === '3pt') startPointPick(id, 'pts', 3);
@@ -11461,6 +11575,331 @@ function motionStudy(jointId) {
   renderToolbar();
 }
 
+// ----- Bewegungsablauf: joints driven step by step over time, with a collision protocol (js/motionplan.js) -----
+// The plan is kept in the design (assembly.study = { steps, rate }); the design's joint values are not changed.
+const study = { el: null, t: 0, playing: false, raf: 0, result: null, busy: null };
+const studyJoints = () => (state.project.assembly?.joints || []).filter(j => (JOINT_DOF[j.type] || []).length && !j.link?.from && !j.suppressed);
+const studyUnit = j => JOINT_DOF[j.type]?.[0]?.[1] || '°';
+const studyStart = () => Object.fromEntries((state.project.assembly?.joints || []).map(j => [j.id, +j.value || 0]));
+function studyPlan() { return state.project.assembly?.study || { steps: [], rate: 10 }; }
+const studyEdit = fn => { commit(pp => { pp.assembly ||= { placements: {}, joints: [] }; pp.assembly.study ||= { steps: [], rate: 10 }; fn(pp.assembly.study); }); study.result = null; };
+// show the pose at time t (without committing)
+async function studyShow(t) {
+  const MP = await import('./motionplan.js');
+  study.t = Math.max(0, Math.min(MP.duration(studyPlan().steps), t));
+  motionValues = MP.valuesAt(studyPlan().steps, study.t, studyStart());
+  rebuildScene();
+  studyDraw(false);
+}
+function studyClose() {
+  if (study.busy) study.busy.cancel = true;
+  cancelAnimationFrame(study.raf);
+  study.playing = false;
+  study.el?.remove();
+  study.el = null;
+  motionValues = {};
+  renderAll();
+}
+async function motionPlanPanel() {
+  if (study.el) return studyClose();
+  if (!studyJoints().length) return status('Kein bewegliches Gelenk vorhanden (Drehgelenk oder Schiebegelenk anlegen).');
+  if (motion.on) motionStudy(); // the simple sweep stops
+  study.el = h('div', { id: 'studyPanel', style: 'position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:min(720px,calc(100% - 24px));max-height:56%;overflow:auto;z-index:30;background:var(--panel,#1f252c);color:var(--text,#ddd);border:1px solid var(--border,#3a434d);border-radius:8px;box-shadow:0 6px 24px #0006;padding:10px 12px;font-size:12px' });
+  $('#viewportWrap').append(study.el);
+  study.t = 0;
+  studyDraw(true);
+  studyShow(0);
+}
+async function studyDraw(full = true) {
+  if (!study.el) return;
+  const MP = await import('./motionplan.js');
+  const plan = studyPlan(), joints = studyJoints(), T = MP.duration(plan.steps), sch = MP.schedule(plan.steps);
+  const jn = id => (state.project.assembly?.joints || []).find(j => j.id === id);
+  const fmt = v => (Math.round(v * 100) / 100).toLocaleString('de-DE');
+  if (!full && study.el.querySelector('.st-time')) {
+    study.el.querySelector('.st-time').textContent = `${fmt(study.t)} / ${fmt(T)} s`;
+    const sl = study.el.querySelector('.st-slider'); if (sl && document.activeElement !== sl) sl.value = String(study.t);
+    study.el.querySelector('.st-play').textContent = study.playing ? '❚❚' : '▶';
+    return;
+  }
+  const numIn = (v, set, w = 56) => { const i = h('input', { type: 'text', value: String(v), style: `width:${w}px` }); i.onchange = () => { const n = +String(i.value).replace(',', '.'); if (Number.isFinite(n)) set(n); else i.value = String(v); }; return i; };
+  const rows = plan.steps.map((s, i) => {
+    const j = jn(s.joint);
+    const jsel = h('select', { onchange: e => studyEdit(st => { st.steps[i].joint = e.target.value; }) }, ...joints.map(q => h('option', { value: q.id, selected: q.id === s.joint }, q.name)));
+    return h('tr', { class: study.t >= sch[i].t0 && study.t <= sch[i].t1 && T > 0 ? 'on' : '' },
+      h('td', null, String(i + 1)),
+      h('td', null, jsel),
+      h('td', null, numIn(s.to, n => studyEdit(st => { st.steps[i].to = n; })), ' ', j ? studyUnit(j) : ''),
+      h('td', null, numIn(s.dur, n => studyEdit(st => { st.steps[i].dur = Math.max(0, n); })), ' s'),
+      h('td', { title: 'Gleichzeitig mit dem Schritt davor' }, i ? chk(s.with, v => studyEdit(st => { st.steps[i].with = v; })) : ''),
+      h('td', { title: 'Weich anfahren und abbremsen' }, chk(s.ease === 'smooth', v => studyEdit(st => { st.steps[i].ease = v ? 'smooth' : 'linear'; }))),
+      h('td', { style: 'opacity:.7' }, `${fmt(sch[i].t0)}–${fmt(sch[i].t1)} s`),
+      h('td', null, h('button', { title: 'Schritt löschen', onclick: () => studyEdit(st => st.steps.splice(i, 1)) }, '✕')));
+  });
+  const slider = h('input', { type: 'range', class: 'st-slider', min: 0, max: String(T || 1), step: 'any', value: String(study.t), style: 'flex:1', oninput: e => { study.playing = false; studyShow(+e.target.value); } });
+  const play = h('button', { class: 'st-play', title: 'Abspielen / Anhalten', onclick: () => studyPlay() }, study.playing ? '❚❚' : '▶');
+  const res = study.result;
+  const proto = !res ? h('p', { class: 'hint', style: 'margin:6px 0 0' }, plan.steps.length ? '„Prüfen“ fährt den Ablauf in kleinen Zeitschritten ab und meldet, wann welche Körper zusammenstoßen.' : 'Schritte anlegen: Gelenk, Zielwert und Dauer. „gleichzeitig“ lässt einen Schritt zusammen mit dem davor laufen.')
+    : !res.intervals.length ? h('p', { style: 'margin:6px 0 0;color:#40c057' }, `✓ Keine Kollision im ganzen Ablauf (${res.samples} Stellungen geprüft, alle ${fmt(1 / res.rate)} s)`)
+      : h('div', null, h('p', { style: 'margin:6px 0 2px;color:#e5484d' }, `⚠ ${res.intervals.length} Kollisionsabschnitt(e) – Zeile anklicken, um die Stellung zu sehen`),
+        h('table', { class: 'xtab', style: 'width:100%' }, h('tr', null, h('th', null, 'Zeit'), h('th', null, 'Körper'), h('th', null, 'Überschneidung')),
+          ...res.intervals.flatMap(c => c.pairs.map(p => h('tr', { style: 'cursor:pointer', onclick: () => { study.playing = false; studyShow(p.t); } },
+            h('td', null, `${fmt(c.t0)}–${fmt(c.t1)} s${c.free != null ? ` (frei bis ${fmt(c.free)} s)` : ''}`),
+            h('td', null, `${bodyNameById(p.a)} ↔ ${bodyNameById(p.b)}`),
+            h('td', null, `${fmt(p.volume)} mm³ bei ${fmt(p.t)} s`))))));
+  study.el.replaceChildren(
+    h('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:6px' }, h('b', null, 'BEWEGUNGSABLAUF'), h('span', { style: 'flex:1' }), h('button', { title: 'Schließen', onclick: studyClose }, '✕')),
+    h('table', { class: 'xtab', style: 'width:100%' }, h('tr', null, h('th', null, '#'), h('th', null, 'Gelenk'), h('th', null, 'Ziel'), h('th', null, 'Dauer'), h('th', null, 'gleichz.'), h('th', null, 'weich'), h('th', null, 'Zeit'), h('th', null, '')), ...rows),
+    h('div', { style: 'display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap' },
+      btn('+ Schritt', () => studyEdit(st => { const last = st.steps[st.steps.length - 1], j = joints.find(q => q.id === last?.joint) || joints[0]; st.steps.push({ joint: j.id, to: studyUnit(j) === '°' ? 90 : 50, dur: 1 }); })),
+      h('span', null, 'Prüfen alle'), numIn(fmt(1 / (plan.rate || 10)).replace(',', '.'), n => studyEdit(st => { st.rate = 1 / Math.max(0.005, Math.min(2, n)); }), 44), h('span', null, 's'),
+      btn(study.busy ? 'Abbrechen' : 'Prüfen', () => (study.busy ? (study.busy.cancel = true) : studyCheck()), 'primary'),
+      res?.intervals.length ? btn('Protokoll (CSV)', async () => download(`${safeName()}_Bewegungsprotokoll.csv`, MP.protocolCSV(res.intervals, bodyNameById, x => fmt(x)), 'text/csv')) : null),
+    h('div', { style: 'display:flex;gap:8px;align-items:center' }, play, slider, h('span', { class: 'st-time', style: 'min-width:90px;text-align:right' }, `${fmt(study.t)} / ${fmt(T)} s`)),
+    proto);
+}
+const bodyNameById = id => { const b = getModel().bodies.find(x => x.id === id); return b ? bodyName(b) : id; };
+async function studyPlay() {
+  const MP = await import('./motionplan.js');
+  const T = MP.duration(studyPlan().steps);
+  if (!(T > 0)) return status('Der Ablauf hat noch keine Dauer – Schritte mit Dauer anlegen.');
+  study.playing = !study.playing;
+  if (!study.playing) return studyDraw(false);
+  if (study.t >= T - 1e-9) study.t = 0;
+  let last = performance.now();
+  const tick = now => {
+    if (!study.playing || !study.el) return;
+    const t = study.t + (now - last) / 1000;
+    last = now;
+    if (t >= T) { study.playing = false; studyShow(T); return; }
+    studyShow(t);
+    study.raf = requestAnimationFrame(tick);
+  };
+  study.raf = requestAnimationFrame(tick);
+}
+// check every sample time for collisions (only pairs with a moving body; Kontaktsätze are honoured)
+async function studyCheck() {
+  const MP = await import('./motionplan.js');
+  const plan = studyPlan();
+  if (!plan.steps.length) return status('Erst Schritte anlegen.');
+  const times = MP.sampleTimes(plan.steps, plan.rate || 10), start = studyStart();
+  const used = studyJoints().filter(j => plan.steps.some(s => s.joint === j.id)), moving = movedBodies(used);
+  const job = { cancel: false };
+  study.busy = job;
+  study.playing = false;
+  studyDraw(true);
+  const samples = [], t0 = performance.now();
+  for (let i = 0; i < times.length; i++) {
+    if (job.cancel || !study.el) break;
+    const vals = MP.valuesAt(plan.steps, times[i], start);
+    let hits = [];
+    try { hits = motionInterference(vals, moving).filter(c => c.volume > 1e-3).map(c => ({ a: c.a.id, b: c.b.id, volume: c.volume })); } catch (err) { console.warn(err); }
+    samples.push({ t: times[i], hits });
+    if (i % 4 === 3) { status(`Bewegungsablauf wird geprüft … ${i + 1} von ${times.length} Stellungen`); await new Promise(r => setTimeout(r, 0)); }
+  }
+  study.busy = null;
+  if (job.cancel) { status('Prüfung abgebrochen.'); return studyDraw(true); }
+  study.result = { intervals: MP.collisionIntervals(samples), samples: samples.length, rate: plan.rate || 10 };
+  status(`Bewegungsablauf geprüft: ${samples.length} Stellungen in ${((performance.now() - t0) / 1000).toFixed(1)} s – ${study.result.intervals.length ? `${study.result.intervals.length} Kollisionsabschnitt(e)` : 'keine Kollision'}`);
+  studyDraw(true);
+  if (study.result.intervals.length) studyShow(study.result.intervals[0].worst.t);
+}
+// redraw the panel when the design changes (undo, other edits)
+onChange(() => { if (study.el && !study.busy) setTimeout(() => studyDraw(true), 0); });
+
+// ----- Explosionsansicht (js/explode.js): steps that move bodies apart, animated, with trail lines; read backwards
+// they make an assembly instruction with one picture per step. Kept in the design: assembly.explode = { steps, trails }.
+const xpl = { el: null, u: 0, playing: false, raf: 0, off: {}, hl: null };
+const matXplHl = new THREE.MeshStandardMaterial({ color: 0xf59f00, metalness: 0.1, roughness: 0.55 }); // parts of the step in the instruction
+const XPL_DIR_TEXT = { 'z+': 'von oben', 'z-': 'von unten', 'x+': 'von rechts', 'x-': 'von links', 'y+': 'von hinten', 'y-': 'von vorn' };
+const xplPlan = () => state.project.assembly?.explode || { steps: [], trails: true };
+const xplEdit = fn => commit(pp => { pp.assembly ||= { placements: {}, joints: [] }; pp.assembly.explode ||= { steps: [], trails: true }; fn(pp.assembly.explode); });
+// box of a body where it stands now (placement and joints, no explosion)
+function placedBox(b) {
+  b.geometry.computeBoundingBox();
+  const bb = b.geometry.boundingBox.clone();
+  if (assemblyActive()) bb.applyMatrix4(bodyMatrix(state.project.assembly, b.id, motionValues));
+  return bb;
+}
+async function xplSet(u) {
+  const X = await import('./explode.js'), n = xplPlan().steps.length;
+  xpl.u = Math.max(0, Math.min(n, u));
+  xpl.off = X.offsetsAt(xplPlan().steps, xpl.u);
+  rebuildScene();
+  xplDraw(false);
+}
+function xplClose() {
+  cancelAnimationFrame(xpl.raf);
+  xpl.playing = false;
+  xpl.el?.remove();
+  xpl.el = null;
+  xpl.off = {};
+  renderAll();
+}
+async function explodePanel() {
+  if (xpl.el) return xplClose();
+  if (getModel().bodies.length < 2) return status('Eine Explosionsansicht braucht mindestens zwei Körper.');
+  xpl.el = h('div', { id: 'explodePanel', style: 'position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:min(680px,calc(100% - 24px));max-height:52%;overflow:auto;z-index:30;background:var(--panel,#1f252c);color:var(--text,#ddd);border:1px solid var(--border,#3a434d);border-radius:8px;box-shadow:0 6px 24px #0006;padding:10px 12px;font-size:12px' });
+  $('#viewportWrap').append(xpl.el);
+  if (!xplPlan().steps.length) await xplAuto(1, true);
+  await xplSet(xplPlan().steps.length);
+  xplDraw(true);
+}
+async function xplAuto(factor = 1, quiet = false) {
+  const X = await import('./explode.js');
+  const bodies = getModel().bodies.filter(b => !state.hiddenBodies.has(b.id));
+  const boxes = bodies.map(b => { const bb = placedBox(b); return { id: b.id, min: bb.min.toArray(), max: bb.max.toArray() }; });
+  const steps = X.autoExplode(boxes, { factor });
+  xplEdit(e => { e.steps = steps.map((s, i) => ({ ...s, name: `Schritt ${i + 1}` })); });
+  if (!quiet) status(`Automatisch zerlegt: ${steps.length} Schritte – der größte Körper bleibt stehen. Richtungen und Wege lassen sich je Schritt ändern.`);
+  await xplSet(steps.length);
+}
+async function xplDraw(full = true) {
+  if (!xpl.el) return;
+  const X = await import('./explode.js');
+  const plan = xplPlan(), n = plan.steps.length, fmt = v => (Math.round(v * 100) / 100).toLocaleString('de-DE');
+  if (!full && xpl.el.querySelector('.xp-u')) {
+    xpl.el.querySelector('.xp-u').textContent = `${fmt(xpl.u)} / ${n}`;
+    const sl = xpl.el.querySelector('.xp-slider'); if (sl && document.activeElement !== sl) sl.value = String(xpl.u);
+    xpl.el.querySelector('.xp-play').textContent = xpl.playing ? '❚❚' : '▶';
+    return;
+  }
+  const names = ids => ids.map(bodyNameById).join(', ') || '– keine –';
+  const rows = plan.steps.map((s, i) => {
+    const dsel = h('select', { onchange: e => xplEdit(x => { x.steps[i].dir = X.DIRS[e.target.value].slice(); }) },
+      ...Object.keys(X.DIRS).map(k => h('option', { value: k, selected: X.dirKey(s.dir) === k }, `${k.toUpperCase()} (${XPL_DIR_TEXT[k]})`)),
+      X.dirKey(s.dir) ? null : h('option', { value: '', selected: true }, 'frei'));
+    const dist = h('input', { type: 'text', value: String(s.dist), style: 'width:56px' });
+    dist.onchange = () => { const v = +String(dist.value).replace(',', '.'); if (Number.isFinite(v) && v >= 0) xplEdit(x => { x.steps[i].dist = v; }); else dist.value = String(s.dist); };
+    const pick = h('button', { class: 'btn', title: 'Körper dieses Schritts wählen', style: 'max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left' }, names(s.bodies || []));
+    pick.onclick = async () => {
+      const v = await formDialog(`Körper für ${s.name || `Schritt ${i + 1}`}`, getModel().bodies.map(b => ({ key: b.id, label: bodyName(b), check: true, value: (s.bodies || []).includes(b.id) })), 'Übernehmen');
+      if (v) xplEdit(x => { x.steps[i].bodies = getModel().bodies.filter(b => v[b.id]).map(b => b.id); });
+    };
+    const mv = (d) => h('button', { style: 'color:inherit', title: d < 0 ? 'Früher' : 'Später', disabled: d < 0 ? i === 0 : i === n - 1, onclick: () => xplEdit(x => { const [it] = x.steps.splice(i, 1); x.steps.splice(i + d, 0, it); }) }, d < 0 ? '↑' : '↓');
+    return h('tr', { class: xpl.u > i && xpl.u < i + 1 ? 'on' : '' }, h('td', null, String(i + 1)), h('td', null, pick), h('td', null, dsel), h('td', null, dist, ' mm'),
+      h('td', null, mv(-1), mv(1), h('button', { title: 'Schritt löschen', onclick: () => xplEdit(x => x.steps.splice(i, 1)) }, '✕')));
+  });
+  const slider = h('input', { type: 'range', class: 'xp-slider', min: 0, max: String(Math.max(1, n)), step: 'any', value: String(xpl.u), style: 'flex:1', oninput: e => { xpl.playing = false; xplSet(+e.target.value); } });
+  xpl.el.replaceChildren(
+    h('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:6px' }, h('b', null, 'EXPLOSIONSANSICHT'), h('span', { style: 'flex:1' }),
+      h('label', { style: 'display:flex;gap:4px;align-items:center' }, chk(plan.trails !== false, v => { xplEdit(x => { x.trails = v; }); setTimeout(() => rebuildScene(), 0); }), 'Wegelinien'),
+      h('button', { title: 'Schließen (das Modell steht wieder zusammengebaut)', onclick: xplClose }, '✕')),
+    h('table', { class: 'xtab', style: 'width:100%' }, h('tr', null, h('th', null, '#'), h('th', null, 'Körper'), h('th', null, 'Richtung'), h('th', null, 'Weg'), h('th', null, '')), ...rows),
+    h('div', { style: 'display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap' },
+      btn('+ Schritt', () => { const sel = selBodyId(); xplEdit(x => x.steps.push({ name: `Schritt ${x.steps.length + 1}`, bodies: sel ? [sel] : [], dir: [0, 0, 1], dist: 20 })); if (!sel) status('Neuer Schritt: in der Zeile „– keine –“ anklicken und die Körper wählen.'); }),
+      btn('Automatisch', () => xplAuto(1), '', 'Alle Schritte neu: jeder Körper fährt entlang seiner Hauptrichtung vom größten Körper weg'),
+      btn('Weiter auseinander', () => xplEdit(x => x.steps.forEach(s => { s.dist = Math.round(s.dist * 1.25 * 100) / 100; }))),
+      btn('Näher', () => xplEdit(x => x.steps.forEach(s => { s.dist = Math.round(s.dist * 0.8 * 100) / 100; }))),
+      h('span', { style: 'flex:1' }),
+      btn('Montageanleitung', () => assemblyInstructions(), 'primary', 'Eine Seite mit einem Bild je Montageschritt (Explosion rückwärts), druckbar und als PDF')),
+    h('div', { style: 'display:flex;gap:8px;align-items:center' }, h('button', { class: 'xp-play', title: 'Zusammen- und auseinanderfahren', onclick: () => xplPlay() }, xpl.playing ? '❚❚' : '▶'), slider, h('span', { class: 'xp-u', style: 'min-width:60px;text-align:right' }, `${fmt(xpl.u)} / ${n}`)),
+    h('p', { class: 'hint', style: 'margin:6px 0 0' }, 'Schieberegler links: zusammengebaut, rechts: ganz zerlegt. Rückwärts gelesen sind die Schritte die Montagereihenfolge. Die Konstruktion selbst wird nicht verschoben.'));
+}
+function xplPlay() {
+  const n = xplPlan().steps.length;
+  if (!n) return;
+  xpl.playing = !xpl.playing;
+  if (!xpl.playing) return xplDraw(false);
+  const dir = xpl.u >= n - 1e-9 ? -1 : 1;
+  let last = performance.now();
+  const tick = now => {
+    if (!xpl.playing || !xpl.el) return;
+    const u = xpl.u + dir * (now - last) / 800;
+    last = now;
+    if (u <= 0 || u >= n) { xpl.playing = false; xplSet(u <= 0 ? 0 : n); return; }
+    xplSet(u);
+    xpl.raf = requestAnimationFrame(tick);
+  };
+  xpl.raf = requestAnimationFrame(tick);
+}
+// offset of a body in the exploded view (null when the view is not open)
+const xplMatrix = id => { const o = xpl.el && xpl.off[id]; return o ? new THREE.Matrix4().makeTranslation(o[0], o[1], o[2]) : null; };
+// dashed lines from where a body sits assembled to where it is now
+async function drawExplodeTrails() {
+  if (!xpl.el || xplPlan().trails === false) return;
+  const X = await import('./explode.js'), steps = xplPlan().steps;
+  const mat = new THREE.LineDashedMaterial({ color: 0x1e88ff, dashSize: 3, gapSize: 2, transparent: true, opacity: 0.85, depthTest: false });
+  for (const b of getModel().bodies) {
+    if (!xpl.off[b.id] || state.hiddenBodies.has(b.id)) continue;
+    const c = placedBox(b).getCenter(new THREE.Vector3());
+    const pts = X.trail(steps, b.id, xpl.u, c.toArray()).map(p => new THREE.Vector3(...p));
+    if (pts.length < 2) continue;
+    const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat);
+    l.computeLineDistances();
+    l.renderOrder = 24;
+    vp.paths.add(l);
+  }
+}
+// picture of the view at the given explosion state, framed on a fixed box (so all pictures match)
+function explodeShot(box) {
+  const cam = vp.camera, keep = { pos: cam.position.clone(), up: cam.up.clone(), q: cam.quaternion.clone(), grid: vp.grid?.visible, sk: vp.sketches.visible };
+  try {
+    if (vp.grid) vp.grid.visible = false;
+    vp.sketches.visible = false;
+    const c = box.getCenter(new THREE.Vector3()), r = Math.max(5, box.getSize(new THREE.Vector3()).length() / 2);
+    cam.position.copy(c).addScaledVector(new THREE.Vector3(0.75, -1.2, 0.9).normalize(), (r * 0.82) / Math.sin(THREE.MathUtils.degToRad(cam.fov / 2)));
+    cam.up.set(0, 0, 1); cam.lookAt(c); cam.updateMatrixWorld();
+    return thumbnail(vp.renderer, vp.scene, cam, '#ffffff', 1000, 640);
+  } catch { return ''; } finally {
+    cam.position.copy(keep.pos); cam.up.copy(keep.up); cam.quaternion.copy(keep.q); cam.updateMatrixWorld();
+    if (vp.grid) vp.grid.visible = keep.grid;
+    vp.sketches.visible = keep.sk;
+    vp.renderer.render(vp.scene, cam);
+  }
+}
+// assembly instruction: the explosion read backwards, one picture per step (the parts of the step still apart)
+async function assemblyInstructions() {
+  const X = await import('./explode.js'), plan = xplPlan(), n = plan.steps.length;
+  if (!n) return status('Erst Schritte anlegen (oder „Automatisch“).');
+  const keepU = xpl.u, p = state.project;
+  // frame: everything fully exploded
+  await xplSet(n);
+  await new Promise(r => setTimeout(r, 30));
+  const box = new THREE.Box3().expandByObject(vp.model);
+  const pics = [];
+  pics.push(explodeShot(box)); // all parts
+  for (let k = n; k >= 1; k--) {
+    // assembly step n-k+1 puts the bodies of explosion step k (index k-1) in place
+    xpl.hl = new Set(plan.steps[k - 1].bodies || []);
+    await xplSet(k); await new Promise(r => setTimeout(r, 30));
+    const before = explodeShot(box);
+    pics.push(before);
+  }
+  xpl.hl = null;
+  await xplSet(0); await new Promise(r => setTimeout(r, 30));
+  const done = explodeShot(box);
+  await xplSet(keepU);
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const base = getModel().bodies.filter(b => !plan.steps.some(s => (s.bodies || []).includes(b.id))).map(bodyName);
+  const items = [];
+  for (let k = n; k >= 1; k--) {
+    const s = plan.steps[k - 1], dk = X.dirKey(s.dir);
+    const opp = dk ? XPL_DIR_TEXT[dk] : 'entlang des gezeigten Wegs';
+    items.push({ nr: n - k + 1, text: tr(`${(s.bodies || []).map(bodyNameById).join(', ') || '–'} ${opp} einsetzen (${fmtMm(s.dist)} mm)`), pic: pics[n - k + 1] });
+  }
+  const html = `<!doctype html><html lang="${uiLang}"><head><meta charset="utf-8"><title>${esc(tr(`Montageanleitung – ${p.name}`))}</title>
+<style>body{font:14px system-ui,sans-serif;margin:24px;color:#111}h1{font-size:22px;margin:0 0 4px}.meta{color:#666;margin:0 0 16px}
+.step{page-break-inside:avoid;border-top:1px solid #ccc;padding:12px 0;display:grid;grid-template-columns:42px 1fr;gap:8px}.nr{font-size:28px;font-weight:700;color:#1e88ff}
+img{max-width:100%;border:1px solid #eee;border-radius:4px}.bar{position:sticky;top:0;background:#fff;padding:6px 0;margin-bottom:8px}@media print{.bar{display:none}}</style></head><body>
+<div class="bar"><button onclick="print()">${esc(tr('Drucken'))}</button>${window.werkfabApp?.savePdf ? ` <button onclick="opener && opener.werkfabSheetPdf && opener.werkfabSheetPdf()">${esc(tr('Als PDF speichern …'))}</button>` : ''}</div>
+<h1>${esc(tr(`Montageanleitung: ${p.name}`))}</h1><p class="meta">${esc(tr(`${n} Schritte · ${getModel().bodies.length} Teile · orange: die Teile des Schritts`))}</p>
+<div class="step"><div class="nr">0</div><div><b>${esc(tr('Teile'))}</b>${base.length ? `<p>${esc(tr(`Grundteil: ${base.join(', ')}`))}</p>` : ''}<img src="${pics[0]}"></div></div>
+${items.map(it => `<div class="step"><div class="nr">${it.nr}</div><div><b>${esc(it.text)}</b><br><img src="${it.pic}"></div></div>`).join('\n')}
+<div class="step"><div class="nr">✓</div><div><b>${esc(tr('Fertig zusammengebaut'))}</b><br><img src="${done}"></div></div>
+</body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) return status('Popup blockiert – bitte Popups für diese Seite erlauben.');
+  const page = tHtml(html);
+  window.werkfabSheetPdf = async () => {
+    const r = await window.werkfabApp.savePdf({ html: page, name: tr(`Montageanleitung ${p.name}`) });
+    if (r?.error) status('PDF: ' + r.error); else if (r?.ok) status(`PDF gespeichert: ${r.path}`);
+  };
+  w.document.write(page);
+  w.document.close();
+  status(`Montageanleitung mit ${n} Schritten erstellt`);
+}
+onChange(() => { if (xpl.el) setTimeout(async () => { const X = await import('./explode.js'); const n = xplPlan().steps.length; if (xpl.u > n) xpl.u = n; xpl.off = X.offsetsAt(xplPlan().steps, xpl.u); rebuildScene(); xplDraw(true); }, 0); });
 // ==================== ribbon commands: assembly, inspect, manage, view ====================
 const asmEdit = fn => commit(pp => { pp.assembly ||= { placements: {}, joints: [] }; pp.assembly.joints ||= []; fn(pp.assembly); });
 const movableJoints = () => (state.project.assembly?.joints || []).filter(j => (JOINT_DOF[j.type] || []).length);
@@ -12181,7 +12620,67 @@ function configTable() {
           h('button', { title: 'Löschen', onclick: () => { commit(pp => pp.configs.splice(i, 1)); draw(); } }, '✕'))))));
   };
   draw();
-  foot.append(btn('+ Konfiguration', async () => { await addConfigCmd(); draw(); }), btn('Schließen', close, 'primary'));
+  foot.append(btn('+ Konfiguration', async () => { await addConfigCmd(); draw(); }),
+    btn('Tabelle einlesen …', async () => { await familyImport(); draw(); }, '', 'Varianten aus einer CSV-Datei (Excel: „Speichern unter → CSV“): erste Spalte der Name, dann eine Spalte je Parameter'),
+    btn('Tabelle speichern', () => familyExportCSV(), '', 'Alle Varianten als CSV – lässt sich in Excel bearbeiten und wieder einlesen'),
+    btn('Alle Varianten exportieren …', () => familyExportAll(), '', 'Jede Variante berechnen und als STEP, STL oder 3MF speichern (eine ZIP-Datei)'),
+    btn('Schließen', close, 'primary'));
+}
+// part family table: CSV in
+async function familyImport() {
+  const p = state.project;
+  if (!p.params.length) return status('Erst Parameter anlegen – die Spalten der Tabelle werden den Parametern zugeordnet.');
+  const f = await chooseFile('.csv,.txt,.tsv');
+  if (!f) return;
+  const { csvToConfigs } = await import('./family.js');
+  let r;
+  try { r = csvToConfigs(await f.text(), p.params); } catch (err) { return status(`Tabelle: ${err.message}`); }
+  const names = new Set(r.configs.map(c => c.name));
+  const replaced = (p.configs || []).filter(c => names.has(c.name)).length;
+  commit(pp => { pp.configs = [...(pp.configs || []).filter(c => !names.has(c.name)), ...r.configs]; });
+  status(`${r.configs.length} Variante(n) eingelesen${replaced ? `, ${replaced} davon ersetzt` : ''}${r.unknown.length ? ` – Spalten ohne Parameter übergangen: ${r.unknown.join(', ')}` : ''}${r.missing.length ? ` – ohne Spalte (bleiben wie sie sind): ${r.missing.join(', ')}` : ''}`);
+}
+async function familyExportCSV() {
+  const p = state.project;
+  if (!(p.configs || []).length) return status('Noch keine Konfiguration.');
+  const { configsToCSV } = await import('./family.js');
+  download(`${safeName()}_Varianten.csv`, configsToCSV(p.params, p.configs), 'text/csv');
+}
+// every variant is computed (the design itself stays as it is) and saved as STEP / STL / 3MF, all in one ZIP
+async function familyExportAll() {
+  const p = state.project, cfgs = p.configs || [];
+  if (!cfgs.length) return status('Noch keine Konfiguration – erst Varianten anlegen oder eine Tabelle einlesen.');
+  const v = await formDialog('Alle Varianten exportieren', [
+    { key: 'fmt', label: 'Format', value: 'step', options: [['step', 'STEP (genaue Flächen)'], ['stl', 'STL (Dreiecke)'], ['3mf', '3MF (Dreiecke, mit Namen)']] },
+    { key: 'hint', hint: `${cfgs.length} Variante(n). Jede wird für sich berechnet; das Modell in der Ansicht bleibt unverändert. Eine Datei je Variante, zusammen in einer ZIP-Datei.` }], 'Exportieren');
+  if (!v) return;
+  const { variantFile } = await import('./family.js');
+  const base = safeName(), files = [], failed = [], enc = new TextEncoder(), q = getSettings().exportQuality;
+  const busy = $('#loading');
+  try {
+    for (let i = 0; i < cfgs.length; i++) {
+      const c = cfgs[i];
+      busy && (busy.hidden = false, $('#loadingText').textContent = `Variante ${i + 1} von ${cfgs.length}: „${c.name}“ wird berechnet …`);
+      const doc = JSON.parse(JSON.stringify(p));
+      for (const q2 of doc.params) if (c.values[q2.name] !== undefined && c.values[q2.name] !== '') q2.expr = String(c.values[q2.name]);
+      let r;
+      try { r = await regenerateAsync(resolveProject(doc)); } catch (err) { failed.push(`${c.name} (${err.message || err})`); continue; }
+      const bodies = (r?.bodies || []).filter(b => !b.surface);
+      const errs = Object.keys(r?.errors || {}).length;
+      if (!bodies.length) { failed.push(`${c.name} (kein Körper${errs ? `: ${Object.values(r.errors)[0]}` : ''})`); continue; }
+      if (errs) failed.push(`${c.name} (${errs} Fehler in der Zeitleiste – trotzdem exportiert)`);
+      const name = variantFile(base, c.name);
+      if (v.fmt === 'step') files.push([`${name}.step`, enc.encode(await exportSTEP(bodies).text())]);
+      else {
+        const items = bodies.map(b => ({ name: bodyName(b), mesh: meshFromGeometry((q && q !== 'view' && exportGeometry(b, q)) || b.geometry) }));
+        if (v.fmt === '3mf') { const d = to3MF(items); files.push([`${name}.3mf`, d instanceof Blob ? new Uint8Array(await d.arrayBuffer()) : d]); }
+        else { const grp = new THREE.Group(); items.forEach(it => grp.add(new THREE.Mesh(meshToGeometry(it.mesh)))); const d = new STLExporter().parse(grp, { binary: true }); files.push([`${name}.stl`, new Uint8Array(d.buffer || d)]); }
+      }
+    }
+  } finally { busy && (busy.hidden = true); }
+  if (!files.length) return status(`Keine Variante ließ sich berechnen: ${failed.join('; ')}`);
+  download(`${base}_Varianten_${v.fmt.toUpperCase()}.zip`, zipStore(files), 'application/zip');
+  status(`${files.length} Variante(n) als ${v.fmt.toUpperCase()} exportiert${failed.length ? ` – ${failed.join('; ')}` : ''}`);
 }
 function fitCloudCmd() {
   const s = state.sel?.kind === 'feature' ? feature(state.sel.id) : null;
@@ -13261,6 +13760,8 @@ function menuAction(act) {
   else if (act === 'example-design') loadExample('design');
   else if (act === 'gltf') exportGltfFile();
   else if (act === 'urdf') exportUrdfFile();
+  else if (act === 'share') shareLinkCmd();
+  else if (act === 'openlink') openLinkCmd();
   else if (act === 'nccompare') ncCompareFiles();
   else if (act === 'script') runScriptFile();
   else if (act === 'pyscript') runPythonFile();
@@ -13340,6 +13841,7 @@ document.querySelectorAll('#navBar button').forEach(b => b.addEventListener('cli
     return;
   }
   if (nav === 'fit') return fitView();
+  if (nav === 'measure') return toggleMeasure();
   if (nav === 'grid') { gridOn = !gridOn; vp.grid.visible = gridOn; b.classList.toggle('on', gridOn); return; }
   if (nav === 'orbit' || nav === 'pan') {
     vp.controls.mouseButtons.LEFT = nav === 'orbit' ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN;
@@ -13688,6 +14190,11 @@ const PREF_TREE = [
         ['slicerFormat', 'Dateiformat', 'In welcher Form „An Slicer senden“ die Teile übergibt', [['3mf', '3MF (mehrere Teile, mit Namen)'], ['stl', 'STL (ein Netz)']]],
         ['slicerPath', 'Slicer-Programm', 'Programm, mit dem die Datei geöffnet wird (Desktop-App). Leer: das Programm, mit dem das System 3MF- oder STL-Dateien öffnet. Im Browser wird die Datei gespeichert.', 'text'],
         ['__slicerPick'],
+      ]],
+      ['Bauplatte', [
+        ['bedX', 'Breite (X)', 'Größe der Bauplatte für „Auf der Bauplatte anordnen“', 'num', { unit: 'mm', min: 20, max: 2000, step: 1 }],
+        ['bedY', 'Tiefe (Y)', 'Größe der Bauplatte für „Auf der Bauplatte anordnen“', 'num', { unit: 'mm', min: 20, max: 2000, step: 1 }],
+        ['bedGap', 'Abstand der Teile', 'Abstand zwischen angeordneten Teilen und zum Plattenrand', 'num', { unit: 'mm', min: 0, max: 50, step: 0.5 }],
       ]],
       ['Prüfen', [
         ['overhangAngle', 'Überhangwinkel', 'Flächen, die stärker überhängen (gemessen von der Senkrechten), brauchen Stützen – 45° ist bei den meisten Druckern die Grenze', 'num', { unit: '°', min: 10, max: 89, step: 1 }],
@@ -14149,6 +14656,77 @@ function shortcutsHelp() {
 
 $('#settingsBtn').onclick = openSettings;
 $('#helpBtn').onclick = () => openSettings('keys');
+// ----- Lernaufgaben (js/lessons.js): short tasks in the app whose steps check themselves -----
+const LESSON_KEY = 'openfab.lessons.v1';
+const lesson = { el: null, def: null, i: 0, timer: 0 };
+const lessonDone = () => { try { return JSON.parse(localStorage.getItem(LESSON_KEY))?.done || []; } catch { return []; } };
+function lessonProbe() {
+  const p = state.project;
+  return { ws: state.workspace, sketchOpen: !!state.sketchId, features: p.features, params: p.params, configs: p.configs || [], bodies: model?.bodies?.length ?? getModel().bodies.length,
+    setups: p.cam?.setups?.length || 0, ops: p.cam?.ops?.length || 0, simOpen: !!sim.open, dialogs: [...document.querySelectorAll('.modal-head')].map(e => deText(e)),
+    joints: p.assembly?.joints || [], studySteps: studyPlan().steps.length, explodeOpen: !!xpl.el };
+}
+async function lessonsDialog() {
+  const { LESSONS } = await import('./lessons.js');
+  const done = new Set(lessonDone());
+  const { body, foot, close } = modalWin('Lernaufgaben', 560);
+  body.append(h('p', { class: 'hint' }, 'Kurze Aufgaben direkt in WerkFab. Ein Fenster zeigt den nächsten Schritt und hakt ihn selbst ab, sobald er erledigt ist; der passende Knopf blinkt.'));
+  for (const l of LESSONS) body.append(h('div', { style: 'display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)' },
+    h('div', { style: 'flex:1' }, h('b', null, (done.has(l.id) ? '✓ ' : '') + l.title), h('span', { class: 'hint' }, ` · ${l.time} · ${l.steps.length} Schritte`), h('div', { class: 'hint' }, l.intro)),
+    btn(done.has(l.id) ? 'Nochmal' : 'Starten', () => { close(); startLesson(l.id); }, done.has(l.id) ? '' : 'primary')));
+  foot.append(btn('Schließen', close));
+}
+async function startLesson(id) {
+  const { LESSONS } = await import('./lessons.js');
+  const def = LESSONS.find(l => l.id === id);
+  if (!def) return;
+  stopLesson();
+  if (def.fresh) { const p = freshProject(); p.name = def.title; await openAsNewDoc(p); }
+  lesson.def = def; lesson.i = 0;
+  lesson.el = h('div', { id: 'lessonPanel', style: 'position:absolute;right:12px;top:12px;width:300px;z-index:31;background:var(--panel,#1f252c);color:var(--text,#ddd);border:1px solid var(--accent,#1e88ff);border-radius:8px;box-shadow:0 6px 24px #0006;padding:10px 12px;font-size:12.5px' });
+  $('#viewportWrap').append(lesson.el);
+  lessonTick();
+  lesson.timer = setInterval(lessonTick, 700);
+}
+function stopLesson() {
+  clearInterval(lesson.timer);
+  lesson.el?.remove();
+  lesson.el = null; lesson.def = null;
+  document.querySelectorAll('.lesson-hl').forEach(e => e.classList.remove('lesson-hl'));
+}
+async function lessonTick() {
+  if (!lesson.def || !lesson.el) return;
+  const { currentStep } = await import('./lessons.js');
+  const def = lesson.def, n = def.steps.length, was = lesson.i;
+  lesson.i = Math.max(lesson.i, currentStep(def, lessonProbe(), lesson.i));
+  if (lesson.i === was && lesson.el.dataset.step === String(lesson.i)) return lessonBlink(); // nothing new
+  lesson.el.dataset.step = String(lesson.i);
+  const fin = lesson.i >= n;
+  if (fin) { try { localStorage.setItem(LESSON_KEY, JSON.stringify({ done: [...new Set([...lessonDone(), def.id])] })); } catch { /* private mode */ } }
+  lesson.el.replaceChildren(
+    h('div', { style: 'display:flex;align-items:center;gap:6px;margin-bottom:6px' }, h('b', { style: 'flex:1' }, def.title), h('span', { class: 'hint' }, fin ? 'fertig' : `${lesson.i + 1} / ${n}`), h('button', { title: 'Aufgabe beenden', onclick: stopLesson }, '✕')),
+    h('div', { style: 'display:flex;gap:3px;margin-bottom:8px' }, ...def.steps.map((_, k) => h('span', { style: `flex:1;height:4px;border-radius:2px;background:${k < lesson.i ? 'var(--ok,#40c057)' : k === lesson.i ? 'var(--accent,#1e88ff)' : 'var(--line,#444)'}` }))),
+    ...def.steps.slice(Math.max(0, lesson.i - 1), lesson.i).map(s => h('div', { class: 'hint', style: 'text-decoration:line-through;opacity:.7;margin-bottom:4px' }, '✓ ' + s.text)),
+    fin ? h('p', { style: 'margin:4px 0 8px;color:var(--ok,#40c057)' }, '✓ ' + def.done) : h('p', { style: 'margin:4px 0 8px;line-height:1.45' }, def.steps[lesson.i].text),
+    h('div', { style: 'display:flex;gap:6px;justify-content:flex-end' },
+      fin ? btn('Weitere Aufgaben', () => { stopLesson(); lessonsDialog(); }, 'primary') : btn('Überspringen', () => { lesson.i++; lesson.el.dataset.step = ''; lessonTick(); })));
+  if (lesson.i > was) status(fin ? `Aufgabe „${def.title}“ geschafft` : `✓ Schritt ${was + 1} erledigt`);
+  lessonBlink();
+}
+// the toolbar button (and its tab) of the current step blinks
+function lessonBlink() {
+  document.querySelectorAll('.lesson-hl').forEach(e => e.classList.remove('lesson-hl'));
+  const s = lesson.def?.steps[lesson.i];
+  if (!s?.button) return;
+  const [tab, label] = s.button;
+  const b = [...document.querySelectorAll('.tbtn')].find(x => deText(x.querySelector('span')).trim() === label && x.offsetParent);
+  if (b) return b.classList.add('lesson-hl');
+  const t = [...document.querySelectorAll('.tab, [role=tab], #tabs button')].find(x => deText(x).trim() === tab);
+  t?.classList.add('lesson-hl');
+}
+$('#learnBtn')?.addEventListener('click', () => lessonsDialog());
+onChange(() => { if (lesson.el) Promise.resolve().then(lessonTick); });
+
 $('#searchBtn').onclick = () => openCommandSearch();
 
 // ---------- SpaceMouse calibration ----------
@@ -14570,6 +15148,52 @@ async function switchDoc(id) {
   fitView();
   renderDocTabs();
 }
+
+// ----- a design as a link (js/share.js): the whole design travels in the address after "#" -----
+async function shareLinkCmd() {
+  const S = await import('./share.js');
+  const doc = S.shareDoc(withBlobs(state.project));
+  const text = await S.encodeShare(doc), url = S.shareBase(location) + S.SHARE_PREFIX + text;
+  if (url.length > S.SHARE_LIMIT) return status(`Das Design ist für einen Link zu groß (${Math.round(url.length / 1000)} 000 Zeichen, höchstens ${S.SHARE_LIMIT / 1000} 000) – eingefügte Netze und STEP-Dateien machen ihn lang. Bitte als .ofab-Datei weitergeben (Datei → Exportieren).`);
+  const { body, foot, close } = modalWin('Als Link teilen', 560);
+  const ta = h('textarea', { readonly: true, rows: 4, style: 'width:100%;font:12px monospace;word-break:break-all' });
+  ta.value = url;
+  const kb = Math.round(url.length / 100) / 10;
+  body.append(
+    h('p', null, `Wer den Link öffnet, bekommt eine Kopie von „${state.project.name}“ in der Online-Version – ohne Installation, zum Ansehen, Messen und Weiterbearbeiten. Ihr Original bleibt unverändert.`),
+    ta,
+    h('p', { class: 'hint' }, `${kb.toLocaleString('de-DE')} kB. Das Design steht vollständig im Link (hinter „#“) und wird nicht auf einen Server geladen. Sehr lange Links kürzen manche Chat- und Mailprogramme – dann die .ofab-Datei schicken. In der Desktop-App: Datei → Link öffnen.`));
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); status('Link kopiert'); close(); }
+    catch { ta.focus(); ta.select(); status('Kopieren nicht erlaubt – der Link ist markiert, bitte mit Strg+C kopieren.'); }
+  };
+  foot.append(btn('Schließen', close), btn('Link kopieren', copy, 'primary'));
+  setTimeout(() => { ta.focus(); ta.select(); }, 0);
+}
+// open a design from a link (pasted, or the address the page was opened with)
+async function openShared(link) {
+  const S = await import('./share.js');
+  const i = String(link).indexOf(S.SHARE_PREFIX.slice(1)), t = i >= 0 ? String(link).slice(i) : String(link);
+  let doc;
+  try { doc = await S.decodeShare(t); } catch (err) { return status(`Link: ${err.message}`); }
+  await takeBlobs(doc);
+  doc.name = `${doc.name || 'Design'} (geteilt)`;
+  await openAsNewDoc(migrate(doc));
+  status(`„${doc.name}“ aus dem Link geöffnet – eine eigene Kopie, Änderungen bleiben auf diesem Rechner.`);
+}
+async function openLinkCmd() {
+  const v = await askValue('Link zu einem geteilten Design einfügen', '');
+  if (!v?.trim()) return;
+  if (!v.includes('m=')) return status('Das ist kein WerkFab-Link (er enthält kein „#m=…“).');
+  openShared(v.trim());
+}
+async function openSharedFromAddress() {
+  if (!location.hash.startsWith('#m=')) return;
+  const link = location.hash;
+  history.replaceState(null, '', location.pathname + location.search); // the link is not kept in the address bar
+  await openShared(link);
+}
+addEventListener('hashchange', () => openSharedFromAddress());
 
 async function closeDoc(id) {
   const t = openTabs.find(x => x.id === id);
@@ -15023,21 +15647,104 @@ const printGeoCache = new WeakMap();
 // hand visible meshes and bodies to the slicer: the desktop app writes a 3MF (or STL) and opens it with the program
 // chosen in the settings (or the one the system opens such files with); the browser saves the file instead
 async function sendToSlicer(list) {
-  const s = getSettings();
-  list ||= [...getModel().bodies.filter(b => !state.hiddenBodies.has(b.id) && !b.surface), ...getMeshes().bodies.filter(b => !state.hiddenBodies.has(b.id))];
+  list ||= printables();
   if (!list.length) return status('Nichts zum Drucken: kein sichtbarer Körper und kein Netz.');
-  const items = list.map(x => ({ name: x.name || bodyName(x), mesh: x.mesh || meshFromGeometry(printGeometry(x)) }));
+  return slicerSend(list.map(x => ({ name: x.name || bodyName(x), mesh: x.mesh || meshFromGeometry(printGeometry(x)) })));
+}
+// visible solids and meshes (what goes to the printer)
+const printables = () => [...getModel().bodies.filter(b => !state.hiddenBodies.has(b.id) && !b.surface), ...getMeshes().bodies.filter(b => !state.hiddenBodies.has(b.id))];
+// items [{ name, mesh }] → file for the slicer (desktop: opened in the slicer, browser: downloaded); save = only save it
+async function slicerSend(items, save = false) {
+  const s = getSettings();
   const fmt = s.slicerFormat === 'stl' ? 'stl' : '3mf', name = `${exportName(items.length === 1 ? items[0].name : '')}.${fmt}`;
   let data;
   if (fmt === '3mf') data = to3MF(items);
   else { const grp = new THREE.Group(); items.forEach(it => grp.add(new THREE.Mesh(meshToGeometry(it.mesh)))); data = new STLExporter().parse(grp, { binary: true }); }
   const bytes = data instanceof Blob ? new Uint8Array(await data.arrayBuffer()) : data instanceof DataView ? new Uint8Array(data.buffer) : data instanceof ArrayBuffer ? new Uint8Array(data) : data;
-  const sl = window.werkfabApp?.slicer;
-  if (!sl) { download(name, bytes, fmt === '3mf' ? 'model/3mf' : 'model/stl'); return status(`${name} gespeichert – im Browser die Datei im Slicer öffnen (die Desktop-App öffnet ihn selbst).`); }
+  const sl = window.werkfabApp?.slicer, mime = fmt === '3mf' ? 'model/3mf' : 'model/stl';
+  if (save) { download(name, bytes, mime); return status(`${name} gespeichert (${items.length} Teil(e))`); }
+  if (!sl) { download(name, bytes, mime); return status(`${name} gespeichert – im Browser die Datei im Slicer öffnen (die Desktop-App öffnet ihn selbst).`); }
   const r = await sl.open({ name, data: bytes, exe: s.slicerPath || '' });
+  if (r?.code === 'notfound') return status(`Slicer-Programm nicht gefunden: ${r.exe} – Einstellungen → 3D-Druck. Die Datei liegt bereit: ${r.file || name}`);
   if (r?.error) return status(`Slicer konnte nicht geöffnet werden: ${r.error}`);
   status(`${items.length} Teil(e) an den Slicer gegeben (${name})`);
 }
+
+// "Anordnen": visible parts spread over the print bed (copies, best flat side down, several beds) – preview first,
+// then sent to the slicer or saved. The model itself is not moved.
+async function arrangeDialog() {
+  const list = printables();
+  if (!list.length) return status('Nichts zum Anordnen: kein sichtbarer Körper und kein Netz.');
+  const { arrange, hull, placedHull } = await import('./arrange.js');
+  const s = getSettings();
+  const o = { W: +s.bedX || 220, H: +s.bedY || 220, gap: s.bedGap ?? 5, copies: 1, flat: true, turn: true, bed: 0 };
+  // per part: mesh as it lies (or on its biggest flat side), dropped to Z = 0, footprint hull
+  const prep = flat => list.map(x => {
+    let m = x.mesh || meshFromGeometry(printGeometry(x));
+    if (flat) { try { m = layFlat(m, 1); } catch { /* no flat side: keep */ } }
+    const bb = meshBounds(m);
+    m = meshApply(m, new THREE.Matrix4().makeTranslation(0, 0, -bb.min.z));
+    const pts = [];
+    for (let i = 0; i < m.pos.length; i += 3) pts.push([m.pos[i], m.pos[i + 1]]);
+    return { name: x.name || bodyName(x), mesh: m, pts: hull(pts), tall: bb.max.z - bb.min.z };
+  });
+  let parts = prep(o.flat), res = null;
+  const back = h('div', { class: 'modal-back' });
+  const svgBox = h('div', { style: 'background:var(--panel2,rgba(127,127,127,.12));border-radius:6px;padding:6px;display:flex;justify-content:center' });
+  const info = h('p', { class: 'hint' });
+  const bedSel = h('select', { onchange: e => { o.bed = +e.target.value; draw(); } });
+  const num = key => {
+    const i = h('input', { type: 'text', value: String(o[key]), style: 'width:70px' });
+    i.addEventListener('change', () => { const n = +String(i.value).replace(',', '.'); if (Number.isFinite(n) && n >= 0) o[key] = n; i.value = String(o[key]); run(); });
+    return i;
+  };
+  const nm = id => parts[+id.split(':')[0]].name;
+  function run() {
+    o.copies = Math.max(1, Math.min(200, Math.round(o.copies)));
+    o.W = Math.max(10, o.W); o.H = Math.max(10, o.H);
+    const items = [];
+    parts.forEach((p, k) => { for (let c = 0; c < o.copies; c++) items.push({ id: `${k}:${c}`, pts: p.pts }); });
+    res = arrange(items, { W: o.W, H: o.H, gap: o.gap, margin: o.gap, turn: o.turn });
+    if (o.bed >= res.beds) o.bed = 0;
+    const nb = Math.max(1, res.beds);
+    bedSel.replaceChildren(...Array.from({ length: nb }, (_, i) => h('option', { value: i, selected: i === o.bed }, `Platte ${i + 1} von ${nb}`)));
+    const big = [...new Set(res.tooBig.map(nm))], tall = Math.max(0, ...parts.map(p => p.tall));
+    info.textContent = `${res.places.length} Teil(e) auf ${res.beds} Platte(n), höchstes Teil ${fmtMm(tall)} mm` + (big.length ? ` – passt nicht auf die Platte: ${big.join(', ')}` : '');
+    draw();
+  }
+  function draw() {
+    const W = o.W, H = o.H, sc = Math.min(420 / W, 300 / H), pal = ['#5b9bd5', '#70ad47', '#ed7d31', '#a5a5a5', '#ffc000', '#4bacc6', '#c0504d', '#8064a2'];
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    const polys = res.places.filter(p => p.bed === o.bed).map(pl => {
+      const k = +pl.id.split(':')[0], pts = placedHull(parts[k].pts, pl).map(([x, y]) => `${(x * sc).toFixed(1)},${((H - y) * sc).toFixed(1)}`).join(' ');
+      return `<polygon points="${pts}" fill="${pal[k % pal.length]}" fill-opacity="0.75" stroke="currentColor" stroke-width="0.8"><title>${esc(parts[k].name)}</title></polygon>`;
+    }).join('');
+    svgBox.innerHTML = `<svg width="${(W * sc).toFixed(0)}" height="${(H * sc).toFixed(0)}" style="color:var(--text,#ccc)"><rect x="0.5" y="0.5" width="${(W * sc - 1).toFixed(1)}" height="${(H * sc - 1).toFixed(1)}" fill="none" stroke="currentColor" stroke-dasharray="4 3" rx="3"/>${polys}</svg>`;
+  }
+  // the meshes of one bed, moved to their places
+  const bedItems = b => res.places.filter(p => p.bed === b).map(pl => {
+    const [k, c] = pl.id.split(':').map(Number);
+    const M = new THREE.Matrix4().makeTranslation(pl.dx, pl.dy, 0).multiply(new THREE.Matrix4().makeRotationZ(pl.a));
+    return { name: o.copies > 1 ? `${parts[k].name} (${c + 1})` : parts[k].name, mesh: meshApply(parts[k].mesh, M) };
+  });
+  const close = () => back.remove();
+  const act = save => { if (!res?.places.some(p => p.bed === o.bed)) return status('Auf dieser Platte liegt nichts.'); const it = bedItems(o.bed); close(); slicerSend(it, save); };
+  back.append(h('div', { class: 'modal', style: 'height:auto;width:min(480px,calc(100vw - 32px))' },
+    h('div', { class: 'modal-head' }, 'AUF DER BAUPLATTE ANORDNEN', h('button', { onclick: close }, '✕')),
+    h('div', { style: 'padding:12px 16px;display:grid;gap:6px' },
+      row('Bauplatte (mm)', h('div', { style: 'display:flex;gap:6px;align-items:center' }, num('W'), '×', num('H'))),
+      row('Abstand (mm)', num('gap')),
+      row('Anzahl je Teil', num('copies')),
+      row('Auf größte Fläche legen', chk(o.flat, v => { o.flat = v; parts = prep(v); run(); })),
+      row('Drehen erlaubt', chk(o.turn, v => { o.turn = v; run(); })),
+      svgBox, row('Platte', bedSel), info,
+      h('p', { class: 'hint' }, 'Das Modell selbst wird nicht verschoben; nur die Datei für den Slicer bekommt diese Lage. Bei mehreren Platten wird die gewählte gesendet. Voreinstellung für Platte und Abstand: Einstellungen → 3D-Druck.')),
+    h('div', { class: 'modal-foot' }, h('button', { onclick: close }, 'Abbrechen'), h('button', { onclick: () => act(true) }, 'Speichern'), h('button', { class: 'primary', onclick: () => act(false) }, 'An Slicer senden'))));
+  back.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  document.body.append(back);
+  run();
+}
+const fmtMm = v => (Math.round(v * 10) / 10).toLocaleString('de-DE');
 function exportMeshSTL(list) {
   const grp = new THREE.Group();
   list.forEach(x => grp.add(new THREE.Mesh(printGeometry(x))));
@@ -15078,6 +15785,81 @@ async function bodyToMesh() {
 }
 
 // closed mesh → solid body (through the kernel: one face per triangle, faces in a plane merged)
+// ----- Bohrungen erkennen (js/holefind.js): drilled holes of a body (e.g. from "Netz → Körper" or a STEP import)
+// become hole features again: one step closes them (Fläche löschen), then one hole step per group of equal holes
+// on one plane – the diameter, depth or position can then be changed like any hole.
+function faceTriPoint(body, fid) {
+  const idx = body.geometry.index.array, pos = body.geometry.attributes.position;
+  let best = -1, area = -1;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  for (let t = 0; t < body.faceOf.length; t++) {
+    if (body.faceOf[t] !== fid) continue;
+    a.fromBufferAttribute(pos, idx[t * 3]); b.fromBufferAttribute(pos, idx[t * 3 + 1]); c.fromBufferAttribute(pos, idx[t * 3 + 2]);
+    const ar = b.clone().sub(a).cross(c.clone().sub(a)).length();
+    if (ar > area) { area = ar; best = t; }
+  }
+  return best < 0 ? null : faceRefPoint(body, best);
+}
+function holeFaceData(body) {
+  const oc = OC.getOC(), P = v => [v.x, v.y, v.z], cyls = [], caps = [];
+  body.shape.faces.forEach((fc, id) => {
+    const pts = [];
+    for (const w of fc.wires) for (const e of w.edges) for (const t of e.geomType === 'LINE' ? [0, 1] : [0, 0.25, 0.5, 0.75, 1]) pts.push(P(e.pointAt(t)));
+    if (fc.geomType === 'CYLINDRE') {
+      const cy = new oc.BRepAdaptor_Surface(fc.wrapped, true).Cylinder(), ax = cy.Axis(), L = ax.Location(), D = ax.Direction();
+      const loc = [L.X(), L.Y(), L.Z()], dir = [D.X(), D.Y(), D.Z()], r = cy.Radius();
+      // concave (a hole): the face normal points towards the axis
+      const p = pts[0], n = fc.normalAt(fc.pointOnSurface ? fc.pointOnSurface(0.5, 0.5) : p), q = fc.pointOnSurface ? P(fc.pointOnSurface(0.5, 0.5)) : p;
+      const t = (q[0] - loc[0]) * dir[0] + (q[1] - loc[1]) * dir[1] + (q[2] - loc[2]) * dir[2];
+      const rad = [q[0] - loc[0] - dir[0] * t, q[1] - loc[1] - dir[1] * t, q[2] - loc[2] - dir[2] * t];
+      cyls.push({ id, loc, dir, r, concave: n.x * rad[0] + n.y * rad[1] + n.z * rad[2] < 0, pts });
+    } else caps.push({ id, kind: fc.geomType === 'PLANE' ? 'plane' : fc.geomType === 'CONE' ? 'cone' : 'other', pts });
+  });
+  return { cyls, caps };
+}
+async function holesToFeatures() {
+  const m = getModel(), bodies = m.bodies.filter(b => b.shape && !b.surface && !state.hiddenBodies.has(b.id));
+  if (!bodies.length) return status('Kein Körper vorhanden.');
+  let body = selBodyId() ? bodies.find(b => b.id === selBodyId()) : bodies.length === 1 ? bodies[0] : null;
+  if (!body) {
+    const v = await formDialog('Bohrungen erkennen', [{ key: 'body', label: 'Körper', options: bodies.map(b => [b.id, bodyName(b)]), value: bodies[bodies.length - 1].id }], 'Weiter');
+    if (!v) return;
+    body = bodies.find(b => b.id === v.body);
+  }
+  if (!body) return;
+  const H = await import('./holefind.js');
+  let holes;
+  try { const d = holeFaceData(body); holes = H.findHoles(d.cyls, d.caps); } catch (err) { console.warn(err); return status(`Bohrungen erkennen: ${err.message || err}`); }
+  if (!holes.length) return status(`In „${bodyName(body)}“ wurden keine Bohrungen gefunden (gesucht: runde Durchgangs- und Sacklöcher, auch mit Senkung). Bei Netzen vorher „Netz → Körper“ – dort werden Bohrungen zu echten Zylindern.`);
+  const groups = H.groupHoles(holes), f2s = v => (Math.round(v * 1000) / 1000).toLocaleString('de-DE');
+  const v = await formDialog('Bohrungen erkennen', [
+    ...groups.map((g, i) => { const h0 = g.holes[0]; return { key: 'g' + i, check: true, value: true, label: `${g.holes.length} × Ø ${f2s(h0.dia)}${h0.through ? ' durchgehend' : ` × ${f2s(h0.depth)} tief${h0.tip ? ', mit Spitze' : ''}`}${h0.kind === 'cbore' ? `, Senkung Ø ${f2s(h0.cbDia)} × ${f2s(h0.cbDepth)}` : ''}` }; }),
+    { key: 'hint', hint: 'Die gewählten Bohrungen werden im Körper geschlossen (ein Schritt „Fläche löschen“) und als Bohrungsschritte neu angelegt – gleiche Bohrungen auf einer Fläche teilen sich einen Schritt. Danach lassen sich Durchmesser, Tiefe, Senkung und Lage wie bei jeder Bohrung ändern. Beim ersten Mal lädt der große Geometriekern.' }], 'Übernehmen');
+  if (!v) return;
+  const chosen = groups.filter((g, i) => v['g' + i]);
+  if (!chosen.length) return;
+  requestFullKernel();
+  const refs = [];
+  for (const g of chosen) for (const hl of g.holes) for (const fid of hl.faces) { const p = faceTriPoint(body, fid); if (p) refs.push(p); }
+  const r6 = x => Math.round(x * 1e6) / 1e6;
+  let made = 0;
+  commit(pp => {
+    pp.features.push({ id: uid('df'), type: 'delface', name: `Erkannte Bohrungen geschlossen (${bodyName(body)})`, faces: refs, body: body.id });
+    for (const g of chosen) {
+      const h0 = g.holes[0], n = g.dir.map(c => -c); // sketch normal points out of the material (the hole goes against it)
+      const xd = Math.abs(n[2]) < 0.9 ? [n[1], -n[0], 0] : [1, 0, 0], xl = Math.hypot(...xd), x = xd.map(c => c / xl);
+      const y = [n[1] * x[2] - n[2] * x[1], n[2] * x[0] - n[0] * x[2], n[0] * x[1] - n[1] * x[0]];
+      const o = h0.entry, loc = p => { const d = [p[0] - o[0], p[1] - o[1], p[2] - o[2]]; return [r6(d[0] * x[0] + d[1] * x[1] + d[2] * x[2]), r6(d[0] * y[0] + d[1] * y[1] + d[2] * y[2])]; };
+      const sk = uid('sk');
+      pp.features.push({ id: sk, type: 'sketch', name: `Bohrbild Ø ${f2s(h0.dia)} (erkannt)`, hidden: true, plane: { o: o.map(r6), x: x.map(r6), n: n.map(r6) },
+        entities: g.holes.map(hl => { const [px, py] = loc(hl.entry); return { id: uid('e'), type: 'point', x: px, y: py }; }) });
+      pp.features.push({ id: uid('ho'), type: 'hole', name: `Bohrung Ø ${f2s(h0.dia)} (erkannt)`, sketch: sk, points: 'all', kind: h0.kind, dia: h0.dia, depth: h0.through ? h0.depth : h0.depth, through: !!h0.through,
+        cbDia: h0.cbDia || +(h0.dia * 1.8).toFixed(2), cbDepth: h0.cbDepth || +(h0.dia * 0.6).toFixed(2), csDia: +(h0.dia * 2).toFixed(2), csAngle: 90, tip: !!h0.tip, target: body.id, cutOnly: body.id });
+      made += g.holes.length;
+    }
+  });
+  status(`${made} Bohrung(en) in ${chosen.length} Bohrungsschritt(en) übernommen – Durchmesser, Tiefe und Lage jetzt in den Schritten änderbar.`);
+}
 async function meshToBody(target) {
   const mb = pickMesh(target);
   if (!mb) return;
@@ -15088,13 +15870,20 @@ async function meshToBody(target) {
   try {
     busy && (busy.hidden = false, $('#loadingText').textContent = 'Netz wird in einen Körper umgewandelt …');
     await new Promise(r => setTimeout(r, 30));
-    const rnd = meshRound(mb.mesh), conv = await meshToStep(mb.mesh, rnd.cylinders, rnd), blob = await putBlob(conv.text), id = uid('im');
+    const rnd = meshRound(mb.mesh), conv = await meshToStep(mb.mesh, rnd.cylinders, rnd), id = uid('im');
+    // where true faces were put in, splinters of facets remain: the full kernel merges them into their neighbours
+    let slivers = 0;
+    if (conv.cylinders + conv.cones + conv.spheres + conv.tori) {
+      busy && ($('#loadingText').textContent = 'Splitterflächen werden entfernt …');
+      try { const c = await cleanSlivers(conv.text); if (c) { conv.text = c.text; slivers = c.before - c.after; } } catch { /* the body as it is */ }
+    }
+    const blob = await putBlob(conv.text);
     commit(p => p.features.push({ id, type: 'import', name: `${mb.name} (Körper)`, file: `Netz „${mb.name}“`, format: 'step', blob, op: 'new', scale: 1, yUp: false, rz: 0, dx: 0, dy: 0, dz: 0 }));
     const err = getModel().errors[id];
     if (err) throw new Error(err);
     state.hiddenBodies.add(mb.id);
     select('feature', id);
-    status(`„${mb.name}“ ist jetzt auch ein Körper (Verrundung, Ausschneiden, 2D-Bearbeitung möglich)${conv.cylinders - conv.arcs ? ` – ${conv.cylinders - conv.arcs} runde Bohrungen/Zapfen als echte Zylinder` : ''}${conv.arcs ? ` – ${conv.arcs} Verrundungen/Teilzylinder als echte Rundungen` : ''}${conv.cones + conv.spheres ? ` – ${conv.cones + conv.spheres} Kegel-/Kugelflächen als echte Flächen` : ''}${conv.tori ? ` – ${conv.tori} Verrundungen um runde Kanten als echte Ringflächen` : ''}. Das Netz ist ausgeblendet.`);
+    status(`„${mb.name}“ ist jetzt auch ein Körper (Verrundung, Ausschneiden, 2D-Bearbeitung möglich)${conv.cylinders - conv.arcs ? ` – ${conv.cylinders - conv.arcs} runde Bohrungen/Zapfen als echte Zylinder` : ''}${conv.arcs ? ` – ${conv.arcs} Verrundungen/Teilzylinder als echte Rundungen` : ''}${conv.cones + conv.spheres ? ` – ${conv.cones + conv.spheres} Kegel-/Kugelflächen als echte Flächen` : ''}${(conv.tori ? ` – ${conv.tori} Verrundungen um runde Kanten als echte Ringflächen` : '') + (slivers ? ` – ${slivers} Splitterflächen entfernt` : '')}. Das Netz ist ausgeblendet.`);
   } catch (err) {
     alert('Umwandeln fehlgeschlagen: ' + (err.message || err));
   } finally { if (busy) busy.hidden = true; }
@@ -16682,6 +17471,7 @@ function openPostDialog(saved = null) {
   fitView();
   initUpdates(status);
   initAgent();
+  openSharedFromAddress();
   initFusion(fusionEnv());
   setTimeout(startAddins, 1500);
   // steps waiting for the full kernel (delete face, fillet with radius points) are computed as soon as it is there

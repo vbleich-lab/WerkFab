@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "Voeding met rotatie-as",
+ "wie programmiert (mm/min)": "zoals geprogrammeerd (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "omgerekend (graden tellen als mm)",
+ "zeitreziprok (G93)": "inverse tijd (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "4-assige regels met X/Y/Z en A samen: veel besturingen rekenen daar graden als millimeters, de frees loopt dan te langzaam of te snel over het werkstuk. ‘Omgerekend’ schrijft de F-waarde zo dat een dergelijke besturing de gewenste voeding aan de snijkant haalt. ‘Inverse tijd’ schakelt naar G93 en geeft in elke regel 1/tijd op – eenduidig als de besturing G93 kent.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1 stuurt alleen X, Y en Z aan: voor de rotatie-as A is een 4-assige variant nodig (bijv. grblHAL) – anders blijft het programma bij het eerste A-woord staan",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "Regels met X/Y/Z en A samen: de voeding staat in mm/min in het programma, maar veel besturingen rekenen daar graden als millimeters – zet de instelling ‘Voeding met rotatie-as’ van de postprocessor op ‘omgerekend’ of ‘inverse tijd (G93)’"
+}

@@ -2,7 +2,7 @@
 // Run: npm run test:design
 import './lib/node-env.mjs';
 const THREE = await import('three');
-const { meshInertia } = await import('../js/mesh.js');
+const { meshInertia, rotateInertia } = await import('../js/mesh.js');
 const { scaleEntity, translateEntity, rotateEntity } = await import('../js/profiles.js');
 
 const ok = (n, c, x = '') => { console.log((c ? 'OK   ' : 'FEHL ') + n + '  ' + x); if (!c) process.exitCode = 1; };
@@ -26,6 +26,12 @@ const near = (a, b, rel = 1e-6) => Math.abs(a - b) <= rel * Math.max(1, Math.abs
   const R = 10, hgt = 30, cyl = meshInertia(new THREE.CylinderGeometry(R, R, hgt, 720, 1));
   const Vc = Math.PI * R * R * hgt;
   ok('Zylinder: Iyy = V·R²/2, Ixx = V·(3R² + h²)/12', near(cyl.volume, Vc, 1e-4) && near(cyl.I[1], (Vc * R * R) / 2, 1e-4) && near(cyl.I[0], (Vc * (3 * R * R + hgt * hgt)) / 12, 1e-4), `${cyl.I.slice(0, 3).map(v => Math.round(v)).join(' / ')}`);
+  // the same box turned 90° about Z in an assembly: Ixx and Iyy swap; turned 45°: the tensor matches the turned mesh
+  const turn = (deg, ax) => new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(...ax).normalize(), (deg * Math.PI) / 180);
+  const r90 = rotateInertia(m.I, turn(90, [0, 0, 1]).elements);
+  ok('Gedrehte Komponente (90° um Z): Ixx und Iyy tauschen', near(r90[0], m.I[1]) && near(r90[1], m.I[0]) && near(r90[2], m.I[2]), r90.slice(0, 3).map(v => Math.round(v)).join(' / '));
+  const M = turn(37, [1, 2, 3]), r37 = rotateInertia(m.I, M.elements), mt = meshInertia(g.clone().applyMatrix4(M));
+  ok('Gedrehte Komponente (37° schräg): gleich wie das gedrehte Netz', r37.every((v, i) => Math.abs(v - mt.I[i]) < 1e-6 * V * 100), r37.map(v => Math.round(v)).join(' / '));
   ok('Offenes Netz ohne Volumen: kein Ergebnis', meshInertia(new THREE.PlaneGeometry(10, 10)) === null);
 }
 

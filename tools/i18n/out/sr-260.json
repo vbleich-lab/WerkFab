@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "Посмак са обртном осом",
+ "wie programmiert (mm/min)": "како је програмирано (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "прерачунато (степени се рачунају као mm)",
+ "zeitreziprok (G93)": "инверзно време (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "4-осни блокови са X/Y/Z и A заједно: многе управљачке јединице ту рачунају степене као милиметре, па се глодало по обратку креће преспоро или пребрзо. „Прерачунато“ уписује F-вредност тако да таква управљачка јединица оствари жељени посмак на сечиву. „Инверзно време“ пребацује на G93 и у сваком блоку наводи 1/време – једнозначно ако управљачка јединица познаје G93.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1 управља само осама X, Y и Z: за обртну осу A потребна је 4-осна варијанта (нпр. grblHAL) – иначе програм стаје на првој A-речи",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "Блокови са X/Y/Z и A заједно: посмак је у програму у mm/min, али многе управљачке јединице ту рачунају степене као милиметре – подешавање постпроцесора „Посмак са обртном осом“ поставите на „прерачунато“ или „инверзно време (G93)“"
+}

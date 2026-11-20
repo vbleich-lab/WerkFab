@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "Padeve ar rotācijas asi",
+ "wie programmiert (mm/min)": "kā ieprogrammēts (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "pārrēķināta (grādi skaitās kā mm)",
+ "zeitreziprok (G93)": "apgrieztais laiks (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "4 asu kadri ar X/Y/Z un A kopā: daudzas vadības sistēmas tur grādus rēķina kā milimetrus, un frēze tad pa sagatavi pārvietojas pārāk lēni vai pārāk ātri. „Pārrēķināta“ ieraksta F vērtību tā, lai šāda vadības sistēma nodrošinātu vēlamo padevi pie griezējšķautnes. „Apgrieztais laiks“ pārslēdz uz G93 un katrā kadrā norāda 1/laiks – viennozīmīgi, ja vadības sistēma pazīst G93.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1 vada tikai X, Y un Z: rotācijas asij A nepieciešams 4 asu variants (piem., grblHAL) – citādi programma apstājas pie pirmā A vārda",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "Kadri ar X/Y/Z un A kopā: padeve programmā norādīta mm/min, taču daudzas vadības sistēmas tur grādus rēķina kā milimetrus – postprocesora iestatījumu „Padeve ar rotācijas asi“ iestatiet uz „pārrēķināta“ vai „apgrieztais laiks (G93)“"
+}

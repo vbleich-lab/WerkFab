@@ -648,6 +648,7 @@ class Writer {
           return `${sep}${key}${v}`;
         }
         if (motion && key === 'F') {
+          if (motion.fInv != null) { this.st.F = null; return `${sep}F${motion.fInv}`; }
           if (motion.f == null) return '';
           const f = Math.round(motion.f);
           if (this.st.F === f && !(d.feedAfterRapid && this.rapidBefore)) return '';
@@ -752,6 +753,7 @@ export const POST_PROPS = [
   { key: 'arcs', group: 'builtin', label: 'Kreisbögen ausgeben', type: 'bool', def: true },
   { key: 'planeArcs', group: 'builtin', label: 'Kreisbögen in XZ und YZ (G18/G19)', type: 'bool', def: true, only: ['fanuc', 'sinumerik', 'linuxcnc', 'grbl', 'gcode'], help: 'Bahnen über Rundungen in senkrechten Ebenen als G2/G3 mit G18 bzw. G19 statt vieler kurzer Geraden – deutlich kürzere Programme beim 3D-Schlichten' },
   { key: 'cycles', group: 'builtin', label: 'Bohrzyklen ausgeben', type: 'bool', def: true },
+  { key: 'rotaryFeed', group: 'builtin', label: 'Vorschub mit Drehachse', type: [['mm', 'wie programmiert (mm/min)'], ['comp', 'umgerechnet (Grad zählen wie mm)'], ['inverse', 'zeitreziprok (G93)']], def: 'mm', only: ['fanuc', 'linuxcnc', 'grbl', 'gcode'], help: '4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.' },
   // M functions the user switched off: removed from every block of the program (list of numbers)
   { key: 'mOff', group: 'mcodes', label: 'M-Befehle', type: 'mlist', def: [] },
 ];
@@ -971,7 +973,8 @@ export function runPost(def, project, gen, opts = {}) {
   const lastOfTool = new Set(cutOps.filter((op, k) => results.get(cutOps[k + 1]?.id)?.tool?.id !== results.get(op.id).tool.id).map(op => op.id));
   if (hh && P.tcpm && !lathe) W.expand(P.tcpmCode === 'm128' ? 'M128' : 'FUNCTION TCPM F TCP AXIS POS PATHCTRL AXIS');
 
-  let planeOn = false, kinWarned = false;
+  let planeOn = false, kinWarned = false, rotWarned = false;
+  const rotFeed = P.rotaryFeed || 'mm';
   // rotary axes of the machine (cycle 19 computes their angles into Q120…Q122 but does not move them)
   const rotAxes = { A: ['A'], AC: ['A', 'C'], BC: ['B', 'C'] }[machine?.kin?.type] || null;
   const QROT = { A: 120, B: 121, C: 122 };
@@ -1455,7 +1458,11 @@ export function runPost(def, project, gen, opts = {}) {
         if (Math.abs(o.y - rot.y) > 0.01 || Math.abs(o.z - rot.z) > 0.01) warnings.push(`${op.name}: Nullpunkt Y/Z liegt nicht auf der Drehachse A (Achse bei Y${W.num(rot.y - o.y)} Z${W.num(rot.z - o.z)}) – für 4-Achs-Simultan den Nullpunkt auf die Achse legen (Rohteil-Punkt Mitte Y/Z)`);
         if (machine?.kin && machine.kin.type !== 'A' && (machine.kin.type !== 'AC' || Array.isArray(machine.kin.a))) warnings.push(`${op.name}: Die gewählte Maschine hat keine endlos drehende A-Achse`);
         if (!machine?.kin) warnings.push(`${op.name}: 4-Achs-Simultan – Maschine mit Drehachse A wählen`);
+        if (fam === 'grbl' && !rotWarned) warnings.push('GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen');
+        if (rotFeed === 'mm' && ['fanuc', 'linuxcnc', 'grbl', 'gcode'].includes(fam) && !rotWarned) warnings.push('Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen');
+        rotWarned = true;
       }
+      let prevRot = null, invOn = false;
       let px = null, py = null, pz = null, comp = null, cpDrift = 0;
       W.lastCC = null; // circle centre CC: modal on the control, written again only when it changes (and per operation)
       // Y axis: every pass across the axis in the frame of its index angle (x towards the turret, y across)
@@ -1526,7 +1533,20 @@ export function runPost(def, project, gen, opts = {}) {
         const mark0 = W.out.length;
         // lathe: x is the radius in the toolpath, the program wants the diameter
         const mv = { x: lathe ? 2 * (m.xr ?? m.x) : m.x - o.x, y: m.y - o.y, z: m.z - o.z, f: m.t === 'r' ? null : feedOf(m.f) };
-        if (m.a != null) Object.assign(mv, { y: m.my - o.y, z: m.mz - o.z, a: m.a });
+        if (m.a != null) {
+          Object.assign(mv, { y: m.my - o.y, z: m.mz - o.z, a: m.a });
+          // feed with the rotary axis: the time of the block from the way of the tip on the part (m.x/y/z turn with
+          // it); written as 1/min (G93) or as the feed a control needs that counts degrees like millimetres
+          if (m.t === 'f' && prevRot && rotFeed !== 'mm' && mv.f > 0) {
+            const lm = Math.hypot(m.x - prevRot.x, m.my - prevRot.my, m.mz - prevRot.mz, m.a - prevRot.a), lp = Math.hypot(m.x - prevRot.x, m.y - prevRot.y, m.z - prevRot.z);
+            const tm = (lp > 1e-6 ? lp : lm) / mv.f;
+            if (tm > 0 && lm > 1e-9) {
+              if (rotFeed === 'inverse') { if (!invOn) { W.expand('G93'); invOn = true; } const iv = 1 / tm; mv.fInv = iv >= 1000 ? String(Math.round(iv)) : iv.toFixed(iv >= 10 ? 1 : 3).replace(/\.?0+$/, ''); }
+              else mv.f = Math.max(1, lm / tm);
+            }
+          }
+          prevRot = m;
+        }
         // lathe with driven tool: the part angle as C word
         if (lathe && m.c != null) mv.c = m.c;
         // polar interpolation: Cartesian position on the part, X as diameter and C in mm; rapids as fast feed moves
@@ -1580,6 +1600,7 @@ export function runPost(def, project, gen, opts = {}) {
       }
       if (planeTpl && W.plane !== 17) { W.expand('G17'); W.plane = 17; }
       if (comp && !hh && fam !== 'grbl' && !lathe) W.expand('G40');
+      if (invOn) { W.expand('G94'); W.st.F = null; }
       if (polarOn) { W.expand(W.tag(def.polarOff, 'polarOff'), tv); W.resetModal(); }
       if (yOn) { W.expand(W.tag(def.yOff, 'yOff'), tv); W.resetModal(); }
       if (cylOn) { W.expand(W.tag(def.cylOff, 'cylOff'), { ...tv, cylr: r.cyl }); W.resetModal(); }

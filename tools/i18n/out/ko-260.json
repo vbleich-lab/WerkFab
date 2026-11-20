@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "회전축 포함 이송 속도",
+ "wie programmiert (mm/min)": "프로그램된 대로 (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "환산 (도를 mm처럼 계산)",
+ "zeitreziprok (G93)": "인버스 타임 (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "X/Y/Z와 A가 함께 있는 4축 블록: 많은 제어기가 여기서 도를 밀리미터처럼 계산하므로 커터가 공작물에서 너무 느리거나 너무 빠르게 움직입니다. “환산”은 그러한 제어기가 절삭날에서 원하는 이송 속도로 움직이도록 F 값을 출력합니다. “인버스 타임”은 G93으로 전환하고 모든 블록에 1/시간을 지정합니다 – 제어기가 G93을 지원하면 명확합니다.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1은 X, Y, Z만 제어합니다: 회전축 A에는 4축 버전(예: grblHAL)이 필요합니다 – 그렇지 않으면 프로그램이 첫 번째 A 워드에서 멈춥니다",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "X/Y/Z와 A가 함께 있는 블록: 프로그램의 이송 속도는 mm/min 단위이지만 많은 제어기가 여기서 도를 밀리미터처럼 계산합니다 – 포스트 프로세서의 “회전축 포함 이송 속도” 설정을 “환산” 또는 “인버스 타임 (G93)”으로 지정하십시오"
+}

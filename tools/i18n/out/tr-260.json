@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "Döner eksenle ilerleme",
+ "wie programmiert (mm/min)": "programlandığı gibi (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "dönüştürülmüş (derece mm gibi sayılır)",
+ "zeitreziprok (G93)": "ters zaman (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "X/Y/Z ve A'nın birlikte olduğu 4 eksenli bloklar: Birçok kontrol ünitesi burada dereceyi milimetre gibi hesaplar, freze bu durumda iş parçasında çok yavaş veya çok hızlı ilerler. “Dönüştürülmüş”, F değerini böyle bir kontrol ünitesinin kesici kenarda istenen ilerlemeyi uygulayacağı şekilde yazar. “Ters zaman” G93'e geçer ve her blokta 1/zaman değerini verir – kontrol ünitesi G93'ü tanıyorsa kesindir.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1 yalnızca X, Y ve Z'yi kontrol eder: A döner ekseni için 4 eksenli bir sürüm (ör. grblHAL) gerekir – aksi halde program ilk A kelimesinde durur",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "X/Y/Z ve A'nın birlikte olduğu bloklar: İlerleme programda mm/min olarak yer alır, ancak birçok kontrol ünitesi burada dereceyi milimetre gibi hesaplar – post işlemcinin “Döner eksenle ilerleme” ayarını “dönüştürülmüş” veya “ters zaman (G93)” yapın"
+}

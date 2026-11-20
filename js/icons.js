@@ -47,6 +47,7 @@ export const ICONS = {
   mesh_hollow: svg(P('M3 19 12 4l9 15z', 'f2') + P('M8 16.5 12 9.5l4 7z', 'f1') + P('M8 16.5 12 9.5l4 7z', 'a').replace('/>', ' fill="none"/>')),
   mesh_layflat: svg(P('M5 16 12 6l7 10z', 'f2') + P('M2 19.5h20', 'a') + P('M12 16v3', 'a')),
   mesh_overhang: svg(P('M4 19h6V9h10v5h-6', 'f2') + P('M10 14h10', 'r') + P('M12 14v5M16 14v5', 'r').replace('/>', ' stroke-dasharray="1.5 1.5"/>')),
+  mesh_arrange: svg(R(2, 3, 20, 18, 'f1', 1.5) + R(4.5, 5.5, 7, 5, 'f2', 0.6) + R(13, 5.5, 6.5, 8, 'f2', 0.6) + R(4.5, 12.5, 7, 6, 'f2', 0.6) + P('M15 17h4M17 15v4', 'a')),
   mesh_slicer: svg(R(3, 15, 18, 5, 'f2', 1) + P('M8 4h8l-1.5 5h-5z', 'f1') + P('M12 9v4.5', 'a') + C(12, 13.8, 0.9, 'af')),
   mesh_section: svg(P('M3 19 12 4l9 15z', 'f2') + P('M2 13h20', 'r') + P('M8.4 13h7.2', 'a').replace('/>', ' stroke-width="2.4"/>')),
 
@@ -159,6 +160,8 @@ export const ICONS = {
   deburr3d: svg(P('M4 20V9l5-5h11v16z', 'f1') + P('M4 9l5-5', 'a') + C(8.5, 7.5, 1.6, 'af')),
   geodesic3d: svg(P('M3 17c3-9 15-9 18 0z', 'f1') + P('M6 17c2-6 10-6 12 0M9 17c1-3 5-3 6 0', 'a') + P('M3 19h18')),
   parallel3d: svg(P('M3 19c3-9 6-9 9-3s6 6 9-3v6H3z', 'f1') + P('M3 13c3-9 6-9 9-3s6 6 9-3', 'a')),
+  motionPlan: svg(R(2, 15, 20, 6, 'f1', 1) + P('M5 15v6M10 15v6M15 15v6') + P('M4 11 9 5l5 4 6-6', 'a') + C(9, 5, 1.4, 'af') + C(14, 9, 1.4, 'af')),
+  explode: svg(R(7, 9, 10, 6, 'f2', 1) + R(7, 2, 10, 4, 'f1', 1) + R(7, 18, 10, 4, 'f3', 1) + P('M12 6.5v2M12 15.5v2', 'a').replace('/>', ' stroke-dasharray="1 1"/>') + P('M3 12h2.5M18.5 12H21', 'a')),
   sim: svg(C(12, 12, 9.5, 'f1') + P('M9.5 7.5l7 4.5-7 4.5z', 'af')),
   post: svg(doc(P('M9 11h7M9 14.5h7M9 18h4', 'a') + P('M9 7.5h3'))),
   tools: svg(R(10, 2, 4, 7, 'f2', .5) + P('M9 9h6l-1 12h-4z', 'f1') + P('M10 12l4 1.5M10 15.5l4 1.5', 'a')),
@@ -215,6 +218,8 @@ export const ICONS = {
   snapfit: svg(P('M3 20h18') + P('M8 20V5h3v15', 'f1') + P('M11 5h3l-3 4', 'af')),
   rest: svg(R(3, 6, 18, 14, 'f1', 1.5) + R(6, 9, 12, 8, 'a', 1).replace('/>', ' fill="none"/>') + P('M6 9h12v2H6z', 'af')),
   // ---------- modell: ändern ----------
+  holeFind: svg(isoBox(12, 8, 9, 9) + E(12, 12, 3, 1.5, 'f3') + C(17.5, 17.5, 3.6, 'af') + P('M20 20l2.5 2.5', 'a')),
+  movefaces: svg(isoBox(12, 8, 9, 9) + E(8.5, 12.2, 2.2, 1.1, 'r') + E(15.5, 12.2, 2.2, 1.1, 'af') + P('M10.6 9.6h3.2M12.4 8.4l1.4 1.2-1.4 1.2', 'a')),
   offsetface: svg(isoBox(12, 8, 8, 9) + P('M12 8l8 4-8 4-8-4z', 'a').replace('/>', ' fill="none" stroke-dasharray="2 1.5" transform="translate(0 -5)"/>') + P('M12 9V4.5M10.2 6.3 12 4.5l1.8 1.8', 'a')),
   replaceface: svg(isoBox(12, 9, 8, 9) + P('M3 6h18', 'a') + P('M12 9V6', 'a').replace('/>', ' stroke-dasharray="1.5 1.5"/>')),
   splitface: svg(isoBox(12, 3, 8.5, 11) + P('M4 12.5l8 4', 'a') + pt(4, 12.5) + pt(12, 16.5)),

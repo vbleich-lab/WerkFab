@@ -47,6 +47,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
         <button data-act="save">Speichern (neue Version) <kbd>Strg+S</kbd></button>
         <button data-act="saveas">Speichern unter…</button>
         <button data-act="export">Exportieren (.ofab)…</button>
+        <button data-act="share">Als Link teilen…</button>
+        <button data-act="openlink">Link öffnen…</button>
         <hr>
         <button data-act="import">Einfügen: STEP / IGES / STL / OBJ…</button>
         <button data-act="step">Als STEP exportieren</button>
@@ -82,6 +84,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     <button id="searchBtn" class="icon-btn appbtn" title="Befehl suchen (S)"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8.5" cy="8.5" r="5"/><path d="M12.2 12.2 17 17"/></svg></button>
     <button id="themeBtn" class="icon-btn appbtn" title="Hell/Dunkel umschalten"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 0 0 14z" fill="currentColor"/></svg></button>
     <button id="fullBtn" class="icon-btn appbtn" title="Vollbild ein/aus (F11)"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7.5V3h4.5M12.5 3H17v4.5M17 12.5V17h-4.5M7.5 17H3v-4.5"/></svg></button>
+    <button id="learnBtn" class="icon-btn appbtn" title="Lernaufgaben: kurze Aufgaben, die sich selbst abhaken"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 7.5 10 4l8 3.5-8 3.5z"/><path d="M5.5 9v4c1.2 1.3 2.7 2 4.5 2s3.3-.7 4.5-2V9"/><path d="M18 7.5v4.5"/></svg></button>
     <button id="helpBtn" class="icon-btn appbtn" title="Hilfe: Tastenkürzel und Maus"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M7.8 8a2.2 2.2 0 1 1 3.4 1.9c-.8.5-1.2 1-1.2 1.9"/><path d="M10 14v.6" stroke-width="1.8"/></svg></button>
     <button id="settingsBtn" class="icon-btn appbtn" title="Voreinstellungen"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M15.3 4.7l-1.6 1.6M6.3 13.7l-1.6 1.6"/><circle cx="10" cy="10" r="5.3"/></svg></button>
   </header>
@@ -128,6 +131,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
         <button data-display="shaded" title="Schattiert">◼</button>
         <button data-display="wire" title="Drahtmodell">▢</button>
         <button data-nav="grid" class="on" title="Raster ein/aus">#</button>
+        <span class="nav-sep"></span>
+        <button data-nav="measure" title="Messen (I)">↔</button>
       </div>
       <div id="simBar" hidden>
         <button id="simReset" title="Zurück zum Anfang">⏮</button>

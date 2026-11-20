@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "回転軸を含む送り速度",
+ "wie programmiert (mm/min)": "プログラムどおり(mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "換算(度をmmと同様に扱う)",
+ "zeitreziprok (G93)": "インバースタイム(G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "X/Y/ZとAを同時に含む4軸ブロック:多くの制御装置ではここで度をミリメートルと同様に計算するため、工具がワーク上で遅すぎたり速すぎたりします。「換算」は、そのような制御装置が刃先で目的の送り速度になるようにF値を出力します。「インバースタイム」はG93に切り替え、各ブロックで1/時間を指定します – 制御装置がG93に対応していれば確実です。",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1はX、Y、Zのみを制御します:回転軸Aには4軸対応版(例:grblHAL)が必要です – そうでない場合、プログラムは最初のAワードで停止します",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "X/Y/ZとAを同時に含むブロック:プログラム内の送り速度はmm/minですが、多くの制御装置ではここで度をミリメートルと同様に計算します – ポストプロセッサの設定「回転軸を含む送り速度」を「換算」または「インバースタイム(G93)」にしてください"
+}

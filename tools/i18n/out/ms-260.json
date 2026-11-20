@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "Kadar suapan dengan paksi putar",
+ "wie programmiert (mm/min)": "seperti diprogramkan (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "ditukar (darjah dikira seperti mm)",
+ "zeitreziprok (G93)": "masa songsang (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "Blok 4 paksi dengan X/Y/Z dan A bersama: banyak kawalan mengira darjah seperti milimeter di situ, lalu pemotong bergerak terlalu perlahan atau terlalu laju pada bahan kerja. “Ditukar” menulis nilai F supaya kawalan sedemikian menjalankan kadar suapan yang dikehendaki pada mata pemotong. “Masa songsang” beralih kepada G93 dan menyatakan 1/masa dalam setiap blok – jelas, jika kawalan mengenali G93.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1 hanya mengawal X, Y dan Z: paksi putar A memerlukan varian 4 paksi (cth. grblHAL) – jika tidak, atur cara berhenti pada perkataan A yang pertama",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "Blok dengan X/Y/Z dan A bersama: kadar suapan dalam atur cara adalah dalam mm/min, tetapi banyak kawalan mengira darjah seperti milimeter di situ – tetapkan tetapan pasca-pemproses “Kadar suapan dengan paksi putar” kepada “ditukar” atau “masa songsang (G93)”"
+}

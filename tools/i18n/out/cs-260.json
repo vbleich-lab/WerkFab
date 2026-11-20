@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "Posuv s rotační osou",
+ "wie programmiert (mm/min)": "jak je naprogramováno (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "přepočtený (stupně se počítají jako mm)",
+ "zeitreziprok (G93)": "inverzní čas (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "4osé bloky s X/Y/Z a A současně: mnoho řídicích systémů zde počítá stupně jako milimetry, fréza se pak na obrobku pohybuje příliš pomalu nebo příliš rychle. „Přepočtený“ zapíše hodnotu F tak, aby takový řídicí systém jel požadovaným posuvem na břitu. „Inverzní čas“ přepne na G93 a v každém bloku udává 1/čas – jednoznačné, pokud řídicí systém G93 zná.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1 řídí pouze X, Y a Z: pro rotační osu A je nutná 4osá varianta (např. grblHAL) – jinak se program zastaví na prvním slově A",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "Bloky s X/Y/Z a A současně: posuv je v programu uveden v mm/min, mnoho řídicích systémů zde však počítá stupně jako milimetry – nastavení postprocesoru „Posuv s rotační osou“ přepněte na „přepočtený“ nebo „inverzní čas (G93)“"
+}

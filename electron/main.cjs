@@ -74,7 +74,7 @@ ipcMain.handle('slicer:open', async (_e, { name, data, exe }) => {
     const file = path.join(dir, safe);
     await fs.promises.writeFile(file, Buffer.from(data));
     if (exe) {
-      if (!fs.existsSync(exe) || !fs.statSync(exe).isFile() && !/\.app$/i.test(exe)) return { error: `program not found: ${exe}` };
+      if (!fs.existsSync(exe) || !fs.statSync(exe).isFile() && !/\.app$/i.test(exe)) return { error: `program not found: ${exe}`, code: 'notfound', exe, file };
       const { spawn } = require('child_process');
       const child = process.platform === 'darwin' && /\.app$/i.test(exe) ? spawn('open', ['-a', exe, file], { detached: true, stdio: 'ignore' }) : spawn(exe, [file], { detached: true, stdio: 'ignore' });
       child.on('error', () => {});

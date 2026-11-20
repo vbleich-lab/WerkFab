@@ -229,7 +229,7 @@ function restTool(f, ctx, H) {
   if (!sk) fail('Skizze fehlt');
   const w = +f.width, h = +f.height;
   if (!(w > 0 && h)) fail('Breite und Höhe fehlen');
-  const ds = H.regionDrawings(sk, f.profiles);
+  const ds = H.regionDrawings(sk, f.profiles, f.regions);
   if (!ds.length) fail('Kein geschlossenes Profil');
   const pl = sketchPlane(sk), out = [];
   for (const dr of ds) {
@@ -397,23 +397,32 @@ function perforateTool(f, ctx, H) {
   if (!sk) fail('Skizze fehlt');
   const dia = +f.dia, pitch = +f.pitch, margin = +f.margin || 0;
   if (!(dia > 0 && pitch > dia)) fail('Teilung muss größer als der Lochdurchmesser sein');
-  const polys = H.profileItems(sk, f.profiles).map(i => i.poly).filter(p => p.length >= 3);
-  if (!polys.length) fail('Kein geschlossenes Profil');
+  // the areas to fill: the clicked ones (each with its own openings), or the largest closed profile and the
+  // profiles inside it as openings
+  const picked = Array.isArray(f.regions) && f.regions.length ? (items => f.regions.flatMap(c => H.cellShapes(items, c)))(H.profileItems(sk)) : null;
+  const polys = picked ? [] : H.profileItems(sk, f.profiles).map(i => i.poly).filter(p => p.length >= 3);
+  if (!picked && !polys.length) fail('Kein geschlossenes Profil');
+  if (picked && !picked.length) fail('Kein geschlossenes Profil');
   const inside = ([x, y], P) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) if ((P[i][1] > y) !== (P[j][1] > y) && x < ((P[j][0] - P[i][0]) * (y - P[i][1])) / (P[j][1] - P[i][1]) + P[i][0]) c = !c; return c; };
   const distEdge = ([x, y], P) => { let m = Infinity; for (let i = 0; i < P.length; i++) { const a = P[i], c = P[(i + 1) % P.length], dx = c[0] - a[0], dy = c[1] - a[1], l2 = dx * dx + dy * dy, s = l2 ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)) : 0; m = Math.min(m, Math.hypot(x - a[0] - dx * s, y - a[1] - dy * s)); } return m; };
   // the outer profile carries the grid; holes of the profile (inner loops) stay free
   const area = P => Math.abs(P.reduce((s, a, i) => { const c = P[(i + 1) % P.length]; return s + a[0] * c[1] - c[0] * a[1]; }, 0) / 2);
-  const outer = [...polys].sort((p, q) => area(q) - area(p))[0], holes = polys.filter(p => p !== outer && p.every(q => inside(q, outer)));
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const [x, y] of outer) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  const areas = picked || (() => {
+    const outer = [...polys].sort((p, q) => area(q) - area(p))[0];
+    return [{ outer, holes: polys.filter(p => p !== outer && p.every(q => inside(q, outer))) }];
+  })();
   const rowH = f.stagger !== false ? pitch * Math.sqrt(3) / 2 : pitch, centres = [];
   const keep = dia / 2 + margin;
-  for (let j = 0, y = y0 + keep; y <= y1 - keep + 1e-9; j++, y += rowH) {
-    for (let x = x0 + keep + (f.stagger !== false && j % 2 ? pitch / 2 : 0); x <= x1 - keep + 1e-9; x += pitch) {
-      const q = [x, y];
-      if (!inside(q, outer) || distEdge(q, outer) < keep - 1e-9) continue;
-      if (holes.some(hp => inside(q, hp) || distEdge(q, hp) < keep - 1e-9)) continue;
-      centres.push(q);
+  for (const { outer, holes } of areas) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [x, y] of outer) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    for (let j = 0, y = y0 + keep; y <= y1 - keep + 1e-9; j++, y += rowH) {
+      for (let x = x0 + keep + (f.stagger !== false && j % 2 ? pitch / 2 : 0); x <= x1 - keep + 1e-9; x += pitch) {
+        const q = [x, y];
+        if (!inside(q, outer) || distEdge(q, outer) < keep - 1e-9) continue;
+        if (holes.some(hp => inside(q, hp) || distEdge(q, hp) < keep - 1e-9)) continue;
+        centres.push(q);
+      }
     }
   }
   if (!centres.length) fail('Keine Löcher passen in das Profil');

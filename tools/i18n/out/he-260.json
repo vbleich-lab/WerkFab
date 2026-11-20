@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "הזנה עם ציר סיבובי",
+ "wie programmiert (mm/min)": "כמתוכנת (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "מומר (מעלות נספרות כמו mm)",
+ "zeitreziprok (G93)": "זמן הפוך (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "בלוקים של 4 צירים עם X/Y/Z ו-A יחד: בקרים רבים מחשבים שם מעלות כמו מילימטרים, ואז הכרסום נע על חומר העבודה לאט מדי או מהר מדי. „מומר“ כותב את ערך F כך שבקר כזה יבצע את קצב ההזנה הרצוי בלהב החיתוך. „זמן הפוך“ עובר ל-G93 ומציין בכל בלוק 1/זמן – חד-משמעי, אם הבקר מכיר את G93.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1 שולט רק ב-X, Y ו-Z: לציר הסיבובי A נדרשת גרסת 4 צירים (למשל grblHAL) – אחרת התוכנית נעצרת במילת A הראשונה",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "בלוקים עם X/Y/Z ו-A יחד: קצב ההזנה רשום בתוכנית ב-mm/min, אך בקרים רבים מחשבים שם מעלות כמו מילימטרים – יש לקבוע את ההגדרה „הזנה עם ציר סיבובי“ של הפוסט-פרוססור ל„מומר“ או ל„זמן הפוך (G93)“"
+}

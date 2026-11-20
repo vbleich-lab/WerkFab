@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "Syöttö kiertoakselin kanssa",
+ "wie programmiert (mm/min)": "kuten ohjelmoitu (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "muunnettu (asteet lasketaan kuin mm)",
+ "zeitreziprok (G93)": "käänteisaika (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "4-akseliset lauseet, joissa X/Y/Z ja A ovat yhdessä: monet ohjaukset laskevat niissä asteet kuin millimetrit, jolloin jyrsin liikkuu työkappaleella liian hitaasti tai liian nopeasti. ”Muunnettu” kirjoittaa F-arvon niin, että tällainen ohjaus ajaa halutun syötön särmällä. ”Käänteisaika” vaihtaa G93-tilaan ja antaa jokaisessa lauseessa arvon 1/aika – yksiselitteinen, jos ohjaus tuntee G93:n.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1 ohjaa vain X-, Y- ja Z-akselia: kiertoakseli A vaatii 4-akselisen version (esim. grblHAL) – muuten ohjelma pysähtyy ensimmäiseen A-sanaan",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "Lauseet, joissa X/Y/Z ja A ovat yhdessä: syöttö on ohjelmassa yksikössä mm/min, mutta monet ohjaukset laskevat niissä asteet kuin millimetrit – aseta postprosessorin asetus ”Syöttö kiertoakselin kanssa” arvoon ”muunnettu” tai ”käänteisaika (G93)”"
+}

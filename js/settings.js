@@ -96,6 +96,9 @@ export const DEFAULTS = {
   exportQuality: 'standard', // view | standard | fine | finest: how finely solids are divided into triangles for STL / 3MF / OBJ
   slicerPath: '',           // program the "An Slicer senden" file is opened with (desktop app); empty = the program the system opens 3MF with
   slicerFormat: '3mf',      // 3mf | stl
+  bedX: 220,                // print bed width (X) and depth (Y) in mm, for "Auf der Bauplatte anordnen"
+  bedY: 220,
+  bedGap: 5,                // gap between arranged parts
   overhangAngle: 45,        // overhangs steeper than this (from the vertical) need supports
   meshUnit: 'mm',           // unit of inserted STL / OBJ / 3MF / PLY files
   meshYUp: false,           // inserted meshes are Y-up (turned to Z-up)

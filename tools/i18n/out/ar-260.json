@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "التغذية مع المحور الدوار",
+ "wie programmiert (mm/min)": "كما هو مبرمج (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "محوَّل (الدرجات تُحسب مثل mm)",
+ "zeitreziprok (G93)": "زمن عكسي (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "أسطر 4 محاور تجمع X/Y/Z و A معًا: كثير من أنظمة التحكم تحسب الدرجات هناك مثل المليمترات، فتتحرك أداة التفريز على قطعة العمل ببطء شديد أو بسرعة زائدة. «محوَّل» يكتب قيمة F بحيث ينفّذ نظام التحكم هذا معدل التغذية المطلوب عند الحد القاطع. «زمن عكسي» يحوّل إلى G93 ويعطي في كل سطر 1/الزمن – لا لبس فيه إذا كان نظام التحكم يعرف G93.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1 يتحكم في X و Y و Z فقط: المحور الدوار A يحتاج إلى نسخة بأربعة محاور (مثل grblHAL) – وإلا يتوقف البرنامج عند أول كلمة A",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "أسطر تجمع X/Y/Z و A معًا: معدل التغذية مكتوب في البرنامج بوحدة mm/min، لكن كثيرًا من أنظمة التحكم تحسب الدرجات هناك مثل المليمترات – يُضبط إعداد «التغذية مع المحور الدوار» في المعالج اللاحق على «محوَّل» أو «زمن عكسي (G93)»"
+}

@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "带旋转轴的进给",
+ "wie programmiert (mm/min)": "按编程值（mm/min）",
+ "umgerechnet (Grad zählen wie mm)": "换算（度按mm计）",
+ "zeitreziprok (G93)": "反比时间（G93）",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "同时含X/Y/Z和A的四轴程序段：许多数控系统在此把度当作毫米计算，铣刀在工件上就会走得过慢或过快。“换算”会改写F值，使这类数控系统在切削刃处达到所需的进给速度。“反比时间”切换到G93，并在每个程序段中给出1/时间 – 只要数控系统支持G93，就不会有歧义。",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1只控制X、Y和Z：旋转轴A需要四轴版本（例如grblHAL） – 否则程序会停在第一个A字处",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "同时含X/Y/Z和A的程序段：程序中的进给以mm/min为单位，但许多数控系统在此把度当作毫米计算 – 请将后处理器的“带旋转轴的进给”设置改为“换算”或“反比时间（G93）”"
+}

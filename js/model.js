@@ -13,7 +13,7 @@ import { EXTRA_TYPES, EXTRA_SOURCES, runExtra } from './features2.js';
 export const FEATURE_TYPES = {
   sketch: 'Skizze', extrude: 'Extrusion', revolve: 'Rotation', hole: 'Bohrung',
   loft: 'Erhebung', sweep: 'Sweep', freeform: 'Freiformfläche', sheet: 'Blech', box: 'Quader', cylinder: 'Zylinder', sphere: 'Kugel',
-  fillet: 'Verrundung', chamfer: 'Fase', shell: 'Schale', thicken: 'Aufdicken', delface: 'Fläche löschen', replaceface: 'Fläche ersetzen', offsetface: 'Fläche versetzen', align: 'Ausrichten',
+  fillet: 'Verrundung', chamfer: 'Fase', shell: 'Schale', thicken: 'Aufdicken', delface: 'Fläche löschen', movefaces: 'Flächen verschieben', replaceface: 'Fläche ersetzen', offsetface: 'Fläche versetzen', align: 'Ausrichten',
   surfloft: 'Flächen-Erhebung', surftrim: 'Trimmen', surfextend: 'Verlängern', fill: 'Rand füllen', surfextrude: 'Flächen-Extrusion', surfrevolve: 'Flächen-Rotation', patch: 'Flicken', offsetsurf: 'Versatzfläche', stitch: 'Zusammenfügen', draft: 'Formschräge', split: 'Körper teilen',
   pattern: 'Muster', mirror: 'Spiegeln', move: 'Verschieben', combine: 'Kombinieren', import: 'Import',
   pipe: 'Rohr', coil: 'Feder', scale: 'Skalieren', thread: 'Gewinde',
@@ -1365,12 +1365,14 @@ export function pathPlacements(f, features = []) {
   return out;
 }
 function patternTools(src, f, features = []) {
-  const out = [];
+  const out = [], base = patBase(src);
+  const tag = (s, M) => { if (base) try { s.__pat = { g: base.g, m: M.multiply(base.m) }; } catch { /* not taggable */ } return s; };
   if (f.kind === 'path') {
     for (const pl of pathPlacements(f, features)) {
       let s = src.clone();
-      if (pl.rot) s = s.rotate(pl.rot.deg, pl.rot.c, pl.rot.axis);
-      out.push(s.translate(pl.tr));
+      const M = new THREE.Matrix4();
+      if (pl.rot) { s = s.rotate(pl.rot.deg, pl.rot.c, pl.rot.axis); M.copy(rotAbout(pl.rot.deg, pl.rot.c, pl.rot.axis)); }
+      out.push(tag(s.translate(pl.tr), new THREE.Matrix4().makeTranslation(...pl.tr).multiply(M)));
     }
     return out;
   }
@@ -1379,7 +1381,7 @@ function patternTools(src, f, features = []) {
     const ang = +f.angle || 360;
     const step = Math.abs(ang) >= 360 ? ang / n : ang / Math.max(1, n - 1);
     const { c, d } = patternAxis(f, features);
-    for (let k = 1; k < n; k++) out.push(src.clone().rotate(step * k, c, d));
+    for (let k = 1; k < n; k++) out.push(tag(src.clone().rotate(step * k, c, d), rotAbout(step * k, c, d)));
   } else {
     const dirs = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
     // a direction is a main axis or a construction axis (through two points, a cylinder, two planes)
@@ -1389,11 +1391,23 @@ function patternTools(src, f, features = []) {
     for (let i = 0; i < n1; i++) for (let j = 0; j < n2; j++) {
       if (!i && !j) continue;
       const v = [0, 1, 2].map(k => d1[k] * f.s1 * i + d2[k] * (f.s2 || 0) * j);
-      out.push(src.clone().translate(v));
+      out.push(tag(src.clone().translate(v), new THREE.Matrix4().makeTranslation(...v)));
     }
   }
   return out;
 }
+// Pattern copies are the same shape moved: they are meshed once per group, the others get the mesh moved
+// (shape.__pat = { g: the group, m: the place relative to the group's first shape }). Any later operation makes
+// a new shape without the mark.
+function patBase(src) {
+  try { return src.__pat || (src.__pat = { g: { meshes: {} }, m: new THREE.Matrix4() }); } catch { return null; }
+}
+const rotAbout = (deg, c = [0, 0, 0], axis = [0, 0, 1]) => {
+  const C = new THREE.Vector3(...c);
+  return new THREE.Matrix4().makeTranslation(C.x, C.y, C.z)
+    .multiply(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(...axis).normalize(), deg * Math.PI / 180))
+    .multiply(new THREE.Matrix4().makeTranslation(-C.x, -C.y, -C.z));
+};
 
 // ---------- steps that run in the full kernel ----------
 // The body goes there and back as STEP text. Results are kept by the content of the body and the arguments, so
@@ -1432,14 +1446,14 @@ const EXTRA_HELPERS = {
   get fuseAll() { return fuseAll; }, get ribTool() { return ribTool; }, get regionDrawings() { return regionDrawings; }, get rPlane() { return rPlane; },
   get extrudeTool() { return extrudeTool; }, get applyOp() { return applyOp; }, get hasSolid() { return hasSolid; }, get prism() { return prism; },
   get sewSheets() { return sewSheets; }, get curveWires() { return curveWires; }, get pickedEdges() { return pickedEdges; },
-  get bodiesWithPoints() { return bodiesWithPoints; }, get profileItems() { return profileItems; }, get planeRef() { return planeRef; }, get offsetPlane() { return offsetPlane; },
+  get bodiesWithPoints() { return bodiesWithPoints; }, get profileItems() { return profileItems; }, get cellShapes() { return cellShapes; }, get planeRef() { return planeRef; }, get offsetPlane() { return offsetPlane; },
 };
 // ---- picked faces and edges after a change ("Referenzen nachführen") ----
 // Faces and edges are picked as points on them (faces: a point on the face, edges: the edge's midpoint). When a
 // dimension changes, a point may no longer lie on its face. Whenever a pick is found, what it hit is remembered
 // (kind of surface or curve, direction, where); when it is lost later, the face or edge of the same kind and
 // direction nearest to the old point takes its place – but only when that one is clearly the nearest.
-const REF_FACES = ['fillet', 'chamfer', 'shell', 'draft', 'thread', 'offsetface', 'delface', 'replaceface', 'splitface'];
+const REF_FACES = ['fillet', 'chamfer', 'shell', 'draft', 'thread', 'offsetface', 'delface', 'movefaces', 'replaceface', 'splitface'];
 const REF_EDGES = ['fillet', 'chamfer'];
 const refSigs = new Map();
 const rememberRef = (key, sig) => { if (refSigs.size > 20000) refSigs.clear(); refSigs.set(key, sig); };
@@ -1560,6 +1574,11 @@ function runFeature(f0, ctx) {
   // picks that a change moved off their face or edge are brought up to date; what stays lost is noted
   const healed = REF_FACES.includes(f0.type) || REF_EDGES.includes(f0.type) ? healRefs(f0, bodies) : { f: f0, lost: 0 };
   const f = healed.f;
+  // the profiles are picked by clicking areas of the sketch: none picked yet → nothing to make (no error)
+  if (f.type !== 'hole' && f.sketch && f.profiles === 'pick' && !(Array.isArray(f.regions) && f.regions.length)) {
+    if (ctx.notes) ctx.notes[f.id] = 'Noch kein Profil gewählt – Bereiche der Skizze anklicken.';
+    return;
+  }
   if (healed.lost > 0 && ctx.notes) ctx.notes[f.id] = healed.lost === 1 ? 'Eine der gewählten Kanten oder Flächen wurde nicht mehr gefunden – neu wählen.' : `${healed.lost} der gewählten Kanten oder Flächen wurden nicht mehr gefunden – neu wählen.`;
   if (EXTRA_TYPES[f.type]) return runExtra(f, ctx, EXTRA_HELPERS);
   if (f.type === 'import') {
@@ -1609,10 +1628,6 @@ function runFeature(f0, ctx) {
     } else if (f.type === 'emboss') {
       const sk = sketches[f.sketch];
       if (!sk) fail('Skizze fehlt');
-      if (f.profiles === 'pick' && !(Array.isArray(f.regions) && f.regions.length)) {
-        if (ctx.notes) ctx.notes[f.id] = 'Noch kein Profil gewählt – Bereiche der Skizze anklicken.';
-        return;
-      }
       tool = embossTool(sk, f, bodies);
     } else if (f.type === 'extrude' || f.type === 'revolve' || f.type === 'hole') {
       const sk = sketches[f.sketch];
@@ -1680,9 +1695,33 @@ function runFeature(f0, ctx) {
   if (f.type === 'delface') {
     // the chosen faces go, the neighbours grow together over the gap (holes, pockets, fillets, chamfers)
     if (!(f.faces || []).length) fail('Flächen wählen, die verschwinden sollen');
-    const hit = bodiesWithPoints(bodies, f.faces).sort((p, q) => q.own.length - p.own.length)[0];
+    // (f.body: only this body – two bodies can lie in the same place, as a mesh and the body made from it)
+    const hit = bodiesWithPoints(f.body ? bodies.filter(b => b.id === f.body) : bodies, f.faces).sort((p, q) => q.own.length - p.own.length)[0];
     if (!hit) fail('Gewählte Flächen nicht mehr gefunden – neu auswählen');
     hit.b.shape = viaFullKernel(hit.b.shape, ['delface', hit.own], text => fullRemoveFaces(text, hit.own));
+    return;
+  }
+  if (f.type === 'movefaces') {
+    // direct edit: the chosen faces of a hole, pocket or boss move (or are copied) by a vector – also on imported
+    // bodies without a history. The faces are removed (the neighbours close the gap → B0); what B0 has and the body
+    // has not is a cavity, what the body has and B0 has not is a boss. That piece moves and is cut / added again.
+    const dv = [+f.dx || 0, +f.dy || 0, +f.dz || 0];
+    if (!(f.faces || []).length) fail('Flächen wählen, die verschoben werden (bei einer Bohrung die Wand, bei einer Tasche Wände und Boden)');
+    if (!(Math.hypot(...dv) > 1e-9)) fail('Die Verschiebung ist 0');
+    const hit = bodiesWithPoints(bodies, f.faces).sort((p, q) => q.own.length - p.own.length)[0];
+    if (!hit) fail('Gewählte Flächen nicht mehr gefunden – neu auswählen');
+    const B = hit.b.shape, B0 = viaFullKernel(B, ['delface', hit.own], text => fullRemoveFaces(text, hit.own));
+    const vB = R.measureVolume(B), tiny = 1e-6 * Math.max(1, Math.abs(vB));
+    const piece = (a, b) => { try { const r = a.clone().cut(b.clone()); return r && !r.isNull && R.measureVolume(r) > tiny ? r : null; } catch { return null; } };
+    const cav = piece(B0, B), boss = piece(B, B0);
+    if (!cav && !boss) fail('Die gewählten Flächen begrenzen kein Merkmal, das sich verschieben lässt');
+    const moved = (cav ? R.measureVolume(cav) : 0) + (boss ? R.measureVolume(boss) : 0);
+    let res = f.copy ? B.clone() : B0;
+    if (cav) res = res.cut(cav.translate(dv));
+    if (boss) res = res.fuse(boss.translate(dv));
+    if (!res || res.isNull || !(R.measureVolume(res) > tiny)) fail('Von dem Körper bliebe nichts übrig');
+    hit.b.shape = res;
+    if (moved > 0.5 * Math.abs(vB)) ctx.notes[f.id] = 'Das verschobene Stück ist sehr groß – waren alle Flächen eines Merkmals gewählt?';
     return;
   }
   if (f.type === 'offsetface') {
@@ -2043,8 +2082,28 @@ export const VIEW_TESS = { coarse: [0.08, 0.4], normal: [0.02, 0.2], fine: [0.00
 let viewTess = 'normal';
 export function setViewTessellation(level) { viewTess = VIEW_TESS[level] ? level : 'normal'; }
 export const viewTessellation = () => viewTess;
+function viewMesh(shape, K) {
+  const t = shape?.__pat, lv = viewTess + ':' + K.id;
+  if (!t) return K.mesh(shape, ...VIEW_TESS[viewTess]);
+  const c = t.g.meshes[lv];
+  if (!c) { const m = K.mesh(shape, ...VIEW_TESS[viewTess]); t.g.meshes[lv] = { m, inv: t.m.clone().invert() }; return m; }
+  const M = t.m.clone().multiply(c.inv), e = M.elements, N = new THREE.Matrix3().getNormalMatrix(M).elements;
+  const move = (a, n) => {
+    const o = new Float32Array(a.length);
+    for (let i = 0; i < a.length; i += 3) {
+      const x = a[i], y = a[i + 1], z = a[i + 2];
+      if (n) { o[i] = N[0] * x + N[3] * y + N[6] * z; o[i + 1] = N[1] * x + N[4] * y + N[7] * z; o[i + 2] = N[2] * x + N[5] * y + N[8] * z; }
+      else { o[i] = e[0] * x + e[4] * y + e[8] * z + e[12]; o[i + 1] = e[1] * x + e[5] * y + e[9] * z + e[13]; o[i + 2] = e[2] * x + e[6] * y + e[10] * z + e[14]; }
+    }
+    return o;
+  };
+  meshCopies++;
+  return { ...c.m, vertices: move(c.m.vertices), normals: move(c.m.normals, true), lines: move(c.m.lines) };
+}
+let meshCopies = 0;
+export const meshCopyCount = () => meshCopies;
 export function meshBody(shape, K = activeKernel()) {
-  const m = K.mesh(shape, ...VIEW_TESS[viewTess]);
+  const m = viewMesh(shape, K);
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(m.vertices, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(m.normals, 3));
@@ -2082,7 +2141,8 @@ export function clearTimelineCache() {
   for (const s of snapCache.values()) dropSnap(s);
   snapCache.clear();
 }
-const copyShape = sh => { try { return sh.clone(); } catch { return null; } };
+const cloneMarked = sh => { const c = sh.clone(); if (sh.__pat) c.__pat = sh.__pat; return c; };
+const copyShape = sh => { try { return cloneMarked(sh); } catch { return null; } };
 const dropShape = sh => { try { sh?.delete?.(); } catch { /* already gone */ } };
 function dropSnap(s) {
   for (const b of s.bodies) dropShape(b.shape);
@@ -2277,7 +2337,7 @@ function* regenSteps(project, upTo = null) {
     if (!snap || snap.bodies.some(b => !b.shape) || Object.values(snap.tools).some(t => !t.tool)) continue;
     snapCache.delete(keys[i]); snapCache.set(keys[i], snap); // most recently used
     try {
-      ctx.bodies = snap.bodies.map(b => ({ ...b, shape: b.shape.clone() }));
+      ctx.bodies = snap.bodies.map(b => ({ ...b, shape: cloneMarked(b.shape) }));
       ctx.tools = Object.fromEntries(Object.entries(snap.tools).map(([k, t]) => [k, { ...t, tool: t.tool.clone() }]));
     } catch {
       // snapshot no longer usable (e.g. the Rust kernel restarted): recompute everything

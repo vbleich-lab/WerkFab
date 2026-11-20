@@ -3200,27 +3200,51 @@ function genRotary(op, t, stock, ctx, h, project) {
   if (!(x1 > x0)) throw new Error('Bereich X: Ende muss größer als Start sein');
   // radius map of the part
   const bvhs = ctx.bodies.map(b => new MeshBVH(b.geometry));
-  const dx = Math.max(0.1, Math.min(R / 3, 0.5)), xa = x0 - Re, nx = Math.ceil((x1 - x0 + 2 * Re) / dx) + 1;
-  const nt = Math.min(720, Math.max(90, Math.ceil((2 * Math.PI * Rs) / 0.5))), dt = (2 * Math.PI) / nt;
+  // The map: cells of dx along X and dt around the axis; a cell holds the largest radius of the part anywhere in
+  // it and counts for its whole width. Step sizes come from the tolerance (the arc is measured on the stock): a
+  // wall stands off by up to one cell. (A step taken from the circumference alone gave 4° on a Ø 5 mm part –
+  // 0.17 mm –, and point samples let a ball dip in between them.) Roughing leaves stock anyway and stays coarse.
+  let arc = Math.min(0.5, Math.max(0.02, 2 * (+op.tolerance || 0.01), op.type === 'rotaryRough' ? Math.max(0.1, stl / 2) : 0));
+  let dx = Math.max(0.05, Math.min(R / 3, 0.5, 2.5 * arc));
+  // (large parts: not more than about 1.5 million cells)
+  { const cells = ((x1 - x0 + 2 * Re) / dx) * ((2 * Math.PI * Rs) / arc); if (cells > 1.5e6) { const k = Math.sqrt(cells / 1.5e6); arc *= k; dx = Math.min(0.5, dx * k); } }
+  const xa = x0 - Re, nx = Math.ceil((x1 - x0 + 2 * Re) / dx) + 1;
+  const nt = Math.min(2880, Math.max(180, Math.ceil((2 * Math.PI * Rs) / arc))), dt = (2 * Math.PI) / nt;
   const rm = new Float32Array(nx * nt), rBig = Rs + 20;
-  const ray = new THREE.Ray(new THREE.Vector3(), new THREE.Vector3());
-  for (let i = 0; i < nx; i++) for (let j = 0; j < nt; j++) {
-    const th = j * dt, uy = Math.sin(th), uz = Math.cos(th);
-    ray.origin.set(xa + i * dx, cy + uy * rBig, cz + uz * rBig);
-    ray.direction.set(0, -uy, -uz);
-    let best = 0;
-    for (const b of bvhs) { const hit = b.raycastFirst(ray, THREE.DoubleSide); if (hit) best = Math.max(best, rBig - hit.distance); }
-    rm[i * nt + j] = best;
+  {
+    // rays at the corners of the cells: over a flat facet the radius is largest on its border, so the corners of
+    // a cell and the edges of the mesh inside it see every crest
+    const ray = new THREE.Ray(new THREE.Vector3(), new THREE.Vector3()), cr = new Float32Array((nx + 1) * nt);
+    for (let i = 0; i <= nx; i++) for (let j = 0; j < nt; j++) {
+      const th = (j - 0.5) * dt, uy = Math.sin(th), uz = Math.cos(th);
+      ray.origin.set(xa + (i - 0.5) * dx, cy + uy * rBig, cz + uz * rBig);
+      ray.direction.set(0, -uy, -uz);
+      let best = 0;
+      for (const b of bvhs) { const hit = b.raycastFirst(ray, THREE.DoubleSide); if (hit) best = Math.max(best, rBig - hit.distance); }
+      cr[i * nt + j] = best;
+    }
+    for (let i = 0; i < nx; i++) for (let j = 0; j < nt; j++) { const j1 = (j + 1) % nt; rm[i * nt + j] = Math.max(cr[i * nt + j], cr[i * nt + j1], cr[(i + 1) * nt + j], cr[(i + 1) * nt + j1]); }
+    const A3 = new THREE.Vector3(), B3 = new THREE.Vector3(), P3 = new THREE.Vector3();
+    const put = p => {
+      const i = Math.round((p.x - xa) / dx);
+      if (i < 0 || i >= nx) return;
+      const y = p.y - cy, z = p.z - cz, r = Math.hypot(y, z), j = ((Math.round(Math.atan2(y, z) / dt) % nt) + nt) % nt;
+      if (r > rm[i * nt + j]) rm[i * nt + j] = r;
+    };
+    for (const b of ctx.bodies) {
+      const pos = b.geometry.attributes.position, idx = b.geometry.index, n = idx ? idx.count : pos.count;
+      const V = (k, out) => out.fromBufferAttribute(pos, idx ? idx.getX(k) : k);
+      for (let t3 = 0; t3 < n; t3 += 3) for (let e = 0; e < 3; e++) {
+        V(t3 + e, A3); V(t3 + ((e + 1) % 3), B3);
+        if (Math.max(A3.x, B3.x) < xa - dx || Math.min(A3.x, B3.x) > xa + nx * dx) continue;
+        // (steps short enough for both the X cells and the arc of a θ cell at that radius)
+        const rr = Math.max(Math.hypot(A3.y - cy, A3.z - cz), Math.hypot(B3.y - cy, B3.z - cz));
+        const k = Math.min(4000, Math.ceil(A3.distanceTo(B3) / Math.max(1e-3, 0.5 * Math.min(dx, rr * dt))) || 1);
+        for (let q = 0; q <= k; q++) put(P3.lerpVectors(A3, B3, q / k));
+      }
+    }
   }
-  // widened by one cell in X and θ: edges that fall between two samples (end faces, shoulders) are never cut into
-  const rw = new Float32Array(rm.length);
-  for (let i = 0; i < nx; i++) for (let j = 0; j < nt; j++) {
-    let m = 0;
-    for (let di = -1; di <= 1; di++) { const ii = i + di; if (ii < 0 || ii >= nx) continue; for (let dj = -1; dj <= 1; dj++) m = Math.max(m, rm[ii * nt + ((j + dj + nt) % nt)]); }
-    rw[i * nt + j] = m;
-  }
-  const rm0 = rm.slice();
-  rm.set(rw);
+  const rm0 = rm;
   const jr = Math.ceil(Math.asin(Math.min(1, Re / Math.max(Re, 0.5 * Rs))) / dt) + 1;
   // tool tip radius at (x, θ): ball centre as low as possible without a surface point inside the ball;
   // flat end: every surface point under the tool's circle lies below the end face
@@ -3229,12 +3253,13 @@ function genRotary(op, t, stock, ctx, h, project) {
     const i0 = Math.max(0, Math.floor((x - Re - xa) / dx)), i1 = Math.min(nx - 1, Math.ceil((x + Re - xa) / dx));
     const jc = Math.round(th / dt);
     for (let i = i0; i <= i1; i++) {
-      const ddx = xa + i * dx - x, rest = Re * Re - ddx * ddx;
+      // (the nearest point of the cell: half a cell closer than its middle, along X and around the axis)
+      const ddx = Math.max(0, Math.abs(xa + i * dx - x) - dx / 2), rest = Re * Re - ddx * ddx;
       if (rest <= 0) continue;
       for (let jj = jc - jr; jj <= jc + jr; jj++) {
         const r = rm[i * nt + (((jj % nt) + nt) % nt)];
         if (!(r > 0)) continue;
-        const D = jj * dt - th, c = Math.cos(D), s = Math.sin(D);
+        const D = Math.max(0, Math.abs(jj * dt - th) - dt / 2), c = Math.cos(D), s = Math.sin(D);
         const q = rest - r * r * s * s;
         if (q < 0 || c <= 0) continue;
         const v = ball ? r * c + Math.sqrt(q) : r * c + stl;

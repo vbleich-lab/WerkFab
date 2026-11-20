@@ -217,7 +217,7 @@ export async function meshToStep(m0, cyls = [], round = {}, noStand = null, noTo
       const sg = Math.sign(d[0] * t.d[0] + d[1] * t.d[1] + d[2] * t.d[2]), v = [t.c[0] - o[0], t.c[1] - o[1], t.c[2] - o[2]], tc = v[0] * d[0] + v[1] * d[1] + v[2] * d[2];
       if (Math.hypot(v[0] - d[0] * tc, v[1] - d[1] * tc, v[2] - d[2] * tc) > 0.01) continue;
       for (const [s, cr] of [[t.s0, st.cor[0]], [t.s1, st.cor[st.cor.length - 1]]]) {
-        const ta = tc + sg * t.r * Math.sin(s), ra = t.R + t.r * Math.cos(s), tb = tc + sg * cr[1];
+        const ta = tc + sg * t.r * Math.sin(s), ra = t.R + (t.inner ? -1 : 1) * t.r * Math.cos(s), tb = tc + sg * cr[1]; // (the hollow side of a tube: its rim lies nearer the axis)
         for (const e of out) if (Math.abs(e[0] - ta) < 5e-3 && Math.abs(e[1] - ra) < 5e-3 && Math.abs(e[1] + k * (tb - e[0]) - cr[0]) < 5e-3) { e[1] += 0.85 * (cr[0] - e[1]); e[0] += 0.85 * (tb - e[0]); e[2] = t; }
       }
     }
@@ -362,6 +362,13 @@ export async function meshToStep(m0, cyls = [], round = {}, noStand = null, noTo
     // plane through the axis: x = u, y = the axis (normal = u × d)
     const nrm = [u[1] * c.d[2] - u[2] * c.d[1], u[2] * c.d[0] - u[0] * c.d[2], u[0] * c.d[1] - u[1] * c.d[0]];
     const mk = grow => {
+      // (a cone that ends in its point – the tip of a drilled hole: a tool whose point lies exactly in the corner of
+      // the facets there makes the kernel fail or never come back. Its whole wall goes 0.1 µm outwards instead, the
+      // point with it, a little below the corner)
+      if (c.hole && !c.sweep && !(c.r0 > 1e-6)) {
+        const g = Math.max(grow, 1e-4), ra = Math.round(c.r1 * 1e4) / 1e4;
+        return R.draw([0, (-g * h) / ra]).lineTo([ra + g, h]).lineTo([0, h]).close().sketchOnPlane(new R.Plane(o, u, nrm)).revolve(c.d, { origin: o, angle: 360 });
+      }
       const r0 = Math.round(c.r0 * 1e4) / 1e4 + (c.r0 > 1e-6 ? grow : 0), r1 = Math.round(c.r1 * 1e4) / 1e4 + grow, k = kin || Math.cos(Math.PI / c.n) * 0.9;
       // a hole is cut with the whole cone, a pin gets a shell (what lies inside stays untouched)
       // (a part of a ring: only the sliver between the facets and the cone, for a hole too)
@@ -547,6 +554,71 @@ function writtenText(oc, want, write) {
   return text;
 }
 
+// Splinters of a body from a mesh: where true faces were put in among the facets, facets remain as faces of
+// millionths of a mm². The full kernel takes them away in steps, each kept only when the body stays valid, keeps
+// its volume and has fewer faces: merged into their neighbours (ShapeFix_FixSmallFace), short edges joined
+// (ShapeFix_Wireframe), tiny faces taken out one by one (BRepAlgoAPI_Defeaturing), and hair-thin strips left
+// out and the rest sewn together again. → { text, before, after } or null.
+export async function cleanSlivers(stepText) {
+  const oc = await loadFullOC();
+  oc.FS.writeFile('/sl.step', stepText);
+  const rd = new oc.STEPControl_Reader_1();
+  if (rd.ReadFile('/sl.step').value !== 1) return null;
+  rd.TransferRoots();
+  const shape = rd.OneShape();
+  if (shape.IsNull()) return null;
+  const vol = sh => { const q = new oc.GProp_GProps_1(); oc.BRepGProp.VolumeProperties_1(sh, q, false, false, false); return q.Mass(); };
+  const area = f => { const q = new oc.GProp_GProps_1(); oc.BRepGProp.SurfaceProperties_1(f, q, false, false); return q.Mass(); };
+  const length = f => { const q = new oc.GProp_GProps_1(); oc.BRepGProp.LinearProperties(f, q, false, false); return q.Mass(); };
+  const faceList = sh => { const out = []; const ex = new oc.TopExp_Explorer_2(sh, oc.TopAbs_ShapeEnum.TopAbs_FACE, oc.TopAbs_ShapeEnum.TopAbs_SHAPE); for (; ex.More(); ex.Next()) out.push(oc.TopoDS.Face_1(ex.Current())); return out; };
+  const faces = sh => faceList(sh).length;
+  const before = faces(shape), v0 = vol(shape), tolV = 1e-6 * Math.abs(v0) + 1e-2;
+  const good = (sh, than) => { try { return !sh.IsNull() && faces(sh) < faces(than) && Math.abs(vol(sh) - v0) <= tolV && new oc.BRepCheck_Analyzer(sh, true).IsValid_2(); } catch { return false; } };
+  const smallFix = sh => { const fx = new oc.ShapeFix_FixSmallFace(); fx.Init(sh); fx.SetPrecision(1e-3); fx.Perform(); return fx.Shape(); };
+  let res = shape;
+  // 1. merged into their neighbours (a second pass takes what the first one left beside the merged faces)
+  for (let k = 0; k < 2; k++) { try { const r = smallFix(res); if (!good(r, res)) break; res = r; } catch { break; } }
+  // 2. edges shorter than a few hundredths of a mm (a thousandth of the size) joined, then merged again
+  try {
+    const w = new oc.ShapeFix_Wireframe_2(res), pr = Math.min(0.05, 2e-3 * Math.cbrt(Math.abs(v0)));
+    w.SetPrecision(pr); w.SetMaxTolerance(pr); w.ModeDropSmallEdges = true; w.FixSmallEdges();
+    const r = smallFix(w.Shape());
+    if (good(r, res)) res = r;
+  } catch { /* as it is */ }
+  // 3. faces under a ten-thousandth of a mm² taken out one by one, the neighbours grown over them
+  let tries = 0;
+  for (let k = 0; k < 40 && tries < 60; k++) {
+    let took = false;
+    for (const f of faceList(res).filter(f => area(f) < 1e-4)) {
+      if (++tries > 60) break;
+      try { const d = new oc.BRepAlgoAPI_Defeaturing(); d.SetShape(res); d.AddFaceToRemove(f); d.Build(); if (d.IsDone() && good(d.Shape(), res)) { res = d.Shape(); took = true; break; } } catch { /* the next one */ }
+    }
+    if (!took) break;
+  }
+  // 4. strips narrower than half a thousandth of a mm left out: their long edges lie closer than the sewing
+  // tolerance, the faces beside them are sewn edge to edge
+  try {
+    const all = faceList(res), keep = all.filter(f => { const a = area(f); return !(a < 1e-2 && (2 * a) / Math.max(length(f), 1e-12) < 5e-4); });
+    if (keep.length < all.length) {
+      const sw = new oc.BRepBuilderAPI_Sewing(1e-3, true, true, true, false);
+      keep.forEach(f => sw.Add(f));
+      sw.Perform(new oc.Handle_Message_ProgressIndicator_1());
+      if (sw.NbFreeEdges() === 0) {
+        const sewn = sw.SewedShape(), ms = new oc.BRepBuilderAPI_MakeSolid_1(), ex = new oc.TopExp_Explorer_2(sewn, oc.TopAbs_ShapeEnum.TopAbs_SHELL, oc.TopAbs_ShapeEnum.TopAbs_SHAPE);
+        let shells = 0;
+        for (; ex.More(); ex.Next()) { ms.Add(oc.TopoDS.Shell_1(ex.Current())); shells++; }
+        if (shells === 1) {
+          const fx = new oc.ShapeFix_Solid_1(); fx.Init(ms.Solid()); fx.Perform(new oc.Handle_Message_ProgressIndicator_1());
+          const r = fx.Solid();
+          if (good(r, res)) res = r;
+        }
+      }
+    }
+  } catch { /* as it is */ }
+  const after = faces(res);
+  if (after >= before) return null;
+  try { return { text: writtenText(oc, 'slout.step', name => stepWriter(oc, res).Write(name)), before, after }; } catch { return null; }
+}
 const stepWriter = (oc, shape) => { const w = new oc.STEPControl_Writer_1(); w.Transfer(shape, oc.STEPControl_StepModelType.STEPControl_AsIs, true); return w; };
 
 export async function igesToStep(igesText) {

@@ -5,6 +5,15 @@ import * as THREE from 'three';
 // Volume, centre of mass and moments of inertia of a closed triangle mesh (density 1): exact integrals over the
 // triangles (divergence theorem). I = [Ixx, Iyy, Izz, Ixy, Iyz, Izx] about axes through the centre of mass
 // parallel to X, Y, Z; units mm³, mm, mm⁵.
+// The inertia [Ixx, Iyy, Izz, Ixy, Iyz, Izx] of a body turned by the rotation part of a 4×4 matrix (column-major
+// elements, as THREE.Matrix4.elements): I' = R · I · Rᵀ. Used for components turned in an assembly.
+export function rotateInertia(I, e) {
+  const R = [[e[0], e[4], e[8]], [e[1], e[5], e[9]], [e[2], e[6], e[10]]];
+  const T = [[I[0], I[3], I[5]], [I[3], I[1], I[4]], [I[5], I[4], I[2]]];
+  const RT = R.map(r => [0, 1, 2].map(j => r[0] * T[0][j] + r[1] * T[1][j] + r[2] * T[2][j]));
+  const O = RT.map(r => [0, 1, 2].map(j => r[0] * R[j][0] + r[1] * R[j][1] + r[2] * R[j][2]));
+  return [O[0][0], O[1][1], O[2][2], O[0][1], O[1][2], O[2][0]];
+}
 export function meshInertia(geometry) {
   const pos = geometry.attributes.position, idx = geometry.index;
   const nTri = (idx ? idx.count : pos.count) / 3, g = new Float64Array(10);
@@ -2174,10 +2183,10 @@ export function standIn(m, tori = [], spheres = [], rings = []) {
     // facets on both sides: it is done this way or not at all)
     const q0 = Math.abs(t.s0) < 1e-6, q1 = Math.abs(t.s1) < 1e-6;
     const span = t.s1 - t.s0, cornerQ = Math.abs(span - Math.PI / 2) < 1e-6 && q0 !== q1 && (!t.inner || t.R >= 1.6 * t.r);
-    // any other piece of the outer half of a tube (a half-round rim, the fillet between a cone and a flat face):
-    // the tangents at its two ends stand in, meeting in one corner – or in two, with the tangent in the middle,
-    // where the piece is long
-    const nC = !cornerQ && !t.inner && t.vol != null && span > 0.3 && span < Math.PI + 1e-6 ? (span > 0.6 * Math.PI ? 2 : 1) : 0;
+    // any other piece of a tube (a half-round rim, the fillet between a cone and a flat face – also the hollow at
+    // the foot of a cone): the tangents at its two ends stand in, meeting in one corner – or in two, with the
+    // tangent in the middle, where the piece is long
+    const nC = !cornerQ && (t.inner || t.vol != null) && span > 0.3 && span < Math.PI + 1e-6 ? (span > 0.6 * Math.PI ? 2 : 1) : 0;
     const corner = cornerQ || nC > 0;
     if (t.inner && !corner) continue;
     const rim = rimOf(t.ti);
@@ -2216,10 +2225,10 @@ export function standIn(m, tori = [], spheres = [], rings = []) {
     const cvs0 = [], cvsE = [], cor = [];
     if (nC) {
       if (part && (Math.abs(A[0].ang) > 1e-3 || Math.abs(A[A.length - 1].ang - sweep) > 1e-3)) continue;
-      const hh = span / (2 * nC), rhoA = t.R + t.r * Math.cos(t.s0), rx = t.r / Math.cos(hh);
+      const hh = span / (2 * nC), rhoA = t.R + sg * t.r * Math.cos(t.s0), rx = t.r / Math.cos(hh);
       for (let k = 0; k < nC; k++) {
-        const sk = t.s0 + hh * (2 * k + 1), fx = (t.R + rx * Math.cos(sk)) / rhoA, tx = rx * Math.sin(sk);
-        cor.push([t.R + rx * Math.cos(sk), tx]);
+        const sk = t.s0 + hh * (2 * k + 1), fx = (t.R + sg * rx * Math.cos(sk)) / rhoA, tx = rx * Math.sin(sk);
+        cor.push([t.R + sg * rx * Math.cos(sk), tx]);
         const ring = A.map(q => { const p = V(q.v); return { v: addV([0, 1, 2].map(i => c[i] + d[i] * tx + (p[i] - c[i] - d[i] * q.tt) * fx)), ang: q.ang }; });
         rings.push(ring); cvs0.push(ring[0].v); cvsE.push(ring[ring.length - 1].v);
       }
@@ -2292,7 +2301,15 @@ export function standIn(m, tori = [], spheres = [], rings = []) {
     if (!(sMin > 0.15 * t.r)) { pos.length = v0; continue; }
     const dV = star(trisOf(t.ti)) - star(fresh);
     // (what lies between the corners and the torus: what the facets lacked, and what the corners have more)
-    const vG = nC ? -(t.vol + (t.hole ? -1 : 1) * dV) : 0;
+    // (the hollow side of a tube has no volume from findRound: the area between the corners and the arc, turned
+    // round the axis, Pappus – the corners lie on polygons, which a few per mille of it do not see)
+    const vG = !nC ? 0 : t.inner ? (() => {
+      const P = (rad, s) => [t.R + sg * rad * Math.cos(s), rad * Math.sin(s)], pts = [P(t.r, t.s0), ...cor, P(t.r, t.s1)];
+      for (let k = 1; k < 64; k++) pts.push(P(t.r, t.s1 - (span * k) / 64));
+      let a = 0, cx = 0;
+      for (let i = 0; i < pts.length; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[(i + 1) % pts.length], w = x0 * y1 - x1 * y0; a += w; cx += (x0 + x1) * w; }
+      return Math.abs(a) < 1e-12 ? 0 : sweep * Math.abs(a / 2) * (cx / (3 * a));
+    })() : -(t.vol + (t.hole ? -1 : 1) * dV);
     if (nC && !(vG > 0)) { pos.length = v0; continue; }
     for (const x of t.ti) gone[x] = 1;
     extra.push(...fresh);

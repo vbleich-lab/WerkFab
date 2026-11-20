@@ -64,13 +64,13 @@ unless asked.`;
 
 export const AGENT_TOOLS = [
   { name: 'guide', description: 'How a WerkFab design is built: the project structure, the feature types and examples. Read this first.', inputSchema: obj() },
-  { name: 'get_project', description: 'The open design as JSON. part: "features" (default), "params", "cam" (setups, tools, operations) or "all".', inputSchema: obj({ part: { type: 'string', enum: ['features', 'params', 'cam', 'all'] } }) },
+  { name: 'get_project', description: 'The open design as JSON. part: "features" (default), "params", "cam" (setups, tools, operations, own machines and post processors) or "all".', inputSchema: obj({ part: { type: 'string', enum: ['features', 'params', 'cam', 'all'] } }) },
   { name: 'list_features', description: 'Short list of the timeline: index, id, type, name, suppressed, error text if the feature failed.', inputSchema: obj() },
   { name: 'add_features', description: 'Append features to the timeline (or insert them at "index"). Missing ids are created. Returns the ids and any errors of the rebuilt model.', inputSchema: obj({ features: { type: 'array', items: { type: 'object' } }, index: { type: 'integer' } }, ['features']) },
   { name: 'update_feature', description: 'Change fields of one feature: "patch" is merged into it (a field set to null is removed). Returns the errors of the rebuilt model.', inputSchema: obj({ id: { type: 'string' }, patch: { type: 'object' } }, ['id', 'patch']) },
   { name: 'delete_features', description: 'Remove features by id. Features that depend on them will report errors.', inputSchema: obj({ ids: { type: 'array', items: { type: 'string' } } }, ['ids']) },
   { name: 'set_params', description: 'Create or change named parameters used in expressions ("=name"). Each: { name, expr } – expr is a number or an expression as text, e.g. "120" or "laenge/2".', inputSchema: obj({ params: { type: 'array', items: obj({ name: { type: 'string' }, expr: { type: ['string', 'number'] } }, ['name', 'expr']) } }, ['params']) },
-  { name: 'set_project', description: 'Replace the whole design by a project JSON (as get_project part "all" returns it). One undo step.', inputSchema: obj({ project: { type: 'object' } }, ['project']) },
+  { name: 'set_project', description: 'Replace the whole design by a project JSON (as get_project part "all" returns it): name, params, features, cam, post, machines (own machines a setup refers to by id), posts (own post processors), bodyMeta, assembly. Parts left out stay as they are. One undo step.', inputSchema: obj({ project: { type: 'object' } }, ['project']) },
   { name: 'new_design', description: 'Empty the open design (features, parameters and CAM operations). One undo step.', inputSchema: obj({ name: { type: 'string' } }) },
   { name: 'get_model', description: 'The rebuilt model: every body with name, volume (mm³), surface area (mm²) and bounding box, and the feature errors.', inputSchema: obj() },
   { name: 'screenshot', description: 'Picture of the 3D view (PNG). view: iso (default), top, front, right or current; fit: zoom to the model first (default true).', inputSchema: obj({ view: { type: 'string', enum: ['iso', 'top', 'front', 'right', 'current'] }, fit: { type: 'boolean' } }) },
@@ -93,7 +93,7 @@ export const AGENT_TOOLS = [
   { name: 'add_joint', description: 'Join a body (child, the one that moves) to another body (parent; leave out for the ground). type: rigid, revolute (turns about the axis through origin), slider (moves along the axis), cylindrical (turns and moves), planar (moves in the plane across the axis and turns), ball. origin: [x, y, z] in the coordinates of the model as built (before any motion); axis: "x", "y", "z" or a direction [x, y, z]. value: where it stands (degrees or mm; value2, value3 for the further motions of cylindrical, planar and ball). min, max: the range of value; limits: false for a joint without limits. link: { kind, from: id of another joint, offset, … } makes value follow that joint – kind "ratio" (default; ratio: value = ratio × its value + offset), "gear" (z1, z2 teeth of driving and driven wheel: ratio −z1/z2), "rack" (dia: pitch circle of the pinion in mm; a turn moves the rack by π·dia), "screw" (lead in mm per turn), "cam" (throw: eccentricity in mm, lift 0…2·throw; phase in degrees, dwell 0…0.95); reverse: true turns rack and screw round. A body has one joint as child; a second one replaces the first.', inputSchema: obj({ type: { type: 'string', enum: ['rigid', 'revolute', 'slider', 'cylindrical', 'planar', 'ball'] }, child: { type: 'string' }, parent: { type: 'string' }, name: { type: 'string' }, origin: { type: 'array', items: { type: 'number' } }, axis: {}, value: { type: 'number' }, value2: { type: 'number' }, value3: { type: 'number' }, min: { type: 'number' }, max: { type: 'number' }, limits: { type: 'boolean' }, link: { type: 'object' } }, ['type', 'child']) },
   { name: 'update_joint', description: 'Change fields of a joint: patch with e.g. value (move it), min, max, axis, origin, parent, type, name, link (null removes a field). Returns the assembly as get_assembly does, with the collisions in the new pose.', inputSchema: obj({ id: { type: 'string' }, patch: { type: 'object' }, collisions: { type: 'boolean' } }, ['id', 'patch']) },
   { name: 'delete_joints', description: 'Remove joints by id.', inputSchema: obj({ ids: { type: 'array', items: { type: 'string' } } }, ['ids']) },
-  { name: 'motion_study', description: 'Drive a joint through its range (joint: id; without it all joints that move on their own, together) in equal steps and check every pose for bodies that run into each other. Returns how many poses collide, the first and the deepest collision and the colliding poses with the pairs of bodies and the shared volume in mm³. steps: 2…72, default 24. The design is not changed; set a pose with update_joint.', inputSchema: obj({ joint: { type: 'string' }, steps: { type: 'number' } }) },
+  { name: 'motion_study', description: 'Drive a joint through its range (joint: id; without it all joints that move on their own, together) in equal steps and check every pose for bodies that run into each other. Returns how many poses collide, the first and the deepest collision and the colliding poses with the pairs of bodies and the shared volume in mm³. steps: 2…72, default 24. The design is not changed; set a pose with update_joint. With plan (a list of steps { joint, to, dur: seconds, with: true = together with the step before, ease: "smooth" }) the joints are driven step by step over time instead, starting from their present values, and checked every 1/rate seconds (rate default 10); the answer then gives the time spans in which bodies collide. save: true keeps the plan in the design (panel Bewegungsablauf).', inputSchema: obj({ joint: { type: 'string' }, steps: { type: 'number' }, plan: { type: 'array', items: { type: 'object' } }, rate: { type: 'number' }, save: { type: 'boolean' } }) },
   { name: 'export_robot', description: 'The assembly as a robot description: format "urdf" (ROS), "sdf" (Gazebo), "mjcf" (MuJoCo) or "all". Every visible body is a link with mesh, mass and inertia from its material, every joint a joint with axis and limits; the present pose is the zero pose. Returns the description files as text and the list of mesh files (binary STL, metres); meshes: true adds them as base64 (long answers). package: name of a ROS package – the URDF then names the meshes as package://name/meshes/… instead of relative paths. collision: "mesh" (default, the full mesh), "hull" (the convex hull as a mesh of its own – few triangles, but pockets and holes are filled) or "box" (the box around the body).', inputSchema: obj({ format: { type: 'string', enum: ['urdf', 'sdf', 'mjcf', 'all'] }, package: { type: 'string' }, meshes: { type: 'boolean' }, collision: { type: 'string', enum: ['mesh', 'hull', 'box'] } }) },
   { name: 'undo', description: 'Take back the last change.', inputSchema: obj() },
   { name: 'redo', description: 'Do the last undone change again.', inputSchema: obj() },
@@ -166,7 +166,7 @@ export async function agentCall(name, a, api) {
     case 'guide': return AGENT_GUIDE;
     case 'get_project': {
       const p = api.project(), part = a.part || 'features';
-      return part === 'all' ? p : part === 'params' ? p.params || [] : part === 'cam' ? { cam: p.cam, post: p.post } : p.features;
+      return part === 'all' ? p : part === 'params' ? p.params || [] : part === 'cam' ? { cam: p.cam, post: p.post, machines: p.machines || [], posts: p.posts || [] } : p.features;
     }
     case 'list_features': {
       const m = await api.settled();
@@ -215,7 +215,7 @@ export async function agentCall(name, a, api) {
     case 'set_project': {
       const q = a.project;
       if (!q || !Array.isArray(q.features)) throw new Error('project: needs at least a "features" list');
-      api.commit(p => { for (const k of ['name', 'params', 'features', 'cam', 'post', 'bodyMeta', 'assembly']) if (q[k] !== undefined) p[k] = structuredClone(q[k]); });
+      api.commit(p => { for (const k of ['name', 'params', 'features', 'cam', 'post', 'posts', 'machines', 'bodyMeta', 'assembly']) if (q[k] !== undefined) p[k] = structuredClone(q[k]); });
       api.note('replaced');
       return errorsNow();
     }
@@ -344,7 +344,7 @@ export async function agentCall(name, a, api) {
       api.commit(p => { p.assembly.joints = p.assembly.joints.filter(q => !ids.has(q.id)); for (const q of p.assembly.joints) if (q.link && ids.has(q.link.from)) delete q.link; });
       return { deleted: n, ...(await api.assembly(false)) };
     }
-    case 'motion_study': return api.motion(a.joint || null, a.steps);
+    case 'motion_study': return Array.isArray(a.plan) ? api.motionPlan(a.plan, a.rate, !!a.save) : api.motion(a.joint || null, a.steps);
     case 'export_robot': { await api.settled(); return api.robot(a.format || 'urdf', String(a.package || '').trim(), a.meshes === true, a.collision); }
     case 'undo': api.undo(); return errorsNow();
     case 'redo': api.redo(); return errorsNow();

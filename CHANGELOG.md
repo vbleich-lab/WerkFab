@@ -1,5 +1,52 @@
 # Änderungen
 
+## v1.0.0-rc.28 – 2026-11-20
+
+### Konstruktion
+- **Messen in jedem Reiter der Konstruktion:** Die Gruppe PRÜFEN (Messen, Schnitt, Zebra, Entformung, Interferenz) steht jetzt auch in MODELL, FLÄCHE, ZUSAMMENBAU, BLECH und SCHWEISSTEILE. Zusätzlich gibt es einen Messen-Knopf in der Ansichtsleiste unten, der immer sichtbar ist (Taste I wie bisher).
+- **Profile anklicken auch bei Flicken, Sweep, Auflage und Perforieren:** wie bei Extrusion, Rotation und Prägen werden Bereiche der Skizze im Bild angeklickt; vorher angeklickte Bereiche werden übernommen. Beim Perforieren bekommt jeder gewählte Bereich sein eigenes Lochraster (bisher nur die größte Kontur). Ist noch kein Bereich gewählt, steht ein Hinweis in der Zeitleiste statt eines Fehlers.
+- Ein Wechsel der Skizze in diesen Befehlen setzt die Auswahl auf „Ganze Skizze“ zurück.
+- **Flächen verschieben (direkte Bearbeitung):** Eine Bohrung, Tasche oder einen Zapfen anklicken und um X/Y/Z versetzen. Das geht auch bei importierten Körpern ohne Verlauf. Mit „Kopie“ bleibt das Original stehen. Der Rauminhalt bleibt beim Verschieben gleich.
+- **Bohrungen erkennen:** Runde Bohrungen eines importierten oder aus einem Netz umgewandelten Körpers werden wieder Bohrungsschritte: Durchgangs- und Sacklöcher (flach oder mit Bohrspitze) sowie Senkbohrungen. Gleiche Bohrungen auf einer Fläche teilen sich einen Schritt. Danach lassen sich Durchmesser, Tiefe und Lage ändern. Der Körper bleibt beim Übernehmen unverändert. Maße aus einem Netz (Ø 8,0002) werden auf Hundertstel gerundet. Liegt ein zweiter Körper an derselben Stelle (das ausgeblendete Original), bleibt er unberührt.
+- **Teilefamilien aus einer Tabelle:** Varianten als CSV (auch aus Excel: Dezimalkomma, `=`-Formeln) einlesen und speichern. Alle Varianten lassen sich in einem Zug als STEP, STL oder 3MF in eine ZIP-Datei exportieren.
+- **Als Link teilen:** Die Konstruktion wird komprimiert in einen Link gepackt, der in der Online-Version direkt aufgeht („Link öffnen …“ im Menü Datei). Es gibt keinen Server und kein Konto: Der Inhalt steht im Link selbst.
+- **Lernaufgaben** (Knopf neben der Hilfe): vier kurze Aufgaben (erstes Teil, Parameter und Varianten, erste Fräsbearbeitung, Gelenk und Bewegung). Ein Fenster zeigt den nächsten Schritt, hakt ihn selbst ab und lässt den passenden Knopf blinken.
+
+### Netz → Körper
+- **Splitterflächen werden entfernt:** Wo echte Rundungen zwischen die Facetten gesetzt werden, blieben winzige Restflächen stehen (Millionstel mm²). Der große Geometriekern verschmilzt sie jetzt mit ihren Nachbarn. Das Ergebnis wird nur übernommen, wenn der Körper gültig bleibt und sein Rauminhalt gleich ist. Danach werden winzige Kanten zusammengezogen, Restflächen einzeln entfernt und haarfeine Streifen an Ecken durch Vernähen der Nachbarn geschlossen. Platte mit Langloch und rundum verrundeten Kanten: 38 statt 126 Flächen – genau wie das Original, Rauminhalt auf 0,01 mm³ gleich.
+- **Hohlkehle am Fuß eines Kegels wird ein echter Torus:** Bisher bekam nur eine Hohlkehle zwischen Zylinder und ebener Fläche (Viertelkreis) eine Ersatzecke; an einem Kegel blieben ihre Facetten stehen. Zapfen mit Kegel und zwei Verrundungen: 7 statt 1303 Flächen (wie das Original), in einem Drittel der Zeit. Der schmale Ring aus Streifen zwischen Hohlkehle und Kegel ist weg: das Kegelwerkzeug reichte bei innen liegenden Rundungen in die falsche Richtung.
+- **Bohrspitzen werden echte Kegel – und die Umwandlung hängt nicht mehr:** Bei einem Sackloch mit Bohrspitze lag die Spitze des Kegelwerkzeugs genau auf dem Netzpunkt; der Geometriekern kam davon nicht mehr zurück und die App blieb stehen. Das Werkzeug liegt jetzt 0,1 µm weiter außen. Platte mit Durchgangs-, Senk- und Sackbohrung mit Spitze: 13 Flächen wie das Original, in 5 s.
+
+### 3D-Druck
+- **Auf der Bauplatte anordnen:** Alle Teile (auch mehrfach) werden platzsparend auf die Bauplatte gelegt, gedreht und auf Wunsch flach hingelegt. Was nicht auf eine Platte passt, kommt auf die nächste. Die Vorschau zeigt jede Platte, die dann an den Slicer gesendet oder als 3MF gespeichert wird. Plattengröße und Abstand stehen in den Einstellungen.
+- **Slicer nicht gefunden:** statt einer halb englischen Meldung steht jetzt, welches Programm fehlt, wo es eingestellt wird (Einstellungen → 3D-Druck) und wo die Datei bereitliegt.
+
+### Baugruppen
+- **Bewegungsablauf:** Gelenkbewegungen als Schritte nacheinander oder gleichzeitig (Ziel, Dauer, Anlauf), mit Abspielen und Zeitleiste. Die Kollisionsprüfung meldet jeden Zeitraum, in dem Körper sich durchdringen, mit den beteiligten Körpern und der größten Überschneidung. Das Protokoll lässt sich als CSV speichern. KI-Agenten können einen Ablauf über `motion_study` mit `plan` vorgeben.
+- **Explosionsansicht mit Montageanleitung:** Körper werden schrittweise entlang einer Achse herausgezogen, automatisch (das größte Teil bleibt stehen) oder von Hand. Gestrichelte Spuren zeigen die Wege, ein Regler fährt die Explosion. Daraus entsteht eine Montageanleitung mit einem Bild je Schritt, das neue Teil farbig hervorgehoben, als PDF.
+- **Große Baugruppen laden schneller:** Musterkopien eines Körpers werden nur einmal vernetzt, alle weiteren Kopien bekommen dasselbe Netz an ihrer Stelle. Bei der Rollenbahn mit 999 Teilen werden 965 Körper so übernommen: Das Vernetzen ist rund 14-mal schneller, die Datei lädt in 13 s statt 18–23 s.
+- **Trägheit gedrehter Komponenten:** Die Eigenschaften eines Körpers zeigen die Trägheitsmomente jetzt in der Lage, in der die Komponente steht (gedreht oder von einem Gelenk bewegt), bisher in der konstruierten Lage.
+- **Roboter-Export geprüft:** URDF mit yourdfpy, MJCF mit MuJoCo 3 geladen und simuliert, SDF gegen die URDF-Lagen verglichen – Lage jedes Körpers, Massen, Trägheiten, Drehgelenk, Schiebegelenk, Zylinder- und Kugelgelenk als Kette sowie die Kopplung (mimic/equality) stimmen.
+
+### Fertigung
+- **4-Achs-Bearbeitung genauer, auch an kleinen Teilen:** Die Radiuskarte des Teils wurde aus dem Rohteilumfang geteilt – bei Ø 5 mm alle 4°, Wände standen dadurch 0,13–0,17 mm zu weit außen. Die Teilung kommt jetzt aus der Toleranz der Operation (Bogen am Rohteil ab 0,02 mm). Jede Zelle der Karte gilt für ihre ganze Breite und kennt auch die Kanten des Modells: Eine scharfe Kante zwischen zwei Abtaststrahlen wurde bisher angeschnitten (Vierkant 3 × 3 mm: 0,05 mm), und zwischen zwei Proben entlang X sank ein Kugelfräser um bis zu 1,4 % seines Radius ein. Vierkant in Ø 4,8: kein Schnitt ins Teil, höchstens 0,012 mm Rest (vorher 0,097 mm).
+- **Vorschub mit Drehachse (G-Code-Postprozessoren):** neue Einstellung „wie programmiert“, „umgerechnet (Grad zählen wie mm)“ oder „zeitreziprok (G93)“. Bei „wie programmiert“ weist das Programm darauf hin, dass viele Steuerungen in Sätzen mit X/Y/Z und A Grad wie Millimeter rechnen.
+- **GRBL und Drehachse:** Hinweis, dass GRBL 1.1 nur X, Y und Z steuert und für A eine 4-Achs-Variante nötig ist.
+- **Vergleich in der Simulation:** Bei Rohteil aus einer vorherigen Aufspannung zählte eine durchgeschnittene Stelle auch dann als „zu tief“, wenn sie nur Tausendstel unter der Teilfläche lag. Jetzt gilt dort dieselbe Toleranz (0,1 mm) wie überall.
+- **Spannmittel einfügen:** Schraubstock (Backenbreite, Spanntiefe, Parallelunterlagen), Spannpratzen oder Spannplatte werden passend zum Rohteil der Aufspannung als Körper eingefügt. Werkzeugwege, die ihnen zu nahe kommen, werden gemeldet. Ein Hinweis nennt Backenbreite und Spanntiefe und warnt, wenn das Rohteil über die Backen hinausragt.
+
+### KI-Agenten
+- **`set_project` übernimmt eigene Maschinen und Postprozessoren:** `machines` und `posts` wurden stillschweigend verworfen, eine Aufspannung stand danach ohne Maschine da. `get_project` mit `part: "cam"` gibt beide jetzt auch zurück.
+
+### Für Entwickler und Tester
+- **4-Achs-Test:** `tools/test-rotary.mjs` (in `npm test`) misst an einem Vierkant und einer abgesetzten Welle, wie weit Kugel- und Schaftfräser vom Teil entfernt bleiben, und prüft die Vorschub-Ausgabe (G93, umgerechnet) samt GRBL-Hinweis.
+- **Bohrungen erkennen nach Netz → Körper prüfen:** `tools/check-holefind-mesh.js` vernetzt eine Platte mit Durchgangs-, Sack- und Senkbohrung (auf Wunsch mit Bohrspitze), wandelt sie zurück und sucht die Bohrungen.
+- **Klicktest für Gelenk und Gelenkursprung:** `tools/clicktest-joints.js` klickt in der laufenden App echt in die 3D-Ansicht (Bohrung, Zapfen, freie Fläche, gleicher Körper zweimal, Klick ins Leere, Abbrechen) und prüft 18 Punkte. `window.werkfabTest` rechnet dafür Modellpunkte in Bildschirmpunkte um.
+- **Desktop-Prüfung:** `tools/desktop-check.mjs` startet die Desktop-App mit leerem Profil und prüft Agenten-Schnittstelle (MCP), Python, Slicer-Übergabe und Vollbild.
+- **Netz → Körper prüfen:** `tools/check-mesh2body.js` baut Teile mit bekannten Flächen, vernetzt sie, wandelt sie zurück und vergleicht Flächenzahl, Flächenarten und Rauminhalt mit dem Original.
+- **Vorlagen für GitHub-Issues** (Fehler melden, Wunsch), zweisprachig.
+- **Prüfliste für die echte Maschine:** `docs/Maschinentest.md` – Senden, Zurückholen, Vergleichen und Werkzeugtabelle an einer Steuerung prüfen, ohne zu zerspanen.
+
 ## v1.0.0-rc.27 – 2026-11-20
 
 ### Konstruktion

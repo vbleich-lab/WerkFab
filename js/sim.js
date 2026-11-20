@@ -236,7 +236,8 @@ export class StockSim {
     for (let k = 0; k < this.h.length; k++) {
       // layered stock (previous setup): an empty column is right where there is no part, too deep where there is
       if (this.layered && !(this.h[k] > this.b[k] + 1e-3)) {
-        if (this.T[k] <= bot + this.cmpTol) ok++; else { gouge++; worst = Math.min(worst, this.b[k] - this.lo[k]); }
+        // (within the tolerance of the part's surface it is no gouge either – as for a column that still has material)
+        if (this.T[k] <= bot + this.cmpTol || this.b[k] >= this.lo[k] - this.cmpTol) ok++; else { gouge++; worst = Math.min(worst, this.b[k] - this.lo[k]); }
         continue;
       }
       const z = Math.max(bot, this.h[k]);

@@ -1,0 +1,9 @@
+{
+ "Vorschub mit Drehachse": "Avance avec axe rotatif",
+ "wie programmiert (mm/min)": "telle que programmée (mm/min)",
+ "umgerechnet (Grad zählen wie mm)": "convertie (degrés comptés comme des mm)",
+ "zeitreziprok (G93)": "temps inverse (G93)",
+ "4-Achs-Sätze mit X/Y/Z und A zusammen: Viele Steuerungen rechnen dort Grad wie Millimeter, der Fräser läuft dann am Werkstück zu langsam oder zu schnell. „Umgerechnet“ schreibt den F-Wert so, dass eine solche Steuerung den gewünschten Vorschub an der Schneide fährt. „Zeitreziprok“ schaltet auf G93 und gibt in jedem Satz 1/Zeit an – eindeutig, wenn die Steuerung G93 kennt.": "Blocs 4 axes avec X/Y/Z et A ensemble : de nombreuses commandes y comptent les degrés comme des millimètres, la fraise avance alors trop lentement ou trop vite sur la pièce. « Convertie » écrit la valeur F de sorte qu'une telle commande exécute l'avance souhaitée à l'arête de coupe. « Temps inverse » passe en G93 et indique 1/temps dans chaque bloc – sans ambiguïté si la commande connaît G93.",
+ "GRBL 1.1 steuert nur X, Y und Z: Für die Drehachse A braucht es eine 4-Achs-Variante (z. B. grblHAL) – sonst bleibt das Programm am ersten A-Wort stehen": "GRBL 1.1 ne commande que X, Y et Z : l'axe rotatif A nécessite une variante 4 axes (p. ex. grblHAL) – sinon le programme s'arrête au premier mot A",
+ "Sätze mit X/Y/Z und A zusammen: Der Vorschub steht in mm/min im Programm, viele Steuerungen rechnen dort aber Grad wie Millimeter – Einstellung „Vorschub mit Drehachse“ des Postprozessors auf „umgerechnet“ oder „zeitreziprok (G93)“ stellen": "Blocs avec X/Y/Z et A ensemble : l'avance est en mm/min dans le programme, mais de nombreuses commandes y comptent les degrés comme des millimètres – régler le paramètre « Avance avec axe rotatif » du post-processeur sur « convertie » ou « temps inverse (G93) »"
+}

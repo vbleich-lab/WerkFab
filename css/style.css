@@ -1380,6 +1380,8 @@ td.mt-barc { width: 28%; }
 .xtab tr.on td:first-child { color: var(--accent); font-weight: 600; }
 .xtab tr.cur td { color: var(--muted); }
 .xtab button { border: 0; background: none; color: var(--danger); }
+.xtab button.btn { border: 1px solid var(--line); background: var(--input); color: var(--text); padding: 2px 8px; }
+.xtab button.btn:hover { border-color: var(--accent); }
 .xtab .btn { color: inherit; }
 .lasso-box { position: fixed; border: 1px dashed var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); pointer-events: none; z-index: 50; }
 body.tabs-only #tools { display: none; }
@@ -1453,3 +1455,7 @@ body.tb-moving, body.tb-moving * { cursor: grabbing !important; user-select: non
 .tbtn.tb-dragging { opacity: .3; }
 .tb-ghost { position: fixed; z-index: 2000; pointer-events: none; opacity: .85; background: var(--panel); border: 1px solid var(--accent-line) !important; box-shadow: var(--win-shadow); }
 .tb-mark { position: fixed; z-index: 1999; width: 3px; background: var(--accent); border-radius: 2px; pointer-events: none; }
+
+/* Lernaufgaben: the button of the current step blinks */
+.lesson-hl { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; animation: lessonPulse 1.2s ease-in-out infinite; }
+@keyframes lessonPulse { 50% { outline-color: transparent; background: var(--accent-soft); } }
