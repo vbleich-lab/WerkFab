@@ -1,7 +1,7 @@
 {
   "name": "werkfab",
   "productName": "WerkFab",
-  "version": "1.0.0-rc.28",
+  "version": "1.0.0-rc.29",
   "description": "WerkFab CAD/CAM – design and CNC machining, offline",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -19,7 +19,7 @@
     "test:trim": "node tools/test-trim.mjs",
     "test:sketch": "node tools/test-sketchtools.mjs && node tools/test-sketchcorner.mjs && node tools/test-sketchoffset.mjs",
     "test:solver": "node tools/test-solver-arcs.mjs",
-    "test:cam": "node tools/test-cam.mjs && node tools/test-rotary.mjs",
+    "test:cam": "node tools/test-cam.mjs && node tools/test-rotary.mjs && node tools/test-cycle800.mjs",
     "test:hh": "node tools/test-heidenhain.mjs",
     "test:iso": "node tools/test-iso.mjs",
     "test:lathe": "node tools/test-lathe.mjs",

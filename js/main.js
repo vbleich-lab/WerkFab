@@ -5464,17 +5464,17 @@ const agentApi = {
       applySimCompare();
       const f = Number.isFinite(+at) && at !== null && at !== undefined ? Math.min(1, Math.max(0, +at)) : 1;
       seek(sim.total * f);
-      const st = sim.turn ? turnSim.compareStats() : stockSim.compareStats(), pct = v => +(100 * v).toFixed(1);
+      const st = cmpSim().compareStats(), pct = v => +(100 * v).toFixed(1);
       // fit to what the simulation shows: a turning setup stands in its own coordinates, not where the model is
-      const simBox = visibleBox((sim.turn ? turnSim : stockSim).group), fitBox = !simBox.isEmpty() ? simBox : m.box;
+      const simBox = visibleBox(cmpSim().group), fitBox = !simBox.isEmpty() ? simBox : m.box;
       if (view !== 'current') vp.setView(view || 'iso', fitBox.isEmpty() ? null : fitBox);
       await viewSettled();
       const image = agentShot();
       const hits = sim.collisions || [];
       return { image, setup: sid, at: f, time: +(sim.t || 0).toFixed(1), totalTime: +(sim.total || 0).toFixed(1),
         collisions: { count: hits.length, first: hits.slice(0, 20).map(c => ({ kind: c.type, operation: c.op, at: [c.p.x, c.p.y, c.p.z].map(q => +q.toFixed(2)) })) },
-        ...(st ? { compare: { onSizePercent: pct(st.ok), materialLeftPercent: pct(st.left), tooDeepPercent: pct(st.gouge), deepestCutIntoPart: +(-st.worst).toFixed(3) } } : {}),
-        notice: 'compare: share of the top view where the stock is on size, still has material, or is cut deeper than the part (a gouge). Collisions: rapid in material, shank or holder touching material.' };
+        ...(st ? { compare: { onSizePercent: pct(st.ok), materialLeftPercent: pct(st.left), tooDeepPercent: pct(st.gouge), deepestCutIntoPart: +(-st.worst).toFixed(3), ...(st.most != null ? { mostMaterialLeft: +st.most.toFixed(3) } : {}) } } : {}),
+        notice: 'compare: share of the top view (4-axis setups: of the surface around the A axis) where the stock is on size, still has material, or is cut deeper than the part (a gouge). Collisions: rapid in material, shank or holder touching material.' };
     } finally {
       if (sim.open) openSim();
       $('#simCompare').checked = keep.cmp;
@@ -5509,6 +5509,7 @@ const agentApi = {
         return { kind, text: NC_ISSUE[kind] || kind, count: ks.length, operations: ops, lines: ks.slice(0, 20).map(k => ({ line: k + 1, code: (lines[k] || '').trim(), ...(r.opOf?.[k] ? { operation: r.opOf[k] } : {}) })) };
       }),
       ...(rep.partDeep > 0 ? { deepestCutIntoPart: +rep.partDeep.toFixed(3) } : {}),
+      ...(rep.compare ? { compare: { onSizePercent: +(100 * rep.compare.ok).toFixed(1), materialLeftPercent: +(100 * rep.compare.left).toFixed(1), tooDeepPercent: +(100 * rep.compare.gouge).toFixed(1), mostMaterialLeft: +rep.compare.most.toFixed(3), deepestCutIntoPart: +(-rep.compare.worst).toFixed(3) } } : {}),
       warnings: r.warnings || [], skipped, machine: [rep.info, rep.why].filter(Boolean), machineLimits: machineChecks(g.machine, g.stock, g.setup, p.cam.tools),
       notice: 'Checked line by line against the remaining stock, the clamping, the machine and the finished part as modelled here. This does not replace a dry run on the machine.' };
   },
@@ -13551,7 +13552,7 @@ function seek(target) {
   advance(Math.max(0, target));
   if (sim.idx >= sim.segs.length) { sim.idx = sim.segs.length - 1; sim.prog = 1; }
   simStock().update();
-  if ((stockSim.part && !sim.turn && !sim.rot) || (sim.turn && turnSim.cmp)) updateCompareInfo();
+  if (cmpOn()) updateCompareInfo();
   placeTool();
 }
 
@@ -13564,7 +13565,7 @@ vp.onFrame = dt => {
   if (sim.playing) {
     advance(dt * +$('#simSpeed').value);
     simStock().update();
-    if (((stockSim.part && !sim.turn && !sim.rot) || (sim.turn && turnSim.cmp)) && performance.now() - (sim.cmpAt || 0) > 250) { sim.cmpAt = performance.now(); updateCompareInfo(); }
+    if (cmpOn() && performance.now() - (sim.cmpAt || 0) > 250) { sim.cmpAt = performance.now(); updateCompareInfo(); }
     placeTool();
   }
 };
@@ -13695,9 +13696,23 @@ function turnComparePart() {
   }
   return { rad, top, threads };
 }
+// the simulation that runs now, whether it compares with the part, and its figures
+const cmpSim = () => (sim.turn ? turnSim : sim.rot ? cylSim : stockSim);
+const cmpOn = () => (sim.turn ? !!turnSim.cmp : sim.rot ? cylSim.cmp : !!stockSim.part);
+// part radii around the A axis on the grid of a cylinder stock (setup g)
+function cylComparePart(g, cs) {
+  const bodies = setupBodies(getModel().bodies.filter(b => b.geometry), g.setup || state.project.cam.setups.find(x => x.id === activeSetupId()) || {});
+  if (!bodies.length || !cs) return null;
+  const geos = bodies.map(b => b.geometry.clone().applyMatrix4(g.T)), map = cylPartMap(cs, geos.map(q => new MeshBVH(q)));
+  geos.forEach(q => q.dispose());
+  return map;
+}
 function applySimCompare() {
   const on = $('#simCompare').checked;
-  if (sim.turn) {
+  if (sim.rot) {
+    cylSim.setCompare(on && sim.gen ? cylComparePart(sim.gen, cylSim.S) : null);
+    if (on && !cylSim.cmp) status('Vergleich nur beim Fräsen und mit einem Modell möglich.');
+  } else if (sim.turn) {
     turnSim.setCompare(on && !sim.rot ? turnComparePart() : null);
     if (on && !turnSim.cmp) status('Vergleich nur beim Fräsen und mit einem Modell möglich.');
   } else {
@@ -13708,11 +13723,11 @@ function applySimCompare() {
 }
 function updateCompareInfo() {
   const el = $('#simCompareInfo');
-  const st = $('#simCompare').checked ? (sim.turn ? turnSim.compareStats() : stockSim.compareStats()) : null;
+  const st = $('#simCompare').checked ? cmpSim().compareStats() : null;
   if (!st) { el?.remove(); return; }
   const box = el || $('#simBar').appendChild(h('span', { id: 'simCompareInfo' }));
   const pct = v => `${Math.round(v * 100)} %`;
-  box.replaceChildren(h('b', { class: 'c-ok' }, `■ ${pct(st.ok)} auf Maß`), ' ', h('b', { class: 'c-left' }, `■ ${pct(st.left)} Rest`), ' ',
+  box.replaceChildren(h('b', { class: 'c-ok' }, `■ ${pct(st.ok)} auf Maß`), ' ', h('b', { class: 'c-left' }, `■ ${pct(st.left)} Rest`, st.left && st.most ? h('span', { 'data-noi18n': '' }, ' (max. ' + f2(st.most) + ' mm)') : ''), ' ',
     h('b', { class: 'c-gouge' }, `■ ${pct(st.gouge)} zu tief${st.gouge ? ` (max. ${f2(-st.worst)} mm)` : ''}`));
 }
 $('#simCompare').onchange = applySimCompare;
@@ -16811,12 +16826,8 @@ function ncRotaryCheck(g, pts) {
   const s = g.stock, o = originOf(g.setup, s);
   const cs = new CylStock({ x0: s.minX, x1: s.maxX, cy: rot.y, cz: rot.z, r: rot.r });
   const bvhs = setupBodies(getModel().bodies.filter(b => b.geometry), g.setup).map(b => new MeshBVH(b.geometry.clone().applyMatrix4(g.T)));
-  const raw = cylPartMap(cs, bvhs), part = new Float32Array(raw.length);
-  for (let i = 0; i < cs.nx; i++) for (let j = 0; j < cs.nt; j++) {
-    let m = Infinity;
-    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) { const ii = i + di; if (ii < 0 || ii >= cs.nx) continue; m = Math.min(m, raw[ii * cs.nt + ((j + dj + cs.nt) % cs.nt)]); }
-    part[i * cs.nt + j] = m;
-  }
+  cs.setPart(cylPartMap(cs, bvhs));
+  const part = cs.lo;
   const tools = new Map(state.project.cam.tools.map(t => [+t.number, t]));
   const out = [];
   let prev = null;
@@ -16855,6 +16866,8 @@ function ncRotaryCheck(g, pts) {
     }
     for (const kind of kinds) out.push({ k, kind, at: { x: p.x, y: p.y, z: p.z } });
   });
+  // what the program leaves: the stock after its last line against the part
+  out.compare = cs.compareStats(0.1);
   return out;
 }
 const NC_ISSUE = { tablecut: 'Werkzeug schneidet durch das Rohteil in den Maschinentisch (Opferplatte oder Spannmittel unterlegen)', limit: 'Schwenkwinkel liegt außerhalb der Achsgrenzen der Maschine (Werkstück anders aufspannen)', table: 'Werkzeug, Halter oder Spindelnase fährt in den Maschinentisch', bar: 'Bohrstange berührt die Bohrungswand (Bohrstange zu dick oder Bohrung zu klein)', flank: 'Nebenschneide schneidet – Bahn taucht steiler ein, als Eckenwinkel und Einstellwinkel der Wendeplatte erlauben', chuck: 'Werkzeug fährt ins Spannfutter (unter das Rohteil-Ende)', contour: 'Fertigkontur verletzt (Werkzeug schneidet zu tief)', back: 'Drehmeißel schneidet rückwärts (+Z) ins Material', side: 'Stechmeißel schneidet seitlich (Z-Bewegung im Material)', part: 'Bahn schneidet ins fertige Teil (tiefer als das Modell an dieser Stelle)', holder: 'Halter berührt das Material', shank: 'Schaft berührt das Material (Schneidenlänge zu kurz)', rapid: 'Eilgang ins Material', fixture: 'Werkzeug oder Halter fährt in ein Spannmittel', probe: 'Taster stößt außerhalb einer Messbewegung an (geschützte Bewegung bricht ab)' };
@@ -16862,7 +16875,7 @@ const NC_ISSUE = { tablecut: 'Werkzeug schneidet durch das Rohteil in den Maschi
 // The checks of the NC window for one posted program (r = result of postProcess, g = its setup): every line against
 // the stock that is left, the clamping, the machine → { issues: [{ kind, k (line index) }], info, why }
 function ncReport(g, r, postId, opt) {
-  let issues = [], info = null, why = null, partDeep = 0;
+  let issues = [], info = null, why = null, partDeep = 0, compare = null;
   if (!g?.stock) return { issues, info, why };
   if (g.kind === 'turn') return { issues: ncLatheCheck(g, parseNcLathe(r.code)), info, why };
   const tools = state.project.cam.tools, fam = String(postId || state.project.post.flavor);
@@ -16874,8 +16887,8 @@ function ncReport(g, r, postId, opt) {
   try { const mc = ncMachineCheck(g, pts); issues.push(...mc.issues); info = mc.info; why = mc.why; } catch (e) { console.warn(e); }
   const nA = pts.filter(p => p?.a != null && Math.abs((((p.a % 360) + 540) % 360) - 180) < 179.999).length;
   if (nA && [...(g.results?.values() || [])].some(x => x?.rotary && !x.error)) issues = issues.filter(is => !['holder', 'shank', 'rapid', 'contour', 'probe', 'part'].includes(is.kind));
-  if (nA) try { issues.push(...ncRotaryCheck(g, pts)); } catch (e) { console.warn(e); }
-  return { issues, info, why, partDeep: issues.some(is => is.kind === 'part') ? partDeep : 0 };
+  if (nA) try { const rc = ncRotaryCheck(g, pts); issues.push(...rc); compare = rc.compare || null; } catch (e) { console.warn(e); }
+  return { issues, info, why, compare, partDeep: issues.some(is => is.kind === 'part') ? partDeep : 0 };
 }
 
 // Heidenhain Klartext: syntax check of the program as the control reads it (line by line, before it runs)

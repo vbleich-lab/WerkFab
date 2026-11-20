@@ -734,10 +734,13 @@ export const POST_PROPS = [
   { key: 'latheY', group: 'prefs', label: 'Y-Achse statt Polar-Interpolation', type: 'bool', def: false, only: ['lathe'], help: 'Drehmaschine mit Y-Achse: Schlüsselflächen, Konturen und Taschen auf der Planfläche fahren mit feststehendem Teil (C fest) in X und Y – genauer als die Polar-Interpolation. Was über den Y-Weg hinausgeht, bleibt bei der Polar-Interpolation.' },
   { key: 'latheYTravel', group: 'prefs', label: 'Y-Verfahrweg (±)', type: 'num', def: 40, only: ['lathe'], help: 'Größter Weg der Y-Achse aus der Mitte, in mm' },
   { key: 'homeXY', group: 'retract', label: 'XY-Referenz am Ende', type: 'bool', def: false, help: 'Am Programmende in X/Y auf Maschinen-Null fahren (M91 / G28)' },
-  { key: 'preferTilt', group: 'multiaxis', label: 'Schwenkrichtung bevorzugen', type: [['neg', 'Negativ'], ['pos', 'Positiv'], ['either', 'Beliebig']], def: 'neg', only: HH },
+  { key: 'preferTilt', group: 'multiaxis', label: 'Schwenkrichtung bevorzugen', type: [['neg', 'Negativ'], ['pos', 'Positiv'], ['either', 'Beliebig']], def: 'neg', only: ['heidenhain', 'sinumerik'] },
   { key: 'tcpm', group: 'multiaxis', label: 'FUNCTION TCPM verwenden', type: 'bool', def: false, only: HH, help: 'Werkzeugspitzen-Nachführung einschalten' },
   { key: 'tcpmCode', group: 'multiaxis', label: 'Werkzeugspitzen-Nachführung als', type: [['function', 'FUNCTION TCPM … / FUNCTION RESET TCPM'], ['m128', 'M128 … / M129']], def: 'function', only: HH, help: 'M128 für ältere Steuerungen (TNC 426/430, iTNC 530 ohne FUNCTION TCPM)' },
   { key: 'tiltedPlane', group: 'multiaxis', label: 'Geschwenkte Bearbeitungsebene', type: [['spatial', 'PLANE SPATIAL'], ['cycle19', 'Zyklus 19'], ['off', 'Aus']], def: 'spatial', only: HH, help: 'Für Setups, die nicht von oben bearbeitet werden' },
+  { key: 'swivel', group: 'multiaxis', label: 'Geschwenkte Bearbeitungsebene', type: [['cycle800', 'CYCLE800'], ['off', 'Aus']], def: 'cycle800', only: ['sinumerik'], help: 'Für Setups, die nicht von oben bearbeitet werden' },
+  { key: 'swivelRecord', group: 'multiaxis', label: 'Schwenkdatensatz (Name)', type: 'text', def: '', only: ['sinumerik'], help: 'Name des Schwenkdatensatzes der Maschine, z. B. TABLE. Leer: der einzige oder der aktive Datensatz' },
+  { key: 'swivelRetract', group: 'multiaxis', label: 'Freifahren vor dem Schwenken', type: [['1', 'Z (Maschinenachse)'], ['2', 'Z, dann X/Y'], ['4', 'Werkzeugrichtung maximal'], ['0', 'Nicht freifahren']], def: '1', only: ['sinumerik'] },
   { key: 'showNotes', group: 'formats', label: 'Notizen ausgeben', type: 'bool', def: false, help: 'Notizen der Operationen als Kommentar' },
   { key: 'structureComments', group: 'formats', label: 'Strukturkommentare', type: 'bool', def: true, help: 'Operationsname als Kommentar vor jeder Operation' },
   { key: 'writeMachine', group: 'formats', label: 'Maschine ausgeben', type: 'bool', def: true },
@@ -820,7 +823,9 @@ function tiltAngles(setup, prefer) {
   let b = -Math.asin(Math.max(-1, Math.min(1, r(2, 0))));
   let a = Math.atan2(r(2, 1), r(2, 2)), c = Math.atan2(r(1, 0), r(0, 0));
   const identity = Math.abs(a) < 1e-9 && Math.abs(b) < 1e-9 && Math.abs(c) < 1e-9;
-  return { a: deg(a), b: deg(b), c: deg(c), identity, seq: prefer === 'pos' ? '+' : prefer === 'neg' ? '-' : '' };
+  // the same orientation as rotations about X, then the new Y, then the new Z (CYCLE800 axis by axis, mode 57)
+  const sb = Math.asin(Math.max(-1, Math.min(1, r(0, 2)))), sa = Math.atan2(-r(1, 2), r(2, 2)), sc = Math.atan2(-r(0, 1), r(0, 0));
+  return { a: deg(a), b: deg(b), c: deg(c), sa: deg(sa), sb: deg(sb), sc: deg(sc), identity, seq: prefer === 'pos' ? '+' : prefer === 'neg' ? '-' : '' };
 }
 
 /**
@@ -978,6 +983,10 @@ export function runPost(def, project, gen, opts = {}) {
   // rotary axes of the machine (cycle 19 computes their angles into Q120…Q122 but does not move them)
   const rotAxes = { A: ['A'], AC: ['A', 'C'], BC: ['B', 'C'] }[machine?.kin?.type] || null;
   const QROT = { A: 120, B: 121, C: 122 };
+  // Sinumerik: CYCLE800(retract, swivel data record, new plane, axis by axis X-Y-Z, datum shift, angles, shift after, direction, …)
+  const sinuSwivel = fam === 'sinumerik' && !tilt.identity && P.swivel !== 'off';
+  const c800n = v => String(+(+v).toFixed(3) + 0);
+  const c800 = (a, b, c) => `CYCLE800(${+P.swivelRetract || 0},"${ascii(P.swivelRecord || '').replace(/[^\w.-]/g, '')}",200000,57,0,0,0,${c800n(a)},${c800n(b)},${c800n(c)},0,0,0,${P.preferTilt === 'pos' ? 1 : -1},100,1)`;
   const planeStart = () => {
     if (tilt.identity || planeOn) return;
     if (hh && P.tiltedPlane === 'spatial') W.expand(`PLANE SPATIAL SPA${W.num(tilt.a)} SPB${W.num(tilt.b)} SPC${W.num(tilt.c)} TURN MB MAX FMAX${tilt.seq ? ' SEQ' + tilt.seq : ''} TABLE ROT`);
@@ -990,11 +999,20 @@ export function runPost(def, project, gen, opts = {}) {
         kinWarned = true;
       }
     }
+    else if (sinuSwivel) W.expand(c800(tilt.sa, tilt.sb, tilt.sc));
     else { warnings.push(`Setup „${setup.name}“ ist geschwenkt – dieser Postprozessor gibt keine Schwenkebene aus. Werkstück entsprechend aufspannen.`); planeOn = true; return; }
     planeOn = true;
   };
   // final = end of the program: the rotary axes go back to zero; before a tool change they stay
   const planeEnd = final => {
+    if (planeOn && sinuSwivel) {
+      // end of the program: swivel back to zero first; CYCLE800() then switches the swivel frames off
+      if (final) W.expand(c800(0, 0, 0));
+      W.expand('CYCLE800()');
+      planeOn = false;
+      W.resetModal();
+      return;
+    }
     if (!planeOn || tilt.identity || !hh) return;
     W.expand('M140 MB MAX');
     if (P.tiltedPlane === 'spatial') W.expand(final ? 'PLANE RESET TURN MB MAX FMAX' : 'PLANE RESET STAY');

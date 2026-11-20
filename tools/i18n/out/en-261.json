@@ -1,0 +1,9 @@
+{
+ "Schwenkdatensatz (Name)": "Swivel data record (name)",
+ "Name des Schwenkdatensatzes der Maschine, z. B. TABLE. Leer: der einzige oder der aktive Datensatz": "Name of the machine's swivel data record, e.g. TABLE. Empty: the only or the active record",
+ "Freifahren vor dem Schwenken": "Retract before swivelling",
+ "Z (Maschinenachse)": "Z (machine axis)",
+ "Z, dann X/Y": "Z, then X/Y",
+ "Werkzeugrichtung maximal": "Tool direction, maximum",
+ "Nicht freifahren": "No retract"
+}

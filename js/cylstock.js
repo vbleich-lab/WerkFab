@@ -20,13 +20,47 @@ function entry(dxx, c, s, rho, R, ball, cur) {
 export class CylStock {
   constructor({ x0, x1, cy, cz, r }) {
     Object.assign(this, { x0, x1, cy, cz, r0: r });
-    this.dx = Math.max(0.25, (x1 - x0) / 400);
+    // (small parts get a finer grid: a wall that stands 0.15 mm off must show against the part)
+    this.dx = Math.max(0.05, (x1 - x0) / 400);
     this.nx = Math.ceil((x1 - x0) / this.dx) + 1;
     this.nt = 360;
     this.dt = (2 * Math.PI) / this.nt;
     this.r = new Float32Array(this.nx * this.nt).fill(r);
   }
   reset() { this.r.fill(this.r0); }
+  // sampling step along a move: fine enough for small tools and for the grid
+  step(R) { return Math.max(0.02, this.dx / 2, Math.min(0.25, R / 4)); }
+  // part radii on the same grid (cylPartMap; null = comparison off). Next to a wall (step between neighbours) a
+  // cell may lie on either side of it on this grid: anything between the lower and the upper level is "at size".
+  setPart(part) {
+    this.part = part && part.length === this.r.length ? part : null;
+    if (!this.part) { this.lo = this.hi = null; return; }
+    const { nx, nt } = this, lo = (this.lo = new Float32Array(part.length)), hi = (this.hi = new Float32Array(part.length));
+    for (let i = 0; i < nx; i++) for (let j = 0; j < nt; j++) {
+      let a = Infinity, b = -Infinity;
+      for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+        const ii = i + di;
+        if (ii < 0 || ii >= nx) continue;
+        const v = part[ii * nt + ((j + dj + nt) % nt)];
+        if (v < a) a = v;
+        if (v > b) b = v;
+      }
+      lo[i * nt + j] = a; hi[i * nt + j] = b;
+    }
+  }
+  // share of the surface: at size / material left / too deep, the deepest gouge (negative) and the most material left
+  compareStats(tol = 0.1) {
+    if (!this.part) return null;
+    let ok = 0, left = 0, gouge = 0, worst = 0, most = 0;
+    const n = this.r.length;
+    for (let k = 0; k < n; k++) {
+      const r = this.r[k];
+      if (r < this.lo[k] - tol) { gouge++; worst = Math.min(worst, r - this.lo[k]); }
+      else if (r > this.hi[k] + tol) { left++; most = Math.max(most, r - this.hi[k]); }
+      else ok++;
+    }
+    return { ok: ok / n, left: left / n, gouge: gouge / n, worst, most };
+  }
   // tool tip at (x, θ [rad], rho), tool { R, ball }; cb(index, newRadius) for every changed cell.
   // Returns removed (sum of radial depth) and top (highest tool point in contact, above the tip).
   cutAt(x, th, rho, tool, cb) {
@@ -107,7 +141,7 @@ export class CylStock {
   }
   // 3-axis move (setup frame), sampled finely enough for the grid
   cutMoveVertical(a, b, tool) {
-    const n = Math.min(5000, Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) / Math.max(0.25, tool.R / 4))));
+    const n = Math.min(5000, Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) / this.step(tool.R))));
     let removed = 0, at = null;
     for (let q = 1; q <= n; q++) {
       const f = q / n, x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f, z = a.z + (b.z - a.z) * f;
@@ -120,7 +154,7 @@ export class CylStock {
   // cut along a move: x, rho and A (degrees) change linearly, as on the machine
   cutMove(a, b, tool, cb) {
     const ra = Math.max(a.rho, b.rho, 1);
-    const n = Math.min(5000, Math.max(1, Math.ceil(Math.max(Math.abs(b.x - a.x), Math.abs(b.rho - a.rho), (Math.abs(b.a - a.a) * Math.PI * ra) / 180) / Math.max(0.25, tool.R / 6))));
+    const n = Math.min(5000, Math.max(1, Math.ceil(Math.max(Math.abs(b.x - a.x), Math.abs(b.rho - a.rho), (Math.abs(b.a - a.a) * Math.PI * ra) / 180) / this.step(tool.R))));
     let removed = 0, top = -Infinity, at = null;
     for (let q = 1; q <= n; q++) {
       const f = q / n, x = a.x + (b.x - a.x) * f, rho = a.rho + (b.rho - a.rho) * f, deg = a.a + (b.a - a.a) * f;
@@ -153,6 +187,8 @@ export class CylSim {
     this.group = new THREE.Group();
     parent.add(this.group);
     this.mat = new THREE.MeshStandardMaterial({ color: 0xc9a86a, roughness: 0.6, metalness: 0.2, side: THREE.DoubleSide });
+    this.cmpMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, metalness: 0.0, side: THREE.DoubleSide });
+    this.cmpTol = 0.1;
   }
   build(params) {
     this.dispose();
@@ -167,6 +203,7 @@ export class CylSim {
     for (let j = 0; j < nt; j++) { idx.push(c0, j, (j + 1) % nt); idx.push(c1, (nx - 1) * nt + ((j + 1) % nt), (nx - 1) * nt + j); }
     this.geo = new THREE.BufferGeometry();
     this.geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this.geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.length).fill(0.8), 3));
     this.geo.setIndex(idx);
     this.mesh = new THREE.Mesh(this.geo, this.mat);
     this.group.add(this.mesh);
@@ -174,6 +211,16 @@ export class CylSim {
     this.update();
   }
   reset() { if (this.S) { this.S.reset(); this.dirty = true; this.update(); } }
+  // comparison with the part (radius map from cylPartMap, null = off): green at size, blue material left, red too deep
+  setCompare(part) {
+    if (!this.S) return;
+    this.S.setPart(part);
+    this.mesh.material = this.S.part ? this.cmpMat : this.mat;
+    this.dirty = true;
+    this.update();
+  }
+  get cmp() { return !!this.S?.part; }
+  compareStats() { return this.S ? this.S.compareStats(this.cmpTol) : null; }
   // generator moves carry a (degrees) and mz (= cz + rho); both ends must be 4-axis moves
   cut(a, b, tool, t0, t1) {
     if (!this.S || a.a == null || b.a == null) return { removed: 0 };
@@ -202,6 +249,18 @@ export class CylSim {
     }
     const c0 = nx * nt;
     p.set([x0, cy, cz, x0 + (nx - 1) * dx, cy, cz], 3 * c0);
+    if (this.S.part) {
+      const col = this.geo.attributes.color.array, { lo, hi } = this.S, tol = this.cmpTol;
+      for (let k = 0; k < nx * nt; k++) {
+        const v = r[k];
+        let cr, cg, cb;
+        if (v < lo[k] - tol) { cr = 0.88; cg = 0.2; cb = 0.2; }
+        else if (v <= hi[k] + tol) { cr = 0.25; cg = 0.72; cb = 0.32; }
+        else { const t = Math.min(1, (v - hi[k]) / 3); cr = 0.55 - 0.45 * t; cg = 0.72 - 0.42 * t; cb = 0.95; }
+        col[3 * k] = cr; col[3 * k + 1] = cg; col[3 * k + 2] = cb;
+      }
+      this.geo.attributes.color.needsUpdate = true;
+    }
     this.geo.attributes.position.needsUpdate = true;
     this.geo.computeVertexNormals();
     this.geo.computeBoundingSphere();

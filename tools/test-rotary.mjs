@@ -135,3 +135,26 @@ function run(type, tool, extra = {}, bodies = squareBar(), setup = {}) {
     ok('Umgerechnet: F-Werte größer als programmiert (Grad zählen mit)', fb.length > fa.length && Math.max(...fb) > Math.max(...fa) * 1.5, `programmiert bis F${Math.max(...fa)}, umgerechnet bis F${Math.max(...fb)}`);
   }
 }
+
+// ---- comparison with the part on the cylinder stock: material left shows, with its amount ----
+{
+  const { CylStock, cylPartMap } = await import('../js/cylstock.js');
+  const { MeshBVH } = await import('three-mesh-bvh');
+  const { r, stock } = run('rotary', 'B1', { xStart: 0, xEnd: 20, stepoverMm: 0.15, angleStep: 2 });
+  const rot = r.rotary;
+  const cut = off => {
+    const cs = new CylStock({ x0: stock.minX, x1: stock.maxX, cy: rot.y, cz: rot.z, r: rot.r });
+    cs.setPart(cylPartMap(cs, squareBar().map(b => new MeshBVH(b.geometry))));
+    let prev = null;
+    for (const m of r.moves) {
+      const cur = m.a == null ? null : { x: m.x, rho: m.mz - rot.z + off, a: m.a };
+      if (prev && cur && m.t === 'f') cs.cutMove(prev, cur, { R: 1, ball: true });
+      prev = cur;
+    }
+    return { st: cs.compareStats(0.1), cs };
+  };
+  const a = cut(0), b = cut(0.25);
+  ok('Kleines Teil: feines Raster der Simulation', a.cs.dx <= 0.05 + 1e-9, `dx ${a.cs.dx} mm, ${a.cs.nx} × ${a.cs.nt}`);
+  ok('Vergleich 4-Achs: fertig geschlichtet → fast alles auf Maß, nichts zu tief', a.st.ok > 0.9 && a.st.gouge === 0, `auf Maß ${(100 * a.st.ok).toFixed(1)} %, Rest ${(100 * a.st.left).toFixed(1)} % (max. ${a.st.most.toFixed(3)}), zu tief ${(100 * a.st.gouge).toFixed(1)} %`);
+  ok('Vergleich 4-Achs: 0,25 mm zu weit außen wird als Rest gemeldet', b.st.left > 0.5 && Math.abs(b.st.most - 0.25) < 0.06, `Rest ${(100 * b.st.left).toFixed(1)} %, max. ${b.st.most.toFixed(3)} mm`);
+}

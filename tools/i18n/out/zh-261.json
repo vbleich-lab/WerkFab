@@ -1,0 +1,9 @@
+{
+ "Schwenkdatensatz (Name)": "摆动数据记录（名称）",
+ "Name des Schwenkdatensatzes der Maschine, z. B. TABLE. Leer: der einzige oder der aktive Datensatz": "机床摆动数据记录的名称，例如 TABLE。留空：唯一的或当前生效的记录",
+ "Freifahren vor dem Schwenken": "摆动前退刀",
+ "Z (Maschinenachse)": "Z（机床轴）",
+ "Z, dann X/Y": "先 Z，后 X/Y",
+ "Werkzeugrichtung maximal": "沿刀具方向退到最大",
+ "Nicht freifahren": "不退刀"
+}

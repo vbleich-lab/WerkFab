@@ -1,5 +1,14 @@
 # Änderungen
 
+## v1.0.0-rc.29 – 2026-11-20
+
+### Fertigung
+- **Siemens Sinumerik: geschwenkte Bearbeitungsebene mit CYCLE800.** Aufspannungen, die nicht von oben bearbeitet werden, bekommen vor dem ersten Schnitt `CYCLE800(…)` mit den Winkeln der Aufspannung (achsweise X, Y, Z – Modus 57). Vor einem Werkzeugwechsel schaltet `CYCLE800()` die Schwenkebene aus, am Programmende schwenkt die Maschine vorher auf 0 zurück. Einstellbar: Schwenkdatensatz (Name), Freifahren vor dem Schwenken, bevorzugte Schwenkrichtung, oder aus. Bisher kam nur der Hinweis, das Werkstück passend aufzuspannen. Schwenkdatensatz und Freifahren hängen von der Maschine ab – das erste Programm im Einzelsatz prüfen.
+- **4-Achs-Simulation vergleicht mit dem Teil:** „Mit Teil vergleichen“ wirkt jetzt auch bei Aufspannungen mit Drehachse: grün auf Maß, blau Rest, rot zu tief – mit dem größten Rest in mm. Das Raster der Simulation ist bei kleinen Teilen feiner (ab 0,05 mm statt 0,25 mm), und Wege kleiner Fräser werden dichter abgetastet.
+
+### KI-Agenten
+- **`simulate` und `check_nc_program` melden stehengebliebenes Material bei 4-Achs-Operationen:** `compare` mit Anteil auf Maß / Rest / zu tief und `mostMaterialLeft` (mm). `check_nc_program` rechnet das aus dem geposteten Programm.
+
 ## v1.0.0-rc.28 – 2026-11-20
 
 ### Konstruktion
