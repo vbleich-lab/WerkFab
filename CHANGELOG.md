@@ -1,5 +1,9 @@
 # Änderungen
 
+## v1.0.0-rc.30 – 2026-11-20
+
+- Wie rc.29, mit Installer für Windows: Der NC-Prüfer der Tests kannte den Text-Parameter von CYCLE800 nicht, deshalb wurde rc.29 für Windows nicht gebaut. Der erzeugte NC-Code ist unverändert.
+
 ## v1.0.0-rc.29 – 2026-11-20
 
 ### Fertigung

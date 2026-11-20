@@ -50,7 +50,9 @@ export function lintIso(code, opts = {}) {
       const sc = t.match(SIEMENS_CALL);
       if (sc) {
         const args = sc[3].split(',').map(a => a.trim());
-        if (args.some(a => a !== '' && !/^[+-]?(\d+\.?\d*|\.\d+)$/.test(a) && !/^_?[A-Z_]+$/.test(a))) bad(`${sc[2]}: Parameter ist keine Zahl`);
+        if (args.some(a => a !== '' && !/^[+-]?(\d+\.?\d*|\.\d+)$/.test(a) && !/^_?[A-Z_]+$/.test(a) && !/^"[w.-]*"$/.test(a))) bad(`${sc[2]}: Parameter ist keine Zahl`);
+        // swivel cycle: all 16 parameters, or none (switch off)
+        if (sc[2] === 'CYCLE800' && sc[3].trim() !== '' && args.length !== 16) bad('CYCLE800: 16 Parameter erwartet');
         if (!st.toolLoaded) bad('Zyklus vor dem Werkzeugwechsel');
         if (/^CYCLE8[1-9]$/.test(sc[2])) {
           const [rtp, rfp, sdis, dp] = args.map(Number);
