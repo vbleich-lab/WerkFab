@@ -1,0 +1,19 @@
+{
+ "Notiz bearbeiten": "メモを編集",
+ "Als Vorlage speichern": "テンプレートとして保存",
+ "Vorlage „{0}“ gespeichert": "テンプレート「{0}」を保存しました",
+ "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V": "「{0}」をコピーしました – コンテキストメニューまたは Ctrl+V で貼り付け",
+ "„{0}“ ausgeschnitten": "「{0}」を切り取りました",
+ "Vorderansicht als Schnitt": "正面図を断面図にする",
+ "Detailansicht: die Mitte im Blatt anklicken": "詳細図：シート上で中心をクリック",
+ "BEMASSUNG": "寸法記入",
+ "Maß": "寸法",
+ "Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken": "寸法を追加：シート上で2点または円の縁をクリック",
+ "Hinweis mit Pfeil: die Stelle im Blatt anklicken": "引出線付き注記：シート上の位置をクリック",
+ "SYMBOLE": "記号",
+ "Oberflächenzeichen: eine Kante im Blatt anklicken": "表面粗さ記号：シート上でエッジをクリック",
+ "Form-/Lagetoleranz: die Stelle im Blatt anklicken": "幾何公差：シート上の位置をクリック",
+ "Bezug: eine Kante im Blatt anklicken": "データム：シート上でエッジをクリック",
+ "TABELLEN": "表",
+ "Zeichnung als SVG speichern": "図面をSVGとして保存"
+}

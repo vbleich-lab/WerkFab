@@ -1,0 +1,19 @@
+{
+ "Notiz bearbeiten": "Edytuj notatkę",
+ "Als Vorlage speichern": "Zapisz jako szablon",
+ "Vorlage „{0}“ gespeichert": "Szablon „{0}” zapisany",
+ "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V": "Skopiowano „{0}” – wklej z menu kontekstowego lub za pomocą Ctrl+V",
+ "„{0}“ ausgeschnitten": "Wycięto „{0}”",
+ "Vorderansicht als Schnitt": "Widok z przodu jako przekrój",
+ "Detailansicht: die Mitte im Blatt anklicken": "Widok szczegółu: kliknij środek na arkuszu",
+ "BEMASSUNG": "WYMIAROWANIE",
+ "Maß": "Wymiar",
+ "Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken": "Dodaj wymiar: kliknij dwa punkty lub krawędź okręgu na arkuszu",
+ "Hinweis mit Pfeil: die Stelle im Blatt anklicken": "Notatka z linią odniesienia: kliknij miejsce na arkuszu",
+ "SYMBOLE": "SYMBOLE",
+ "Oberflächenzeichen: eine Kante im Blatt anklicken": "Symbol powierzchni: kliknij krawędź na arkuszu",
+ "Form-/Lagetoleranz: die Stelle im Blatt anklicken": "Tolerancja kształtu i położenia: kliknij miejsce na arkuszu",
+ "Bezug: eine Kante im Blatt anklicken": "Baza: kliknij krawędź na arkuszu",
+ "TABELLEN": "TABELE",
+ "Zeichnung als SVG speichern": "Zapisz rysunek jako SVG"
+}

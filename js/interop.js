@@ -19,8 +19,12 @@ async function hashText(text) {
   return 'b' + [...new Uint8Array(d)].slice(0, 12).map(x => x.toString(16).padStart(2, '0')).join('');
 }
 
+// counts the files that arrived: a model computed while one was missing is out of date once it is there
+let blobGen = 0;
+export const blobCount = () => blobGen;
 export async function putBlob(text) {
   const key = await hashText(text);
+  if (!mem.has(key)) blobGen++;
   mem.set(key, text);
   try {
     const db = await idb();

@@ -1,0 +1,7 @@
+{
+ "Lasso: Rahmen im Ansichtsfenster aufziehen – nach rechts: ganz darin, nach links: berührt.": "套索：在视图中拖出一个框 – 向右：完全在框内，向左：与框相交。",
+ "{0} Element(e) im Rahmen gewählt": "在框内选中了 {0} 个元素",
+ "Nichts im Rahmen.": "框内没有任何对象。",
+ "Kreuzen: alles, was der Rahmen berührt": "交叉：框接触到的所有对象",
+ "Fenster: alles, was ganz im Rahmen liegt": "窗口：完全位于框内的所有对象"
+}

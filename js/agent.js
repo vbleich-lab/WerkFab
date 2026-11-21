@@ -5,6 +5,7 @@
 import { FEATURE_TYPES } from './model.js';
 import { STD_FAMILIES, stdFamily, stdPartName } from './stdparts.js';
 import { OP_TYPES, TOOL_TYPES } from './cam.js';
+import { takeBlobs } from './interop.js';
 
 // 2D operations have no depth field of their own: their bottom is a height ("auto" = the deepest point of the
 // sketch's features). "depth" from an agent means that far below the sketch plane → the bottom height.
@@ -53,7 +54,7 @@ Manufacture (CAM): get_cam shows setups (stock, origin, machine), the tool libra
 length and time of their toolpaths or the reason they failed. add_operation creates an operation with the
 defaults the app would choose (tool by type, the last fitting sketch) – then read it with get_cam and adjust
 fields with update_operation. Operation types: ${Object.keys(OP_TYPES).join(', ')}.
-5-axis simultaneous: a 3D finishing operation (parallel3d, scallop3d, spiral3d, radial3d, contour3d, steep3d, flat3d, flow3d, morph3d …) with the fields "toolAxis": "normal", "maxTilt" (degrees, default 30), "leadAngle", "sideAngle" and a ball cutter: the tool leans towards the surface; the post writes tool vectors (Heidenhain, Sinumerik, Fanuc).
+5-axis simultaneous: a 3D finishing operation (parallel3d, scallop3d, spiral3d, radial3d, contour3d, steep3d, flat3d, flow3d, morph3d …) with the fields "toolAxis", "maxTilt" (degrees, default 30), "leadAngle", "sideAngle" and a ball, flat, torus or tapered cutter. "toolAxis": "normal" (towards the surface normal), "point" (through the point "axisX", "axisY", "axisZ"), "line" (through a line parallel to X or Y: "axisLineDir": "x" | "y", "axisLinePos", "axisZ"), "fixed" (lead and side angle to the feed direction only) or "swarf" (contour3d / steep3d: the flank of the cutter lies on the drafted wall beside the pass). A ball keeps its path; other cutters are moved along their axis until they touch without gouging. The post writes tool vectors (Heidenhain, Sinumerik, Fanuc); other controls get the upright 3-axis path.
 Tool types: ${Object.keys(TOOL_TYPES).join(', ')}. A 2D operation follows a sketch ("sketch": id, "entities": "all"
 or a list of entity ids; "geomSource": "sketch") or faces picked in the model ("geomSource": "model"); "depth" is how deep it cuts below the top of the sketch plane. get_nc_program posts a setup
 with the post processor of the design or another one from the list in get_cam; check_nc_program reports collisions,
@@ -75,7 +76,7 @@ export const AGENT_TOOLS = [
   { name: 'update_feature', description: 'Change fields of one feature: "patch" is merged into it (a field set to null is removed). Returns the errors of the rebuilt model.', inputSchema: obj({ id: { type: 'string' }, patch: { type: 'object' } }, ['id', 'patch']) },
   { name: 'delete_features', description: 'Remove features by id. Features that depend on them will report errors.', inputSchema: obj({ ids: { type: 'array', items: { type: 'string' } } }, ['ids']) },
   { name: 'set_params', description: 'Create or change named parameters used in expressions ("=name"). Each: { name, expr } – expr is a number or an expression as text, e.g. "120" or "laenge/2".', inputSchema: obj({ params: { type: 'array', items: obj({ name: { type: 'string' }, expr: { type: ['string', 'number'] } }, ['name', 'expr']) } }, ['params']) },
-  { name: 'set_project', description: 'Replace the whole design by a project JSON (as get_project part "all" returns it): name, params, features, cam, post, machines (own machines a setup refers to by id), posts (own post processors), bodyMeta, assembly. Parts left out stay as they are. One undo step.', inputSchema: obj({ project: { type: 'object' } }, ['project']) },
+  { name: 'set_project', description: 'Replace the whole design by a project JSON (as get_project part "all" returns it): name, params, features, cam, post, machines (own machines a setup refers to by id), posts (own post processors), bodyMeta, assembly, and blobs (the imported files of a saved .ofab, by key – without them an import feature has no file). Parts left out stay as they are. One undo step.', inputSchema: obj({ project: { type: 'object' } }, ['project']) },
   { name: 'new_design', description: 'Empty the open design (features, parameters and CAM operations). One undo step.', inputSchema: obj({ name: { type: 'string' } }) },
   { name: 'get_model', description: 'The rebuilt model: every body with name, volume (mm³), surface area (mm²) and bounding box, and the feature errors.', inputSchema: obj() },
   { name: 'screenshot', description: 'Picture of the 3D view (PNG). view: iso (default), top, front, right or current; fit: zoom to the model first (default true).', inputSchema: obj({ view: { type: 'string', enum: ['iso', 'top', 'front', 'right', 'current'] }, fit: { type: 'boolean' } }) },
@@ -220,6 +221,8 @@ export async function agentCall(name, a, api) {
     case 'set_project': {
       const q = a.project;
       if (!q || !Array.isArray(q.features)) throw new Error('project: needs at least a "features" list');
+      // a saved .ofab carries its imported files (STEP, meshes, images) in "blobs"
+      if (q.blobs && typeof q.blobs === 'object') await takeBlobs({ blobs: q.blobs });
       api.commit(p => { for (const k of ['name', 'params', 'features', 'cam', 'post', 'posts', 'machines', 'bodyMeta', 'assembly']) if (q[k] !== undefined) p[k] = structuredClone(q[k]); });
       api.note('replaced');
       return errorsNow();

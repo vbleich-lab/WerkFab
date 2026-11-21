@@ -1467,16 +1467,19 @@ export function runPost(def, project, gen, opts = {}) {
       const tolA = Math.min(0.05, Math.max(0.001, (+op.tolerance || 0.01) / 2));
       // helices only where the post can write them (helix template, or an arc template with Z)
       const helixOk = !!(def.helixCW && def.helixCCW) || (/\{Z/.test(def.arcCW || '') && /\{Z/.test(def.arcCCW || ''));
-      let moves = P.arcs !== false && !lathe && !r.rotary && !r.multi ? fitArcs(r.moves, tolA, helixOk) : r.moves;
-      if (planeTpl && P.arcs !== false && P.planeArcs !== false && !lathe && !r.rotary && !r.multi) moves = fitPlaneArcs(moves, tolA);
-      // 5-axis simultaneous: the moves hold the tip of the upright ball and the tool axis m.ax; the program gets the
+      // 5-axis simultaneous on a control without tool vectors: the 3-axis path of the same tool is written instead
+      const mx = r.multi && !lathe ? r.multi : null;
+      const mxOut = !!mx && ['heidenhain', 'sinumerik', 'fanuc'].includes(fam) && tilt.identity && !okuma;
+      const src = mx && !mxOut && mx.upright ? mx.upright : r.moves;
+      let moves = P.arcs !== false && !lathe && !r.rotary && !mxOut ? fitArcs(src, tolA, helixOk) : src;
+      if (planeTpl && P.arcs !== false && P.planeArcs !== false && !lathe && !r.rotary && !mxOut) moves = fitPlaneArcs(moves, tolA);
+      // 5-axis simultaneous: the moves hold the tip of the upright tool (same pivot) and the tool axis m.ax; the program gets the
       // real tip and the axis as a vector (no machine kinematics needed): Heidenhain LN … TX TY TZ under TCPM,
       // Sinumerik A3= B3= C3= under TRAORI, Fanuc I J K under G43.5. Other controls get the same surface as a
       // 3-axis path with the tool upright.
-      const mx = r.multi && !lathe ? r.multi : null;
-      const mxOut = !!mx && ['heidenhain', 'sinumerik', 'fanuc'].includes(fam) && tilt.identity && !okuma;
       if (mx) {
-        if (!mxOut) warnings.push(`${op.name}: 5-Achs-Simultan wird von diesem Postprozessor${tilt.identity ? '' : ' in einer geschwenkten Aufspannung'} nicht ausgegeben – als 3-Achs-Bahn mit senkrechtem Werkzeug geschrieben (gleiche Fläche, da Kugelfräser)`);
+        if (!mxOut) warnings.push(mx.ball !== false ? `${op.name}: 5-Achs-Simultan wird von diesem Postprozessor${tilt.identity ? '' : ' in einer geschwenkten Aufspannung'} nicht ausgegeben – als 3-Achs-Bahn mit senkrechtem Werkzeug geschrieben (gleiche Fläche, da Kugelfräser)`
+          : `${op.name}: 5-Achs-Simultan wird von diesem Postprozessor${tilt.identity ? '' : ' in einer geschwenkten Aufspannung'} nicht ausgegeben – als 3-Achs-Bahn mit senkrechtem Werkzeug geschrieben`);
         else {
           const kin = machine?.kin, lim = kin?.type === 'AC' ? kin.a : kin?.type === 'BC' ? kin.b : null;
           if (!kin || kin.type === 'A') warnings.push(`${op.name}: 5-Achs-Simultan – Maschine mit zwei Drehachsen wählen (Schwenktisch A/C oder Schwenkkopf B/C)`);
@@ -1578,7 +1581,7 @@ export function runPost(def, project, gen, opts = {}) {
         // lathe: x is the radius in the toolpath, the program wants the diameter
         const mv = { x: lathe ? 2 * (m.xr ?? m.x) : m.x - o.x, y: m.y - o.y, z: m.z - o.z, f: m.t === 'r' ? null : feedOf(m.f) };
         if (mxOut && m.ax) {
-          // the real tip of the leaning ball
+          // the real tip of the leaning tool
           Object.assign(mv, { x: m.x - mx.R * m.ax[0] - o.x, y: m.y - mx.R * m.ax[1] - o.y, z: m.z + mx.R * (1 - m.ax[2]) - o.z });
           if (m.t === 'r') { W.expand(withV(def.rapid, m.ax, true), tv, mv); W.rapidBefore = true; }
           else if (W.expand(withV(def.linear, m.ax, false), tv, mv)) W.rapidBefore = false;

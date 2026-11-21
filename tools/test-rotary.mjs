@@ -20,7 +20,9 @@ function run(type, tool, extra = {}, bodies = squareBar(), setup = {}) {
   const p = testProject();
   p.features = [];
   p.cam.tools.push({ id: 'B1', number: 30, name: 'Kugel Ø2', type: 'ball', dia: 2, flutes: 2, rpm: 20000, feed: 300, plunge: 100, stepdown: 0.5, stepover: 0.3 },
-    { id: 'F1', number: 31, name: 'Schaft Ø2', type: 'flat', dia: 2, flutes: 2, rpm: 20000, feed: 300, plunge: 100, stepdown: 0.5, stepover: 0.3 });
+    { id: 'F1', number: 31, name: 'Schaft Ø2', type: 'flat', dia: 2, flutes: 2, rpm: 20000, feed: 300, plunge: 100, stepdown: 0.5, stepover: 0.3 },
+    { id: 'F08', number: 32, name: 'Schaft Ø0,8', type: 'flat', dia: 0.8, flutes: 2, rpm: 24000, feed: 200, plunge: 80, stepdown: 0.2, stepover: 0.2 },
+    { id: 'B08', number: 33, name: 'Kugel Ø0,8', type: 'ball', dia: 0.8, flutes: 2, rpm: 24000, feed: 200, plunge: 80, stepdown: 0.2, stepover: 0.2 });
   const s = p.cam.setups[0];
   Object.assign(s, { stockMode: 'cylFixed', stockAxisPick: true, stockAxis: 'x', stockDia: 4.8, stockLen: LEN, stockFront: 0 });
   Object.assign(s, setup);
@@ -91,6 +93,48 @@ function run(type, tool, extra = {}, bodies = squareBar(), setup = {}) {
       worst = Math.max(worst, rho - want); low = Math.min(low, rho - want);
     }
     ok('Großes Teil: Zylinderflächen getroffen', worst < 0.05 && low > -0.02, `+${worst.toFixed(4)} / ${low.toFixed(4)} mm (Netz mit 96 Ecken: Sehnenhöhe 0,011)`);
+  }
+}
+
+// ---- a bush Ø 4.78 with four lengthwise slots, floor at r 1.79, walls on planes through the axis ----
+// Beside such a wall the side of the tool meets the wall at its foot first: the same half width spans a wider
+// angle there than at the outside. No point of the part may lie inside the tool.
+{
+  const RO = 2.39, RF = 1.79, HALF = (20 * Math.PI) / 180, N = 4; // slots 40° wide
+  const inSlot = th => { const p = (2 * Math.PI) / N, d = ((th % p) + p) % p; return Math.min(d, p - d) < HALF; };
+  const sh = new THREE.Shape(), ring = [];
+  for (let k = 0; k < N; k++) {
+    const c = (k * 2 * Math.PI) / N, nxt = c + (2 * Math.PI) / N;
+    for (let q = 0; q <= 12; q++) ring.push([RF, c - HALF + (2 * HALF * q) / 12]);
+    for (let q = 0; q <= 24; q++) ring.push([RO, c + HALF + ((nxt - HALF - (c + HALF)) * q) / 24]);
+  }
+  // (θ from +Z towards +Y, as the rotary axis counts; the extrusion runs along the shape's Z → turned onto X)
+  ring.forEach(([r, th], i) => { const a = r * Math.cos(th), b = r * Math.sin(th); if (i) sh.lineTo(a, b); else sh.moveTo(a, b); });
+  const g = new THREE.ExtrudeGeometry(sh, { depth: LEN, bevelEnabled: false, curveSegments: 1 });
+  g.rotateY(Math.PI / 2); // shape (a, b, depth) → (depth, b, -a)
+  const bodies = [{ id: 'bush', geometry: g }];
+  const partR = (y, z) => (inSlot(Math.atan2(y, -z)) ? RF : RO);
+  for (const [tool, R, ball] of [['F08', 0.4, false], ['B08', 0.4, true]]) {
+    const { r, ms } = run('rotary', tool, { xStart: 8, xEnd: 9, stepoverMm: 0.2, angleStep: 1, tolerance: 0.005 }, bodies);
+    ok(`Nutenbuchse (${tool}): Wege`, r && !r.error && r.moves?.length > 100, r?.error || `${r?.moves?.length} Wege, ${ms} ms`);
+    if (!r?.moves) continue;
+    let deep = 0, floor = 9, n = 0;
+    for (const m of r.moves) {
+      if (m.t !== 'f') continue;
+      const y = m.y - r.rotary.y, z = m.z - r.rotary.z, rho = Math.hypot(y, z);
+      if (rho > RO + 0.3) continue;
+      const uy = y / rho, uz = z / rho;
+      floor = Math.min(floor, rho); n++;
+      // points of the tool: l across (in the plane of the cross-section), a along its axis from the tip
+      for (let l = -R; l <= R + 1e-9; l += 0.02) for (let a = 0; a <= 0.9; a += 0.02) {
+        if (ball && a < R && Math.hypot(l, R - a) > R) continue;
+        const py = (rho + a) * uy + l * uz, pz = (rho + a) * uz - l * uy, rr = Math.hypot(py, pz);
+        // inside the part, and how far in from the tool's skin
+        if (rr < partR(py, pz) - 1e-6) deep = Math.max(deep, ball && a < R ? R - Math.hypot(l, R - a) : Math.min(R - Math.abs(l), a));
+      }
+    }
+    ok(`Nutenbuchse (${tool}): keine Wand angeschnitten`, deep < 0.02, `tiefster Schnitt ${deep.toFixed(3)} mm, ${n} Punkte`);
+    ok(`Nutenbuchse (${tool}): Nutgrund erreicht`, floor < RF + 0.03 && floor > RF - 0.01, `tiefster Punkt r ${floor.toFixed(3)} (Grund ${RF})`);
   }
 }
 

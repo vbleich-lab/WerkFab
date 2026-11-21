@@ -1,0 +1,19 @@
+{
+ "Notiz bearbeiten": "Редагувати примітку",
+ "Als Vorlage speichern": "Зберегти як шаблон",
+ "Vorlage „{0}“ gespeichert": "Шаблон «{0}» збережено",
+ "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V": "«{0}» скопійовано – вставте з контекстного меню або клавішами Ctrl+V",
+ "„{0}“ ausgeschnitten": "«{0}» вирізано",
+ "Vorderansicht als Schnitt": "Вигляд спереду як розріз",
+ "Detailansicht: die Mitte im Blatt anklicken": "Виносний елемент: клацніть центр на аркуші",
+ "BEMASSUNG": "РОЗМІРИ",
+ "Maß": "Розмір",
+ "Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken": "Додати розмір: клацніть дві точки або край кола на аркуші",
+ "Hinweis mit Pfeil: die Stelle im Blatt anklicken": "Примітка з виноскою: клацніть місце на аркуші",
+ "SYMBOLE": "СИМВОЛИ",
+ "Oberflächenzeichen: eine Kante im Blatt anklicken": "Знак шорсткості: клацніть ребро на аркуші",
+ "Form-/Lagetoleranz: die Stelle im Blatt anklicken": "Допуск форми та розташування: клацніть місце на аркуші",
+ "Bezug: eine Kante im Blatt anklicken": "База: клацніть ребро на аркуші",
+ "TABELLEN": "ТАБЛИЦІ",
+ "Zeichnung als SVG speichern": "Зберегти креслення як SVG"
+}

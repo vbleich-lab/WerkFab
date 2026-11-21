@@ -138,7 +138,7 @@ export class Sketcher {
     this.snapped = !!best;
     this.snapRef = best ? best.ref : null;
     if (best) return [best.p[0], best.p[1]];
-    const s = state.snap > 0 ? state.snap : 0.01;
+    const s = state.snap > 0 && state.snapOn !== false ? state.snap : 0.01; // ("Fangen" off: no grid, points still snap)
     return [r2(Math.round(x / s) * s), r2(Math.round(y / s) * s)];
   }
 
@@ -176,6 +176,31 @@ export class Sketcher {
     return null;
   }
 
+  // what a selection frame takes: from left to right what lies wholly inside, from right to left what it touches
+  boxRefs(a, b, cross) {
+    const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+    const inP = q => q[0] >= x0 && q[0] <= x1 && q[1] >= y0 && q[1] <= y1;
+    const cut = (p, q, r, s) => { const d = (q[0] - p[0]) * (s[1] - r[1]) - (q[1] - p[1]) * (s[0] - r[0]); if (Math.abs(d) < 1e-12) return false; const t = ((r[0] - p[0]) * (s[1] - r[1]) - (r[1] - p[1]) * (s[0] - r[0])) / d, u = ((r[0] - p[0]) * (q[1] - p[1]) - (r[1] - p[1]) * (q[0] - p[0])) / d; return t >= 0 && t <= 1 && u >= 0 && u <= 1; };
+    const C = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+    const segHit = (p, q) => inP(p) || inP(q) || C.some((c, i) => cut(p, q, c, C[(i + 1) % 4]));
+    const chain = (pts, closed) => { const n = pts.length; if (!cross) return n > 0 && pts.every(inP); for (let i = 0; i < (closed ? n : n - 1); i++) if (segHit(pts[i], pts[(i + 1) % n])) return true; return n === 1 && inP(pts[0]); };
+    const H = sketchHandles(this.entities), out = [], done = new Set();
+    for (const l of H.lines) { done.add(refEntity(l.ref)); if (cross ? segHit(l.a, l.b) : inP(l.a) && inP(l.b)) out.push(l.ref); }
+    for (const c of H.circles) {
+      done.add(refEntity(c.ref));
+      const n = 48, a0 = c.span ? c.span.a0 : 0, sw = c.span ? c.span.sw : Math.PI * 2;
+      const pts = Array.from({ length: n + 1 }, (_, i) => [c.c[0] + c.r * Math.cos(a0 + sw * i / n), c.c[1] + c.r * Math.sin(a0 + sw * i / n)]);
+      if (chain(pts, false)) out.push(c.ref);
+    }
+    for (const e of this.entities) {
+      if (e.type === 'text') { if (inP([+e.x, +e.y])) out.push(`${e.id}:p0`); continue; }
+      if (done.has(e.id)) continue;
+      const os = entityOutlines(e);
+      if (os.length && (cross ? os.some(o => chain(o.pts, o.closed)) : os.every(o => chain(o.pts, o.closed)))) out.push(`${e.id}:c`);
+    }
+    return out;
+  }
+
   // points that move when a handle is dragged
   dragPoints(ref) {
     const kind = refKind(ref);
@@ -201,7 +226,8 @@ export class Sketcher {
     const p = this.localPoint(e);
     if (!p) return;
     const ref = this.pick(p);
-    if (!ref || ref === 'origin' || ref === 'xaxis' || ref === 'yaxis') return;
+    // a drag that starts on nothing draws a selection frame
+    if (!ref || ref === 'origin' || ref === 'xaxis' || ref === 'yaxis') { e.preventDefault(); this.box = { a: p, sx: e.clientX, add: e.shiftKey || e.ctrlKey || e.metaKey || !!this.additive }; return; }
     const H = sketchHandles(this.entities);
     const pts = this.dragPoints(ref).map(r => ({ ref: r, p0: H.point(r) }));
     if (pts.length) this.dragCand = { start: p, pts };
@@ -213,6 +239,20 @@ export class Sketcher {
     this.down = null;
     if (this.swipe?.on) { const n = this.swipe.n; this.swipe = null; this.hooks.status?.(n ? `${n} Stück(e) gestutzt` : 'Stutzen: nichts überfahren'); return; }
     this.swipe = null;
+    if (this.box) {
+      const bx = this.box;
+      this.box = null;
+      if (bx.b) {
+        this.hooks.tip(null);
+        const refs = this.boxRefs(bx.a, bx.b, bx.cross);
+        this.selection = bx.add ? [...new Set([...this.selection, ...refs])] : refs;
+        this.selected = this.selection.length ? refEntity(this.selection[this.selection.length - 1]) : null;
+        this.drawPreview();
+        this.hooks.changed();
+        this.hooks.status?.(refs.length ? `${refs.length} Element(e) im Rahmen gewählt` : 'Nichts im Rahmen.');
+        return;
+      }
+    }
     if (this.drag) {
       const ents = this.override;
       this.drag = null;
@@ -230,6 +270,13 @@ export class Sketcher {
     const p = this.localPoint(e);
     if (!p) return;
     this.hooks.cursor?.(p);
+    if (this.box && this.down && (this.box.b || Math.hypot(e.clientX - this.down[0], e.clientY - this.down[1]) >= 5)) {
+      this.box.b = p;
+      this.box.cross = e.clientX < this.box.sx;
+      this.drawPreview();
+      this.hooks.tip(this.box.cross ? 'Kreuzen: alles, was der Rahmen berührt' : 'Fenster: alles, was ganz im Rahmen liegt', e);
+      return;
+    }
     if (this.dragCand && this.down && Math.hypot(e.clientX - this.down[0], e.clientY - this.down[1]) >= 4) this.drag = this.dragCand;
     if (this.drag) {
       const d = [p[0] - this.drag.start[0], p[1] - this.drag.start[1]];
@@ -631,10 +678,10 @@ export class Sketcher {
 
     if (this.tool === 'select') {
       const ref = this.pick(raw);
-      if (e.shiftKey && ref) {
+      if ((e.shiftKey || this.additive) && ref) {
         const i = this.selection.indexOf(ref);
         if (i >= 0) this.selection.splice(i, 1); else this.selection.push(ref);
-      } else this.selection = ref ? [ref] : [];
+      } else if (!this.additive) this.selection = ref ? [ref] : [];
       const last = this.selection[this.selection.length - 1];
       this.selected = last ? refEntity(last) : null;
       this.selConstraint = null;
@@ -820,7 +867,7 @@ export class Sketcher {
       sk.entities.push(ent);
       if (cons.length) (sk.constraints ||= []).push(...cons);
     });
-    if (ent.type === 'text') { this.selection = [`${ent.id}:p0`]; this.selected = ent.id; }
+    if (ent.type === 'text') { this.selection = [`${ent.id}:p0`]; this.selected = ent.id; setTimeout(() => this.hooks.text?.(ent.id), 0); }
   }
 
   finishPolyline() {
@@ -907,13 +954,42 @@ export class Sketcher {
     if (e.key === 'Delete' || e.key === 'Backspace') return this.deleteSelected();
     if (!e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'x') return this.toggleConstruction();
     //: T = Stutzen (text has no shortcut there)
-    const map = { l: 'line', r: 'rect', c: 'circle', g: 'ngon', s: 'select', u: 'slot', o: 'offset', t: 'trim', p: 'project', j: 'project', a: 'arc', e: 'ellipse', b: 'spline', d: 'dim' };
+    // commands that are more than a drawing tool: E = finish the sketch and extrude, O = offset, M = move/copy, F = fillet, I = measure
+    const cmd = !e.ctrlKey && !e.metaKey && !e.altKey && { e: 'extrude', o: 'offset', m: 'move', f: 'fillet', i: 'measure' }[e.key.toLowerCase()];
+    if (cmd && this.hooks.cmd) { this.hooks.cmd(cmd); return true; }
+    const map = { l: 'line', r: 'rect', c: 'circle', g: 'ngon', s: 'select', u: 'slot', t: 'trim', p: 'project', j: 'project', a: 'arc', b: 'spline', d: 'dim' };
     if (!e.ctrlKey && !e.metaKey && map[e.key.toLowerCase()]) { this.setTool(map[e.key.toLowerCase()]); return true; }
     return false;
   }
 
   drawPreview() {
     this.vp.clear(this.preview);
+    // selection frame: full line = window, dashed = crossing
+    if (this.active && this.box?.b) {
+      this.preview.matrix.copy(planeMatrix(this.sketch));
+      const { a, b, cross } = this.box, z = 0.07;
+      const pts = [[a[0], a[1]], [b[0], a[1]], [b[0], b[1]], [a[0], b[1]], [a[0], a[1]]].map(q => new THREE.Vector3(q[0], q[1], z));
+      const g = new THREE.BufferGeometry().setFromPoints(pts);
+      const l = new THREE.Line(g, cross ? new THREE.LineDashedMaterial({ color: 0x35c46a, dashSize: this.vp.worldPerPixel() * 6, gapSize: this.vp.worldPerPixel() * 4, depthTest: false, transparent: true }) : new THREE.LineBasicMaterial({ color: 0x3aa0ff, depthTest: false, transparent: true }));
+      if (cross) l.computeLineDistances();
+      l.renderOrder = 12;
+      const sh = new THREE.Shape(pts.slice(0, 4).map(v => new THREE.Vector2(v.x, v.y)));
+      const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshBasicMaterial({ color: cross ? 0x35c46a : 0x3aa0ff, opacity: 0.12, transparent: true, depthTest: false, side: THREE.DoubleSide }));
+      m.position.z = z;
+      m.renderOrder = 11;
+      this.preview.add(m, l);
+    }
+    // what a command window is about to make (mirror image, pattern): outlines
+    if (this.active && this.ghost?.length) {
+      this.preview.matrix.copy(planeMatrix(this.sketch));
+      const mat = new THREE.LineBasicMaterial({ color: 0xff7a00, depthTest: false, transparent: true });
+      for (const c of this.ghost) for (const o of entityOutlines(c)) {
+        const pts = (o.closed ? [...o.pts, o.pts[0]] : o.pts).map(q => new THREE.Vector3(q[0], q[1], 0.06));
+        const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat);
+        l.renderOrder = 11;
+        this.preview.add(l);
+      }
+    }
     if (this.active && this.cur && (this.tool === 'xmove' || this.tool === 'xrot')) {
       // the elements where they would land, and the way of the mouse from the first point
       this.preview.matrix.copy(planeMatrix(this.sketch));

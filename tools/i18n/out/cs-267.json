@@ -1,0 +1,19 @@
+{
+ "Notiz bearbeiten": "Upravit poznámku",
+ "Als Vorlage speichern": "Uložit jako šablonu",
+ "Vorlage „{0}“ gespeichert": "Šablona „{0}“ uložena",
+ "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V": "„{0}“ zkopírováno – vložte z kontextové nabídky nebo pomocí Ctrl+V",
+ "„{0}“ ausgeschnitten": "„{0}“ vyjmuto",
+ "Vorderansicht als Schnitt": "Čelní pohled jako řez",
+ "Detailansicht: die Mitte im Blatt anklicken": "Detail: klikněte na střed na výkrese",
+ "BEMASSUNG": "KÓTOVÁNÍ",
+ "Maß": "Kóta",
+ "Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken": "Přidat kótu: klikněte na dva body nebo na okraj kružnice na výkrese",
+ "Hinweis mit Pfeil: die Stelle im Blatt anklicken": "Poznámka s odkazovou čárou: klikněte na místo na výkrese",
+ "SYMBOLE": "SYMBOLY",
+ "Oberflächenzeichen: eine Kante im Blatt anklicken": "Značka drsnosti povrchu: klikněte na hranu na výkrese",
+ "Form-/Lagetoleranz: die Stelle im Blatt anklicken": "Tolerance tvaru a polohy: klikněte na místo na výkrese",
+ "Bezug: eine Kante im Blatt anklicken": "Datum: klikněte na hranu na výkrese",
+ "TABELLEN": "TABULKY",
+ "Zeichnung als SVG speichern": "Uložit výkres jako SVG"
+}

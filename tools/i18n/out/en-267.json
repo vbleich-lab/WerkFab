@@ -1,0 +1,19 @@
+{
+ "Notiz bearbeiten": "Edit note",
+ "Als Vorlage speichern": "Save as template",
+ "Vorlage „{0}“ gespeichert": "Template \"{0}\" saved",
+ "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V": "\"{0}\" copied – paste from the context menu or with Ctrl+V",
+ "„{0}“ ausgeschnitten": "\"{0}\" cut",
+ "Vorderansicht als Schnitt": "Front view as a section",
+ "Detailansicht: die Mitte im Blatt anklicken": "Detail view: click the centre on the sheet",
+ "BEMASSUNG": "DIMENSIONS",
+ "Maß": "Dimension",
+ "Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken": "Add a dimension: click two points or the rim of a circle on the sheet",
+ "Hinweis mit Pfeil: die Stelle im Blatt anklicken": "Note with leader: click the spot on the sheet",
+ "SYMBOLE": "SYMBOLS",
+ "Oberflächenzeichen: eine Kante im Blatt anklicken": "Surface symbol: click an edge on the sheet",
+ "Form-/Lagetoleranz: die Stelle im Blatt anklicken": "Geometric tolerance: click the spot on the sheet",
+ "Bezug: eine Kante im Blatt anklicken": "Datum: click an edge on the sheet",
+ "TABELLEN": "TABLES",
+ "Zeichnung als SVG speichern": "Save the drawing as SVG"
+}

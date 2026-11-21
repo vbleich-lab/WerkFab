@@ -1,0 +1,19 @@
+{
+ "Notiz bearbeiten": "Изменить примечание",
+ "Als Vorlage speichern": "Сохранить как шаблон",
+ "Vorlage „{0}“ gespeichert": "Шаблон «{0}» сохранён",
+ "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V": "«{0}» скопировано – вставьте из контекстного меню или клавишами Ctrl+V",
+ "„{0}“ ausgeschnitten": "«{0}» вырезано",
+ "Vorderansicht als Schnitt": "Вид спереди как разрез",
+ "Detailansicht: die Mitte im Blatt anklicken": "Выносной элемент: щёлкните центр на листе",
+ "BEMASSUNG": "РАЗМЕРЫ",
+ "Maß": "Размер",
+ "Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken": "Добавить размер: щёлкните две точки или край окружности на листе",
+ "Hinweis mit Pfeil: die Stelle im Blatt anklicken": "Примечание с выноской: щёлкните место на листе",
+ "SYMBOLE": "СИМВОЛЫ",
+ "Oberflächenzeichen: eine Kante im Blatt anklicken": "Знак шероховатости: щёлкните ребро на листе",
+ "Form-/Lagetoleranz: die Stelle im Blatt anklicken": "Допуск формы и расположения: щёлкните место на листе",
+ "Bezug: eine Kante im Blatt anklicken": "База: щёлкните ребро на листе",
+ "TABELLEN": "ТАБЛИЦЫ",
+ "Zeichnung als SVG speichern": "Сохранить чертёж как SVG"
+}

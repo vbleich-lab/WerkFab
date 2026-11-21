@@ -1,0 +1,19 @@
+{
+ "Notiz bearbeiten": "Rediger notat",
+ "Als Vorlage speichern": "Lagre som mal",
+ "Vorlage „{0}“ gespeichert": "Malen «{0}» er lagret",
+ "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V": "«{0}» kopiert – lim inn fra hurtigmenyen eller med Ctrl+V",
+ "„{0}“ ausgeschnitten": "«{0}» klippet ut",
+ "Vorderansicht als Schnitt": "Frontvisning som snitt",
+ "Detailansicht: die Mitte im Blatt anklicken": "Detaljvisning: klikk på midten på arket",
+ "BEMASSUNG": "MÅLSETTING",
+ "Maß": "Mål",
+ "Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken": "Legg til mål: klikk på to punkter eller kanten av en sirkel på arket",
+ "Hinweis mit Pfeil: die Stelle im Blatt anklicken": "Notat med henvisningslinje: klikk på stedet på arket",
+ "SYMBOLE": "SYMBOLER",
+ "Oberflächenzeichen: eine Kante im Blatt anklicken": "Overflatesymbol: klikk på en kant på arket",
+ "Form-/Lagetoleranz: die Stelle im Blatt anklicken": "Form- og posisjonstoleranse: klikk på stedet på arket",
+ "Bezug: eine Kante im Blatt anklicken": "Referanse: klikk på en kant på arket",
+ "TABELLEN": "TABELLER",
+ "Zeichnung als SVG speichern": "Lagre tegningen som SVG"
+}

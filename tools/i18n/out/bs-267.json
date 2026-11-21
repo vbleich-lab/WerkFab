@@ -1,0 +1,19 @@
+{
+ "Notiz bearbeiten": "Uredi bilješku",
+ "Als Vorlage speichern": "Spremi kao predložak",
+ "Vorlage „{0}“ gespeichert": "Predložak „{0}“ je spremljen",
+ "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V": "„{0}“ kopirano – zalijepite iz kontekstnog izbornika ili pomoću Ctrl+V",
+ "„{0}“ ausgeschnitten": "„{0}“ izrezano",
+ "Vorderansicht als Schnitt": "Prednji pogled kao presjek",
+ "Detailansicht: die Mitte im Blatt anklicken": "Detaljni pogled: kliknite središte na listu",
+ "BEMASSUNG": "KOTIRANJE",
+ "Maß": "Mjera",
+ "Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken": "Dodaj mjeru: kliknite dvije tačke ili rub kruga na listu",
+ "Hinweis mit Pfeil: die Stelle im Blatt anklicken": "Napomena sa strelicom: kliknite mjesto na listu",
+ "SYMBOLE": "SIMBOLI",
+ "Oberflächenzeichen: eine Kante im Blatt anklicken": "Oznaka površine: kliknite ivicu na listu",
+ "Form-/Lagetoleranz: die Stelle im Blatt anklicken": "Tolerancija oblika i položaja: kliknite mjesto na listu",
+ "Bezug: eine Kante im Blatt anklicken": "Baza: kliknite ivicu na listu",
+ "TABELLEN": "TABELE",
+ "Zeichnung als SVG speichern": "Spremi crtež kao SVG"
+}

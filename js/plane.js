@@ -8,7 +8,10 @@ export const BASE_PLANES = {
 };
 
 export function sketchPlane(sk) {
-  if (sk.plane) return sk.plane;
+  const p = sk.plane, v3 = a => Array.isArray(a) && a.length === 3 && a.every(Number.isFinite);
+  if (p && v3(p.o) && v3(p.x) && v3(p.n)) return p;
+  // a plane given by name ("XY", "XZ", "YZ") – a damaged plane falls back to XY instead of stopping the app
+  if (typeof p === 'string' && BASE_PLANES[p.toUpperCase()]) return BASE_PLANES[p.toUpperCase()];
   return { o: [0, 0, +sk.z || 0], x: [1, 0, 0], n: [0, 0, 1] }; // legacy XY sketches
 }
 

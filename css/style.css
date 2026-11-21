@@ -1383,7 +1383,8 @@ td.mt-barc { width: 28%; }
 .xtab button.btn { border: 1px solid var(--line); background: var(--input); color: var(--text); padding: 2px 8px; }
 .xtab button.btn:hover { border-color: var(--accent); }
 .xtab .btn { color: inherit; }
-.lasso-box { position: fixed; border: 1px dashed var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); pointer-events: none; z-index: 50; }
+.lasso-box { position: fixed; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); pointer-events: none; z-index: 50; }
+.lasso-box.cross { border-style: dashed; border-color: #35c46a; background: color-mix(in srgb, #35c46a 12%, transparent); }
 body.tabs-only #tools { display: none; }
 body.tabs-only #toolbar:hover #tools, body.tabs-only #toolbar:focus-within #tools { display: flex; }
 
@@ -1459,3 +1460,39 @@ body.tb-moving, body.tb-moving * { cursor: grabbing !important; user-select: non
 /* Lernaufgaben: the button of the current step blinks */
 .lesson-hl { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; animation: lessonPulse 1.2s ease-in-out infinite; }
 @keyframes lessonPulse { 50% { outline-color: transparent; background: var(--accent-soft); } }
+
+/* ---- sketch palette and command dialogs of the sketch ---- */
+#propsBody .row.pal { grid-template-columns: 1fr auto; margin: 3px 0; min-height: 22px; }
+#propsBody .row.pal label { color: var(--text); }
+#propsBody .row.pal input[type=checkbox] { justify-self: end; }
+#propsBody .row.pal .btn { padding: 2px 8px; font-size: 11px; }
+.pal-ic { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 24px; padding: 0 !important; }
+.pal-ic svg { width: 18px; height: 18px; }
+.pal-snap { display: flex; align-items: center; gap: 6px; }
+.pal-snap input[type=text] { width: 56px; }
+.pal-fam { display: flex; gap: 4px; margin: 4px 0 8px; }
+.pal-var { width: 34px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 3px; background: var(--input); }
+.pal-var svg { width: 22px; height: 22px; }
+.pal-var.on { border-color: var(--accent); background: var(--accent-soft); }
+.pal-var:hover { border-color: var(--accent); }
+.cmd-back { position: fixed; inset: 0; z-index: 300; }
+.cmd-dlg { position: absolute; right: max(8px, min(364px, calc(100vw - 316px))); top: 140px; width: 300px; background: var(--panel); }
+.cmd-dlg .fwin-head { cursor: default; }
+.cmd-body { padding: 8px 10px 4px; }
+.cmd-body .row { grid-template-columns: 110px 1fr; }
+.cmd-in { display: flex; align-items: center; gap: 6px; }
+.cmd-in input { flex: 1; min-width: 0; padding: 4px 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--input); }
+.cmd-in span { color: var(--muted); font-size: 12px; min-width: 20px; }
+.cmd-dlg.free { position: fixed; z-index: 250; }
+.sel-field { width: 100%; text-align: left; padding: 4px 8px; border: 1px solid var(--line); border-radius: 3px; background: var(--input); font-size: 12px; }
+.sel-field.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.cmd-dlg .fwin-foot button:disabled { opacity: .5; cursor: default; }
+
+/* operations dragged in the browser: where they will land */
+#tree .node.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+#tree .node.drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
+
+/* drawing window: toolbar above the sheet */
+.dw-wrap { display: flex; flex-direction: column; height: 100%; }
+.dw-wrap > .dw { flex: 1; min-height: 0; height: auto; }
+.dw-bar { display: flex; flex-shrink: 0; overflow-x: auto; border-bottom: 1px solid var(--line); background: var(--panel, transparent); }

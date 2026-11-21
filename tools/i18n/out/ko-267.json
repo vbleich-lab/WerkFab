@@ -1,0 +1,19 @@
+{
+ "Notiz bearbeiten": "메모 편집",
+ "Als Vorlage speichern": "템플릿으로 저장",
+ "Vorlage „{0}“ gespeichert": "템플릿 “{0}” 저장됨",
+ "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V": "“{0}” 복사됨 – 컨텍스트 메뉴 또는 Ctrl+V로 붙여넣기",
+ "„{0}“ ausgeschnitten": "“{0}” 잘라냄",
+ "Vorderansicht als Schnitt": "정면도를 단면도로",
+ "Detailansicht: die Mitte im Blatt anklicken": "상세도: 시트에서 중심을 클릭하세요",
+ "BEMASSUNG": "치수 기입",
+ "Maß": "치수",
+ "Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken": "치수 추가: 시트에서 두 점 또는 원의 가장자리를 클릭하세요",
+ "Hinweis mit Pfeil: die Stelle im Blatt anklicken": "지시선 주석: 시트에서 위치를 클릭하세요",
+ "SYMBOLE": "기호",
+ "Oberflächenzeichen: eine Kante im Blatt anklicken": "표면 기호: 시트에서 모서리를 클릭하세요",
+ "Form-/Lagetoleranz: die Stelle im Blatt anklicken": "기하 공차: 시트에서 위치를 클릭하세요",
+ "Bezug: eine Kante im Blatt anklicken": "데이텀: 시트에서 모서리를 클릭하세요",
+ "TABELLEN": "표",
+ "Zeichnung als SVG speichern": "도면을 SVG로 저장"
+}

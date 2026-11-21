@@ -10,6 +10,45 @@ export const defaultFluteLen = t => (t.type === 'drill' ? 8 : 3) * t.dia;
 export const defaultHolderDia = t => 2 * t.dia + 10;
 export const defaultStickout = t => (+t.fluteLen || defaultFluteLen(t)) + 2 * t.dia;
 
+/**
+ * Lowest point of a leaning cutter above the point (px, py): a cylinder of radius R with the corner radius cr
+ * (0 = flat end), its tip at T = [x, y, z], its axis a (unit vector, a[2] > 0), cutting up to the length L.
+ * → z, or Infinity where the cutter is not above the point.
+ */
+export function tiltedEdgeZ(px, py, T, a, R, cr, L) {
+  const dx = px - T[0], dy = py - T[1], hx = dx * a[0] + dy * a[1], rf = R - cr;
+  // the flat of the end: the plane through the tip
+  const zp = T[2] - hx / a[2];
+  let dz = zp - T[2];
+  let vx = dx, vy = dy, vz = dz, rho = Math.sqrt(vx * vx + vy * vy + vz * vz);
+  if (rho <= rf) return zp;
+  let best = Infinity;
+  if (cr > 0) {
+    // corner radius: balls of radius cr on the circle of radius rf around the axis – the lowest of them above the
+    // point, searched along the circle from the direction of the point
+    const ul = Math.hypot(a[0], a[1]) || 1, ux = a[1] / ul, uy = -a[0] / ul, wx = -a[2] * uy, wy = a[2] * ux, wz = a[0] * uy - a[1] * ux;
+    const cx = T[0] + cr * a[0], cy = T[1] + cr * a[1], cz = T[2] + cr * a[2], cc = cr * cr;
+    const low = phi => {
+      const c = Math.cos(phi), s = Math.sin(phi), qx = cx + rf * (c * ux + s * wx), qy = cy + rf * (c * uy + s * wy), d2 = (px - qx) * (px - qx) + (py - qy) * (py - qy);
+      return d2 > cc ? Infinity : cz + rf * s * wz - Math.sqrt(cc - d2);
+    };
+    let phi = Math.atan2(vx * wx + vy * wy + vz * wz, vx * ux + vy * uy), step = Math.PI / 12, bz = Infinity, bp = phi;
+    for (let k = -6; k <= 6; k++) { const z = low(phi + k * step); if (z < bz) { bz = z; bp = phi + k * step; } }
+    if (bz < Infinity) for (let it = 0; it < 7; it++) { step /= 2; for (const p of [bp - step, bp + step]) { const z = low(p); if (z < bz) { bz = z; bp = p; } } }
+    best = bz;
+  }
+  // the side: |p|² − (p·a)² = R² with p = (dx, dy, z − Tz)
+  const A = 1 - a[2] * a[2];
+  if (A > 1e-12) {
+    const B = -2 * hx * a[2], C = dx * dx + dy * dy - hx * hx - R * R, disc = B * B - 4 * A * C;
+    if (disc >= 0) {
+      const w = (-B - Math.sqrt(disc)) / (2 * A), hs = hx + w * a[2];
+      if (hs >= cr - 1e-6 && hs <= L && T[2] + w < best) best = T[2] + w;
+    }
+  }
+  return best;
+}
+
 export class StockSim {
   constructor(parent) {
     this.group = new THREE.Group();
@@ -152,6 +191,21 @@ export class StockSim {
     return { removed, shankHit };
   }
 
+  // A leaning cutter (5-axis): tip at T, axis ax – every cell below it is cut down to the cutter
+  stampTilted(T, ax, tool) {
+    const r = tool.dia / 2, cr = cornerOf(tool), L = +tool.fluteLen || defaultFluteLen(tool);
+    const { minX, minY } = this.stock;
+    const ex = T[0] + L * ax[0], ey = T[1] + L * ax[1];
+    const i0 = Math.max(0, Math.floor((Math.min(T[0], ex) - r - minX) / this.dx)), i1 = Math.min(this.nx - 1, Math.ceil((Math.max(T[0], ex) + r - minX) / this.dx));
+    const j0 = Math.max(0, Math.floor((Math.min(T[1], ey) - r - minY) / this.dy)), j1 = Math.min(this.ny - 1, Math.ceil((Math.max(T[1], ey) + r - minY) / this.dy));
+    let removed = 0;
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const zc = tiltedEdgeZ(minX + i * this.dx, minY + j * this.dy, T, ax, r, cr, L), k = j * this.nx + i, hv = this.h[k];
+      if (hv > zc) { removed += Math.max(0, hv - Math.max(zc, this.b[k])); this.h[k] = zc; this.dirty = true; }
+    }
+    return { removed, shankHit: false };
+  }
+
   // Removes material along a segment; reports removed volume (per cell area) and
   // the first position where the shank touched material.
   cut(a, b, tool, t0, t1) {
@@ -163,10 +217,18 @@ export class StockSim {
     const n = Math.max(1, Math.ceil(len / (Math.min(this.dx, this.dy) * 0.7)));
     // shank wider than the cutter (Ø3 mill on a Ø6 shank): its own disc above the cutting length, like the NC check
     const sR = shaftDia(tool) / 2, fl = fluteLen(tool), wide = sR > tool.dia / 2 + 1e-6;
+    // 5-axis: a ball cuts the same at any tilt; other cutters are stamped leaning
+    const tilted = !!(a.ax || b.ax) && tool.type !== 'ball' && !tool.profile && tool.type !== 'chamfer' && tool.type !== 'drill', pv = tilted ? cornerOf(tool) : 0;
     for (let s = 0; s <= n; s++) {
       const t = s / n;
       const q = { x: p0.x + (p1.x - p0.x) * t, y: p0.y + (p1.y - p0.y) * t, z: p0.z + (p1.z - p0.z) * t };
-      const r = this.stamp(q.x, q.y, q.z, tool);
+      let r;
+      if (tilted) {
+        // moves hold the tip of the upright tool on the same pivot: turn about it
+        const u = t0 + (t1 - t0) * t, p = a.ax || [0, 0, 1], w = b.ax || [0, 0, 1];
+        let x = p[0] + (w[0] - p[0]) * u, y = p[1] + (w[1] - p[1]) * u, z = p[2] + (w[2] - p[2]) * u; const l = Math.hypot(x, y, z) || 1; x /= l; y /= l; z /= l;
+        r = z > 1 - 1e-9 ? this.stamp(q.x, q.y, q.z, tool) : this.stampTilted([q.x - pv * x, q.y - pv * y, q.z + pv * (1 - z)], [x, y, z], tool);
+      } else r = this.stamp(q.x, q.y, q.z, tool);
       res.removed += r.removed;
       if (r.shankHit && !res.shankAt) res.shankAt = q;
       if (wide && !res.shankAt && this.discHit(q, sR, q.z + fl)) res.shankAt = q;

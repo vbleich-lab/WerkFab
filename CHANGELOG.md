@@ -1,5 +1,44 @@
 # Änderungen
 
+## v1.0.0-rc.32 – 2026-11-21
+
+- **4-Achs-Bearbeitung: Wände, die zur Drehachse zeigen** – neben einer solchen Wand (Längsnut mit radialen Flanken) schnitt der Fräser am Wandfuß ins Teil: geprüft wurde nur die Oberkante der Wand, am Nutgrund überdeckt dieselbe Werkzeugbreite aber einen größeren Winkel. Jetzt zählt die ganze Wand bis zum Grund, bei Schaft- und Kugelfräser, beim Schlichten und Schruppen. Was der gerade Fräser an einer radialen Wand nicht erreicht, bleibt als Rest stehen und wird in der Simulation gemeldet.
+- **KI-Schnittstelle: `set_project` nimmt die eingebetteten Dateien** – ein gespeichertes Projekt (.ofab) mit importiertem STEP-Teil lässt sich samt `blobs` übergeben; vorher blieb der Import ohne Datei. Kommt eine fehlende Importdatei nachträglich an, rechnet das Modell von selbst neu.
+- **Operation „Ecke“ (Restmaterial) rechnet schnell** – mit den Vorgabewerten stand die Anwendung über eine Minute still; dieselben Bahnen sind jetzt in einem Zehntel der Zeit da.
+- **KI-Schnittstelle: `add_operation` folgt der Skizze** – 2D-Kontur, Tasche, Bohren, Fase usw. nehmen ohne weitere Angabe die zuletzt passende Skizze, wie beschrieben; vorher blieb die Operation mit „Keine Geometrie gewählt“ stehen.
+
+### Konstruktion
+- **Skizze – Werkzeugleiste neu geordnet:** ERSTELLEN (mit Bemaßung, Spiegeln, Mustern, Projizieren), ÄNDERN, ABHÄNGIGKEITEN, PRÜFEN (Messen), EINFÜGEN, AUSWÄHLEN, SKIZZE FERTIG STELLEN.
+- **Skizzenpalette:** Optionen in einem Block – Linientyp, Ansehen, Skizzenraster, Fangen (mit Rasterweite), Schnitt, Profil, Punkte, Bemaßungen, Abhängigkeiten, projizierte und Konstruktionsgeometrien anzeigen. Darunter die Varianten des aktiven Werkzeugs (Rechteck, Kreis, Bogen, Projizieren) zum Umschalten.
+- **Befehlsfenster in der Skizze:** Versatz, Abrunden, Fase, Verschieben/Kopieren, Drehen, Skalieren, rechteckige und runde Anordnung fragen ihre Werte in einem eigenen Fenster mit einem Feld je Wert (vorher eine Zeile mit Strichpunkten). Die Vorschau bleibt dahinter sichtbar; Enter übernimmt, Esc bricht ab.
+- **Spiegeln, Versatz, Rechteck- und Kreis-Muster mit Auswahlfeldern:** Das Fenster hat ein Feld „Objekte“ (anklicken wählt, erneut anklicken nimmt heraus), bei Spiegeln ein Feld für die Spiegelachse, beim Kreis-Muster eines für den Mittelpunkt. Die Vorschau zeigt bei jeder Änderung, was entsteht; das Fenster verdeckt die Skizze nicht. Beim Versatz dreht „Umkehren“ die Seite.
+- **Auswahlrahmen in der Skizze:** Mit dem Auswahlwerkzeug neben die Geometrie klicken und ziehen. Von links nach rechts (durchgezogener Rahmen) wählt, was ganz darin liegt; von rechts nach links (gestrichelt) alles, was der Rahmen berührt. Umschalt oder Strg fügt zur Auswahl hinzu. Der Rahmen füllt auch das Feld „Objekte“ der Befehlsfenster.
+- **Auswahlrahmen für Körper:** Dieselbe Regel gilt im Modell. Bei den Maus-Belegungen, die die linke Taste frei lassen, genügt Ziehen neben dem Modell; sonst startet „Lasso“ den Rahmen. Vorher zählte nur der Mittelpunkt des Körpers.
+- **Text in der Skizze:** Nach dem Setzen fragt ein Fenster Text, Schriftgröße und Drehung ab; Abbrechen nimmt den Text wieder heraus.
+- **Skizzenebene:** Eine Skizze mit beschädigter oder nur als Name („XY“) angegebener Ebene hält das Programm nicht mehr an – sie liegt dann auf der genannten Ebene bzw. auf XY.
+- **Zahl tippen, Enter – fertig:** Ist ein Befehlsfenster offen (Extrusion, Verrundung, Fase, Schale …), geht eine getippte Zahl ohne Klick in den Hauptwert; Enter übernimmt den Wert und schließt den Befehl ab (vorher: Feld anklicken, Enter, noch einmal Enter).
+- **Extrusion:** Pfeil und Wertfeld sitzen auf dem angeklickten Profil (vorher in der Mitte aller Profile der Skizze). Ohne Profil lässt sich die Extrusion nicht mehr bestätigen, ebenso Verrundung und Fase ohne Kante – vorher blieb ein leeres Feature mit Fehler in der Zeitachse.
+- **Bohrung durch Klick auf eine Fläche:** Ohne Skizze fragt „Bohrung“ (H) nach der Stelle auf einer ebenen Fläche. Der Klick legt die Skizze mit dem Punkt selbst an und öffnet das Bohrungsfenster; Durchmesser tippen, Enter. Vorher hieß es „Zuerst eine Skizze erstellen“.
+- **Tasten in der Skizze:** E stellt die Skizze fertig und startet die Extrusion, O öffnet das Versatz-Fenster, M Verschieben/Kopieren, F Abrunden, I Messen. Die Ellipse hat dafür keine Taste mehr.
+- **Zeichnung – Werkzeugleiste über dem Blatt:** ANSICHTEN (Schnitt, Detail), BEMASSUNG (Maß), TEXT (Hinweis), SYMBOLE (Oberfläche, Form/Lage, Bezug), TABELLEN (Stückliste, Prüfplan), AUSGABE (PDF, SVG). Die Liste an der Seite bleibt für die Einstellungen.
+- Tastenhinweise in der Skizze stimmen: Polygon (G), Langloch (U).
+
+### Fertigung
+- **Operationen im Browser ziehen:** Eine Operation lässt sich mit der Maus vor oder hinter eine andere ziehen, auch in ein anderes Setup. Ein Strich zeigt, wo sie landet.
+- **Ausschneiden, Kopieren, Einfügen für Operationen:** im Kontextmenü und mit Strg+X, Strg+C, Strg+V – auch von einem Setup in ein anderes. Dazu im Kontextmenü: Notiz bearbeiten, Als Vorlage speichern, Werkzeugbibliothek.
+- **Setup duplizieren** (Kontextmenü) kopiert das Setup mit allen Operationen; „Einfügen“ und „Einrichteblatt“ stehen dort ebenfalls.
+- **5-Achs-Simultan mit Schaft-, Torus- und Konusfräsern:** Bisher ging es nur mit Kugelfräser. Andere Fräser werden geneigt und entlang ihrer Achse verschoben, bis sie am Teil anliegen, ohne es zu verletzen – geprüft an jedem Satz und alle paar Millimeter dazwischen, auch an steilen Flächen. Simulation und NC-Prüfung rechnen mit dem geneigten Fräser. Steuerungen ohne Werkzeugvektor bekommen die senkrechte 3-Achs-Bahn desselben Werkzeugs.
+- **Werkzeugachse wählbar:** Flächennormale (wie bisher), durch einen Punkt, durch eine Linie parallel zu X oder Y, fest zur Vorschubrichtung (nur Voreil- und Seitenwinkel).
+- **5-Achs-Wälzfräsen:** Die Flanke des Fräsers legt sich an schräge Wände (3D-Kontur, Steil & Flach). Der Schrägungswinkel kommt aus dem Modell, die Lage aus der Konturbahn – so genau wie die 3-Achs-Kontur. Für Wände, die nach oben offen sind.
+- **Mehr Einträge unter MEHRACHSEN:** 5-Achs-Simultan Spirale, Radial, Kontur, Hohlkehle, Projizieren, Flächen-Morph und 5-Achs-Wälzfräsen.
+- Wälzfräsen an Wänden, die in der Höhe gewölbt sind: Der Fräser rückt von der Wand ab, bis sie seine gerade Flanke nur berührt (vorher schnitt er bis zu 0,4 mm in die Wölbung).
+- **5-Achs-Simultan Projizieren:** Der Fräser steht jetzt in der Flächennormale unter der Kurve und taucht um die Tiefe entlang seiner Achse ein (vorher blieb die Bahn senkrecht).
+- Geneigte Schaft- und Torusfräser werden auch auf halbem Weg zwischen zwei Sätzen geprüft; wo sie dort ins Teil schnitten (am Rand einer Fläche bis 0,3 mm), kommt ein eigener Satz dazu.
+- NC-Prüfung bei 5-Achs-Sätzen: Schaft, Halter und Spannmittel werden mit dem geneigten Werkzeug geprüft (vorher senkrecht oder gar nicht).
+- Klartext-Prüfung kennt LN-Sätze mit Werkzeugvektor.
+- Voreil- und Seitenwinkel bei Zickzack-Bahnen: Hin- und Rückweg werden an den Zeilenenden nicht mehr ineinander geglättet.
+- Die 5-Achs-Ausgabe ist durch Tests geprüft, nicht an einer Steuerung – vor dem ersten Lauf an der Maschine prüfen.
+
 ## v1.0.0-rc.31 – 2026-11-21
 
 ### Konstruktion

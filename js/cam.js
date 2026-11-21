@@ -2899,12 +2899,19 @@ function machinedSurface(hm, T, tool, stl = 0) {
     if (d <= R + 1e-9) offs.push([di, dj, toolLift(tool, Math.min(d, tool.dia / 2))]);
   }
   const M = new Float32Array(nx * ny);
+  // beyond the grid (outside the stock): the tool position is dropped on the model directly – once per position
+  // (every cell near the border asks for the same ones; without the memory a large tool took over a minute)
+  const W = nx + 2 * rc, far = new Float32Array(W * (ny + 2 * rc)).fill(NaN), grown = growStl(tool, stl);
+  const beyond = (ii, jj) => {
+    const k = (jj + rc) * W + ii + rc;
+    if (Number.isNaN(far[k])) far[k] = dropCutter(hm, hm.minX + ii * res, hm.minY + jj * res, grown, -Infinity) + stl;
+    return far[k];
+  };
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
     let m = Infinity;
     for (const [di, dj, l] of offs) {
       const ii = i + di, jj = j + dj;
-      // beyond the grid (outside the stock): the tool position is dropped on the model directly
-      const v = (ii < 0 || jj < 0 || ii >= nx || jj >= ny ? dropCutter(hm, hm.minX + ii * res, hm.minY + jj * res, growStl(tool, stl), -Infinity) + stl : T[jj * nx + ii]) + l;
+      const v = (ii < 0 || jj < 0 || ii >= nx || jj >= ny ? beyond(ii, jj) : T[jj * nx + ii]) + l;
       if (v < m) m = v;
     }
     M[j * nx + i] = m;
@@ -3248,7 +3255,10 @@ function genRotary(op, t, stock, ctx, h, project) {
   const rm0 = rm;
   const jr = Math.ceil(Math.asin(Math.min(1, Re / Math.max(Re, 0.5 * Rs))) / dt) + 1;
   // tool tip radius at (x, θ): ball centre as low as possible without a surface point inside the ball;
-  // flat end: every surface point under the tool's circle lies below the end face
+  // flat end: every surface point under the tool's circle lies below the end face.
+  // A cell stands for the material on its whole ray, from the axis out to its radius: beside a wall that runs
+  // towards the axis the tool's side meets the wall further in, where the same width spans a wider angle (the
+  // foot of the wall, at √rest / sin D from the axis) – not only the top edge counts.
   const tip = (x, th) => {
     let rc = ball ? Re : 0;
     const i0 = Math.max(0, Math.floor((x - Re - xa) / dx)), i1 = Math.min(nx - 1, Math.ceil((x + Re - xa) / dx));
@@ -3262,8 +3272,10 @@ function genRotary(op, t, stock, ctx, h, project) {
         if (!(r > 0)) continue;
         const D = Math.max(0, Math.abs(jj * dt - th) - dt / 2), c = Math.cos(D), s = Math.sin(D);
         const q = rest - r * r * s * s;
-        if (q < 0 || c <= 0) continue;
-        const v = ball ? r * c + Math.sqrt(q) : r * c + stl;
+        if (c <= 0) continue;
+        // (how far out the ray stays inside the tool's width)
+        const foot = s > 1e-9 ? Math.sqrt(rest) / s : Infinity;
+        const v = ball ? (q >= 0 ? Math.max(r * c + Math.sqrt(q), Math.min(foot, r / c)) : foot) : Math.min(r, foot) * c + stl;
         if (v > rc) rc = v;
       }
     }
@@ -3648,76 +3660,299 @@ function generateOpInner(op, project, stock, ctx, t, s) {
 }
 
 // ---------- 5-axis simultaneous: the tool axis follows the surface ----------
-// 3D finishing strategies that can run with a tilted ball cutter
+// 3D finishing strategies that can run with a tilted cutter
 export const MULTI_OPS = ['parallel3d', 'scallop3d', 'spiral3d', 'radial3d', 'contour3d', 'steep3d', 'flat3d', 'morphspiral3d', 'geodesic3d', 'pencil3d', 'flow3d', 'morph3d', 'blend3d', 'project3d'];
-export const multiAxisOn = op => !!op && op.toolAxis === 'normal' && MULTI_OPS.includes(op.type);
-/** Real tool tip of a move of a 5-axis operation (x, y, z hold the tip of the same ball standing upright). */
-export function multiTip(m, R) { const a = m.ax; return a ? { x: m.x - R * a[0], y: m.y - R * a[1], z: m.z + R * (1 - a[2]) } : { x: m.x, y: m.y, z: m.z }; }
+// how the tool axis is chosen ("Werkzeugachse")
+export const AXIS_MODES = { normal: 'Flächennormale', point: 'Durch einen Punkt', line: 'Durch eine Linie', fixed: 'Fest zur Vorschubrichtung', swarf: 'Wälzfräsen (Flanke an der Wand)' };
+// swarf milling needs the passes at constant height along the walls
+export const SWARF_OPS = ['contour3d', 'steep3d'];
+export const multiAxisOn = op => !!op && MULTI_OPS.includes(op.type) && Object.hasOwn(AXIS_MODES, op.toolAxis || '') && (op.toolAxis !== 'swarf' || SWARF_OPS.includes(op.type));
+/** Height of the pivot above the tool tip: the point of the axis a tilted move is stored by (ball: its centre, torus: the height of its corner radius, flat: the tip). */
+export const pivotOf = t => (!t ? 0 : toolBase(t) === 'ball' ? (+t.dia || 0) / 2 : cornerOf(t.kind ? t : { ...t, kind: t.type, type: toolBase(t) }));
+/** Real tool tip of a move of a 5-axis operation (x, y, z hold the tip of the same tool standing upright on the same pivot; pv = pivotOf(tool)). */
+export function multiTip(m, pv) { const a = m.ax; return a ? { x: m.x - pv * a[0], y: m.y - pv * a[1], z: m.z + pv * (1 - a[2]) } : { x: m.x, y: m.y, z: m.z }; }
+const hmTop = new WeakMap();
+const hmMaxZ = hm => { let v = hmTop.get(hm); if (v == null) { v = -Infinity; for (const z of hm.h) if (z > v) v = z; hmTop.set(hm, v); } return v; };
 /**
- * A ball cutter cuts with a sphere: where its centre runs decides the surface, not how the tool leans. So the path
- * of the 3-axis strategy stays as it is (the centre of the ball, free of gouges), and every move only gets a tool
- * axis m.ax = [i, j, k] (unit vector from the tip to the spindle, setup frame): towards the surface normal, with
- * lead and side angle, never more than maxTilt from the setup's Z. Where the shaft or the holder would touch the
- * part, the tool is stood up again as far as needed. x, y, z of the moves remain the tip of the upright ball –
- * simulation, rest material and the checks against the part work on them unchanged; the post writes the real tip.
+ * How far a tilted cutter has to move back along its axis so that nothing of the part is inside it. The cutter is a
+ * cylinder of radius R with a corner radius cr (0 = flat end, R = ball), its tip at `tip`, its axis `a` (unit, a[2] > 0);
+ * above the cutting end it counts as an endless cylinder (flutes and shaft). Points of the height field nearer than
+ * `Rc` to the axis are tested. → lift (mm along a), never below `lo`: 0 = only back, negative = the cutter may also
+ * move forward that far until it touches (lo itself comes back where nothing is in reach).
+ */
+export function axialLift(hm, tip, a, R, cr, Rc = R, lo = 0) {
+  const { minX, minY, nx, ny, res, h } = hm;
+  const sMax = Math.min(400, Math.max(0, (hmMaxZ(hm) - tip.z) / Math.max(0.05, a[2]))) + R;
+  const ex = tip.x + sMax * a[0], ey = tip.y + sMax * a[1];
+  const bx = tip.x + lo * a[0], by = tip.y + lo * a[1];
+  const i0 = Math.max(0, Math.floor((Math.min(tip.x, ex, bx) - R - minX) / res)), i1 = Math.min(nx - 1, Math.ceil((Math.max(tip.x, ex, bx) + R - minX) / res));
+  const j0 = Math.max(0, Math.floor((Math.min(tip.y, ey, by) - R - minY) / res)), j1 = Math.min(ny - 1, Math.ceil((Math.max(tip.y, ey, by) + R - minY) / res));
+  const rf = R - cr, RR = Rc * Rc;
+  let lift = lo;
+  const test = (px, py, pz) => {
+    const dx = px - tip.x, dy = py - tip.y, dz = pz - tip.z, s = dx * a[0] + dy * a[1] + dz * a[2];
+    if (s <= lift) return;
+    const d2 = dx * dx + dy * dy + dz * dz - s * s;
+    if (d2 >= RR) return;
+    const d = Math.sqrt(Math.max(0, d2)), g = d <= rf ? 0 : cr - Math.sqrt(Math.max(0, cr * cr - (d - rf) * (d - rf)));
+    if (s - g > lift) lift = s - g;
+  };
+  const { vStart, vPts } = hm;
+  // a steep surface has its samples far apart in height: the line to the next cell is tested too
+  const between = (x, y, z, x2, y2, k2) => {
+    const z2 = h[k2];
+    if (z2 === -Infinity || Math.abs(z2 - z) <= res) return;
+    const n = Math.min(64, Math.ceil(Math.abs(z2 - z) / res));
+    for (let q = 1; q < n; q++) { const f = q / n; test(x + (x2 - x) * f, y + (y2 - y) * f, z + (z2 - z) * f); }
+  };
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const k = j * nx + i, z = h[k], x = minX + i * res, y = minY + j * res;
+    if (z !== -Infinity) {
+      test(x, y, z);
+      if (i + 1 < nx) between(x, y, z, x + res, y, k + 1);
+      if (j + 1 < ny) between(x, y, z, x, y + res, k + nx);
+    }
+    if (vPts) for (let v = vStart[k], ve = vStart[k + 1]; v < ve; v++) test(vPts[v * 3], vPts[v * 3 + 1], vPts[v * 3 + 2]);
+  }
+  return lift;
+}
+/**
+ * How near does the part come to the axis of a leaning cutter, beside its flank? Points of the height field higher
+ * than `s0` above the tip (along the axis) count. → the smallest distance from the axis, R where nothing is nearer.
+ * (For swarf milling: the flank lies on the wall, so the wall may come as near as the radius, but not nearer.)
+ */
+export function sideReach(hm, tip, a, R, s0, s1) {
+  const { minX, minY, nx, ny, res, h } = hm;
+  const sMax = Math.min(s1, Math.max(0, (hmMaxZ(hm) - tip.z) / Math.max(0.05, a[2])) + R);
+  if (sMax <= s0) return R;
+  const ex = tip.x + sMax * a[0], ey = tip.y + sMax * a[1];
+  const i0 = Math.max(0, Math.floor((Math.min(tip.x, ex) - R - minX) / res)), i1 = Math.min(nx - 1, Math.ceil((Math.max(tip.x, ex) + R - minX) / res));
+  const j0 = Math.max(0, Math.floor((Math.min(tip.y, ey) - R - minY) / res)), j1 = Math.min(ny - 1, Math.ceil((Math.max(tip.y, ey) + R - minY) / res));
+  let RR = R * R;
+  const hit = (px, py, pz) => {
+    const dx = px - tip.x, dy = py - tip.y, dz = pz - tip.z, s = dx * a[0] + dy * a[1] + dz * a[2];
+    if (s > s0 && s < sMax) { const d2 = dx * dx + dy * dy + dz * dz - s * s; if (d2 < RR) RR = Math.max(0, d2); }
+  };
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const k = j * nx + i, z = h[k], x = minX + i * res, y = minY + j * res;
+    if (z === -Infinity) continue;
+    hit(x, y, z);
+    for (const [x2, y2, k2] of [[x + res, y, i + 1 < nx ? k + 1 : -1], [x, y + res, j + 1 < ny ? k + nx : -1]]) {
+      if (k2 < 0) continue;
+      const z2 = h[k2];
+      if (z2 === -Infinity || Math.abs(z2 - z) <= res) continue;
+      const n = Math.min(64, Math.ceil(Math.abs(z2 - z) / res));
+      for (let q = 1; q < n; q++) { const f = q / n; hit(x + (x2 - x) * f, y + (y2 - y) * f, z + (z2 - z) * f); }
+    }
+  }
+  return Math.sqrt(RR);
+}
+/**
+ * The path of the 3-axis strategy is the base (free of gouges with the tool upright); every move on the surface gets a
+ * tool axis m.ax = [i, j, k] (unit vector from the tip to the spindle, setup frame), never more than maxTilt from the
+ * setup's Z:
+ *   normal – towards the surface normal, with lead and side angle
+ *   point  – along the line from a fixed point (below the part: fan out, above it: lean towards it)
+ *   line   – the same with a line parallel to X or Y
+ *   fixed  – lead and side angle to the feed direction only
+ *   swarf  – along the wall beside the pass (the flank of the cutter lies on the wall)
+ * A ball cuts with a sphere: where its centre runs decides the surface, not how the tool leans – its path stays as
+ * it is. Any other cutter is turned about its pivot (see pivotOf) and then drawn back along its axis until nothing
+ * of the part is inside it. Where the shaft or the holder would touch the part, or the cutter would have to draw
+ * back too far, the tool is stood up again as far as needed (upright is the 3-axis path). x, y, z of the moves hold
+ * the tip of the same tool standing upright on the same pivot; the post writes the real tip (multiTip).
  */
 function tiltMoves(res, op, ctx, h) {
-  const t = res.tool, moves = res.moves;
-  if (toolBase(t) !== 'ball') throw new Error('5-Achs-Simultan: einen Kugelfräser wählen (die Kugel schneidet in jeder Neigung gleich)');
-  const hm = ctx.heightmap(), R = t.dia / 2, stl = +op.stockToLeave || 0, tool = growStl(t, stl);
+  const t = res.tool, moves = res.moves, base = toolBase(t), mode = op.toolAxis, swarf = mode === 'swarf';
+  if (t.profile || (base !== 'ball' && base !== 'flat')) throw new Error('5-Achs-Simultan: Kugel-, Schaft-, Torus- oder Konusfräser wählen');
+  const ball = base === 'ball';
+  const hm = ctx.heightmap(), R = t.dia / 2, stl = +op.stockToLeave || 0, tool = growStl(t, stl), pv = pivotOf(t), cr = ball ? R : cornerOf(t);
   const maxT = (Math.min(85, Math.max(0, +op.maxTilt || 30)) * Math.PI) / 180, lead = Math.tan(((+op.leadAngle || 0) * Math.PI) / 180), side = Math.tan(((+op.sideAngle || 0) * Math.PI) / 180);
   const zAt = (x, y) => dropCutter(hm, x, y, tool, h.bottom - stl) + stl;
   const e = Math.max(hm.res, R / 4);
   const top = (x, y) => { const i = Math.round((x - hm.minX) / hm.res), j = Math.round((y - hm.minY) / hm.res); return i >= 0 && j >= 0 && i < hm.nx && j < hm.ny ? hm.h[j * hm.nx + i] : -Infinity; };
+  // (between the cells: bilinear)
+  const topB = (x, y) => {
+    const fx = (x - hm.minX) / hm.res, fy = (y - hm.minY) / hm.res, i = Math.floor(fx), j = Math.floor(fy);
+    if (i < 0 || j < 0 || i + 1 >= hm.nx || j + 1 >= hm.ny) return top(x, y);
+    const k = j * hm.nx + i, a = hm.h[k], b = hm.h[k + 1], c = hm.h[k + hm.nx], d = hm.h[k + hm.nx + 1];
+    if (a === -Infinity || b === -Infinity || c === -Infinity || d === -Infinity) return top(x, y);
+    const u = fx - i, v = fy - j;
+    return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+  };
   // shaft and holder as rings of points around the axis: none may lie below the part
   const stick = +(t.stickout ?? defaultStickout(t)), Rs = Math.max(R, (+t.shaftDia || t.dia) / 2), Rh = +(t.holderDia ?? defaultHolderDia(t)) / 2, Lh = Math.max(20, 2.8 * Rh);
-  const clear = (m, a) => {
+  const flute = Math.min(stick, +t.fluteLen || 3 * t.dia);
+  // rings around the axis, s = distance from the point c along the axis
+  const rings = (c, a, list) => {
     if (a[2] > 1 - 1e-9) return true;
-    const cx = m.x, cy = m.y, cz = m.z + R; // centre of the ball
-    // two directions across the axis
-    const ul = Math.hypot(a[0], a[1]), u = [a[1] / ul, -a[0] / ul, 0], w = [a[2] * u[1] * -1 + 0, a[2] * u[0], a[0] * u[1] - a[1] * u[0]];
-    const ring = (s, rad) => {
-      const qx = cx + s * a[0], qy = cy + s * a[1], qz = cz + s * a[2], rr = Math.max(0, rad - 0.75 * hm.res);
+    const ul = Math.hypot(a[0], a[1]), u = [a[1] / ul, -a[0] / ul, 0], w = [-a[2] * u[1], a[2] * u[0], a[0] * u[1] - a[1] * u[0]];
+    for (const [s, rad] of list) {
+      const qx = c[0] + s * a[0], qy = c[1] + s * a[1], qz = c[2] + s * a[2], rr = Math.max(0, rad - 0.75 * hm.res);
       for (let k = 0; k < 8; k++) {
-        const c = Math.cos((k * Math.PI) / 4), sn = Math.sin((k * Math.PI) / 4);
-        const px = qx + rr * (c * u[0] + sn * w[0]), py = qy + rr * (c * u[1] + sn * w[1]), pz = qz + rr * (c * u[2] + sn * w[2]);
+        const cs = Math.cos((k * Math.PI) / 4), sn = Math.sin((k * Math.PI) / 4);
+        const px = qx + rr * (cs * u[0] + sn * w[0]), py = qy + rr * (cs * u[1] + sn * w[1]), pz = qz + rr * (cs * u[2] + sn * w[2]);
         if (top(px, py) + stl > pz + 0.02) return false;
       }
-      return true;
-    };
-    for (let s = R * 0.5; s < stick; s += Math.max(R, 2 * hm.res)) if (!ring(s, s < 3 * R ? R : Rs)) return false;
-    for (let s = stick; s <= stick + Lh; s += Math.max(Rh / 2, 2 * hm.res)) if (!ring(s, Rh)) return false;
+    }
     return true;
   };
+  // ball: shaft and holder measured from the centre of the ball
+  const ballRings = [];
+  for (let s = R * 0.5; s < stick; s += Math.max(R, 2 * hm.res)) ballRings.push([s, s < 3 * R ? R : Rs]);
+  for (let s = stick; s <= stick + Lh; s += Math.max(Rh / 2, 2 * hm.res)) ballRings.push([s - R, Rh]);
+  // other cutters: the cutting cylinder is covered by axialLift; a wider shaft and the holder measured from the tip
+  const tipRings = [];
+  if (Rs > R + 1e-6) for (let s = flute; s < stick; s += Math.max(R, 2 * hm.res)) tipRings.push([s, Rs]);
+  for (let s = stick; s <= stick + Lh; s += Math.max(Rh / 2, 2 * hm.res)) tipRings.push([s, Rh]);
   const Z = [0, 0, 1], norm = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
   // an axis no more than maxT from Z
-  const limit = a => { const ang = Math.acos(Math.min(1, Math.max(-1, a[2]))); if (ang <= maxT) return a; const l = Math.hypot(a[0], a[1]) || 1, s = Math.sin(maxT); return [(a[0] / l) * s, (a[1] / l) * s, Math.cos(maxT)]; };
-  // stand the tool up step by step until shaft and holder are clear (upright is always clear: the 3-axis path)
-  const safe = (m, a) => { let cur = a; for (let k = 0; k < 6 && !clear(m, cur); k++) cur = k === 5 ? Z : norm([cur[0] * 0.6, cur[1] * 0.6, cur[2] * 0.6 + 0.4]); return clear(m, cur) ? cur : Z; };
-  const n = moves.length, ax = new Array(n).fill(null);
+  const limit = a => { const ang = Math.acos(Math.min(1, Math.max(-1, a[2]))); if (ang <= maxT && a[2] > 0) return a; const l = Math.hypot(a[0], a[1]) || 1, s = Math.sin(maxT); return [(a[0] / l) * s, (a[1] / l) * s, Math.cos(maxT)]; };
+  const up = a => norm([a[0] * 0.6, a[1] * 0.6, a[2] * 0.6 + 0.4]);
+  // Position of a move with the axis a → { a, p: [x, y, z] in the upright form } – stood up step by step until it fits
+  // (on the surface the cutter may also move forward along its axis until it touches: an upright flat end rests on
+  // its rim, turned to the normal its face would hover above the surface)
+  // projecting engraves: the path runs `sink` below the surface – the cutter is set on the surface, then sunk along its axis
+  const sink = op.type === 'project3d' ? +op.depth || 0.3 : 0;
+  const Rg = R + stl, crg = Math.min(Rg, cr + stl), maxLift = Math.max(R, 1), maxDrop = Math.min(2 * R, R * Math.tan(maxT) + 0.5) + hm.res;
+  const tryPlace = (m, a, w, drop) => {
+    if (a[2] > 1 - 1e-9) return { a: Z, p: [m.x, m.y, m.z] };
+    if (ball) return rings([m.x, m.y, m.z + R], a, ballRings) ? { a, p: [m.x, m.y, m.z] } : null;
+    let tip, wn = null;
+    if (w) {
+      // swarf: the axis lies along the wall, w.d away from it (the distance the upright cutter kept); the lowest
+      // point of the end stays at the height of the pass
+      const hd = w.h[0] * a[0] + w.h[1] * a[1], n = norm([w.h[0] - hd * a[0], w.h[1] - hd * a[1], -hd * a[2]]);
+      tip = [m.x - w.d * w.h[0] + w.d * n[0], m.y - w.d * w.h[1] + w.d * n[1], m.z + w.d * n[2]];
+      wn = n;
+    } else tip = [m.x - pv * a[0], m.y - pv * a[1], m.z + sink + pv * (1 - a[2])];
+    // the cutter grown by the stock to leave: a torus of R + stl and cr + stl, its tip stl further down the axis
+    const lo = drop && !w ? -maxDrop : 0;
+    let lift = axialLift(hm, { x: tip[0] - stl * a[0], y: tip[1] - stl * a[1], z: tip[2] - stl * a[2] }, a, Rg, crg, w ? Rg - Math.max(1.5 * hm.res, 0.08 * R) : Rg, lo);
+    if (lo < 0 && lift <= lo + 1e-9) lift = 0; // nothing of the part in reach: stay
+    // the rim of the end can dip into a slope between the samples: tested on the surface between the cells
+    if (!w) {
+      const ul = Math.hypot(a[0], a[1]), u = [a[1] / ul, -a[0] / ul, 0], v = [-a[2] * u[1], a[2] * u[0], a[0] * u[1] - a[1] * u[0]];
+      for (let it = 0; it < 4; it++) {
+        let dz = 0;
+        for (const [rho, s] of crg > 1e-6 ? [[Rg - crg, 0], [Rg, crg]] : [[Rg, 0]]) for (let k = 0; k < 24; k++) {
+          const c = Math.cos((k * Math.PI) / 12), sn = Math.sin((k * Math.PI) / 12), sl = s + lift - stl;
+          const px = tip[0] + sl * a[0] + rho * (c * u[0] + sn * v[0]), py = tip[1] + sl * a[1] + rho * (c * u[1] + sn * v[1]), pz = tip[2] + sl * a[2] + rho * (c * u[2] + sn * v[2]);
+          const zs = topB(px, py);
+          if (zs - pz > dz) dz = zs - pz;
+        }
+        if (dz < 1e-3) break;
+        lift += dz * a[2];
+      }
+    }
+    if (lift > (w ? maxLift / 2 : maxLift)) return null;
+    tip = [tip[0] + lift * a[0], tip[1] + lift * a[1], tip[2] + lift * a[2]];
+    // swarf: a wall that bulges (or a draft read too large) would be cut by the straight flank
+    // (the cutter moves off the wall until the wall only touches its flank)
+    if (w) {
+      let off = 0;
+      for (let it = 0; it < 3; it++) {
+        const near = sideReach(hm, { x: tip[0], y: tip[1], z: tip[2] }, a, Rg, Math.max(crg, 2 * hm.res), stick);
+        if (near >= Rg - 1e-4) break;
+        if (it === 2 && near < Rg - 0.02) return null;
+        const d = (Rg - near) * 1.02;
+        off += d;
+        tip = [tip[0] + d * wn[0], tip[1] + d * wn[1], tip[2] + d * wn[2]];
+      }
+      if (off > Math.max(R, 1)) return null;
+    }
+    if (tipRings.length && !rings(tip, a, tipRings)) return null;
+    if (sink) tip = [tip[0] - sink * a[0], tip[1] - sink * a[1], tip[2] - sink * a[2]];
+    return { a, p: [tip[0] + pv * a[0], tip[1] + pv * a[1], tip[2] - pv * (1 - a[2])] };
+  };
+  const place = (m, a, w, drop) => { let cur = a; for (let k = 0; k < 6; k++) { const r = tryPlace(m, cur, w, drop); if (r) return r; cur = k === 4 ? Z : up(cur); } return { a: Z, p: [m.x, m.y, m.z] }; };
+  // fixed point / line of the axis (setup frame)
+  const num = (v, d = 0) => (Number.isFinite(+v) && v !== '' && v != null ? +v : d);
+  const fromRef = (c) => {
+    const ref = mode === 'point' ? [num(op.axisX), num(op.axisY), num(op.axisZ, h.bottom - 50)]
+      : op.axisLineDir === 'y' ? [num(op.axisLinePos), c[1], num(op.axisZ, h.bottom - 50)] : [c[0], num(op.axisLinePos), num(op.axisZ, h.bottom - 50)];
+    const d = [c[0] - ref[0], c[1] - ref[1], c[2] - ref[2]];
+    if (Math.hypot(d[0], d[1], d[2]) < 1e-6) return Z;
+    return norm(d[2] < 0 ? [-d[0], -d[1], -d[2]] : d);
+  };
+  const n = moves.length, ax = new Array(n).fill(null), wall = swarf ? new Array(n).fill(null) : null, dir = new Array(n).fill(null);
+  // lead and side angle follow the feed direction: passes running the other way (zigzag) are not smoothed into each other
+  const same = (k, q) => !dir[k] || !dir[q] || dir[k][0] * dir[q][0] + dir[k][1] * dir[q][1] > 0.5;
   let stoodUp = 0, contact = 0;
+  const off = (x, y) => !(top(x, y) > h.bottom + 1e-6); // nothing of the part below this point
+  // swarf: the wall beside a move at constant height → { h: unit vector from the wall to the tool, d: distance of the axis from the wall, draft (rad) }
+  const wallAt = (m, i) => {
+    const p = moves[i - 1], q = moves[i + 1];
+    const dx = (q && q.t === 'f' ? q.x : m.x) - (p && Number.isFinite(p.x) ? p.x : m.x), dy = (q && q.t === 'f' ? q.y : m.y) - (p && Number.isFinite(p.y) ? p.y : m.y), l = Math.hypot(dx, dy);
+    if (l < 1e-9) return null;
+    const nl = [-dy / l, dx / l], reach = R + stl + 2.5 * hm.res;
+    const tl = top(m.x + reach * nl[0], m.y + reach * nl[1]), tr = top(m.x - reach * nl[0], m.y - reach * nl[1]);
+    if (!(Math.max(tl, tr) > m.z + 2 * hm.res)) return null;
+    const hd = tl > tr ? [-nl[0], -nl[1]] : nl; // from the wall to the tool
+    const st = hm.res / 2, zl = m.z - stl, prof = [];
+    let d0 = null, flat = 0, zt = zl;
+    for (let d = 0; d < R + stl + 4 * t.dia + 20; d += st) {
+      const z = topB(m.x - d * hd[0], m.y - d * hd[1]);
+      if (d0 == null) { if (z > zl + 0.02) d0 = d; else continue; }
+      prof.push([d, z]);
+      if (z > zt + 0.1 * st) { zt = z; flat = 0; } else if (++flat >= 4) break;
+      if (zt >= zl + flute) break;
+    }
+    if (d0 == null || d0 > reach + hm.res) return null;
+    const H = Math.min(zt, zl + flute) - zl;
+    let draft = 0;
+    if (H > 3 * hm.res) {
+      // where the wall crosses a height (between two samples)
+      const at = f => { const zz = zl + f * H, k = prof.findIndex(q => q[1] >= zz - 1e-9); if (k < 0) return null; if (k === 0) return prof[0][0]; const p0 = prof[k - 1], p1 = prof[k]; return p1[1] - p0[1] > 1e-9 ? p0[0] + ((p1[0] - p0[0]) * (zz - p0[1])) / (p1[1] - p0[1]) : p1[0]; };
+      const d1 = at(0.15), d9 = at(0.85);
+      if (d1 != null && d9 != null && d9 - d1 > hm.res * 0.75) {
+        draft = Math.atan2(d9 - d1, 0.7 * H);
+      }
+    }
+    // (the place of the wall comes from the pass itself: the upright cutter touches the wall with the rim of its end)
+    return { h: [hd[0], hd[1], 0], d: R + stl, draft: draft < (0.5 * Math.PI) / 180 ? 0 : draft };
+  };
   for (let i = 0; i < n; i++) {
     const m = moves[i];
     if (m.t !== 'f' || !Number.isFinite(m.x) || !Number.isFinite(m.z)) continue;
-    if (Math.abs(m.z - zAt(m.x, m.y)) > 0.05) continue; // not on the surface (plunge, link, retract)
+    if (swarf) {
+      const p = moves[i - 1];
+      if (p && Number.isFinite(p.z) && Math.abs(p.z - m.z) > 1e-4 && !(moves[i + 1] && Math.abs(moves[i + 1].z - m.z) < 1e-4)) continue; // plunge / ramp
+      const w = wallAt(m, i);
+      if (!w) continue;
+      contact++;
+      wall[i] = w;
+      // towards the wall by its draft (the flank lies on it)
+      let a = limit(norm([-Math.sin(w.draft) * w.h[0], -Math.sin(w.draft) * w.h[1], Math.cos(w.draft)]));
+      if (lead) { const q = moves[i + 1], dx = (q && q.t === 'f' ? q.x : m.x) - (p ? p.x : m.x), dy = (q && q.t === 'f' ? q.y : m.y) - (p ? p.y : m.y), l = Math.hypot(dx, dy); if (l > 1e-9) { a = limit(norm([a[0] + (lead * dx) / l, a[1] + (lead * dy) / l, a[2]])); dir[i] = [dx / l, dy / l]; } }
+      ax[i] = a;
+      continue;
+    }
+    // (projecting: the path was made with the cutter smaller by the depth and that much lower; the curve lies under
+    // the middle of the cutter, so the slope of the part there counts, not that of the cutter's path)
+    const zs = sink ? topB : zAt, mz = sink ? topB(m.x, m.y) : m.z;
+    if (Math.abs(m.z - (sink ? dropCutter(hm, m.x, m.y, growStl(t, -sink), -Infinity) - sink : zAt(m.x, m.y))) > 0.05) continue; // not on the surface (plunge, link, retract)
     contact++;
-    // slope of the surface; next to an outer edge (the ball rolls off on one side) the slope of the other side counts
-    const off = (x, y) => !(top(x, y) > h.bottom + 1e-6); // nothing of the part below this point
-    const slope = (dx, dy) => {
-      const ol = off(m.x - dx, m.y - dy), or = off(m.x + dx, m.y + dy);
-      if (ol && or) return 0;
-      const l = (m.z - zAt(m.x - dx, m.y - dy)) / e, r = (zAt(m.x + dx, m.y + dy) - m.z) / e;
-      return ol ? r : or ? l : (l + r) / 2;
-    };
-    const out0 = off(m.x, m.y), gx = out0 ? 0 : slope(e, 0), gy = out0 ? 0 : slope(0, e);
-    let a = limit(norm([-gx, -gy, 1]));
+    let a = Z;
+    if (mode === 'normal') {
+      // slope of the surface; next to an outer edge (the cutter rolls off on one side) the slope of the other side counts
+      const slope = (dx, dy) => {
+        const ol = off(m.x - dx, m.y - dy), or = off(m.x + dx, m.y + dy);
+        if (ol && or) return 0;
+        const l = (mz - zs(m.x - dx, m.y - dy)) / e, r = (zs(m.x + dx, m.y + dy) - mz) / e;
+        return ol ? r : or ? l : (l + r) / 2;
+      };
+      const out0 = off(m.x, m.y), gx = out0 ? 0 : slope(e, 0), gy = out0 ? 0 : slope(0, e);
+      a = limit(norm([-gx, -gy, 1]));
+    } else if (mode === 'point' || mode === 'line') a = limit(fromRef([m.x, m.y, m.z + pv]));
     if (lead || side) {
       const p = moves[i - 1], q = moves[i + 1], dx = (q && q.t === 'f' ? q.x : m.x) - (p ? p.x : m.x), dy = (q && q.t === 'f' ? q.y : m.y) - (p ? p.y : m.y), l = Math.hypot(dx, dy);
-      if (l > 1e-9) a = limit(norm([a[0] + (lead * dx - side * dy) / l, a[1] + (lead * dy + side * dx) / l, a[2]]));
+      if (l > 1e-9) { a = limit(norm([a[0] + (lead * dx - side * dy) / l, a[1] + (lead * dy + side * dx) / l, a[2]])); dir[i] = [dx / l, dy / l]; }
     }
     ax[i] = a;
   }
   if (!contact) return res;
+  const pos = new Array(n).fill(null), onSurf = new Array(n).fill(false);
   // smooth the axis along each run of contact moves (the rotary axes must not jerk from point to point)
   const win = Math.max(2 * R, 2);
   for (let i = 0; i < n;) {
@@ -3727,41 +3962,132 @@ function tiltMoves(res, op, ctx, h) {
     const out = [];
     for (let k = i; k <= j; k++) {
       const acc = [0, 0, 0];
-      for (let q = k; q >= i && s[k - i] - s[q - i] <= win; q--) { const wgt = 1 - (s[k - i] - s[q - i]) / (win * 1.0001); acc[0] += ax[q][0] * wgt; acc[1] += ax[q][1] * wgt; acc[2] += ax[q][2] * wgt; }
-      for (let q = k + 1; q <= j && s[q - i] - s[k - i] <= win; q++) { const wgt = 1 - (s[q - i] - s[k - i]) / (win * 1.0001); acc[0] += ax[q][0] * wgt; acc[1] += ax[q][1] * wgt; acc[2] += ax[q][2] * wgt; }
+      for (let q = k; q >= i && s[k - i] - s[q - i] <= win && same(k, q); q--) { const wgt = 1 - (s[k - i] - s[q - i]) / (win * 1.0001); acc[0] += ax[q][0] * wgt; acc[1] += ax[q][1] * wgt; acc[2] += ax[q][2] * wgt; }
+      for (let q = k + 1; q <= j && s[q - i] - s[k - i] <= win && same(k, q); q++) { const wgt = 1 - (s[q - i] - s[k - i]) / (win * 1.0001); acc[0] += ax[q][0] * wgt; acc[1] += ax[q][1] * wgt; acc[2] += ax[q][2] * wgt; }
       out.push(limit(norm(acc)));
     }
-    for (let k = i; k <= j; k++) { const a = safe(moves[k], out[k - i]); if (a !== out[k - i]) stoodUp++; ax[k] = a; }
+    for (let k = i; k <= j; k++) { const r = place(moves[k], out[k - i], wall && wall[k], true); if (r.a[0] * out[k - i][0] + r.a[1] * out[k - i][1] + r.a[2] * out[k - i][2] < 0.99999) stoodUp++; ax[k] = r.a; pos[k] = r.p; onSurf[k] = true; }
     i = j + 1;
   }
   // moves off the surface: the tool turns on the way there (axis of the next contact, after the last one: upright)
   let next = Z;
   for (let i = n - 1; i >= 0; i--) { if (ax[i]) next = ax[i]; else ax[i] = moves[i].t === 'f' || moves[i].t === 'r' ? next : null; }
   // (the first approach and everything after the last contact stand upright at the safe height)
-  let last = n - 1; while (last >= 0 && !(moves[last].t === 'f' && Math.abs(moves[last].z - zAt(moves[last].x, moves[last].y)) <= 0.05)) last--;
+  let last = n - 1; while (last >= 0 && !pos[last]) last--;
   for (let i = last + 1; i < n; i++) if (ax[i]) ax[i] = Z;
+  // a leaning cutter that is no ball reaches lower than the upright one: links near the part are drawn back too
+  if (!ball) for (let i = 0; i < n; i++) {
+    const m = moves[i];
+    if (pos[i] || !ax[i] || ax[i][2] > 1 - 1e-9 || !Number.isFinite(m.x) || !Number.isFinite(m.z) || m.z > hmMaxZ(hm) + stl + R + 1) continue;
+    const r = place(m, ax[i], null, false);
+    ax[i] = r.a; pos[i] = r.p;
+  }
   let tiltMax = 0;
   const r6 = v => Math.round(v * 1e6) / 1e6 + 0;
-  const out = [];
-  // Between two blocks the control moves the tip in a straight line while the axis turns: the centre of the ball
-  // then leaves its line by R·(1 − cos(angle / 2)). Moves that turn the axis by more than 4° are divided.
+  let out = [];
+  const added = new Set(), baseOf = new Map(); // (baseOf: the upright place a block of a cutter that is no ball was made from)
+  const at = i => (pos[i] && !ball ? { x: pos[i][0], y: pos[i][1], z: pos[i][2] } : moves[i]);
+  // Between two blocks the control moves the tip in a straight line while the axis turns: the pivot then leaves
+  // its line by pv·(1 − cos(angle / 2)). Moves that turn the axis by more than 4° are divided.
   const STEP = (4 * Math.PI) / 180;
-  moves.forEach((m, i) => {
-    if (!ax[i]) { out.push(m); return; }
-    const a = norm(ax[i].map(r6)), p = moves[i - 1], pa = i > 0 && ax[i - 1] ? norm(ax[i - 1].map(r6)) : null;
+  moves.forEach((m0, i) => {
+    if (!ax[i]) { out.push(m0); return; }
+    const m = pos[i] && !ball ? { ...m0, x: r6(pos[i][0]), y: r6(pos[i][1]), z: r6(pos[i][2]) } : m0;
+    const a = norm(ax[i].map(r6)), p = i > 0 ? at(i - 1) : null, pa = i > 0 && ax[i - 1] ? norm(ax[i - 1].map(r6)) : null;
     tiltMax = Math.max(tiltMax, Math.acos(Math.min(1, a[2])));
     if (pa && (m.t === 'f' || m.t === 'r') && Number.isFinite(p.x) && Number.isFinite(p.z)) {
       const ang = Math.acos(Math.min(1, Math.max(-1, pa[0] * a[0] + pa[1] * a[1] + pa[2] * a[2])));
-      const k = Math.min(64, Math.ceil(ang / STEP - 1e-9));
+      // a leaning cutter that is no ball: between two blocks the contact can change from one side of the end to
+      // the other – long moves are placed anew every few millimetres (points on a straight line are dropped again below)
+      const b1 = moves[i - 1], fine = !ball && !swarf && m.t === 'f' && (a[2] < 1 - 1e-9 || pa[2] < 1 - 1e-9) ? Math.min(400, Math.ceil(Math.hypot(m0.x - b1.x, m0.y - b1.y, m0.z - b1.z) / Math.max(1, R / 2))) : 1;
+      const k = Math.max(fine, Math.min(64, Math.ceil(ang / STEP - 1e-9)));
       for (let q = 1; q < k; q++) {
-        const f = q / k, s0 = Math.sin((1 - f) * ang) / Math.sin(ang), s1 = Math.sin(f * ang) / Math.sin(ang); // even steps of angle
+        const f = q / k, s0 = ang > 1e-9 ? Math.sin((1 - f) * ang) / Math.sin(ang) : 1 - f, s1 = ang > 1e-9 ? Math.sin(f * ang) / Math.sin(ang) : f; // even steps of angle
         const mid = norm([pa[0] * s0 + a[0] * s1, pa[1] * s0 + a[1] * s1, pa[2] * s0 + a[2] * s1]);
+        // (a cutter that is no ball needs its own place at every axis: how far it is drawn back does not run evenly with the angle)
+        if (!ball && !swarf) {
+          const b0 = moves[i - 1], r = place({ x: b0.x + (m0.x - b0.x) * f, y: b0.y + (m0.y - b0.y) * f, z: b0.z + (m0.z - b0.z) * f }, mid, null, onSurf[i - 1] && onSurf[i]);
+          const mm = { ...m, x: r6(r.p[0]), y: r6(r.p[1]), z: r6(r.p[2]), ax: r.a.map(r6) };
+          added.add(mm);
+          baseOf.set(mm, { x: b0.x + (m0.x - b0.x) * f, y: b0.y + (m0.y - b0.y) * f, z: b0.z + (m0.z - b0.z) * f, surf: onSurf[i - 1] && onSurf[i] });
+          out.push(mm);
+          continue;
+        }
         out.push({ ...m, x: p.x + (m.x - p.x) * f, y: p.y + (m.y - p.y) * f, z: p.z + (m.z - p.z) * f, ax: mid.map(r6) });
       }
     }
-    out.push({ ...m, ax: a.map(r6) });
+    const last = { ...m, ax: a.map(r6) };
+    if (!ball && !swarf && Number.isFinite(m0.x) && Number.isFinite(m0.z)) baseOf.set(last, { x: m0.x, y: m0.y, z: m0.z, surf: onSurf[i] });
+    out.push(last);
   });
-  return { ...res, moves: out, multi: { maxTilt: (tiltMax * 180) / Math.PI, stoodUp, R } };
+  // a block that was stood up can leave more than 4° to its neighbour: blocks in between, each placed on its own
+  for (let round = 0; round < 4 && baseOf.size; round++) {
+    const nx = [out[0]];
+    let any = false;
+    for (let i = 1; i < out.length; i++) {
+      const p = out[i - 1], m = out[i], bp = baseOf.get(p), bm = baseOf.get(m);
+      if (bp && bm && p.ax && m.ax && p.ax[0] * m.ax[0] + p.ax[1] * m.ax[1] + p.ax[2] * m.ax[2] < Math.cos(STEP + 1e-6)) {
+        const b = { x: (bp.x + bm.x) / 2, y: (bp.y + bm.y) / 2, z: (bp.z + bm.z) / 2, surf: bp.surf && bm.surf };
+        const r = place(b, norm([p.ax[0] + m.ax[0], p.ax[1] + m.ax[1], p.ax[2] + m.ax[2]]), null, b.surf);
+        const mm = { ...m, x: r6(r.p[0]), y: r6(r.p[1]), z: r6(r.p[2]), ax: r.a.map(r6) };
+        baseOf.set(mm, b);
+        nx.push(mm);
+        any = true;
+      }
+      nx.push(m);
+    }
+    out = nx;
+    if (!any) break;
+  }
+  // half way between two blocks (tip and axis move evenly) the cutter can still dip into the part – at an edge it
+  // rolls over, for one: a block of its own goes in there
+  for (let round = 0, seen = new Map(); round < 4 && baseOf.size; round++) {
+    const nx = [out[0]];
+    let any = false;
+    for (let i = 1; i < out.length; i++) {
+      const p = out[i - 1], m = out[i], bp = baseOf.get(p), bm = baseOf.get(m);
+      if (bp && bm && p.ax && m.ax && m.t === 'f' && seen.get(m) !== p && (p.ax[2] < 1 - 1e-9 || m.ax[2] < 1 - 1e-9)) {
+        seen.set(m, p);
+        const tp = multiTip(p, pv), tm = multiTip(m, pv), a = norm([p.ax[0] + m.ax[0], p.ax[1] + m.ax[1], p.ax[2] + m.ax[2]]);
+        const T = { x: (tp.x + tm.x) / 2 - stl * a[0], y: (tp.y + tm.y) / 2 - stl * a[1], z: (tp.z + tm.z) / 2 - stl * a[2] };
+        if (Math.hypot(tm.x - tp.x, tm.y - tp.y, tm.z - tp.z) > 0.02 && axialLift(hm, T, a, Rg, crg, Rg, 0) > 0.03) {
+          const b = { x: (bp.x + bm.x) / 2, y: (bp.y + bm.y) / 2, z: (bp.z + bm.z) / 2, surf: bp.surf && bm.surf };
+          const r = place(b, a, null, b.surf);
+          const mm = { ...m, x: r6(r.p[0]), y: r6(r.p[1]), z: r6(r.p[2]), ax: r.a.map(r6) };
+          baseOf.set(mm, b);
+          nx.push(mm);
+          any = true;
+        }
+      }
+      nx.push(m);
+    }
+    out = nx;
+    if (!any) break;
+  }
+  // added points on the straight line between their neighbours (place and axis) are not needed
+  if (added.size) {
+    const onLine = (p, q, m) => {
+      const d = [q.x - p.x, q.y - p.y, q.z - p.z], L2 = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+      if (L2 < 1e-12) return false;
+      const f = ((m.x - p.x) * d[0] + (m.y - p.y) * d[1] + (m.z - p.z) * d[2]) / L2;
+      if (f < 0 || f > 1 || Math.hypot(m.x - p.x - f * d[0], m.y - p.y - f * d[1], m.z - p.z - f * d[2]) > 0.004) return false;
+      const v = norm([p.ax[0] + (q.ax[0] - p.ax[0]) * f, p.ax[1] + (q.ax[1] - p.ax[1]) * f, p.ax[2] + (q.ax[2] - p.ax[2]) * f]);
+      return v[0] * m.ax[0] + v[1] * m.ax[1] + v[2] * m.ax[2] > 0.9999985; // 0.1°
+    };
+    const kept = [];
+    let from = 0;
+    for (let i = 0; i < out.length; i++) {
+      const m = out[i], q = out[i + 1];
+      let drop = added.has(m) && q && q.ax && q.t === 'f' && out[from].ax && i + 1 - from <= 80 && out[from].ax[0] * q.ax[0] + out[from].ax[1] * q.ax[1] + out[from].ax[2] * q.ax[2] >= Math.cos(STEP);
+      for (let k = from + 1; drop && k <= i; k++) drop = onLine(out[from], q, out[k]);
+      if (drop) continue;
+      kept.push(m);
+      from = i;
+    }
+    out = kept;
+  }
+  // upright: the 3-axis path of the same tool (for controls without a tool vector)
+  return { ...res, moves: out, multi: { maxTilt: (tiltMax * 180) / Math.PI, stoodUp, R: pv, ball, mode, upright: moves } };
 }
 
 // Cutting data of the operation ("Werkzeug" tab); empty = from tool / preset

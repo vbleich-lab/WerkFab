@@ -1,0 +1,19 @@
+{
+ "Notiz bearbeiten": "تعديل الملاحظة",
+ "Als Vorlage speichern": "حفظ كقالب",
+ "Vorlage „{0}“ gespeichert": "تم حفظ القالب «{0}»",
+ "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V": "تم نسخ «{0}» – الصق من قائمة السياق أو بالضغط على Ctrl+V",
+ "„{0}“ ausgeschnitten": "تم قص «{0}»",
+ "Vorderansicht als Schnitt": "المنظر الأمامي كمقطع",
+ "Detailansicht: die Mitte im Blatt anklicken": "منظر التفصيل: انقر على المركز في الورقة",
+ "BEMASSUNG": "الأبعاد",
+ "Maß": "بُعد",
+ "Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken": "إضافة بُعد: انقر على نقطتين أو على حافة دائرة في الورقة",
+ "Hinweis mit Pfeil: die Stelle im Blatt anklicken": "ملاحظة مع سهم: انقر على الموضع في الورقة",
+ "SYMBOLE": "الرموز",
+ "Oberflächenzeichen: eine Kante im Blatt anklicken": "رمز السطح: انقر على حافة في الورقة",
+ "Form-/Lagetoleranz: die Stelle im Blatt anklicken": "تفاوت الشكل/الوضع: انقر على الموضع في الورقة",
+ "Bezug: eine Kante im Blatt anklicken": "المرجع: انقر على حافة في الورقة",
+ "TABELLEN": "الجداول",
+ "Zeichnung als SVG speichern": "حفظ الرسم بصيغة SVG"
+}

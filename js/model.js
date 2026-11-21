@@ -2137,6 +2137,10 @@ export const WAIT_FULL = 'Der große Geometriekern wird geladen – dieser Schri
 export function dropWaitingSnaps() {
   for (const [k, s] of [...snapCache]) if (Object.values(s.errors || {}).includes(WAIT_FULL)) { snapCache.delete(k); dropSnap(s); }
 }
+// an imported file has arrived: the steps that failed for want of it (and everything after them) are stale
+export function dropMissingFileSnaps() {
+  for (const [k, s] of [...snapCache]) if (Object.values(s.errors || {}).some(e => String(e).startsWith('Importdatei fehlt'))) { snapCache.delete(k); dropSnap(s); }
+}
 export function clearTimelineCache() {
   for (const s of snapCache.values()) dropSnap(s);
   snapCache.clear();
@@ -2671,12 +2675,14 @@ const consMats = {};
 const consMat = (color, onTop) => (consMats[color + (onTop ? 't' : '')] ||= new THREE.LineDashedMaterial({ color, dashSize: 2, gapSize: 1.4, depthTest: !onTop, transparent: onTop }));
 const fillMat = new THREE.MeshBasicMaterial({ color: 0xffc766, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false });
 
-export function sketchVisual(sketch, { active = false, selectedId = null, dark = false, constrained = false, fill = true } = {}) {
+export function sketchVisual(sketch, { active = false, selectedId = null, dark = false, constrained = false, fill = true, cons = true, proj = true } = {}) {
   const g = new THREE.Group();
   g.matrixAutoUpdate = false;
   g.matrix.copy(planeMatrix(sketch));
   const z = 0.02;
   for (const e of sketch.entities) {
+    // (sketch palette: construction and projected geometry can be hidden while the sketch is open)
+    if ((!cons && e.cons) || (!proj && (e.projected || e.proj))) continue;
     for (const o of entityOutlines(e)) {
       if (o.pts.length < 2) continue;
       const pts = o.pts.map(p => new THREE.Vector3(p[0], p[1], z));

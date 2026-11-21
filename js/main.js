@@ -17,13 +17,13 @@ import { meshMass, stlBinary, urdfNames, buildUrdf, buildSdf, sdfConfig, buildMj
 import { setActiveKernel, activeKernelId, getKernel } from './kern/index.js';
 import './kern/rust.js';
 import { THREAD_SIZES, meshBody, exportGeometry, setViewTessellation, viewTessellation } from './model.js';
-import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, interferenceAsync, boxPairs, contactAsync, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache, dropWaitingSnaps, profileItems } from './model.js';
+import { dropMissingFileSnaps, sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, interferenceAsync, boxPairs, contactAsync, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache, dropWaitingSnaps, profileItems } from './model.js';
 import { Sketcher } from './sketcher.js';
 import { buildHeightmap, cornerOf } from './heightmap.js';
-import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel, orientationLabel, OP_TYPES, DRILL_CYCLES, ORIGINS, MULTI_OPS, TOOL_TYPES, ORIENTATIONS, RAPID_FEED, setupMatrix, sketchHorizontalIn, OPS_3D, PROBE_MODES, MANUAL_KINDS, PATTERN_KINDS, orderByTool, opCells, toolBase, STOCK_MODES, STOCK_MATERIALS, BOUNDARY_MODES, setupBodies, heightSpec, HEIGHT_KEYS, HEIGHT_FROM, applyCutData, serialNumbers, serialText, FIT_OPS, fitOffset } from './cam.js';
+import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel, orientationLabel, OP_TYPES, DRILL_CYCLES, ORIGINS, MULTI_OPS, AXIS_MODES, SWARF_OPS, multiAxisOn, pivotOf, TOOL_TYPES, ORIENTATIONS, RAPID_FEED, setupMatrix, sketchHorizontalIn, OPS_3D, PROBE_MODES, MANUAL_KINDS, PATTERN_KINDS, orderByTool, opCells, toolBase, STOCK_MODES, STOCK_MATERIALS, BOUNDARY_MODES, setupBodies, heightSpec, HEIGHT_KEYS, HEIGHT_FROM, applyCutData, serialNumbers, serialText, FIT_OPS, fitOffset } from './cam.js';
 import { postProcess, runPost, allPosts, findPost, copyPost, setPostLibrary, SECTIONS, VARIABLES, POST_PROPS, POST_PROP_GROUPS, postProps, propApplies, propType, COOLANT_MODES, mCodeLabel, postMCodes, postFamily } from './post.js';
 import { allMachines, findMachine, copyMachine, newMachine, machineChecks, KIN_TYPES, kinAngles } from './machines.js';
-import { StockSim, defaultFluteLen, defaultHolderDia, defaultStickout } from './sim.js';
+import { StockSim, tiltedEdgeZ, defaultFluteLen, defaultHolderDia, defaultStickout } from './sim.js';
 import { exampleProject, exampleTurning, exampleMilling, exampleDesign } from './example.js';
 import { describeEntity, entityPolys, translateEntity, rotateEntity, scaleEntity, mirrorEntity as mirrorAbout, loopsAt, sameCell, cellShapes, allCells } from './profiles.js';
 import { meshInertia, rotateInertia, zipStore } from './mesh.js';
@@ -34,11 +34,11 @@ import { inkFromRGBA, traceImage, toSketch, toSVG, toEntities, quantize, inkOfCo
 import { loadFonts, FONTS } from './fonts.js';
 import { solveSketch, lockedFields, sketchHandles, constraintFor, dimensionFor, dimBase, measure as measureDim, refKind, refEntity, CONSTRAINTS, GLYPH, DIM_KINDS } from './solver.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { BASE_PLANES, sketchPlane, planeLabel, planeOffset, planeFromFace, basis, toWorld, planeMatrix as planeMatrixOf, constructionPlane, planeRef, constructionAxis, BASE_AXES } from './plane.js';
+import { BASE_PLANES, sketchPlane, planeLabel, planeOffset, planeFromFace, basis, toWorld, toLocal, planeMatrix as planeMatrixOf, constructionPlane, planeRef, constructionAxis, BASE_AXES } from './plane.js';
 import { resolveProject, paramScope, evalExpr } from './params.js';
 import { ICONS } from './icons.js';
 import { getSettings, saveSettings, resetSettings, DEFAULTS, MOUSE_PRESETS, ACCENTS, DESIGNS, UI_FONTS, LOOK_KEYS, getProfiles, saveProfile, deleteProfile } from './settings.js';
-import { getBlob, putBlob, loadBlobs, withBlobs, takeBlobs, igesToStep, stepToIges, meshToStep, cleanSlivers, onFullKernel, requestFullKernel, fullKernelReady, parseToolLibrary, convertCps } from './interop.js';
+import { getBlob, putBlob, blobCount, loadBlobs, withBlobs, takeBlobs, igesToStep, stepToIges, meshToStep, cleanSlivers, onFullKernel, requestFullKernel, fullKernelReady, parseToolLibrary, convertCps } from './interop.js';
 import { makeDrawing, SHEETS, VIEWS as DRAW_VIEWS } from './drawing.js';
 import { bodyMatrix, hasAssembly, transformShape, JOINT_TYPES, JOINT_DOF, jointValues, jointFrame, jointMotion, LINK_KINDS, linkRatio } from './assembly.js';
 import { parsePointCloud, cloudBounds, cloudHeights } from './pointcloud.js';
@@ -408,7 +408,7 @@ function showSketchCoords(p) {
 }
 const sketcher = new Sketcher(vp, {
   cursor: p => showSketchCoords(p),
-  changed: () => { renderProps(); renderToolbar(); rebuildScene(); },
+  changed: () => { renderProps(); renderToolbar(); rebuildScene(); skCmdSync(); },
   resolve: id => resolved().features.find(f => f.id === id),
   commitSketch: (id, fn) => commitSketch(id, fn),
   status: msg => status(msg),
@@ -423,6 +423,8 @@ const sketcher = new Sketcher(vp, {
   overlay: () => refreshSketchOverlay(),
   corner: (kind, ref) => sketchCorner(kind, [ref]), cornerLines: (kind, a, b) => sketchCornerLines(kind, a, b), offset: (id, sign) => sketchOffsetAt(id, sign), xform: (kind, data) => sketchXform(kind, data),
   addDim: d => createDim(d),
+  text: id => sketchTextDialog(id),
+  cmd: c => ({ extrude: () => { finishSketch(); createFeature('extrude'); }, offset: sketchOffset, move: () => sketchMoveTool('xmove'), fillet: sketchFillet, measure: toggleMeasure })[c]?.(),
   evalNum: str => { const v = /^[-+]?[0-9.]+$/.test(str) ? +str : evalExpr(str, paramScope(state.project)); return Number.isFinite(v) ? v : NaN; },
   tip: (text, e) => {
     if (!text || !e) { tipEl.hidden = true; return; }
@@ -598,10 +600,12 @@ let model = { key: null, bodies: [], errors: {}, box: new THREE.Box3() };
 // finished so far stay in the timeline cache.
 const ASYNC_MS = 600;
 let regenJob = null;
+let blobsSeen = 0;
 function modelKey(rp, upTo) {
+  if (blobCount() !== blobsSeen) { blobsSeen = blobCount(); dropMissingFileSnaps(); }
   // the full kernel is part of the key: a computation that started before it was loaded (and let the steps that
   // need it fail) is out of date once it is there, even while it is still running
-  return JSON.stringify([rp.features.map(featureKey), upTo, activeKernelId(), viewTessellation(), fullKernelReady()]);
+  return JSON.stringify([rp.features.map(featureKey), upTo, activeKernelId(), viewTessellation(), fullKernelReady(), blobCount()]);
 }
 // the model right now, computed on the spot (Python scripts ask for bodies while they run)
 function modelSync() {
@@ -1658,7 +1662,7 @@ function rebuildScene() {
       if (f.hidden && !active) continue;
       const sk = active && sketcher.override ? { ...f, entities: sketcher.override } : f;
       const dof = active ? sketchInfo(f.id).dof : null;
-      vp.sketches.add(sketchVisual(sk, { active, selectedId: active ? sketcher.selected : null, dark: isDark(), constrained: dof === 0, fill: getSettings().sketchFill !== false }));
+      vp.sketches.add(sketchVisual(sk, { active, selectedId: active ? sketcher.selected : null, dark: isDark(), constrained: dof === 0, fill: getSettings().sketchFill !== false, cons: !active || getSettings().sketchCons !== false, proj: !active || getSettings().sketchProj !== false }));
       if (active) vp.sketches.add(sketchOverlay(sk));
     }
     drawRegionCells();
@@ -1919,7 +1923,7 @@ function drawExtrudeGizmo() {
   if (!rsk) return;
   const b = basis(rsk);
   // centre of the chosen profiles
-  const ids = Array.isArray(rf.profiles) ? new Set(rf.profiles.map(String)) : null;
+  const ids = Array.isArray(rf.profiles) ? new Set(rf.profiles.map(String)) : rf.profiles === 'pick' && Array.isArray(rf.regions) && rf.regions.length ? new Set(rf.regions.flat().map(String)) : null;
   const pts = [], loops = [];
   for (const e of rsk.entities) {
     if (ids && !ids.has(String(e.id)) && ![...ids].some(k => k.startsWith(e.id))) continue;
@@ -1951,7 +1955,7 @@ function drawExtrudeGizmo() {
     const box = h('div', { class: 'exg-box', onpointerdown: e => e.stopPropagation() }, inp, h('span', null, 'mm'));
     inp.addEventListener('keydown', e => {
       e.stopPropagation();
-      if (e.key === 'Enter') { e.preventDefault(); setExtrudeValue(f.id, hd.key, inp.value); }
+      if (e.key === 'Enter') { e.preventDefault(); if (setExtrudeValue(f.id, hd.key, inp.value)) gizEnterOk(f.id); }
       if (e.key === 'Escape') { inp.value = String(f2(raw)); inp.blur(); }
     });
     inp.addEventListener('change', () => setExtrudeValue(f.id, hd.key, inp.value));
@@ -1985,7 +1989,7 @@ function drawFaceExtrudeGizmo(f, rf) {
     group.add(arrow);
     const inp = h('input', { type: 'text', value: String(f2(raw)), spellcheck: 'false' });
     const box = h('div', { class: 'exg-box', onpointerdown: e => e.stopPropagation() }, inp, h('span', null, 'mm'));
-    inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); setExtrudeValue(f.id, hd.key, inp.value); } if (e.key === 'Escape') { inp.value = String(f2(raw)); inp.blur(); } });
+    inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); if (setExtrudeValue(f.id, hd.key, inp.value)) gizEnterOk(f.id); } if (e.key === 'Escape') { inp.value = String(f2(raw)); inp.blur(); } });
     inp.addEventListener('change', () => setExtrudeValue(f.id, hd.key, inp.value));
     const lab = new CSS2DObject(box);
     group.add(lab);
@@ -2022,7 +2026,7 @@ function drawPlaneGizmo(f) {
   const lbox = h('div', { class: 'exg-box exg-mini', title: 'Abstand (mm)', onpointerdown: e => e.stopPropagation() }, inp);
   inp.addEventListener('keydown', e => {
     e.stopPropagation();
-    if (e.key === 'Enter') { e.preventDefault(); setExtrudeValue(f.id, 'offset', inp.value); }
+    if (e.key === 'Enter') { e.preventDefault(); if (setExtrudeValue(f.id, 'offset', inp.value)) gizEnterOk(f.id); }
     if (e.key === 'Escape') { inp.value = String(f2(off)); fit(); inp.blur(); }
   });
   inp.addEventListener('change', () => setExtrudeValue(f.id, 'offset', inp.value));
@@ -2037,7 +2041,10 @@ function setExtrudeValue(fid, key, text) {
   const v = /^[-+]?[0-9.]+$/.test(t) ? +t : evalExpr(t, paramScope(state.project));
   if (!Number.isFinite(v)) return status(`„${text}“ ist kein gültiger Wert.`);
   editFeature(fid, x => { x[key] = /[A-Za-z_]/.test(t) ? '=' + t : +(+v).toFixed(4); });
+  return true;
 }
+// Enter in the value box on the arrow finishes the command when its window is open
+function gizEnterOk(fid) { const t = dialogTarget(); if (t?.kind === 'feature' && t.id === fid) dialogOk(); }
 // keep the arrows the same size on screen and place them on the end faces
 function updateExtrudeGizmo() {
   if (!exGiz) return;
@@ -2223,6 +2230,7 @@ function setHoverPlane(obj) {
 }
 // a sketch tool from its button; a click on the button of the running tool ends it (Einstellungen → Skizze)
 function useSkTool(tool) {
+  closeSkCmd(true);
   sketcher.setTool(getSettings().toolToggle && sketcher.tool === tool && tool !== 'select' ? 'select' : tool);
   renderToolbar();
 }
@@ -2261,7 +2269,7 @@ function sketchOverlay(sk) {
   const V = (p, z = 0.08) => new THREE.Vector3(p[0], p[1], z);
   const dark = isDark();
   const pts = H.points.filter(x => x.ref !== 'origin').map(x => V(x.p));
-  if (pts.length) {
+  if (pts.length && getSettings().sketchPoints !== false) {
     const d = new THREE.Points(new THREE.BufferGeometry().setFromPoints(pts), new THREE.PointsMaterial({ color: dark ? 0xdfe6ee : 0x2a3440, size: 5, sizeAttenuation: false, depthTest: false, transparent: true }));
     d.renderOrder = 7;
     g.add(d);
@@ -2837,36 +2845,38 @@ const uiTab = { design: 'MODELL', cam: 'FRÄSEN', render: 'RENDERN' };
 function toolbarTabs() {
   const tabs = {};
   if (state.workspace === 'design' && state.sketchId) {
-    const T = (icon, label, tool, key) => tbtn(icon, label, () => useSkTool(tool), sketcher.tool === tool ? 'active' : '', `${label} (${key})`);
+    const T = (icon, label, tool, key) => tbtn(icon, label, () => useSkTool(tool), sketcher.tool === tool ? 'active' : '', key ? `${label} (${key})` : label);
+    const V = (icon, label, tool) => tbtn(icon, label, () => useSkTool(tool), sketcher.tool === tool ? 'active' : '', label);
+    const dimBtn = Object.assign(gbtn('↔', 'Bemaßung', addDimension, 'Bemaßung (D): Kante, Kreis oder Punkte anklicken, Maß wegziehen und ablegen'), { className: 'tbtn gl' + (sketcher.tool === 'dim' ? ' active' : '') });
+    // order of the groups: create, modify, constraints, inspect, insert, select – and the way out at the end
     tabs.SKIZZE = [
-      tgroup('SKIZZE', T('select', 'Auswahl', 'select', 'S'), T('line', 'Linie', 'line', 'L'), T('arc', '3-Punkt-Bogen', 'arc', 'A'), T('rect', 'Rechteck', 'rect', 'R'), T('circle', 'Kreis', 'circle', 'C'),
-        T('ellipse', 'Ellipse', 'ellipse', 'E'), T('spline', 'Spline', 'spline', 'B'), T('ngon', 'Polygon', 'ngon', 'P'), T('slot', 'Langloch', 'slot', 'O'), tbtn('text', 'Text', () => useSkTool('text'), sketcher.tool === 'text' ? 'active' : '', 'Text'),
-        ...[['rectc', 'Mittelpunkt-Rechteck', 'rectc'], ['rect3', '3-Punkt-Rechteck', 'rect3'], ['circle2', '2-Punkt-Kreis', 'circle2'], ['circle3', '3-Punkt-Kreis', 'circle3'], ['arcc', 'Mittelpunkt-Bogen', 'arcc'], ['arct', 'Tangentialbogen', 'arct']]
-          .map(([icon, label, tool]) => tbtn(icon, label, () => useSkTool(tool), sketcher.tool === tool ? 'active' : '', label)),
+      tgroup('ERSTELLEN', T('line', 'Linie', 'line', 'L'), T('rect', 'Rechteck', 'rect', 'R'), T('circle', 'Kreis', 'circle', 'C'), T('arc', '3-Punkt-Bogen', 'arc', 'A'), T('ngon', 'Polygon', 'ngon', 'G'),
+        T('spline', 'Spline', 'spline', 'B'), dimBtn, T('ellipse', 'Ellipse', 'ellipse'), T('slot', 'Langloch', 'slot', 'U'), tbtn('text', 'Text', () => useSkTool('text'), sketcher.tool === 'text' ? 'active' : '', 'Text'),
+        V('rectc', 'Mittelpunkt-Rechteck', 'rectc'), V('rect3', '3-Punkt-Rechteck', 'rect3'), V('circle2', '2-Punkt-Kreis', 'circle2'), V('circle3', '3-Punkt-Kreis', 'circle3'), V('arcc', 'Mittelpunkt-Bogen', 'arcc'), V('arct', 'Tangentialbogen', 'arct'),
+        tbtn('sketchMirror', 'Spiegeln', sketchMirror, sketcher.tool === 'mirror' ? 'active' : '', 'Spiegeln: Elemente wählen, dann die Spiegelachse anklicken (Vorschau)'),
+        tbtn('patternCirc', 'Kreis-Muster', () => sketchPattern('circ'), sketcher.tool === 'pcirc' ? 'active' : '', 'Runde Anordnung: Elemente wählen, dann den Mittelpunkt zeigen (Vorschau)'),
+        tbtn('patternRect', 'Rechteck-Muster', () => sketchPattern('rect'), sketcher.tool === 'prect' ? 'active' : '', 'Rechteckige Anordnung: Elemente wählen, dann den Abstand zeigen (Vorschau)'),
         tbtn('project', 'Projizieren', () => startProject('face'), sketcher.tool === 'project' && projectMode === 'face' ? 'active' : '', 'Projizieren (J): Fläche oder Kante eines Körpers anklicken – ihr Abbild kommt in die Skizze'),
         tbtn('combine', 'Körperumriss projizieren', () => startProject('body'), sketcher.tool === 'project' && projectMode === 'body' ? 'active' : '', 'Körperumriss projizieren: Körper anklicken – sein Schattenriss auf der Skizzenebene'),
         tbtn('section', 'Schnittkurven', () => startProject('cut'), sketcher.tool === 'project' && projectMode === 'cut' ? 'active' : '', 'Schnittkurven: Körper anklicken – wo die Skizzenebene ihn schneidet')),
+      tgroup('ÄNDERN', tbtn('fillet', 'Abrunden', sketchFillet, sketcher.tool === 'fillet' ? 'active' : '', 'Abrunden: Ecken anklicken (Linienzug, Rechteck, zwei Linien)'),
+        T('trim', 'Stutzen', 'trim', 'T'), tbtn('extend', 'Verlängern', () => useSkTool('extend'), sketcher.tool === 'extend' ? 'active' : '', 'Verlängern: offenes Linienende bis zur nächsten Kante'),
+        tbtn('offset', 'Versatz', sketchOffset, sketcher.tool === 'offset' ? 'active' : '', 'Versatz: Konturen anklicken, Abstand eingeben (Vorschau) – auch offene Linienzüge'),
+        tbtn('edgechamfer', 'Fase', sketchChamfer, sketcher.tool === 'chamfer' ? 'active' : '', 'Fase: Ecken anklicken (Linienzug, Rechteck, zwei Linien)'),
+        tbtn('move', 'Verschieben/Kopieren', () => sketchMoveTool('xmove'), sketcher.tool === 'xmove' ? 'active' : '', 'Verschieben oder kopieren: Elemente wählen, dann Ausgangspunkt und Zielpunkt anklicken (Vorschau); der Weg lässt sich danach als Zahl ändern'),
+        tbtn('revolve', 'Drehen', () => sketchMoveTool('xrot'), sketcher.tool === 'xrot' ? 'active' : '', 'Drehen: Elemente wählen, dann Drehpunkt anklicken und den Winkel mit der Maus zeigen (Vorschau); auch als Kopie'),
+        tbtn('scale', 'Skalieren', () => sketchTransform('scale'), '', 'Skalieren: Elemente wählen, dann Faktor und Fixpunkt angeben')),
+      tgroup('ABHÄNGIGKEITEN',
+        ...['horizontal', 'vertical', 'coincident', 'tangent', 'equal', 'parallel', 'perpendicular', 'fix', 'midpoint', 'concentric', 'collinear', 'symmetric']
+          .map(t => gbtn(GLYPH[t], CONSTRAINTS[t], () => applyConstraint(t)))),
+      tgroup('PRÜFEN', tbtn('measure', 'Messen', toggleMeasure, state.pick?.mode === 'measure' ? 'active' : '', 'Messen (I)')),
       tgroup('EINFÜGEN', tbtn('decal', 'Bild nachzeichnen', traceImageDialog, '', 'Bild nachzeichnen: aus einem Bild Konturen oder Mittellinien als Skizzenkurven, SVG oder DXF erzeugen'),
         tbtn('canvas', 'Bild als Vorlage', insertCanvas, '', 'Bild als Vorlage auf die Skizzenebene legen (zum Nachzeichnen von Hand)'),
         tbtn('measure', 'Vorlage kalibrieren', () => calibrateCanvas(), '', 'Vorlage kalibrieren: zwei Punkte im Bild anklicken und ihren wirklichen Abstand eingeben'),
         tbtn('svgfile', 'SVG einfügen', insertSVG, '', 'SVG-Datei in diese Skizze einfügen'),
         tbtn('dxffile', 'DXF einfügen', () => $('#dxfInput').click(), '', 'DXF-Datei in diese Skizze einfügen')),
-      tgroup('ÄNDERN', T('trim', 'Stutzen', 'trim', 'T'), tbtn('extend', 'Verlängern', () => useSkTool('extend'), sketcher.tool === 'extend' ? 'active' : '', 'Verlängern: offenes Linienende bis zur nächsten Kante'),
-        tbtn('fillet', 'Abrunden', sketchFillet, sketcher.tool === 'fillet' ? 'active' : '', 'Abrunden: Ecken anklicken (Linienzug, Rechteck, zwei Linien)'),
-        tbtn('edgechamfer', 'Fase', sketchChamfer, sketcher.tool === 'chamfer' ? 'active' : '', 'Fase: Ecken anklicken (Linienzug, Rechteck, zwei Linien)'),
-        tbtn('offset', 'Versatz', sketchOffset, sketcher.tool === 'offset' ? 'active' : '', 'Versatz: neben eine Kontur fahren (Vorschau), klicken, Abstand bestätigen – auch offene Linienzüge'),
-        tbtn('sketchMirror', 'Spiegeln', sketchMirror, sketcher.tool === 'mirror' ? 'active' : '', 'Spiegeln: Elemente wählen, dann die Spiegelachse anklicken (Vorschau)'),
-        tbtn('patternRect', 'Rechteck-Muster', () => sketchPattern('rect'), sketcher.tool === 'prect' ? 'active' : '', 'Rechteckige Anordnung: Elemente wählen, dann den Abstand zeigen (Vorschau)'),
-        tbtn('patternCirc', 'Kreis-Muster', () => sketchPattern('circ'), sketcher.tool === 'pcirc' ? 'active' : '', 'Runde Anordnung: Elemente wählen, dann den Mittelpunkt zeigen (Vorschau)'),
-        tbtn('move', 'Verschieben/Kopieren', () => sketchMoveTool('xmove'), sketcher.tool === 'xmove' ? 'active' : '', 'Verschieben oder kopieren: Elemente wählen, dann Ausgangspunkt und Zielpunkt anklicken (Vorschau); der Weg lässt sich danach als Zahl ändern'),
-        tbtn('revolve', 'Drehen', () => sketchMoveTool('xrot'), sketcher.tool === 'xrot' ? 'active' : '', 'Drehen: Elemente wählen, dann Drehpunkt anklicken und den Winkel mit der Maus zeigen (Vorschau); auch als Kopie'),
-        tbtn('scale', 'Skalieren', () => sketchTransform('scale'), '', 'Skalieren: Elemente wählen, dann Faktor und Fixpunkt angeben')),
-      tgroup('ABHÄNGIGKEITEN',
-        Object.assign(gbtn('↔', 'Bemaßung', addDimension, 'Bemaßung (D): Kante, Kreis oder Punkte anklicken, Maß wegziehen und ablegen'), { className: 'tbtn gl' + (sketcher.tool === 'dim' ? ' active' : '') }),
-        ...['coincident', 'horizontal', 'vertical', 'parallel', 'perpendicular', 'equal', 'tangent', 'concentric', 'midpoint', 'symmetric', 'collinear', 'fix']
-          .map(t => gbtn(GLYPH[t], CONSTRAINTS[t], () => applyConstraint(t)))),
-      tgroup('FANG', h('div', { class: 'tinput' }, 'Raster', num(state.snap, v => { state.snap = v; }, { min: 0 }))),
-      tgroup('BEENDEN', tbtn('finish', 'Skizze fertig', finishSketch, 'primary big')),
+      tgroup('AUSWÄHLEN', T('select', 'Auswahl', 'select', 'S')),
+      tgroup('SKIZZE FERTIG STELLEN', tbtn('finish', 'Skizze fertig', finishSketch, 'primary big')),
     ];
     return tabs;
   }
@@ -3144,7 +3154,11 @@ function toolbarTabs() {
       tbtn('rough32', '5-Achs-Anstellen (3+2)', add32Rough, '', '5-Achs-Anstellen (3+2): neues Setup mit geschwenkter Werkzeugachse – die Maschine schwenkt einmal, dann wird 3-achsig gefräst'),
       tbtn('parallel3d', '5-Achs-Simultan Parallel', () => addOp('parallel3d', { five: true }), '', '5-Achs-Simultan Parallel: Schlichten in parallelen Bahnen, der Kugelfräser neigt sich zur Fläche'),
       tbtn('pocket', '5-Achs-Simultan HSC-Kontur', () => addOp('scallop3d', { five: true }), '', '5-Achs-Simultan HSC-Kontur: gleichmäßiger Bahnabstand auf der Fläche, der Kugelfräser neigt sich zur Fläche'),
-      tbtn('flow3d', '5-Achs-Simultan Fluss', () => addOp('flow3d', { five: true }), '', '5-Achs-Simultan Fluss: Bahnen entlang der Fläche, der Kugelfräser neigt sich zur Fläche')),
+      tbtn('flow3d', '5-Achs-Simultan Fluss', () => addOp('flow3d', { five: true }), '', '5-Achs-Simultan Fluss: Bahnen entlang der Fläche, der Kugelfräser neigt sich zur Fläche'),
+      tbtn('revolve', '5-Achs-Simultan Spirale', () => addOp('spiral3d', { five: true })), tbtn('patternCirc', '5-Achs-Simultan Radial', () => addOp('radial3d', { five: true })),
+      tbtn('contour', '5-Achs-Simultan Kontur', () => addOp('contour3d', { five: true })), tbtn('pencil3d', '5-Achs-Simultan Hohlkehle', () => addOp('pencil3d', { five: true })),
+      tbtn('project', '5-Achs-Simultan Projizieren', () => addOp('project3d', { five: true })), tbtn('morph3d', '5-Achs-Simultan Flächen-Morph', () => addOp('morph3d', { five: true })),
+      tbtn('draft', '5-Achs-Wälzfräsen', () => addOp('contour3d', { five: 'swarf' }), '', '5-Achs-Wälzfräsen: die Flanke des Fräsers liegt an der Wand an – schräge Wände in einem Schnitt schlichten')),
     tgroup('BOHREN', A('drill', 'Bohren', 'drill'), A('bore', 'Helix-Bohren', 'bore'), A('thread', 'Gewindefräsen', 'thread'),
       tbtn('measure', 'Bohrungen erkennen', recognizeHoles, '', 'Bohrungen erkennen: alle Bohrungen des Modells nach Durchmesser gruppieren und Anbohren, Bohren, Gewinde und Senkungen in einem Zug anlegen')),
     tgroup('ANTASTEN', A('measure', 'WKS antasten', 'probe')),
@@ -3360,6 +3374,13 @@ function opMenu(e, op) {
     { label: 'Umbenennen', onclick: async () => { const v = await askValue('Neuer Name', op.name); if (v && v.trim()) editOp(op.id, x => (x.name = v.trim())); } },
     { label: on ? 'Deaktivieren' : 'Aktivieren', onclick: () => editOp(op.id, x => (x.enabled = !on)) },
     { label: 'Duplizieren', onclick: () => commit(pp => { const c = { ...JSON.parse(JSON.stringify(op)), id: uid('op'), name: nextName(pp.cam.ops, OP_TYPES[op.type]) }; pp.cam.ops.splice(pp.cam.ops.findIndex(o => o.id === op.id) + 1, 0, c); state.sel = { kind: 'op', id: c.id }; }) },
+    { label: 'Ausschneiden', onclick: () => cutOp(op) },
+    { label: 'Kopieren', onclick: () => copyOp(op) },
+    { label: 'Einfügen', disabled: !opClip, onclick: () => pasteOp(op.setup, op.id) },
+    { sep: true },
+    { label: 'Notiz bearbeiten', onclick: async () => { const v = await askValue('Notiz', op.note || ''); if (v != null) editOp(op.id, x => (x.note = v)); } },
+    { label: 'Als Vorlage speichern', onclick: async () => { const n = await askValue('Name der Vorlage:', op.name); if (!n) return; saveJ('openfab.templates.v1', [...templates(), { id: uid('tp'), name: n, ops: [opTemplate(op, state.project.cam.tools)] }]); status(`Vorlage „${n}“ gespeichert`); } },
+    { label: 'Werkzeugbibliothek', onclick: openToolLibrary },
     { sep: true },
     { label: 'Simulieren', icon: '▶', onclick: () => { select('op', op.id); openSim(); } },
     { label: 'NC-Programm erzeugen', onclick: () => select('post') },
@@ -3368,11 +3389,64 @@ function opMenu(e, op) {
   ], op.name);
 }
 
+// Operations on the clipboard, moving them by drag and drop in the browser
+let opClip = null;
+function copyOp(op) { opClip = JSON.parse(JSON.stringify(op)); status(`„${op.name}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V`); }
+function cutOp(op) { opClip = JSON.parse(JSON.stringify(op)); commit(pp => (pp.cam.ops = pp.cam.ops.filter(o => o.id !== op.id))); state.sel = null; renderAll(); status(`„${op.name}“ ausgeschnitten`); }
+function pasteOp(setupId, afterId) {
+  if (!opClip) return;
+  commit(pp => {
+    const c = { ...JSON.parse(JSON.stringify(opClip)), id: uid('op'), setup: setupId };
+    if (pp.cam.ops.some(o => o.name === c.name)) c.name = nextName(pp.cam.ops, OP_TYPES[c.type]);
+    const i = afterId ? pp.cam.ops.findIndex(o => o.id === afterId) + 1 : pp.cam.ops.length;
+    pp.cam.ops.splice(i || pp.cam.ops.length, 0, c);
+    state.sel = { kind: 'op', id: c.id };
+  });
+  renderAll();
+}
+function moveOpTo(id, target, after) {
+  if (id === target.op) return;
+  commit(pp => {
+    const i = pp.cam.ops.findIndex(o => o.id === id);
+    if (i < 0) return;
+    const [op] = pp.cam.ops.splice(i, 1);
+    op.setup = target.setup;
+    let j = target.op ? pp.cam.ops.findIndex(o => o.id === target.op) + (after ? 1 : 0) : -1;
+    // dropped on a setup: in front of its first operation
+    if (j < 0) { j = pp.cam.ops.findIndex(o => o.setup === target.setup); if (j < 0) j = pp.cam.ops.length; }
+    pp.cam.ops.splice(j, 0, op);
+  });
+  renderAll();
+}
+function opDragRow(row, op, setupId) {
+  const T = 'text/x-werkfab-op';
+  if (op) { row.draggable = true; row.addEventListener('dragstart', e => { e.dataTransfer.setData(T, op.id); e.dataTransfer.effectAllowed = 'move'; }); }
+  const side = e => { const r = row.getBoundingClientRect(); return !op || e.clientY > r.top + r.height / 2; };
+  const clear = () => row.classList.remove('drop-before', 'drop-after');
+  row.addEventListener('dragover', e => { if (![...e.dataTransfer.types].includes(T)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; clear(); row.classList.add(side(e) ? 'drop-after' : 'drop-before'); });
+  row.addEventListener('dragleave', clear);
+  row.addEventListener('drop', e => { const id = e.dataTransfer.getData(T); clear(); if (!id) return; e.preventDefault(); moveOpTo(id, { setup: setupId, op: op?.id }, side(e)); });
+  return row;
+}
+function duplicateSetup(st) {
+  commit(pp => {
+    const c = { ...JSON.parse(JSON.stringify(st)), id: uid('S'), name: nextName(pp.cam.setups, 'Setup') };
+    pp.cam.setups.splice(pp.cam.setups.findIndex(x => x.id === st.id) + 1, 0, c);
+    for (const o of pp.cam.ops.filter(o => o.setup === st.id)) pp.cam.ops.push({ ...JSON.parse(JSON.stringify(o)), id: uid('op'), setup: c.id });
+    state.sel = { kind: 'setup', id: c.id };
+  });
+  renderAll();
+}
+
 function setupMenu(e, st) {
   ctxMenu(e.clientX, e.clientY, [
     { label: 'Setup bearbeiten', icon: '✎', onclick: () => select('setup', st.id) },
     { label: 'Umbenennen', onclick: async () => { const v = await askValue('Neuer Name', st.name); if (v && v.trim()) commit(p => (p.cam.setups.find(x => x.id === st.id).name = v.trim())); } },
+    { label: 'Duplizieren', onclick: () => duplicateSetup(st) },
+    { label: 'Einfügen', disabled: !opClip, onclick: () => pasteOp(st.id) },
+    { sep: true },
     { label: 'Simulieren', icon: '▶', onclick: () => { select('setup', st.id); openSim(); } },
+    { label: 'Einrichteblatt', onclick: () => { select('setup', st.id); openSetupSheet(); } },
     { label: 'Bearbeitungszeit …', icon: '⏱', onclick: () => openMachiningTime(st.id) },
     { label: 'NC-Programm erzeugen', onclick: () => select('post') },
     { sep: true },
@@ -3516,22 +3590,22 @@ function renderTree() {
     if (O('cam')) {
       for (const st of p.cam.setups) {
         const open = !treeOpen.has('closed:' + st.id);
-        t.append(node({
+        t.append(opDragRow(node({
           svg: SVG.setup, name: `${st.name} · ${tr(st.kind === 'turn' ? 'Drehen' : st.wcsMode === 'axes' ? 'WKS gewählt' : ORIENTATIONS[st.orientation].split(' ')[0])}`, depth: 1, open, okey: 'closed:' + st.id,
           selected: isSel('setup', st.id) || (state.sel?.kind !== 'setup' && activeSetupId() === st.id && state.sel?.kind !== 'op'),
           onclick: () => select('setup', st.id), oncontext: e => setupMenu(e, st),
           extra: (() => { const S = setupSummary(st); return S.time > 0 ? h('span', { class: 'op-meta', title: 'Geschätzte Bearbeitungszeit (Klick: Details)', onclick: ev => { ev.stopPropagation(); openMachiningTime(st.id); } }, '⏱ ' + fmtDur(S.time)) : null; })(),
-        }));
+        }), null, st.id));
         if (!open) continue;
         const ops = p.cam.ops.filter(o => o.setup === st.id);
         for (const op of ops) {
           const r = g.results.get(op.id);
-          t.append(node({
+          t.append(opDragRow(node({
             svg: opTreeIcon(op, r),
             name: op.name, depth: 2, cls: op.enabled === false ? 'disabled' : '',
             selected: isSel('op', op.id), onclick: () => select('op', op.id), oncontext: e => opMenu(e, op),
             extra: r?.moves?.length && !r.error ? h('span', { class: 'op-meta', title: 'Bahnlänge (der Punkt zeigt die Farbe der Bahn)' }, h('i', { class: 'op-color', style: `background:#${opColor(op).toString(16).padStart(6, '0')}` }), `${Math.round(pathLength(r.moves))} mm`) : null,
-          }));
+          }), op, st.id));
         }
         if (!ops.length) t.append(h('div', { class: 'hint', style: 'padding:4px 0 4px 56px' }, 'Noch keine Operation'));
       }
@@ -3710,6 +3784,9 @@ function dialogTarget() {
 }
 function dialogOk() {
   const t = dialogTarget();
+  // an extrusion that still waits for its profile cannot be finished (OK would leave an empty feature)
+  if (t?.kind === 'feature') { const f = feature(t.id); if (f?.type === 'extrude' && f.source !== 'faces' && f.profiles === 'pick' && !(f.regions || []).length) return status('Extrusion: zuerst ein Profil anklicken – oder „Ganze Skizze“ wählen.');
+    if ((f?.type === 'fillet' || f?.type === 'chamfer') && !f.all && !(f.edges || []).length && !(f.faces || []).length) return status('Zuerst mindestens eine Kante anklicken.'); }
   dlg = { key: null, depth: 0 };
   if (state.pick && state.pick.mode !== 'measure') { state.pick = null; showBanner(null); }
   if (t?.kind === 'op') state.camSetup = camOp(t.id)?.setup || state.camSetup;
@@ -4223,7 +4300,7 @@ function propsSketch(b, f, ed) {
 function propsSketchEdit(b) {
   const sk = feature(state.sketchId);
   const rsk = resolved().features.find(x => x.id === sk.id);
-  setTitle('SKIZZE BEARBEITEN – ' + sk.name);
+  setTitle('SKIZZENPALETTE');
   const hints = {
     select: 'Punkte, Linien oder Kreise anklicken (Umschalt = mehrere), dann Abhängigkeit oder Bemaßung wählen. Punkte/Linien ziehen zum Verformen. Entf löscht.',
     line: 'Punkte klicken. Auf Startpunkt klicken schließt die Kontur, Enter beendet offen (z. B. als Rotationsachse).',
@@ -4237,14 +4314,33 @@ function propsSketchEdit(b) {
     text: 'Klicken, um Text zu platzieren. Inhalt, Größe und Schrift danach rechts ändern.',
     project: { face: 'Fläche eines Körpers anklicken: ihr Rand kommt als Kontur in die Skizze. Eine Kante anklicken projiziert nur diese Kante (Kreise bleiben Kreise). Projizierte Geometrie ist violett.', body: 'Körper anklicken: sein Umriss (Schattenriss) auf der Skizzenebene kommt in die Skizze.', cut: 'Körper anklicken: die Kurven, in denen die Skizzenebene ihn schneidet, kommen in die Skizze.' }[projectMode],
   };
+  // palette: options of the sketch first (line type, view, what is shown), then the options of the tool in use
+  const S = getSettings(), opt = (label, key, title) => prow(label, chk(S[key] !== false, v => { saveSettings({ [key]: v }); rebuildScene(); }), title);
+  const prow = (label, ctl, title = null) => h('div', { class: 'row pal', title }, h('label', null, label), ctl);
+  const lookAt = () => { const B = basis(rsk), box = getModel().box.clone(); if (box.isEmpty()) box.setFromCenterAndSize(B.o, new THREE.Vector3(120, 120, 120)); vp.setViewDir(B.n, box); };
+  b.append(sec('OPTIONEN'),
+    prow('Linientyp', btn('Normal ↔ Konstruktion (X)', () => { if (!sketcher.toggleConstruction()) status('Zuerst Skizzengeometrie auswählen.'); })),
+    prow('Ansehen', h('button', { class: 'btn pal-ic', title: 'Ansehen', onclick: lookAt, html: ICONS.fit || '⌖' })),
+    prow('Skizzenraster', chk(gridOn, () => toggleGrid())),
+    prow('Fangen', h('div', { class: 'pal-snap' }, num(state.snap, v => { state.snap = v; }, { min: 0, unit: 'mm' }), chk(state.snapOn !== false, v => { state.snapOn = v; }))),
+    prow('Schnitt', chk(sketchSlice, v => { sketchSlice = v; rebuildScene(); }), 'Schnitt (Körper an der Skizzenebene aufschneiden)'),
+    opt('Profil anzeigen', 'sketchFill', 'Geschlossene Profile der aktiven Skizze farbig füllen'),
+    opt('Punkte anzeigen', 'sketchPoints'),
+    opt('Bemaßungen anzeigen', 'sketchDims', 'Bemaßungen in der aktiven Skizze einblenden'),
+    opt('Abhängigkeiten anzeigen', 'sketchGlyphs', 'Symbole für Abhängigkeiten (parallel, senkrecht …) einblenden'),
+    opt('Projizierte Geometrien anzeigen', 'sketchProj'),
+    opt('Konstruktionsgeometrien anzeigen', 'sketchCons'));
+  // the variants of the tool in use, as in its dropdown
+  const FAMILY = [
+    [['rect', 'rect', 'Rechteck'], ['rect3', 'rect3', '3-Punkt-Rechteck'], ['rectc', 'rectc', 'Mittelpunkt-Rechteck']],
+    [['circle', 'circle', 'Kreis'], ['circle2', 'circle2', '2-Punkt-Kreis'], ['circle3', 'circle3', '3-Punkt-Kreis']],
+    [['arc', 'arc', '3-Punkt-Bogen'], ['arcc', 'arcc', 'Mittelpunkt-Bogen'], ['arct', 'arct', 'Tangentialbogen']],
+  ].find(fam => fam.some(v => v[0] === sketcher.tool));
+  const projFam = sketcher.tool === 'project' ? [['face', 'project', 'Projizieren'], ['body', 'combine', 'Körperumriss projizieren'], ['cut', 'section', 'Schnittkurven']] : null;
+  b.append(sec('ELEMENTOPTIONEN'));
+  if (FAMILY) b.append(h('div', { class: 'pal-fam' }, ...FAMILY.map(([tool, icon, label]) => h('button', { class: 'pal-var' + (sketcher.tool === tool ? ' on' : ''), title: label, onclick: () => useSkTool(tool), html: ICONS[icon] || '' }))));
+  if (projFam) b.append(h('div', { class: 'pal-fam' }, ...projFam.map(([mode, icon, label]) => h('button', { class: 'pal-var' + (projectMode === mode ? ' on' : ''), title: label, onclick: () => startProject(mode), html: ICONS[icon] || '' }))));
   b.append(h('p', { class: 'hint' }, hints[sketcher.tool]), h('p', { class: 'hint' }, `Ebene: ${planeLabel(rsk)} · Rechte/mittlere Maustaste: verschieben · Mausrad: zoomen · Esc: abbrechen`));
-  // palette: view, slice, display – and the way out
-  b.append(sec('SKIZZENPALETTE'),
-    h('div', { class: 'btns' },
-      btn('Ansehen', () => { const B = basis(rsk), box = getModel().box.clone(); if (box.isEmpty()) box.setFromCenterAndSize(B.o, new THREE.Vector3(120, 120, 120)); vp.setViewDir(B.n, box); })),
-    row('Schnitt (Körper an der Skizzenebene aufschneiden)', chk(sketchSlice, v => { sketchSlice = v; rebuildScene(); })),
-    row('Profile hervorheben', chk(getSettings().sketchFill !== false, v => { saveSettings({ sketchFill: v }); rebuildScene(); })),
-    h('div', { class: 'btns' }, btn('Normal ↔ Konstruktion (X)', () => { if (!sketcher.toggleConstruction()) status('Zuerst Skizzengeometrie auswählen.'); })));
   const e = sk.entities.find(x => x.id === sketcher.selected);
   const info = sketchInfo(sk.id);
   const cons = sk.constraints || [];
@@ -5474,8 +5570,9 @@ const agentApi = {
     if (!op || !op.id) throw new Error(document.querySelector('#status')?.textContent || 'The operation could not be created');
     for (const [k, v] of Object.entries(structuredClone(fields))) { if (k === 'id' || k === 'type') continue; if (v === null) delete op[k]; else op[k] = v; }
     if (setupId) op.setup = setupId;
-    // the agent named a sketch but no faces: follow the sketch
-    if (fields.sketch && !('geomSource' in fields) && !(fields.faces || []).length) op.geomSource = 'sketch';
+    // no faces named: follow the sketch (the one the agent named, or the last fitting one chosen by default) –
+    // nobody is there to click faces in the model
+    if (op.sketch && !('geomSource' in fields) && !(fields.faces || []).length && !(fields.edges || []).length) op.geomSource = 'sketch';
     commit(pp => pp.cam.ops.push(op));
     return op.id;
   },
@@ -8300,13 +8397,17 @@ function propsOp(b, op) {
 
   // ===== 5-axis simultaneous: the tool axis follows the surface =====
   if (MULTI_OPS.includes(op.type)) {
-    const on = op.toolAxis === 'normal';
+    const on = multiAxisOn(op), mode = op.toolAxis;
     put('passes', csec('5-Achs-Simultan (Werkzeug folgt der Fläche)', on, v => ed(x => { if (v) { x.toolAxis = 'normal'; if (x.maxTilt == null) x.maxTilt = 30; } else delete x.toolAxis; })));
     if (on) {
-      put('passes', N('Größte Neigung', 'maxTilt', { unit: '°', min: 0, max: 85, allowEmpty: true, ph: '30' }),
+      put('passes', row('Werkzeugachse', sel(Object.entries(AXIS_MODES).filter(([k]) => k !== 'swarf' || SWARF_OPS.includes(op.type)), mode, v => ed(x => (x.toolAxis = v)))),
+        N('Größte Neigung', 'maxTilt', { unit: '°', min: 0, max: 85, allowEmpty: true, ph: '30' }),
         N('Voreilwinkel', 'leadAngle', { unit: '°', min: -45, max: 45, allowEmpty: true, ph: '0' }),
-        N('Seitenwinkel', 'sideAngle', { unit: '°', min: -45, max: 45, allowEmpty: true, ph: '0' }),
-        h('p', { class: 'hint' }, 'Nur mit Kugelfräser. Das Werkzeug neigt sich zur Flächennormalen, höchstens um die größte Neigung; wo Schaft oder Halter das Teil berühren würden, richtet es sich auf. Ausgabe als Werkzeugvektor (Heidenhain, Sinumerik, Fanuc), sonst als 3-Achs-Bahn.'));
+        mode === 'swarf' ? null : N('Seitenwinkel', 'sideAngle', { unit: '°', min: -45, max: 45, allowEmpty: true, ph: '0' }),
+        ...(mode === 'point' ? [N('Punkt X', 'axisX', { min: -1e5, allowEmpty: true, ph: '0' }), N('Punkt Y', 'axisY', { min: -1e5, allowEmpty: true, ph: '0' }), N('Punkt Z', 'axisZ', { min: -1e5, allowEmpty: true, ph: '50 unter dem Teil' })] : []),
+        ...(mode === 'line' ? [row('Linie', sel([['x', 'Parallel zu X'], ['y', 'Parallel zu Y']], op.axisLineDir || 'x', v => ed(x => (x.axisLineDir = v)))), N(op.axisLineDir === 'y' ? 'Linie bei X' : 'Linie bei Y', 'axisLinePos', { min: -1e5, allowEmpty: true, ph: '0' }), N('Linie bei Z', 'axisZ', { min: -1e5, allowEmpty: true, ph: '50 unter dem Teil' })] : []),
+        h('p', { class: 'hint' }, { normal: 'Das Werkzeug neigt sich zur Flächennormalen.', point: 'Die Werkzeugachse zeigt immer durch den Punkt: liegt er unter dem Teil, fächert das Werkzeug auf; liegt er darüber, neigt es sich zu ihm hin.', line: 'Die Werkzeugachse zeigt immer durch die Linie – das Werkzeug neigt sich nur quer zu ihr.', fixed: 'Das Werkzeug steht mit Voreil- und Seitenwinkel fest zur Vorschubrichtung.', swarf: 'Die Flanke des Fräsers legt sich an die Wand neben der Bahn (Schräge aus dem Modell). Für Wände, die nach oben offen sind; Zustellung = Höhe je Schnitt.' }[mode] || ''),
+        h('p', { class: 'hint' }, 'Kugel-, Schaft-, Torus- oder Konusfräser. Ein Kugelfräser behält seine Bahn; andere Fräser werden geneigt und entlang ihrer Achse verschoben, bis sie am Teil anliegen, ohne es zu verletzen. Höchstens die größte Neigung; wo Schaft oder Halter das Teil berühren würden, richtet sich das Werkzeug auf. Ausgabe als Werkzeugvektor (Heidenhain, Sinumerik, Fanuc), sonst als 3-Achs-Bahn.'));
     }
   }
 
@@ -10238,6 +10339,18 @@ function startPickPlane() {
   rebuildScene();
 }
 
+// Hole by a click on a face: a sketch with one point at that spot, the hole on it, and the hole's window
+function holeAtPoint(plane, pt) {
+  state.pick = null;
+  showBanner(null);
+  const [u, v] = toLocal(basis({ plane }), pt), r = x => +x.toFixed(4);
+  const sid = uid('sk'), hid = uid('ho'), p = state.project;
+  insertFeature({ id: sid, type: 'sketch', name: nextName(p.features, 'Skizze'), plane, entities: [{ id: uid('e'), type: 'point', x: r(u), y: r(v) }] });
+  insertFeature({ id: hid, type: 'hole', name: nextName(state.project.features, FEATURE_TYPES.hole), sketch: sid, points: 'all', kind: 'simple', dia: +getSettings().holeDia || 6, depth: 10, through: false, cbDia: 11, cbDepth: 6, csDia: 12, csAngle: 90, tip: true });
+  select('feature', hid);
+  status('Bohrung gesetzt – Durchmesser tippen, Enter. Die Lage lässt sich in der Skizze bemaßen.');
+}
+
 function createSketch(plane) {
   state.pick = null;
   showBanner(null);
@@ -10364,12 +10477,13 @@ function viewportClick(e) {
   if (state.pick?.mode === 'joint') return jointPickClick(e, meshes, m);
   if (state.pick?.mode === 'jorigin') return jointOriginClick(e, meshes, m);
   if (SETUP_PICKS.includes(state.pick?.mode)) return setupPick(e, meshes, m);
-  if (state.pick?.mode === 'plane') {
-    const pl = planeUnderMouse(e);
+  if (state.pick?.mode === 'plane' || state.pick?.mode === 'holeface') {
+    const forHole = state.pick.mode === 'holeface';
+    const pl = forHole ? null : planeUnderMouse(e);
     if (pl?.userData.originPlane) return createSketch(BASE_PLANES[pl.userData.originPlane]);
     if (pl?.userData.plane) return sketchOnPlaneFeature(pl.userData.plane);
     const hit = vp.raycast(e, meshes)[0];
-    if (!hit) return status('Ebene (XY, XZ, YZ), Konstruktionsebene oder ebene Fläche anklicken.');
+    if (!hit) return status(forHole ? 'Bohrung: eine ebene Fläche des Körpers anklicken.' : 'Ebene (XY, XZ, YZ), Konstruktionsebene oder ebene Fläche anklicken.');
     const body = m.bodies[hit.object.userData.body];
     const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
     // planar check: every triangle of the picked B-rep face must share this normal
@@ -10382,6 +10496,7 @@ function viewportClick(e) {
       tn.crossVectors(bb.sub(a), c.sub(a));
       if (tn.lengthSq() > 1e-12 && Math.abs(tn.normalize().dot(n)) < 0.9999) return status('Nur ebene Flächen können als Skizzenebene dienen.');
     }
+    if (forHole) return holeAtPoint(planeFromFace(hit.point, n), hit.point);
     return createSketch(planeFromFace(hit.point, n));
   }
   if (state.pick?.mode === 'regions') return regionPickClick(e);
@@ -10491,6 +10606,7 @@ function editSketch(id) {
 
 function finishSketch() {
   if (!state.sketchId) return;
+  closeSkCmd(true);
   const id = state.sketchId;
   sketcher.finishPolyline();
   sketcher.stop();
@@ -10545,6 +10661,13 @@ function createFeature(type, extra = {}) {
       insertFeature(f);
       select('feature', id);
       togglePick('faces', id);
+      return;
+    }
+    // a hole without a sketch: click the spot on a flat face – the point is put into a sketch of its own
+    if (!sk && type === 'hole' && hasBodies) {
+      state.pick = { mode: 'holeface' };
+      showBanner(['Bohrung: die Stelle auf einer ebenen Fläche anklicken · Esc']);
+      renderToolbar();
       return;
     }
     if (!sk) return status('Zuerst eine Skizze erstellen.');
@@ -10875,7 +10998,7 @@ function addOp(type, opt = {}) {
     ...(type === 'vcarve' ? { maxDepth: 3, stepoverMm: 0.1 } : {}), ...(type === 'project3d' ? { depth: 0.3 } : {}), ...(type === 'steep3d' ? { slope: 45, stepdown: 0.5 } : {}),
   };
   if (FACE_OPS.includes(type)) { op.geomSource = 'model'; op.faces = []; }
-  if (opt.five) { op.toolAxis = 'normal'; op.maxTilt = 30; op.name = '5-Achs ' + op.name; }
+  if (opt.five) { op.toolAxis = opt.five === true ? 'normal' : opt.five; op.maxTilt = 30; op.name = opt.five === 'swarf' ? '5-Achs-Wälzfräsen' : '5-Achs ' + op.name; if (opt.five === 'swarf') op.stepdown = f2(+tool.fluteLen || 3 * tool.dia); }
   if (type === 'probe') Object.assign(op, { probeMode: 'z', probeDepth: 3, probeClear: 5 });
   if (opt.batch) return op;
   pendingNew = { id, depth: undoDepth() };
@@ -11103,7 +11226,9 @@ async function sketchCorner(kind, picks, before) {
   const bridges = picks.filter(r => r.endsWith(':b'));
   const bR = bridges.length === 1 && kind === 'fillet' ? bridgeRadius(rsk.entities, bridges[0].split(':')[0]) : null;
   const last = bR > 0 ? +bR.toFixed(4) : sketcher.cornerVal[kind];
-  const txt = await askValue(kind === 'fillet' ? 'Radius der Abrundung (mm, 0 = entfernen):' : 'Fasenabstand (mm, ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen):', Array.isArray(last) ? last.join('; ') : String(last));
+  const txt = kind === 'fillet'
+    ? await askFields('ABRUNDEN', [{ label: 'Radius', value: String(last).replace('.', ','), unit: 'mm' }], 'fillet', '0 = entfernen.')
+    : await askFields('FASE', [{ label: 'Fasenabstand', value: Array.isArray(last) ? last.join('; ') : String(last).replace('.', ','), unit: 'mm' }], 'edgechamfer', 'Ungleich: „2; 3“, mit Winkel: „2; 30°“, 0 = entfernen.');
   if (txt == null || txt === '') return;
   // (a name of a parameter may hold an x: split at ";" – or at "×" / "x" only between plain numbers)
   const parts = /^[\d.,\s]+[×x][\d.,\s]+$/.test(String(txt)) ? String(txt).split(/[×x]/) : String(txt).split(';');
@@ -12599,30 +12724,71 @@ function preEdgeClick(e) {
   status(list.length ? `${list.length} Kante${list.length > 1 ? 'n' : ''} gewählt – Verrundung (F) oder Fase nimmt sie. Umschalt/Strg + Klick: weitere Kanten.` : '');
   return true;
 }
-// Lasso: drag a frame in the view – the bodies inside are selected (for appearance, material, hiding)
-function startLasso() {
-  status('Lasso: Rahmen im Ansichtsfenster aufziehen.');
-  const cv = vp.canvas, box = h('div', { class: 'lasso-box' });
-  let a = null;
-  const down = e => { if (e.button !== 0) return; e.stopPropagation(); e.preventDefault(); a = [e.clientX, e.clientY]; document.body.append(box); };
-  const move = e => { if (!a) return; const x = Math.min(a[0], e.clientX), y = Math.min(a[1], e.clientY); Object.assign(box.style, { left: x + 'px', top: y + 'px', width: Math.abs(e.clientX - a[0]) + 'px', height: Math.abs(e.clientY - a[1]) + 'px' }); };
-  const up = e => {
-    cv.removeEventListener('pointerdown', down, true); removeEventListener('pointermove', move, true); removeEventListener('pointerup', up, true);
-    box.remove();
-    if (!a) return;
-    const R = cv.getBoundingClientRect(), x0 = Math.min(a[0], e.clientX), x1 = Math.max(a[0], e.clientX), y0 = Math.min(a[1], e.clientY), y1 = Math.max(a[1], e.clientY);
-    const inside = getModel().bodies.filter(b => {
-      if (state.hiddenBodies.has(b.id)) return false;
-      const bb = b.geometry.boundingBox || (b.geometry.computeBoundingBox(), b.geometry.boundingBox), c = bb.getCenter(new THREE.Vector3()).project(vp.camera);
-      const sx = R.left + ((c.x + 1) / 2) * R.width, sy = R.top + ((1 - c.y) / 2) * R.height;
-      return sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1;
-    });
-    state.selBodies = inside.map(b => b.id);
-    if (inside[0]) select('body', inside[0].id); else renderAll();
-    status(inside.length ? `${inside.length} Körper gewählt: ${inside.map(bodyName).join(', ')}` : 'Kein Körper im Rahmen.');
-  };
-  cv.addEventListener('pointerdown', down, true); addEventListener('pointermove', move, true); addEventListener('pointerup', up, true);
+// Selection frame in the view: from left to right it takes the bodies that lie wholly inside (window, full line),
+// from right to left every body it touches (crossing, dashed line). Umschalt / Strg adds to the selection.
+function frameBodies(x0, y0, x1, y1, cross) {
+  const R = vp.canvas.getBoundingClientRect(), v = new THREE.Vector3();
+  return getModel().bodies.filter(b => {
+    if (state.hiddenBodies.has(b.id)) return false;
+    const bb = b.geometry.boundingBox || (b.geometry.computeBoundingBox(), b.geometry.boundingBox);
+    let ax = Infinity, ay = Infinity, bx = -Infinity, by = -Infinity;
+    for (let i = 0; i < 8; i++) {
+      v.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z);
+      v.project(vp.camera);
+      const sx = R.left + ((v.x + 1) / 2) * R.width, sy = R.top + ((1 - v.y) / 2) * R.height;
+      ax = Math.min(ax, sx); bx = Math.max(bx, sx); ay = Math.min(ay, sy); by = Math.max(by, sy);
+    }
+    return cross ? ax <= x1 && bx >= x0 && ay <= y1 && by >= y0 : ax >= x0 && bx <= x1 && ay >= y0 && by <= y1;
+  });
 }
+function frameSelect(a, e, add) {
+  const x0 = Math.min(a[0], e.clientX), x1 = Math.max(a[0], e.clientX), y0 = Math.min(a[1], e.clientY), y1 = Math.max(a[1], e.clientY);
+  const inside = frameBodies(x0, y0, x1, y1, e.clientX < a[0]);
+  const ids = inside.map(b => b.id);
+  state.selBodies = add ? [...new Set([...(state.selBodies || []), ...ids])] : ids;
+  if (inside[0]) select('body', inside[0].id); else renderAll();
+  status(inside.length ? `${inside.length} Körper gewählt: ${inside.map(bodyName).join(', ')}` : 'Kein Körper im Rahmen.');
+}
+function frameDrag(a, add, done) {
+  const box = h('div', { class: 'lasso-box' });
+  document.body.append(box);
+  const move = e => {
+    const x = Math.min(a[0], e.clientX), y = Math.min(a[1], e.clientY);
+    Object.assign(box.style, { left: x + 'px', top: y + 'px', width: Math.abs(e.clientX - a[0]) + 'px', height: Math.abs(e.clientY - a[1]) + 'px' });
+    box.classList.toggle('cross', e.clientX < a[0]);
+  };
+  const up = e => {
+    removeEventListener('pointermove', move, true); removeEventListener('pointerup', up, true);
+    box.remove();
+    done?.();
+    if (Math.hypot(e.clientX - a[0], e.clientY - a[1]) >= 6) frameSelect(a, e, add);
+  };
+  addEventListener('pointermove', move, true); addEventListener('pointerup', up, true);
+}
+// Lasso: the frame as a command (for the mouse layouts where the left button turns the view)
+function startLasso() {
+  status('Lasso: Rahmen im Ansichtsfenster aufziehen – nach rechts: ganz darin, nach links: berührt.');
+  const cv = vp.canvas;
+  const down = e => { if (e.button !== 0) return; e.stopPropagation(); e.preventDefault(); cv.removeEventListener('pointerdown', down, true); frameDrag([e.clientX, e.clientY], e.shiftKey || e.ctrlKey || e.metaKey); };
+  cv.addEventListener('pointerdown', down, true);
+}
+// With a mouse layout that leaves the left button free, a drag that starts beside the model draws the frame at once
+vp.canvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || e.altKey || state.sketchId || sketcher.active || vp.controls.mouseButtons.LEFT !== -1 || state.workspace !== 'design') return;
+  const meshes = [];
+  vp.model.traverse(o => { if (o.isMesh && o.visible) meshes.push(o); });
+  vp.raycaster.setFromCamera(vp.ndc(e), vp.camera);
+  if (vp.raycaster.intersectObjects(meshes, false).length) return;
+  const a = [e.clientX, e.clientY], add = e.shiftKey || e.ctrlKey || e.metaKey;
+  const start = ev => {
+    if (Math.hypot(ev.clientX - a[0], ev.clientY - a[1]) < 6) return;
+    stop();
+    getSelection()?.removeAllRanges();
+    frameDrag(a, add, swallowClick);
+  };
+  const stop = () => { removeEventListener('pointermove', start, true); removeEventListener('pointerup', stop, true); };
+  addEventListener('pointermove', start, true); addEventListener('pointerup', stop, true);
+});
 
 // ---------- ribbon helpers (model, configure, sheet metal) ----------
 function editSketchCmd() {
@@ -12939,7 +13105,42 @@ function renderDrawing(rebuild = false) {
     h('p', { class: 'hint' }, `Maßstab ${drawingCache.scaleLabel} · ${drawingCache.holes} Bohrung(en) erkannt · Projektionsmethode 1 (DIN ISO 128). Ansichten lassen sich mit der Maus auf dem Blatt verschieben.`),
   );
   const sheet = h('div', { class: 'dw-sheet', html: placed });
-  root.append(h('div', { class: 'dw' }, side, sheet));
+  // toolbar above the sheet: the same commands as in the list at the side, one click away
+  const dI = p2 => `<svg viewBox="0 0 24 24">${p2}</svg>`;
+  const DW_ICONS = {
+    dim: dI('<path d="M4 6v12M20 6v12M4 12h16"/><path d="M7 9.5 4 12l3 2.5M17 9.5l3 2.5-3 2.5"/>'),
+    note: dI('<path d="M4 19 11 10h9"/><path d="M4 19l1-4M4 19l4-.6"/><path d="M13 6h7"/>'),
+    surf: dI('<path d="M3 13l4 7 8-15h6"/><path d="M5 13h5"/>'),
+    gdt: dI('<rect x="3" y="8" width="18" height="8"/><path d="M10 8v8"/><circle cx="6.5" cy="12" r="1.8"/><path d="M13 12h5"/>'),
+    datum: dI('<rect x="7" y="3" width="10" height="9"/><path d="M12 12v5"/><path d="M8 21h8l-4-4z"/>'),
+    detail: dI('<circle cx="10" cy="10" r="6"/><path d="M14.5 14.5 21 21"/><path d="M8 10h4M10 8v4"/>'),
+    cut: dI('<path d="M3 12h18" stroke-dasharray="5 2 1 2"/><path d="M5 12v6M19 12v6"/><path d="M3.5 16 5 18l1.5-2M17.5 16l1.5 2 1.5-2"/>'),
+    list: dI('<rect x="3" y="4" width="18" height="16"/><path d="M3 9h18M3 14h18M9 4v16"/>'),
+    print: dI('<path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="1"/><path d="M7 14h10v7H7z"/>'),
+    svg: dI('<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 16c1-4 2 2 3-2s2 2 3-1"/>'),
+    plan: dI('<circle cx="6" cy="7" r="2.5"/><path d="M11 7h9"/><circle cx="6" cy="16" r="2.5"/><path d="M11 16h9"/>'),
+  };
+  const pickBtn = (icon, label, mode, hint) => { const on = dwPick.mode === mode && !dwPick.key; return h('button', { class: 'tbtn' + (on ? ' active' : ''), title: hint, html: DW_ICONS[icon] + `<span>${label}</span>`, onclick: () => { dwPick = on ? { mode: null, pts: [] } : { mode, pts: [] }; renderDrawing(); } }); };
+  const doBtn = (icon, label, fn, hint, on = false) => h('button', { class: 'tbtn' + (on ? ' active' : ''), title: hint || label, html: DW_ICONS[icon] + `<span>${label}</span>`, onclick: fn });
+  const grp = (label, ...items) => h('div', { class: 'tgroup' }, h('div', { class: 'tgroup-items' }, ...items), h('div', { class: 'tgroup-label' }, label));
+  const [bPrint, bSvg] = [...side.querySelectorAll('.btns')].pop().children;
+  const bar = h('div', { class: 'dw-bar' },
+    grp('ANSICHTEN',
+      doBtn('cut', 'Schnitt', () => ed(x => (x.section = !d.section)), 'Vorderansicht als Schnitt', !!d.section),
+      pickBtn('detail', 'Detail', 'detail', 'Detailansicht: die Mitte im Blatt anklicken')),
+    grp('BEMASSUNG', pickBtn('dim', 'Maß', 'dim', 'Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken')),
+    grp('TEXT', pickBtn('note', 'Hinweis', 'note', 'Hinweis mit Pfeil: die Stelle im Blatt anklicken')),
+    grp('SYMBOLE',
+      pickBtn('surf', 'Oberfläche', 'surf', 'Oberflächenzeichen: eine Kante im Blatt anklicken'),
+      pickBtn('gdt', 'Form/Lage', 'gdt', 'Form-/Lagetoleranz: die Stelle im Blatt anklicken'),
+      pickBtn('datum', 'Bezug', 'datum', 'Bezug: eine Kante im Blatt anklicken')),
+    grp('TABELLEN',
+      doBtn('list', 'Stückliste', () => ed(x => (x.partsList = !d.partsList)), 'Stückliste auf dem Blatt', !!d.partsList),
+      doBtn('plan', 'Prüfplan', () => inspectionPlan(d, 'print'), 'Prüfplan drucken / PDF …')),
+    grp('AUSGABE',
+      doBtn('print', 'PDF', () => bPrint.click(), 'Drucken / PDF'),
+      doBtn('svg', 'SVG', () => bSvg.click(), 'Zeichnung als SVG speichern')));
+  root.append(h('div', { class: 'dw-wrap' }, bar, h('div', { class: 'dw' }, side, sheet)));
   enableViewDrag(sheet, d, ed);
 }
 
@@ -13572,9 +13773,9 @@ function placeTool() {
   const aDeg = s.b.a != null ? (s.a.a ?? s.b.a) + ((s.b.a - (s.a.a ?? s.b.a)) * t) : 0;
   sim.toolMesh.rotation.set((-aDeg * Math.PI) / 180, 0, 0);
   if (sim.rot) simTurnPart(aDeg);
-  // 5-axis simultaneous: the ball stays where it is, the tool leans about its centre
+  // 5-axis simultaneous: the tool leans about its pivot (ball: its centre)
   if (s.b.ax || s.a.ax) {
-    const p = s.a.ax || [0, 0, 1], q = s.b.ax || [0, 0, 1], ax = new THREE.Vector3(p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t).normalize(), R = s.tool.dia / 2;
+    const p = s.a.ax || [0, 0, 1], q = s.b.ax || [0, 0, 1], ax = new THREE.Vector3(p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t).normalize(), R = pivotOf(s.tool);
     sim.toolMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), ax);
     sim.toolMesh.position.set(x - R * ax.x, y - R * ax.y, z + R * (1 - ax.z));
   }
@@ -13958,6 +14159,17 @@ window.addEventListener('keydown', e => {
   const tag = e.target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
   const k = e.key.toLowerCase();
+  // a command with a value on its arrow: typing a number goes straight into that value
+  if (exGiz?.handles[0]?.inp?.isConnected && !state.sketchId && /^[0-9.,-]$/.test(e.key) && !(e.ctrlKey || e.metaKey || e.altKey)) { const i = exGiz.handles[0].inp; i.focus(); i.select(); return; }
+  // a command window without an arrow (fillet, chamfer, shell …): a typed number goes into its first value, Enter finishes
+  if (!state.sketchId && /^[0-9.,]$/.test(e.key) && !(e.ctrlKey || e.metaKey || e.altKey) && dialogTarget()?.kind === 'feature') {
+    const i = [...document.querySelectorAll('.fwin .unit > input')].find(x => x.offsetParent && !x.disabled && !x.readOnly && x.closest('.fwin').querySelector('.fwin-foot .primary'));
+    if (i) {
+      i.focus(); i.select();
+      if (!i.dataset.typed) { i.dataset.typed = '1'; i.addEventListener('keydown', ev => { if (ev.key === 'Enter') setTimeout(() => { if (dialogTarget()?.kind === 'feature') dialogOk(); }, 0); }); }
+      return;
+    }
+  }
   // user-assigned shortcuts win over the built-in ones
   const combo = keyCombo(e);
   const bound = combo && !RESERVED_KEYS.includes(combo) && Object.entries(tbKeys).find(([, v]) => v === combo);
@@ -13965,6 +14177,12 @@ window.addEventListener('keydown', e => {
   if (hit) { e.preventDefault(); hit.el.click(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
+  // operations of the manufacturing workspace: copy, cut, paste
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && state.workspace === 'cam' && 'cxv'.includes(k) && k.length === 1 && !getSelection()?.toString()) {
+    const op = state.sel?.kind === 'op' && state.project.cam.ops.find(o => o.id === state.sel.id);
+    if (k === 'v' && opClip) { e.preventDefault(); pasteOp(op ? op.setup : activeSetupId(), op?.id); return; }
+    if (op && k !== 'v') { e.preventDefault(); k === 'c' ? copyOp(op) : cutOp(op); return; }
+  }
   if ((e.ctrlKey || e.metaKey) && e.shiftKey && k === 's') { e.preventDefault(); saveAsCmd(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); saveVersionCmd(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'o') { e.preventDefault(); $('#fileInput').click(); return; }
@@ -14069,6 +14287,28 @@ function askValue(label, def = '') {
     document.body.append(back);
     input.focus();
     input.select();
+  });
+}
+
+// Command dialog: a small window with the command's name, one field per value, OK / Abbrechen. The view stays
+// visible behind it (the preview of the tool is still shown). fields: { label, value, unit?, hint? }
+// → the values joined by "; " (the callers read them like the single line they asked for before), null on cancel
+function askFields(title, fields, icon = '', hint = '') {
+  return new Promise(resolve => {
+    const inputs = fields.map(f => h('input', { type: 'text', value: String(f.value ?? ''), spellcheck: 'false', title: f.hint || null }));
+    const back = h('div', { class: 'cmd-back' });
+    const done = ok => { back.remove(); resolve(ok ? inputs.map(i => i.value.trim()).join('; ') : null); };
+    const win = h('section', { class: 'fwin dialog cmd-dlg' },
+      h('header', { class: 'fwin-head' }, h('span', { class: 'fw-icon', html: ICONS[icon] || '' }), h('span', { class: 'fw-title' }, title)),
+      h('div', { class: 'fwin-body' }, h('div', { class: 'cmd-body' },
+        ...fields.map((f, i) => row(f.label, h('div', { class: 'cmd-in' }, inputs[i], f.unit ? h('span', null, f.unit) : null))),
+        hint ? h('p', { class: 'hint' }, hint) : null)),
+      h('footer', { class: 'fwin-foot' }, h('span', { class: 'foot-msg' }), h('button', { class: 'primary', onclick: () => done(true) }, 'OK'), h('button', { onclick: () => done(false) }, 'Abbrechen')));
+    win.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); done(true); } if (e.key === 'Escape') { e.preventDefault(); done(false); } });
+    back.append(win);
+    document.body.append(back);
+    inputs[0]?.focus();
+    inputs[0]?.select();
   });
 }
 
@@ -14738,7 +14978,7 @@ function shortcutsHelp() {
     ['Strg+1 … Strg+6', 'Ansicht von vorne, hinten, links, rechts, oben, unten'], ['Strg+7', 'Isometrische Ansicht'], ['Strg+8', 'Senkrecht auf die gewählte Skizze oder Ebene schauen'],
     ['← → ↑ ↓', 'Ansicht um 15° drehen (mit Umschalt um 90°)'], ['Strg + ← → ↑ ↓', 'Ansicht verschieben'], ['Bild↑ / Bild↓ oder + / −', 'Zoomen'], ['F6', 'Einpassen'], ['F11', 'Vollbild ein/aus'],
     ['Doppelklick mit der mittleren Taste', 'Einpassen oder Ausgangsansicht (Einstellungen → Navigation)'],
-    ['L R C A E B', 'Skizze: Linie, Rechteck, Kreis, Bogen, Ellipse, Spline'], ['G U', 'Skizze: Polygon, Langloch'], ['O T P X', 'Skizze: Versatz, Stutzen, Projizieren, Konstruktionslinie'], ['D', 'Skizze: Bemaßung']];
+    ['L R C A B', 'Skizze: Linie, Rechteck, Kreis, Bogen, Spline'], ['E M F I', 'Skizze: fertig stellen und extrudieren, Verschieben/Kopieren, Abrunden, Messen'], ['G U', 'Skizze: Polygon, Langloch'], ['O T P X', 'Skizze: Versatz, Stutzen, Projizieren, Konstruktionslinie'], ['D', 'Skizze: Bemaßung']];
   const own = Object.entries(tbKeys).map(([id, k]) => [k, `${id.split('|').slice(1).join('|')} (eigener Kurzbefehl)`]);
   return h('div', null, h('div', { class: 'keys' }, ...[...mouse, ...keys, ...own].flatMap(([k, v]) => [h('div', null, h('kbd', null, k)), h('div', null, v)])),
     h('p', { class: 'muted', style: 'margin-top:12px' }, 'Eigene Kurzbefehle: in der Symbolleiste das Gruppenmenü (▾) öffnen, beim Befehl auf ⋮ klicken → „Tastaturkurzbefehl ändern …“.'));
@@ -15025,7 +15265,7 @@ function selectedSketchEntities() {
 async function sketchOffsetAt(id, sign) {
   const e = sketcher.entities.find(x => x.id === id);
   if (!e) return;
-  const v = evalExpr(await askValue('Versatzabstand (mm):', String(sketcher.offsetVal)) || '', paramScope(state.project));
+  const v = evalExpr(await askFields('VERSATZ', [{ label: 'Versatzabstand', value: String(sketcher.offsetVal).replace('.', ','), unit: 'mm' }], 'offset') || '', paramScope(state.project));
   if (!Number.isFinite(v) || !(Math.abs(v) > 0)) return;
   sketcher.offsetVal = Math.abs(v);
   const add = offsetEntities(e, sign * v, () => uid('e'));
@@ -15033,31 +15273,8 @@ async function sketchOffsetAt(id, sign) {
   commitSketch(state.sketchId, sk => { sk.entities.push(...add); });
   status(`Versatz ${String(Math.abs(v)).replace('.', ',')} mm erstellt – weitere Kontur anklicken oder Esc`);
 }
-async function sketchOffset() {
-  const { ents } = selectedSketchEntities();
-  const closed = ents.filter(e => e.type !== 'text' && (e.type !== 'poly' || e.closed));
-  if (!closed.length) { sketcher.setTool('offset'); renderToolbar(); return status('Versatz: mit der Maus neben eine Kontur fahren – die Seite bestimmt die Richtung – und klicken. Esc beendet.'); }
-  const d = evalExpr(await askValue('Versatzabstand (mm, positiv = nach außen, negativ = nach innen):', '2') || '', paramScope(state.project));
-  if (!Number.isFinite(d) || !d) return;
-  const CL = window.ClipperLib, S = 1000;
-  commitSketch(state.sketchId, sk => {
-    for (const e of closed) {
-      if (e.type === 'circle') { if (+e.r + d > 0) sk.entities.push({ id: uid('e'), type: 'circle', cx: e.cx, cy: e.cy, r: +(+e.r + d).toFixed(4) }); continue; }
-      for (const poly of entityPolys(e)) {
-        const co = new CL.ClipperOffset(2, 0.25 * S);
-        co.AddPath(poly.map(([x, y]) => ({ X: Math.round(x * S), Y: Math.round(y * S) })), CL.JoinType.jtMiter, CL.EndType.etClosedPolygon);
-        const out = new CL.Paths();
-        co.Execute(out, d * S);
-        for (const path of out) {
-          const pts = CL.Clipper.CleanPolygon(path, 0.002 * S).map(p => [+(p.X / S).toFixed(4), +(p.Y / S).toFixed(4)]);
-          if (pts.length > 2) sk.entities.push({ id: uid('e'), type: 'poly', closed: true, pts });
-        }
-      }
-    }
-  });
-  sketcher.selection = [];
-  status(`Versatz ${d} mm erstellt`);
-}
+// "Versatz": a command window – objects, distance (the sign is the side, "Umkehren" turns it), preview
+const sketchOffset = () => sketchCmd('offset');
 
 // Mirror and patterns as tools with a preview: the elements are chosen first, then the tool shows what it will
 // make – the mirror image at the line under the mouse, the pattern with the mouse as spacing / centre.
@@ -15068,16 +15285,148 @@ function mirrorSketchEntities(items, axis) {
   sketcher.selection = [];
   status(`${add.length} Element(e) gespiegelt`);
 }
-function sketchMirror() {
-  const { ents } = selectedSketchEntities();
-  if (!ents.length) return status('Spiegeln: zuerst die Elemente wählen (Umschalt für mehrere), dann „Spiegeln“ und die Spiegelachse anklicken.');
-  // as before: a single line chosen last is the axis
-  const axis = ents.length > 1 ? [...ents].reverse().find(e => e.type === 'poly' && e.pts.length === 2 && !e.curve) : null;
-  if (axis && axis === ents[ents.length - 1]) return mirrorSketchEntities(ents.filter(e => e !== axis), axis);
-  sketcher.xformIds = ents.map(e => e.id);
-  sketcher.setTool('mirror');
+function sketchMirror() { sketchCmd('mirror'); }
+
+// A text that was just placed: its content, size and rotation are asked in a command window (Abbrechen removes it)
+async function sketchTextDialog(id) {
+  const sid = state.sketchId, e = sid && feature(sid)?.entities.find(x => x.id === id);
+  if (!e) return;
+  const c = v => String(+(+v).toFixed(3)).replace('.', ',');
+  const t = await askFields('TEXT', [{ label: 'Text', value: e.text }, { label: 'Schriftgröße', value: c(e.size), unit: 'mm' }, { label: 'Drehung', value: c(e.rot || 0), unit: '°' }], 'text');
+  if (state.sketchId !== sid) return;
+  if (t == null) return commitSketch(sid, sk => { sk.entities = sk.entities.filter(x => x.id !== id); });
+  const parts = t.split('; '), scope = paramScope(state.project), n = s => evalExpr(String(s).replace(/,/g, '.'), scope);
+  const rot = n(parts.pop()), size = n(parts.pop()), text = parts.join('; ');
+  commitSketch(sid, sk => { const x = sk.entities.find(q => q.id === id); if (!x) return; if (text) x.text = text; if (size > 0) x.size = size; if (Number.isFinite(rot)) x.rot = rot; });
+}
+
+// Command window of mirror and the patterns: fields to choose the objects (and the mirror line / the centre),
+// the numbers, a preview that follows every change, OK / Abbrechen. The window does not block the view.
+var skCmd = null;
+const skRefOf = e => (e.type === 'poly' ? `${e.id}:l0` : e.type === 'text' ? `${e.id}:p0` : `${e.id}:c`);
+function closeSkCmd(quiet = false) {
+  if (!skCmd) return;
+  skCmd.win.remove();
+  skCmd = null;
+  sketcher.additive = false;
+  sketcher.ghost = null;
+  sketcher.xformIds = [];
+  if (quiet || !state.sketchId) return;
+  if (sketcher.tool !== 'select') sketcher.setTool('select'); else sketcher.drawPreview();
   renderToolbar();
-  status('Spiegeln: über die Spiegelachse fahren (Vorschau) und klicken. Esc beendet.');
+}
+function skCmdCopies() {
+  const c = skCmd, v = c.vals, ents = c.ids.map(id => sketcher.entities.find(e => e.id === id)).filter(Boolean), out = [];
+  if (!ents.length) return out;
+  if (c.kind === 'mirror') {
+    const ax = sketcher.entities.find(e => e.id === c.axis);
+    if (!ax) return out;
+    const [A, B] = ax.pts.map(q => q.map(Number));
+    return ents.map(e => mirrorAbout(e, A, B)).filter(Boolean);
+  }
+  if (c.kind === 'offset') {
+    if (!Number.isFinite(v.d) || !v.d) return out;
+    for (const e of ents) if (e.type !== 'text') out.push(...offsetEntities(e, v.d, () => uid('e')));
+    return out;
+  }
+  if (c.kind === 'prect') {
+    const nx = Math.round(v.nx), ny = Math.round(v.ny);
+    if (!(nx >= 1 && ny >= 1) || nx * ny < 2 || nx * ny > 2000 || ![v.dx, v.dy].every(Number.isFinite)) return out;
+    for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) if (i || j) for (const e of ents) out.push(translateEntity(e, i * v.dx, j * v.dy));
+  } else {
+    const n = Math.round(v.n);
+    if (!c.c || !(n >= 2) || n > 2000 || !Number.isFinite(v.ang) || !v.ang) return out;
+    const step = Math.abs(Math.abs(v.ang) - 360) < 1e-6 ? v.ang / n : v.ang / (n - 1);
+    for (let i = 1; i < n; i++) for (const e of ents) out.push(rotateEntity(e, step * i, c.c));
+  }
+  return out;
+}
+function skCmdDraw() {
+  const c = skCmd;
+  if (!c) return;
+  const field = (stage, n, label) => row(label, h('button', { class: 'sel-field' + (c.stage === stage ? ' on' : ''), onclick: () => skCmdStage(c.stage === stage ? null : stage) }, n ? `${n} ausgewählt` : 'Auswählen'));
+  const val = (label, key, unit) => {
+    const inp = h('input', { type: 'text', value: String(+(+c.vals[key]).toFixed(4)).replace('.', ','), spellcheck: 'false' });
+    inp.oninput = () => { const x = evalExpr(inp.value.trim().replace(/,/g, '.'), paramScope(state.project)); c.vals[key] = x; skCmdGhost(); };
+    return row(label, h('div', { class: 'cmd-in' }, inp, unit ? h('span', null, unit) : null));
+  };
+  const rows = [field('objects', c.ids.length, 'Objekte')];
+  if (c.kind === 'mirror') rows.push(field('axis', c.axis ? 1 : 0, 'Spiegelachse'));
+  if (c.kind === 'offset') rows.push(val('Versatzabstand', 'd', 'mm'), row('Richtung', h('button', { onclick: () => { c.vals.d = -c.vals.d; skCmdDraw(); } }, 'Umkehren')));
+  if (c.kind === 'prect') rows.push(val('Anzahl X', 'nx'), val('Abstand X', 'dx', 'mm'), val('Anzahl Y', 'ny'), val('Abstand Y', 'dy', 'mm'));
+  if (c.kind === 'pcirc') rows.push(field('centre', c.c ? 1 : 0, 'Mittelpunkt'), val('Anzahl', 'n'), val('Gesamtwinkel', 'ang', '°'));
+  c.win.querySelector('.cmd-body').replaceChildren(...rows);
+  skCmdGhost();
+}
+function skCmdGhost() {
+  const c = skCmd;
+  if (!c) return;
+  const copies = skCmdCopies();
+  c.win.querySelector('button.primary').disabled = !copies.length;
+  sketcher.ghost = c.stage === 'axis' || c.stage === 'centre' ? null : copies;
+  sketcher.drawPreview();
+}
+function skCmdStage(stage) {
+  const c = skCmd;
+  if (!c) return;
+  c.stage = stage;
+  c.busy = true;
+  sketcher.additive = stage === 'objects';
+  if (stage === 'axis' || stage === 'centre') {
+    if (!c.ids.length) { c.busy = false; return skCmdStage('objects'); }
+    if (stage === 'centre') Object.assign(sketcher.patternVal, { n: Math.max(2, Math.round(c.vals.n) || 2), ang: c.vals.ang || 360 });
+    sketcher.setTool(stage === 'axis' ? 'mirror' : 'pcirc');
+    sketcher.xformIds = c.ids.slice();
+    status(stage === 'axis' ? 'Spiegeln: über die Spiegelachse fahren (Vorschau) und klicken. Esc beendet.' : 'Kreis-Muster: den Mittelpunkt zeigen (Vorschau) und klicken. Esc beendet.');
+  } else {
+    sketcher.xformIds = [];
+    if (sketcher.tool !== 'select') sketcher.setTool('select');
+    sketcher.selection = stage === 'objects' ? c.ids.map(id => sketcher.entities.find(e => e.id === id)).filter(Boolean).map(skRefOf) : [];
+    sketcher.selected = null;
+    sketcher.hooks.changed();
+    if (stage === 'objects') status('Objekte anklicken (erneut anklicken nimmt sie wieder heraus).');
+  }
+  c.busy = false;
+  renderToolbar();
+  skCmdDraw();
+}
+// the selection changed, or the tool was left with Esc
+function skCmdSync() {
+  const c = skCmd;
+  if (!c || c.busy) return;
+  if (!state.sketchId) return closeSkCmd(true);
+  if (c.stage === 'objects' && sketcher.tool === 'select') { c.ids = [...new Set(sketcher.selection.map(refEntity))]; if (c.ids.includes(c.axis)) c.axis = null; skCmdDraw(); }
+  else if ((c.stage === 'axis' && sketcher.tool !== 'mirror') || (c.stage === 'centre' && sketcher.tool !== 'pcirc')) { c.stage = null; sketcher.additive = false; skCmdDraw(); }
+}
+function sketchCmd(kind) {
+  closeSkCmd(true);
+  let { ents } = selectedSketchEntities(), axis = null;
+  // as before: a single line chosen last is the mirror line
+  if (kind === 'mirror' && ents.length > 1) { const l = ents[ents.length - 1]; if (l.type === 'poly' && l.pts.length === 2 && !l.curve) { axis = l.id; ents = ents.slice(0, -1); } }
+  const pv = sketcher.patternVal, title = { offset: 'VERSATZ', mirror: 'SPIEGELN', prect: 'RECHTECKIGE ANORDNUNG', pcirc: 'RUNDE ANORDNUNG' }[kind];
+  const ok = () => {
+    const add = skCmdCopies();
+    if (!add.length) return;
+    const c = skCmd;
+    if (c.kind === 'prect') Object.assign(pv, { nx: Math.round(c.vals.nx), ny: Math.round(c.vals.ny) });
+    if (c.kind === 'pcirc') Object.assign(pv, { n: Math.round(c.vals.n), ang: c.vals.ang });
+    if (c.kind === 'offset') sketcher.offsetVal = Math.abs(c.vals.d);
+    const dTxt = String(+(+c.vals.d).toFixed(3)).replace('.', ',');
+    closeSkCmd(true);
+    commitSketch(state.sketchId, sk => { for (const e of add) sk.entities.push({ ...e, id: uid('e') }); });
+    sketcher.selection = [];
+    if (sketcher.tool !== 'select') sketcher.setTool('select'); else sketcher.hooks.changed();
+    renderToolbar();
+    status(kind === 'offset' ? `Versatz ${dTxt} mm erstellt` : kind === 'mirror' ? `${add.length} Element(e) gespiegelt` : `Muster: ${add.length} Element(e) erstellt`);
+  };
+  const win = h('section', { class: 'fwin dialog cmd-dlg free' },
+    h('header', { class: 'fwin-head' }, h('span', { class: 'fw-icon', html: ICONS[{ offset: 'offset', mirror: 'sketchMirror', prect: 'patternRect', pcirc: 'patternCirc' }[kind]] || '' }), h('span', { class: 'fw-title' }, title)),
+    h('div', { class: 'fwin-body' }, h('div', { class: 'cmd-body' })),
+    h('footer', { class: 'fwin-foot' }, h('span', { class: 'foot-msg' }), h('button', { class: 'primary', onclick: ok }, 'OK'), h('button', { onclick: () => closeSkCmd() }, 'Abbrechen')));
+  win.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); ok(); } if (e.key === 'Escape') { e.preventDefault(); closeSkCmd(); } });
+  document.body.append(win);
+  skCmd = { kind, win, ids: ents.map(e => e.id), axis, c: null, stage: null, vals: { d: sketcher.offsetVal || 2, nx: Math.max(2, pv.nx || 3), dx: 10, ny: pv.ny || 1, dy: 10, n: pv.n || 6, ang: pv.ang || 360 } };
+  skCmdStage(!ents.length ? 'objects' : kind === 'mirror' ? (axis ? null : 'axis') : kind === 'pcirc' ? 'centre' : null);
 }
 
 // Move / copy, rotate and scale the chosen sketch elements by numbers ("Verschieben/Kopieren", "Drehen", "Skalieren")
@@ -15103,7 +15452,7 @@ async function sketchTransform(kind, preset = null, given = null) {
   const mid = preset?.c || [(x0 + x1) / 2, (y0 + y1) / 2], v = { ...sketchXfVal, ...(preset ? { dx: preset.dx ?? sketchXfVal.dx, dy: preset.dy ?? sketchXfVal.dy, ang: preset.ang ?? sketchXfVal.ang } : {}) };
   let make, copies = 0, what;
   if (kind === 'move') {
-    const t = await askValue('Verschieben: Weg X; Weg Y (mm); Kopien (0 = verschieben, 1 oder mehr = kopieren)', `${c(v.dx)}; ${c(v.dy)}; ${v.copies}`);
+    const t = await askFields('VERSCHIEBEN/KOPIEREN', [{ label: 'Weg X', value: c(v.dx), unit: 'mm' }, { label: 'Weg Y', value: c(v.dy), unit: 'mm' }, { label: 'Kopien', value: v.copies }], 'move', '0 Kopien = verschieben, 1 oder mehr = kopieren.');
     if (t == null) return;
     const [dx, dy = 0, n = 0] = nums(t);
     if (![dx, dy, n].every(Number.isFinite) || n < 0 || (!dx && !dy)) return status('Verschieben: einen Weg in X oder Y angeben.');
@@ -15112,7 +15461,7 @@ async function sketchTransform(kind, preset = null, given = null) {
     make = (e, i) => translateEntity(e, dx * i, dy * i);
     what = copies ? `${copies}-mal kopiert` : 'verschoben';
   } else if (kind === 'rotate') {
-    const t = await askValue('Drehen: Winkel (°, gegen den Uhrzeigersinn); Drehpunkt X; Drehpunkt Y; Kopien (0 = drehen)', `${c(v.ang)}; ${c(mid[0])}; ${c(mid[1])}; 0`);
+    const t = await askFields('DREHEN', [{ label: 'Winkel', value: c(v.ang), unit: '°' }, { label: 'Drehpunkt X', value: c(mid[0]), unit: 'mm' }, { label: 'Drehpunkt Y', value: c(mid[1]), unit: 'mm' }, { label: 'Kopien', value: 0 }], 'revolve', 'Winkel gegen den Uhrzeigersinn. 0 Kopien = drehen.');
     if (t == null) return;
     const [ang, px = mid[0], py = mid[1], n = 0] = nums(t);
     if (![ang, px, py, n].every(Number.isFinite) || !ang || n < 0) return status('Drehen: einen Winkel angeben.');
@@ -15121,7 +15470,7 @@ async function sketchTransform(kind, preset = null, given = null) {
     make = (e, i) => rotateEntity(e, ang * i, [px, py]);
     what = copies ? `${copies}-mal gedreht kopiert` : `um ${c(ang)}° gedreht`;
   } else {
-    const t = await askValue('Skalieren: Faktor; Fixpunkt X; Fixpunkt Y', `${c(v.factor)}; ${c(mid[0])}; ${c(mid[1])}`);
+    const t = await askFields('SKALIEREN', [{ label: 'Faktor', value: c(v.factor) }, { label: 'Fixpunkt X', value: c(mid[0]), unit: 'mm' }, { label: 'Fixpunkt Y', value: c(mid[1]), unit: 'mm' }], 'scale');
     if (t == null) return;
     const [k, px = mid[0], py = mid[1]] = nums(t);
     if (![k, px, py].every(Number.isFinite) || !(k > 0) || k === 1) return status('Skalieren: einen Faktor größer als 0 angeben (1 ändert nichts).');
@@ -15140,16 +15489,11 @@ async function sketchTransform(kind, preset = null, given = null) {
 }
 
 // Sketch pattern ("Rechteckige Anordnung" / "Runde Anordnung" in a sketch).
-function sketchPattern(kind) {
-  const { ents } = selectedSketchEntities();
-  if (!ents.length) return status('Muster: zuerst Skizzenelemente wählen (Auswahl, Umschalt für mehrere).');
-  sketcher.xformIds = ents.map(e => e.id);
-  sketcher.setTool(kind === 'rect' ? 'prect' : 'pcirc');
-  renderToolbar();
-  status(kind === 'rect' ? 'Rechteck-Muster: mit der Maus den Abstand der ersten Kopie zeigen (Vorschau) und klicken. Esc beendet.' : 'Kreis-Muster: den Mittelpunkt zeigen (Vorschau) und klicken. Esc beendet.');
-}
+function sketchPattern(kind) { sketchCmd(kind === 'rect' ? 'prect' : 'pcirc'); }
 // the click of the mirror / pattern tools
 async function sketchXform(kind, data) {
+  // a pick for the command window: the mirror line or the centre
+  if (skCmd && (kind === 'mirror' || kind === 'pcirc')) { if (kind === 'mirror') skCmd.axis = data.axis; else skCmd.c = data.c; return skCmdStage(null); }
   const ents = sketcher.xformIds.map(id => sketcher.entities.find(e => e.id === id)).filter(Boolean);
   if (!ents.length) return;
   const done = () => { sketcher.xformIds = []; sketcher.setTool('select'); renderToolbar(); };
@@ -15166,14 +15510,14 @@ async function sketchXform(kind, data) {
   const nums = txt => String(txt).split(/[;\s]+/).filter(x => x !== '').map(x => evalExpr(x.replace(/,/g, '.'), scope));
   const copies = [];
   if (kind === 'prect') {
-    const txt = await askValue('Rechteck-Muster: Anzahl X; Abstand X; Anzahl Y; Abstand Y (mm) – bei Anzahl Y = 1 liegen die Kopien in Richtung des gezeigten Abstands', `${pv.nx}; ${c(data.dx)}; ${pv.ny}; ${c(data.dy)}`);
+    const txt = await askFields('RECHTECKIGE ANORDNUNG', [{ label: 'Anzahl X', value: pv.nx }, { label: 'Abstand X', value: c(data.dx), unit: 'mm' }, { label: 'Anzahl Y', value: pv.ny }, { label: 'Abstand Y', value: c(data.dy), unit: 'mm' }], 'patternRect', 'Bei Anzahl Y = 1 liegen die Kopien in Richtung des gezeigten Abstands.');
     if (txt == null) return;
     const [nx, dx, ny = 1, dy = 0] = nums(txt);
     if (![nx, dx, ny, dy].every(Number.isFinite) || !(nx >= 1) || !(ny >= 1) || nx * ny < 2) return status('Muster: mindestens zwei Stück und gültige Abstände angeben.');
     Object.assign(pv, { nx: Math.round(nx), ny: Math.round(ny) });
     for (let i = 0; i < pv.nx; i++) for (let j = 0; j < pv.ny; j++) if (i || j) copies.push(e => translateEntity(e, i * dx, pv.ny > 1 ? j * dy : i * dy));
   } else {
-    const txt = await askValue('Kreis-Muster: Anzahl (mit Original); Gesamtwinkel (°)', `${pv.n}; ${c(pv.ang)}`);
+    const txt = await askFields('RUNDE ANORDNUNG', [{ label: 'Anzahl', value: pv.n, hint: 'mit Original' }, { label: 'Gesamtwinkel', value: c(pv.ang), unit: '°' }], 'patternCirc');
     if (txt == null) return;
     const [n, ang = 360] = nums(txt);
     if (!(n >= 2) || !Number.isFinite(ang) || !ang) return status('Muster: mindestens zwei Stück und einen Winkel angeben.');
@@ -16081,13 +16425,13 @@ async function writeOutput(name, code) {
 // 5-axis lines of a program (tool vector: Heidenhain LN … TX TY TZ, Sinumerik A3= B3= C3=, Fanuc I J K under G43.5):
 // rewritten as the same ball standing upright (tip below the centre of the ball), so every check that follows works
 // on them like on a 3-axis line. Line numbers stay as they are.
-function ncUpright(code, toolRad) {
+function ncUpright(code, toolRad, axOut = null) {
   if (!/TX[+-]?[\d.]|A3\s*=|G43\.5/i.test(code)) return code;
   let tool = null, g435 = false;
   const N = '([+-]?\\d*\\.?\\d+)', n4 = v => (Math.round(v * 1e4) / 1e4 + 0).toString();
   const reHH = new RegExp('TX' + N + '\\s+TY' + N + '\\s+TZ' + N, 'i'), reSi = new RegExp('A3\\s*=\\s*' + N + '\\s+B3\\s*=\\s*' + N + '\\s+C3\\s*=\\s*' + N, 'i'), reFa = new RegExp('\\sI' + N + '\\s+J' + N + '\\s+K' + N, 'i');
   const pos = { X: null, Y: null, Z: null };
-  return code.split('\n').map(raw => {
+  return code.split('\n').map((raw, lineNo) => {
     const up = raw.toUpperCase();
     const tm = up.match(/(?:^|\s|N\d+\s*)T\s*(\d+)/) || up.match(/TOOL CALL\s+(\d+)/);
     if (tm) tool = +tm[1];
@@ -16100,6 +16444,7 @@ function ncUpright(code, toolRad) {
     if (pos.X == null || pos.Y == null || pos.Z == null) return line;
     const R = toolRad ? toolRad(tool) || 0 : 0, l = Math.hypot(+v[1], +v[2], +v[3]) || 1, a = [+v[1] / l, +v[2] / l, +v[3] / l];
     const want = { X: pos.X + R * a[0], Y: pos.Y + R * a[1], Z: pos.Z - R * (1 - a[2]) };
+    axOut?.set(lineNo, a);
     for (const k of 'XYZ') {
       const re = new RegExp('((?:^|[^A-Za-z])' + k + ')\\s*' + N, 'i'), val = (want[k] >= 0 && /TX|LN/i.test(raw) ? '+' : '') + n4(want[k]);
       line = re.test(line) ? line.replace(re, (_, pre) => pre + val) : line.trimEnd() + ' ' + k + val;
@@ -16107,8 +16452,10 @@ function ncUpright(code, toolRad) {
     return line.replace(/\bLN\b/i, 'L');
   }).join('\n');
 }
-function parseNcPositions(code, heidenhain, toolRad = null) {
-  code = ncUpright(code, toolRad);
+function parseNcPositions(code, heidenhain, toolRad = null, toolPivot = toolRad) {
+  // (5-axis lines come out in the upright form on the pivot of the tool, with the tool axis in .ax)
+  const axMap = new Map();
+  code = ncUpright(code, toolPivot, axMap);
   const pos = { x: 0, y: 0, z: 0 }, seen = new Set();
   let mode = 0, tool = null, known = false, cyc = null, cc = null, tch = null, aPos = null;
   let hhDir = null, hhSide = 'L', hhCyc = null, sinCyc = null; // + the last CYCL DEF 2xx with its Q parameters // Heidenhain: direction at the end of the last move, side of the radius compensation
@@ -16406,6 +16753,7 @@ function parseNcPositions(code, heidenhain, toolRad = null) {
     }
     else out.push(null);
   }
+  for (const [k, a] of axMap) if (out[k] && !out[k].seq) out[k].ax = a;
   return out;
 }
 // Hole positions of a pattern cycle (Heidenhain 220 bolt circle, 221 grid; Sinumerik patterns mapped onto them)
@@ -16597,7 +16945,32 @@ function ncCollisions(g, pts, opt) {
   const o = originOf(g.setup, s);
   const tools = new Map(state.project.cam.tools.map(t => [+t.number, t]));
   const out = [];
-  let prev = null;
+  let prev = null, prevAx = null;
+  // a leaning cutter that is no ball (5-axis line): cut with its real shape
+  const cutTilted = (T, ax, R, cr, L, chk) => {
+    const ex = T[0] + L * ax[0], ey = T[1] + L * ax[1];
+    const i0 = Math.max(0, Math.floor((Math.min(T[0], ex) - R - x0) / res)), i1 = Math.min(nx - 1, Math.ceil((Math.max(T[0], ex) + R - x0) / res));
+    const j0 = Math.max(0, Math.floor((Math.min(T[1], ey) - R - y0) / res)), j1 = Math.min(ny - 1, Math.ceil((Math.max(T[1], ey) + R - y0) / res));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const idx = j * nx + i, zc = tiltedEdgeZ(x0 + i * res, y0 + j * res, T, ax, R, cr, L);
+      if (chk && zc < ph[idx] - 0.1) { partHit = true; if (ph[idx] - zc > partDeep) partDeep = ph[idx] - zc; }
+      if (h[idx] > zc) h[idx] = zc;
+    }
+  };
+  // stock (or a fixture, field `fld`) inside a leaning cylinder: from s0 to s1 along the axis from the tip T, radius r
+  const tiltedIn = (T, ax, s0, s1, r, fld, zTop, stock) => {
+    const B = [T[0] + s0 * ax[0], T[1] + s0 * ax[1], T[2] + s0 * ax[2]], L = s1 - s0;
+    if (B[2] - r * Math.sqrt(Math.max(0, 1 - ax[2] * ax[2])) >= zTop) return false;
+    const ex = B[0] + L * ax[0], ey = B[1] + L * ax[1];
+    const i0 = Math.max(0, Math.floor((Math.min(B[0], ex) - r - x0) / res)), i1 = Math.min(nx - 1, Math.ceil((Math.max(B[0], ex) + r - x0) / res));
+    const j0 = Math.max(0, Math.floor((Math.min(B[1], ey) - r - y0) / res)), j1 = Math.min(ny - 1, Math.ceil((Math.max(B[1], ey) + r - y0) / res));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const idx = j * nx + i, v = fld[idx];
+      if (!(v > B[2] - r) || (stock && v <= lo[idx])) continue;
+      if (v > tiltedEdgeZ(x0 + i * res, y0 + j * res, B, ax, r, 0, L) + 0.05) return true;
+    }
+    return false;
+  };
   // a probe cycle carries all its moves: each one is checked on its own (same line)
   pts.forEach((p, k) => (p?.seq ? p.seq.forEach(q => step({ ...q, tool: p.tool }, k)) : step(p, k)));
   const once = new Set(), found = out.filter(is => !once.has(is.k + is.kind) && once.add(is.k + is.kind));
@@ -16610,6 +16983,8 @@ function ncCollisions(g, pts, opt) {
     const t = tools.get(+p.tool);
     const a = prev, b = { x: p.x + o.x, y: p.y + o.y, z: p.z + o.z };
     prev = p.cycle ? { ...b, z: p.zr + o.z } : b;
+    const axA = prevAx, axB = p.ax || null;
+    prevAx = axB;
     if (!t || !a) return;
     const R = (+t.dia || 1) / 2, flute = toolFlute(t), stick = toolStick(t), shaft = toolShaft(t), holder = +(t.holderDia ?? defaultHolderDia(t));
     const ball = toolBase(t) === 'ball' ? true : cornerOf(t);
@@ -16646,6 +17021,32 @@ function ncCollisions(g, pts, opt) {
     const chain = [a, ...(p.arc || []).map(q => ({ x: q.x + o.x, y: q.y + o.y, z: q.z + o.z })), b];
     const cone = ph ? partCone(t) : null, chk = !!ph && (PART_CHECK_TOOLS.includes(t.type) || !!cone);
     partHit = false;
+    // 5-axis line: the positions hold the upright form on the pivot – turned about it and cut leaning; shaft,
+    // holder and fixtures are tested with the leaning tool as well
+    if ((axA || axB) && !p.arc && (ball === true || (toolBase(t) === 'flat' && !t.profile))) {
+      const pvT = pivotOf(t), crT = ball === true ? R : cornerOf({ ...t, kind: t.type, type: 'flat' }), A0 = axA || [0, 0, 1], B0 = axB || [0, 0, 1];
+      const HL = 60; // length of the holder that is looked at
+      const n = Math.min(4000, Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) / Math.max(res, R / 3))));
+      for (let q = 1; q <= n; q++) {
+        const f = q / n, x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f, z = a.z + (b.z - a.z) * f;
+        let vx = A0[0] + (B0[0] - A0[0]) * f, vy = A0[1] + (B0[1] - A0[1]) * f, vz = A0[2] + (B0[2] - A0[2]) * f; const l = Math.hypot(vx, vy, vz) || 1; vx /= l; vy /= l; vz /= l;
+        if (vz > 1 - 1e-9) {
+          if (!kinds.has('holder') && z + stick < top && (q % 3 === 0 || q === n) && above(x, y, holder / 2, z + stick + 0.05)) kinds.add('holder');
+          if (!kinds.has('shank') && shaft / 2 >= R - 1e-6 && z + flute < top && above(x, y, shaft / 2, z + flute + 0.05)) kinds.add('shank');
+          if (fh && !kinds.has('fixture') && fxHit(x, y, z, R, shaft, flute, holder, stick)) kinds.add('fixture');
+          cut(x, y, z, R, ball, chk, cone);
+          continue;
+        }
+        const T = [x - pvT * vx, y - pvT * vy, z + pvT * (1 - vz)], ax = [vx, vy, vz];
+        if (!kinds.has('holder') && (q % 3 === 0 || q === n) && tiltedIn(T, ax, stick, stick + HL, holder / 2, h, top, true)) kinds.add('holder');
+        if (!kinds.has('shank') && shaft / 2 >= R - 1e-6 && stick > flute + 1e-6 && tiltedIn(T, ax, flute, stick, (shaft / 2) * 0.98, h, top, true)) kinds.add('shank');
+        if (fh && !kinds.has('fixture') && (tiltedIn(T, ax, 0, stick, Math.max(R, shaft / 2), fh, fxTop, false) || tiltedIn(T, ax, stick, stick + HL, holder / 2, fh, fxTop, false))) kinds.add('fixture');
+        cutTilted(T, ax, R, crT, flute, chk);
+      }
+      if (partHit) kinds.add('part');
+      for (const kind of kinds) out.push({ k, kind, at: { x: p.x, y: p.y, z: p.z } });
+      return;
+    }
     for (let c = 1; c < chain.length; c++) {
       const A = chain[c - 1], B = chain[c];
       const n = Math.min(4000, Math.max(1, Math.ceil(Math.hypot(B.x - A.x, B.y - A.y, B.z - A.z) / Math.max(res, R / 3))));
@@ -16985,7 +17386,7 @@ function ncReport(g, r, postId, opt) {
   if (g.kind === 'turn') return { issues: ncLatheCheck(g, parseNcLathe(r.code)), info, why };
   const tools = state.project.cam.tools, fam = String(postId || state.project.post.flavor);
   const hh = fam.startsWith('heidenhain') || /^\s*\d*\s*BEGIN PGM\b/m.test(r.code);
-  const pts = parseNcPositions(r.code, hh, n => (+tools.find(t => +t.number === +n)?.dia || 0) / 2);
+  const pts = parseNcPositions(r.code, hh, n => (+tools.find(t => +t.number === +n)?.dia || 0) / 2, n => pivotOf(tools.find(t => +t.number === +n)));
   issues = ncCollisions(g, pts, opt);
   partDeep = issues.partDeep || 0;
   if (hh) issues.push(...ncHeidenhainCheck(r.code));
@@ -17069,6 +17470,8 @@ function ncHeidenhainCheck(code) {
     }
     if (/^CC\b/.test(u)) { if (!/^CC(\s+[XY][+-]?\d*\.?\d+)+$/.test(u)) add(k, 'hhWord'); cc = true; continue; }
     const wordsOk = t => /^(\s+(I?[XYZABC]|IPA|PA|IZ|PR|IPR)[+-]?\d*\.?\d+|\s+DR[+-]|\s+R[0LR]|\s+FMAX|\s+FAUTO|\s+FQ\d+|\s+F\d*\.?\d+|\s+M\d+)*$/.test(t);
+    // 5-axis block with surface normal and / or tool vector
+    if ((m = u.match(/^LN\b(.*)$/))) { if (!/^(\s+([XYZ]|N[XYZ]|T[XYZ])[+-]?\d*\.?\d+|\s+FMAX|\s+FAUTO|\s+FQ\d+|\s+F\d*\.?\d+|\s+M\d+)*$/.test(m[1])) add(k, 'hhWord'); continue; }
     if ((m = u.match(/^(L|C|CP|CR|CT|LP)\b(.*)$/))) {
       const [, w, rest] = m;
       if (!wordsOk(rest)) add(k, 'hhWord');
@@ -17208,7 +17611,7 @@ function ncViewer(results) {
       const tools = state.project.cam.tools;
       // Klartext also for own copies of the Heidenhain post (their id does not start with "heidenhain")
       const hhCode = fam.startsWith('heidenhain') || /^\s*\d*\s*BEGIN PGM\b/m.test(r.code);
-      pts = parseNcPositions(r.code, hhCode, n => (+tools.find(t => +t.number === +n)?.dia || 0) / 2);
+      pts = parseNcPositions(r.code, hhCode, n => (+tools.find(t => +t.number === +n)?.dia || 0) / 2, n => pivotOf(tools.find(t => +t.number === +n)));
       toolOf = new Map(tools.map(t => [+t.number, t]));
       try { issues = ncCollisions(g, pts, { part: partOn }); partDeep = issues.partDeep || 0; } catch { issues = []; }
       if (hhCode) try { issues.push(...ncHeidenhainCheck(r.code)); } catch (e) { console.warn(e); }

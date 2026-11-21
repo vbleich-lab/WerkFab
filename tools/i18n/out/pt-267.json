@@ -1,0 +1,19 @@
+{
+ "Notiz bearbeiten": "Editar nota",
+ "Als Vorlage speichern": "Guardar como modelo",
+ "Vorlage „{0}“ gespeichert": "Modelo “{0}” guardado",
+ "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V": "“{0}” copiado – cole a partir do menu de contexto ou com Ctrl+V",
+ "„{0}“ ausgeschnitten": "“{0}” recortado",
+ "Vorderansicht als Schnitt": "Vista frontal como corte",
+ "Detailansicht: die Mitte im Blatt anklicken": "Vista de detalhe: clique no centro na folha",
+ "BEMASSUNG": "COTAGEM",
+ "Maß": "Cota",
+ "Maß hinzufügen: zwei Punkte oder einen Kreisrand im Blatt anklicken": "Adicionar cota: clique em dois pontos ou na borda de um círculo na folha",
+ "Hinweis mit Pfeil: die Stelle im Blatt anklicken": "Nota com linha de chamada: clique no local na folha",
+ "SYMBOLE": "SÍMBOLOS",
+ "Oberflächenzeichen: eine Kante im Blatt anklicken": "Símbolo de superfície: clique numa aresta na folha",
+ "Form-/Lagetoleranz: die Stelle im Blatt anklicken": "Tolerância geométrica: clique no local na folha",
+ "Bezug: eine Kante im Blatt anklicken": "Referência: clique numa aresta na folha",
+ "TABELLEN": "TABELAS",
+ "Zeichnung als SVG speichern": "Guardar o desenho como SVG"
+}
