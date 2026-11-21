@@ -6,16 +6,17 @@ import { R } from './kernel.js';
 import { basis, sketchPlane, toWorld } from './plane.js';
 import { entityOutline } from './profiles.js';
 import { stdPartSteps } from './stdparts.js';
+import { gearSpec } from './gears.js';
 
 export const EXTRA_TYPES = {
   cone: 'Kegel', bbox: 'Begrenzungskörper', bfill: 'Begrenzungsfüllung', web: 'Gewebe', boss: 'Ansatz', lip: 'Lippe',
   snapfit: 'Rastverbindung', rest: 'Auflage', removebody: 'Körper entfernen', splitface: 'Fläche teilen',
   ruled: 'Regelfläche', blendsurf: 'Verbindungsfläche', untrim: 'Trimmen aufheben', unstitch: 'Verbund aufheben',
   flipnormal: 'Normale umkehren', straighten: 'Fläche begradigen', perforate: 'Perforieren', pathflange: 'Pfadflansch',
-  frame: 'Rahmenelement', endcap: 'Endkappe',
+  frame: 'Rahmenelement', endcap: 'Endkappe', gear: 'Zahnrad',
 };
 // steps that make a tool shape (new body, join, cut): they can be patterned and mirrored
-export const EXTRA_SOURCES = ['cone', 'web', 'boss', 'snapfit', 'rest', 'perforate', 'pathflange', 'frame', 'endcap', 'lip'];
+export const EXTRA_SOURCES = ['cone', 'web', 'boss', 'snapfit', 'rest', 'perforate', 'pathflange', 'frame', 'endcap', 'lip', 'gear'];
 
 const fail = msg => { throw new Error(msg); };
 const V = {
@@ -88,6 +89,61 @@ function coneTool(f) {
   if (f.axis === 'x') s = s.rotate(90, [0, 0, 0], [0, 1, 0]);
   else if (f.axis === 'y') s = s.rotate(-90, [0, 0, 0], [1, 0, 0]);
   return s.translate([+f.x || 0, +f.y || 0, +f.z || 0]);
+}
+
+// Zahnrad: spur / helical / herringbone / internal gear, rack, bevel gear, worm, worm wheel, chain sprocket (js/gears.js).
+// Built with its axis along +Z from z = 0, then turned to the chosen axis and moved to x, y, z.
+function gearTool(f) {
+  const g = gearSpec(f), k = g.kind;
+  const drawing = (o, sc = 1) => {
+    const P = p => [p[0] * sc, p[1] * sc], n = o.segs.length;
+    let d = R.draw(P(o.start));
+    o.segs.forEach((s, i) => {
+      const b = i === n - 1 ? P(o.start) : P(s.b); // the last piece ends exactly on the first point
+      d = s.k === 'L' ? d.lineTo(b) : s.k === 'A' ? d.threePointsArcTo(b, P(s.m)) : d.cubicBezierCurveTo(b, P(s.c1), P(s.c2));
+    });
+    return d.close();
+  };
+  let s, top = 0;
+  if (k === 'rack') {
+    let d = R.draw(g.rack.pts[0]);
+    for (const q of g.rack.pts.slice(1)) d = d.lineTo(q);
+    const be = (g.beta * Math.PI) / 180 * (g.hand === 'left' ? -1 : 1);
+    s = Math.abs(be) > 1e-9 ? d.close().sketchOnPlane('XY').extrude(g.height / Math.cos(be), { extrusionDirection: [Math.sin(be), 0, Math.cos(be)] }) : d.close().sketchOnPlane('XY').extrude(g.height);
+    top = g.height;
+  } else if (k === 'bevel') {
+    const b = g.bevel;
+    s = drawing(b).sketchOnPlane('XY', 0).loftWith([drawing(b, b.scale).sketchOnPlane('XY', b.height)], { ruled: true });
+    top = b.height;
+  } else if (k === 'worm') {
+    const w = g.worm, L = g.length, c = [0, 0, -w.lead], d = [0, 0, 1];
+    const helix = R.makeHelix(w.lead, L + 2 * w.lead, w.prof[0][0], c, d, g.hand === 'left');
+    const sp = helix.startPoint, u = V.norm([sp.x, sp.y, 0]);
+    let dr = R.draw(w.prof[0]);
+    for (const q of w.prof.slice(1)) dr = dr.lineTo(q);
+    const one = R.genericSweep(dr.close().sketchOnPlane(new R.Plane(c, u, V.cross(u, d))).wires(), helix, { frenet: true }, false);
+    s = R.makeCylinder(w.df / 2, L, [0, 0, 0], d);
+    const keep = R.makeCylinder(w.da / 2 + 1, L, [0, 0, 0], d);
+    for (let i = 0; i < w.z1; i++) s = s.fuse((i ? one.clone().rotate((360 * i) / w.z1, [0, 0, 0], d) : one.clone()).intersect(keep.clone()));
+    top = L;
+  } else if (k === 'internal') {
+    s = R.drawCircle(g.outer).cut(drawing(g.outline)).sketchOnPlane('XY').extrude(g.height);
+    top = g.height;
+  } else {
+    const h = g.herringbone ? g.height / 2 : g.height, sk = drawing(g.outline).sketchOnPlane('XY');
+    s = Math.abs(g.twist) > 1e-9 ? sk.extrude(h, { twistAngle: g.twist }) : sk.extrude(h);
+    if (g.herringbone) s = s.fuse(s.clone().mirror('XY', [0, 0, h]));
+    top = g.height;
+  }
+  const bore = +f.bore || 0;
+  if (bore > 0 && k !== 'rack' && k !== 'internal') {
+    const lim = (g.sizes.df ?? 0) * (k === 'bevel' ? g.bevel.scale : 1);
+    if (lim && bore >= lim - 0.2) fail('Bohrung ist größer als der Fußkreis');
+    s = s.cut(R.makeCylinder(bore / 2, top + 2, [0, 0, -1], [0, 0, 1]));
+  }
+  if (f.axis === 'x') s = s.rotate(90, [0, 0, 0], [0, 1, 0]);
+  else if (f.axis === 'y') s = s.rotate(-90, [0, 0, 0], [1, 0, 0]);
+  return s.translate([+f.x || 0, +f.y || 0, +f.z0 || 0]);
 }
 
 // Begrenzender Körper: the box (or the cylinder) that just holds a body, with a margin
@@ -530,6 +586,7 @@ export function runExtra(f, ctx, H) {
   };
   switch (f.type) {
     case 'cone': return put(coneTool(f), f.op || 'new', f.target);
+    case 'gear': return put(gearTool(f), f.op || 'new', f.target);
     case 'bbox': { const t = bboxTool(f, bodies); return put(t, f.op || 'new', f.target); }
     case 'bfill': return boundaryFill(f, bodies);
     case 'web': return put(webTool(f, ctx, H), f.op || 'join', f.target);

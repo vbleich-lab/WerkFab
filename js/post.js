@@ -1467,8 +1467,34 @@ export function runPost(def, project, gen, opts = {}) {
       const tolA = Math.min(0.05, Math.max(0.001, (+op.tolerance || 0.01) / 2));
       // helices only where the post can write them (helix template, or an arc template with Z)
       const helixOk = !!(def.helixCW && def.helixCCW) || (/\{Z/.test(def.arcCW || '') && /\{Z/.test(def.arcCCW || ''));
-      let moves = P.arcs !== false && !lathe && !r.rotary ? fitArcs(r.moves, tolA, helixOk) : r.moves;
-      if (planeTpl && P.arcs !== false && P.planeArcs !== false && !lathe && !r.rotary) moves = fitPlaneArcs(moves, tolA);
+      let moves = P.arcs !== false && !lathe && !r.rotary && !r.multi ? fitArcs(r.moves, tolA, helixOk) : r.moves;
+      if (planeTpl && P.arcs !== false && P.planeArcs !== false && !lathe && !r.rotary && !r.multi) moves = fitPlaneArcs(moves, tolA);
+      // 5-axis simultaneous: the moves hold the tip of the upright ball and the tool axis m.ax; the program gets the
+      // real tip and the axis as a vector (no machine kinematics needed): Heidenhain LN … TX TY TZ under TCPM,
+      // Sinumerik A3= B3= C3= under TRAORI, Fanuc I J K under G43.5. Other controls get the same surface as a
+      // 3-axis path with the tool upright.
+      const mx = r.multi && !lathe ? r.multi : null;
+      const mxOut = !!mx && ['heidenhain', 'sinumerik', 'fanuc'].includes(fam) && tilt.identity && !okuma;
+      if (mx) {
+        if (!mxOut) warnings.push(`${op.name}: 5-Achs-Simultan wird von diesem Postprozessor${tilt.identity ? '' : ' in einer geschwenkten Aufspannung'} nicht ausgegeben – als 3-Achs-Bahn mit senkrechtem Werkzeug geschrieben (gleiche Fläche, da Kugelfräser)`);
+        else {
+          const kin = machine?.kin, lim = kin?.type === 'AC' ? kin.a : kin?.type === 'BC' ? kin.b : null;
+          if (!kin || kin.type === 'A') warnings.push(`${op.name}: 5-Achs-Simultan – Maschine mit zwei Drehachsen wählen (Schwenktisch A/C oder Schwenkkopf B/C)`);
+          else if (Array.isArray(lim) && mx.maxTilt > Math.max(Math.abs(lim[0]), Math.abs(lim[1])) + 1e-6) warnings.push(`${op.name}: Neigung bis ${mx.maxTilt.toFixed(1)}° – die Schwenkachse der Maschine reicht nur bis ${Math.max(Math.abs(lim[0]), Math.abs(lim[1]))}°`);
+          if (hh) { if (!P.tcpm) W.expand(P.tcpmCode === 'm128' ? 'M128' : 'FUNCTION TCPM F TCP AXIS POS PATHCTRL AXIS'); }
+          else if (fam === 'sinumerik') W.expand('TRAORI');
+          else W.expand(`G43.5 H${t.number}`);
+          W.resetModal();
+        }
+      }
+      const vec = v => { const s = (Math.round(v * 1e6) / 1e6 + 0).toFixed(6).replace(/0+$/, '').replace(/\.$/, ''); return s === '-0' ? '0' : s; };
+      const sgv = v => { const s = vec(v); return s.startsWith('-') ? s : '+' + s; };
+      const withV = (tpl, a, rapid) => {
+        const force = s => s.replace('{X}', '{X!}').replace('{Y}', '{Y!}').replace('{Z}', '{Z!}');
+        if (hh) return W.tag(`LN{X!}{Y!}{Z!} TX${sgv(a[0])} TY${sgv(a[1])} TZ${sgv(a[2])}${rapid ? ' FMAX' : '{F}'}`, rapid ? 'rapid' : 'linear');
+        const words = fam === 'sinumerik' ? ` A3=${vec(a[0])} B3=${vec(a[1])} C3=${vec(a[2])}` : ` I${vec(a[0])} J${vec(a[1])} K${vec(a[2])}`;
+        return W.tag(force(String(tpl || '')).replace('{Z!}', '{Z!}' + words), rapid ? 'rapid' : 'linear');
+      };
       // 4-axis moves: machine values (Y/Z of the tip with the part turned by A), rotary word added to the templates
       const rot = r.rotary;
       const withA = tpl => (!rot || /\{A!?\}/.test(tpl || '') ? tpl : W.tag(String(tpl || '').replace('{Z}', '{Z}{A}'), tpl === def.rapid ? 'rapid' : 'linear'));
@@ -1496,7 +1522,7 @@ export function runPost(def, project, gen, opts = {}) {
       const cylTpl = lathe && r.cyl > 0 && def.cylOn && def.cylOff;
       if (lathe && r.cyl > 0 && !cylTpl) warnings.push(`${op.name}: Postprozessor ohne Zylinder-Interpolation – Z und C fahren gemeinsam, der Vorschub gilt dann je nach Steuerung nicht entlang der Bahn. Besser die Vorlage „Zylinder-Interpolation ein/aus“ eintragen`);
       const list = lathe && r.polar && !polarTpl && !yMode ? polarSteps(moves) : def.helixCW && def.helixCCW ? mergeHelix(moves) : moves;
-      const useAppr = hh && !lathe && !rot && P.apprDep !== false && def.approach && def.depart;
+      const useAppr = hh && !lathe && !rot && !mx && P.apprDep !== false && def.approach && def.depart;
       const R0t = (+t.dia || 0) / 2;
       // a lead (run of moves with the same lead tag) as APPR/DEP words, or null when the control's functions do not fit
       const leadRun = mi => { let j = mi; while (list[j + 1]?.lead === list[mi].lead) j++; return j; };
@@ -1551,6 +1577,14 @@ export function runPost(def, project, gen, opts = {}) {
         const mark0 = W.out.length;
         // lathe: x is the radius in the toolpath, the program wants the diameter
         const mv = { x: lathe ? 2 * (m.xr ?? m.x) : m.x - o.x, y: m.y - o.y, z: m.z - o.z, f: m.t === 'r' ? null : feedOf(m.f) };
+        if (mxOut && m.ax) {
+          // the real tip of the leaning ball
+          Object.assign(mv, { x: m.x - mx.R * m.ax[0] - o.x, y: m.y - mx.R * m.ax[1] - o.y, z: m.z + mx.R * (1 - m.ax[2]) - o.z });
+          if (m.t === 'r') { W.expand(withV(def.rapid, m.ax, true), tv, mv); W.rapidBefore = true; }
+          else if (W.expand(withV(def.linear, m.ax, false), tv, mv)) W.rapidBefore = false;
+          px = m.x; py = m.y; pz = m.z;
+          continue;
+        }
         if (m.a != null) {
           Object.assign(mv, { y: m.my - o.y, z: m.mz - o.z, a: m.a });
           // feed with the rotary axis: the time of the block from the way of the tip on the part (m.x/y/z turn with
@@ -1619,6 +1653,12 @@ export function runPost(def, project, gen, opts = {}) {
       if (planeTpl && W.plane !== 17) { W.expand('G17'); W.plane = 17; }
       if (comp && !hh && fam !== 'grbl' && !lathe) W.expand('G40');
       if (invOn) { W.expand('G94'); W.st.F = null; }
+      if (mxOut) {
+        if (hh) { if (!P.tcpm) W.expand(P.tcpmCode === 'm128' ? 'M129' : 'FUNCTION RESET TCPM'); }
+        else if (fam === 'sinumerik') W.expand('TRAFOOF');
+        else W.expand(`G49\nG43 H${t.number}`);
+        W.resetModal();
+      }
       if (polarOn) { W.expand(W.tag(def.polarOff, 'polarOff'), tv); W.resetModal(); }
       if (yOn) { W.expand(W.tag(def.yOff, 'yOff'), tv); W.resetModal(); }
       if (cylOn) { W.expand(W.tag(def.cylOff, 'cylOff'), { ...tv, cylr: r.cyl }); W.resetModal(); }

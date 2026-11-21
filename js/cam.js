@@ -38,6 +38,7 @@ function dropCutter(hm, x, y, tool, floor) {
 }
 import { adaptiveLevel } from './adaptive.js';
 import { findMachine } from './machines.js';
+import { defaultStickout, defaultHolderDia } from './sim.js';
 import { generateTurnSetup, TURN_OPS } from './turning.js';
 import { MeshBVH } from 'three-mesh-bvh';
 
@@ -3642,7 +3643,125 @@ function generateOpInner(op, project, stock, ctx, t, s) {
     moves = cf.moves;
     extra = { ...extra, feedOpt: { corners: cf.corners } };
   }
-  return { moves, heights: h, tool: t, ...extra, ...stats(moves, ctx.rapid) };
+  const res = { moves, heights: h, tool: t, ...extra, ...stats(moves, ctx.rapid) };
+  return multiAxisOn(op) ? tiltMoves(res, op, ctx, h) : res;
+}
+
+// ---------- 5-axis simultaneous: the tool axis follows the surface ----------
+// 3D finishing strategies that can run with a tilted ball cutter
+export const MULTI_OPS = ['parallel3d', 'scallop3d', 'spiral3d', 'radial3d', 'contour3d', 'steep3d', 'flat3d', 'morphspiral3d', 'geodesic3d', 'pencil3d', 'flow3d', 'morph3d', 'blend3d', 'project3d'];
+export const multiAxisOn = op => !!op && op.toolAxis === 'normal' && MULTI_OPS.includes(op.type);
+/** Real tool tip of a move of a 5-axis operation (x, y, z hold the tip of the same ball standing upright). */
+export function multiTip(m, R) { const a = m.ax; return a ? { x: m.x - R * a[0], y: m.y - R * a[1], z: m.z + R * (1 - a[2]) } : { x: m.x, y: m.y, z: m.z }; }
+/**
+ * A ball cutter cuts with a sphere: where its centre runs decides the surface, not how the tool leans. So the path
+ * of the 3-axis strategy stays as it is (the centre of the ball, free of gouges), and every move only gets a tool
+ * axis m.ax = [i, j, k] (unit vector from the tip to the spindle, setup frame): towards the surface normal, with
+ * lead and side angle, never more than maxTilt from the setup's Z. Where the shaft or the holder would touch the
+ * part, the tool is stood up again as far as needed. x, y, z of the moves remain the tip of the upright ball –
+ * simulation, rest material and the checks against the part work on them unchanged; the post writes the real tip.
+ */
+function tiltMoves(res, op, ctx, h) {
+  const t = res.tool, moves = res.moves;
+  if (toolBase(t) !== 'ball') throw new Error('5-Achs-Simultan: einen Kugelfräser wählen (die Kugel schneidet in jeder Neigung gleich)');
+  const hm = ctx.heightmap(), R = t.dia / 2, stl = +op.stockToLeave || 0, tool = growStl(t, stl);
+  const maxT = (Math.min(85, Math.max(0, +op.maxTilt || 30)) * Math.PI) / 180, lead = Math.tan(((+op.leadAngle || 0) * Math.PI) / 180), side = Math.tan(((+op.sideAngle || 0) * Math.PI) / 180);
+  const zAt = (x, y) => dropCutter(hm, x, y, tool, h.bottom - stl) + stl;
+  const e = Math.max(hm.res, R / 4);
+  const top = (x, y) => { const i = Math.round((x - hm.minX) / hm.res), j = Math.round((y - hm.minY) / hm.res); return i >= 0 && j >= 0 && i < hm.nx && j < hm.ny ? hm.h[j * hm.nx + i] : -Infinity; };
+  // shaft and holder as rings of points around the axis: none may lie below the part
+  const stick = +(t.stickout ?? defaultStickout(t)), Rs = Math.max(R, (+t.shaftDia || t.dia) / 2), Rh = +(t.holderDia ?? defaultHolderDia(t)) / 2, Lh = Math.max(20, 2.8 * Rh);
+  const clear = (m, a) => {
+    if (a[2] > 1 - 1e-9) return true;
+    const cx = m.x, cy = m.y, cz = m.z + R; // centre of the ball
+    // two directions across the axis
+    const ul = Math.hypot(a[0], a[1]), u = [a[1] / ul, -a[0] / ul, 0], w = [a[2] * u[1] * -1 + 0, a[2] * u[0], a[0] * u[1] - a[1] * u[0]];
+    const ring = (s, rad) => {
+      const qx = cx + s * a[0], qy = cy + s * a[1], qz = cz + s * a[2], rr = Math.max(0, rad - 0.75 * hm.res);
+      for (let k = 0; k < 8; k++) {
+        const c = Math.cos((k * Math.PI) / 4), sn = Math.sin((k * Math.PI) / 4);
+        const px = qx + rr * (c * u[0] + sn * w[0]), py = qy + rr * (c * u[1] + sn * w[1]), pz = qz + rr * (c * u[2] + sn * w[2]);
+        if (top(px, py) + stl > pz + 0.02) return false;
+      }
+      return true;
+    };
+    for (let s = R * 0.5; s < stick; s += Math.max(R, 2 * hm.res)) if (!ring(s, s < 3 * R ? R : Rs)) return false;
+    for (let s = stick; s <= stick + Lh; s += Math.max(Rh / 2, 2 * hm.res)) if (!ring(s, Rh)) return false;
+    return true;
+  };
+  const Z = [0, 0, 1], norm = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+  // an axis no more than maxT from Z
+  const limit = a => { const ang = Math.acos(Math.min(1, Math.max(-1, a[2]))); if (ang <= maxT) return a; const l = Math.hypot(a[0], a[1]) || 1, s = Math.sin(maxT); return [(a[0] / l) * s, (a[1] / l) * s, Math.cos(maxT)]; };
+  // stand the tool up step by step until shaft and holder are clear (upright is always clear: the 3-axis path)
+  const safe = (m, a) => { let cur = a; for (let k = 0; k < 6 && !clear(m, cur); k++) cur = k === 5 ? Z : norm([cur[0] * 0.6, cur[1] * 0.6, cur[2] * 0.6 + 0.4]); return clear(m, cur) ? cur : Z; };
+  const n = moves.length, ax = new Array(n).fill(null);
+  let stoodUp = 0, contact = 0;
+  for (let i = 0; i < n; i++) {
+    const m = moves[i];
+    if (m.t !== 'f' || !Number.isFinite(m.x) || !Number.isFinite(m.z)) continue;
+    if (Math.abs(m.z - zAt(m.x, m.y)) > 0.05) continue; // not on the surface (plunge, link, retract)
+    contact++;
+    // slope of the surface; next to an outer edge (the ball rolls off on one side) the slope of the other side counts
+    const off = (x, y) => !(top(x, y) > h.bottom + 1e-6); // nothing of the part below this point
+    const slope = (dx, dy) => {
+      const ol = off(m.x - dx, m.y - dy), or = off(m.x + dx, m.y + dy);
+      if (ol && or) return 0;
+      const l = (m.z - zAt(m.x - dx, m.y - dy)) / e, r = (zAt(m.x + dx, m.y + dy) - m.z) / e;
+      return ol ? r : or ? l : (l + r) / 2;
+    };
+    const out0 = off(m.x, m.y), gx = out0 ? 0 : slope(e, 0), gy = out0 ? 0 : slope(0, e);
+    let a = limit(norm([-gx, -gy, 1]));
+    if (lead || side) {
+      const p = moves[i - 1], q = moves[i + 1], dx = (q && q.t === 'f' ? q.x : m.x) - (p ? p.x : m.x), dy = (q && q.t === 'f' ? q.y : m.y) - (p ? p.y : m.y), l = Math.hypot(dx, dy);
+      if (l > 1e-9) a = limit(norm([a[0] + (lead * dx - side * dy) / l, a[1] + (lead * dy + side * dx) / l, a[2]]));
+    }
+    ax[i] = a;
+  }
+  if (!contact) return res;
+  // smooth the axis along each run of contact moves (the rotary axes must not jerk from point to point)
+  const win = Math.max(2 * R, 2);
+  for (let i = 0; i < n;) {
+    if (!ax[i]) { i++; continue; }
+    let j = i; while (j + 1 < n && ax[j + 1]) j++;
+    const s = [0]; for (let k = i + 1; k <= j; k++) s.push(s[s.length - 1] + Math.hypot(moves[k].x - moves[k - 1].x, moves[k].y - moves[k - 1].y, moves[k].z - moves[k - 1].z));
+    const out = [];
+    for (let k = i; k <= j; k++) {
+      const acc = [0, 0, 0];
+      for (let q = k; q >= i && s[k - i] - s[q - i] <= win; q--) { const wgt = 1 - (s[k - i] - s[q - i]) / (win * 1.0001); acc[0] += ax[q][0] * wgt; acc[1] += ax[q][1] * wgt; acc[2] += ax[q][2] * wgt; }
+      for (let q = k + 1; q <= j && s[q - i] - s[k - i] <= win; q++) { const wgt = 1 - (s[q - i] - s[k - i]) / (win * 1.0001); acc[0] += ax[q][0] * wgt; acc[1] += ax[q][1] * wgt; acc[2] += ax[q][2] * wgt; }
+      out.push(limit(norm(acc)));
+    }
+    for (let k = i; k <= j; k++) { const a = safe(moves[k], out[k - i]); if (a !== out[k - i]) stoodUp++; ax[k] = a; }
+    i = j + 1;
+  }
+  // moves off the surface: the tool turns on the way there (axis of the next contact, after the last one: upright)
+  let next = Z;
+  for (let i = n - 1; i >= 0; i--) { if (ax[i]) next = ax[i]; else ax[i] = moves[i].t === 'f' || moves[i].t === 'r' ? next : null; }
+  // (the first approach and everything after the last contact stand upright at the safe height)
+  let last = n - 1; while (last >= 0 && !(moves[last].t === 'f' && Math.abs(moves[last].z - zAt(moves[last].x, moves[last].y)) <= 0.05)) last--;
+  for (let i = last + 1; i < n; i++) if (ax[i]) ax[i] = Z;
+  let tiltMax = 0;
+  const r6 = v => Math.round(v * 1e6) / 1e6 + 0;
+  const out = [];
+  // Between two blocks the control moves the tip in a straight line while the axis turns: the centre of the ball
+  // then leaves its line by R·(1 − cos(angle / 2)). Moves that turn the axis by more than 4° are divided.
+  const STEP = (4 * Math.PI) / 180;
+  moves.forEach((m, i) => {
+    if (!ax[i]) { out.push(m); return; }
+    const a = norm(ax[i].map(r6)), p = moves[i - 1], pa = i > 0 && ax[i - 1] ? norm(ax[i - 1].map(r6)) : null;
+    tiltMax = Math.max(tiltMax, Math.acos(Math.min(1, a[2])));
+    if (pa && (m.t === 'f' || m.t === 'r') && Number.isFinite(p.x) && Number.isFinite(p.z)) {
+      const ang = Math.acos(Math.min(1, Math.max(-1, pa[0] * a[0] + pa[1] * a[1] + pa[2] * a[2])));
+      const k = Math.min(64, Math.ceil(ang / STEP - 1e-9));
+      for (let q = 1; q < k; q++) {
+        const f = q / k, s0 = Math.sin((1 - f) * ang) / Math.sin(ang), s1 = Math.sin(f * ang) / Math.sin(ang); // even steps of angle
+        const mid = norm([pa[0] * s0 + a[0] * s1, pa[1] * s0 + a[1] * s1, pa[2] * s0 + a[2] * s1]);
+        out.push({ ...m, x: p.x + (m.x - p.x) * f, y: p.y + (m.y - p.y) * f, z: p.z + (m.z - p.z) * f, ax: mid.map(r6) });
+      }
+    }
+    out.push({ ...m, ax: a.map(r6) });
+  });
+  return { ...res, moves: out, multi: { maxTilt: (tiltMax * 180) / Math.PI, stoodUp, R } };
 }
 
 // Cutting data of the operation ("Werkzeug" tab); empty = from tool / preset
@@ -3928,7 +4047,7 @@ export function generateSetup(project, allBodies, setup, prevGen = null, modelKe
       const t0 = performance.now();
       ctx.prior = ops.slice(0, ops.indexOf(op)).map(o => results.get(o.id)).filter(Boolean);
       res = generateOp(op, project, stock, ctx);
-      if (op.patKind && op.patKind !== 'none' && !res.rotary && !res.manual && op.type !== 'probe') {
+      if (op.patKind && op.patKind !== 'none' && !res.rotary && !res.multi && !res.manual && op.type !== 'probe') {
         applyPattern(res, op, originOf(setup, stock));
         Object.assign(res, stats(res.moves, ctx.rapid));
       }

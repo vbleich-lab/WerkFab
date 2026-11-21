@@ -39,6 +39,10 @@ Extrude all profiles of a sketch (op: new | join | cut | intersect; a negative d
   { "id": "ex1", "type": "extrude", "name": "Extrude1", "sketch": "sk1", "profiles": "all", "distance": 12, "extent": "one", "op": "new" }
 Revolve a sketch about its own X or Y axis:
   { "id": "rv1", "type": "revolve", "name": "Revolve1", "sketch": "sk1", "profiles": "all", "axis": "y", "angle": 360, "op": "new" }
+A gear (kind: spur | helical | herringbone | internal | rack | bevel | worm | wormwheel | sprocket; m = module, z = teeth,
+width, bore; helical: beta, hand; bevel: z2 = teeth of the mating gear, sigma; worm: z1 = starts, q, length; sprocket: chain "08B";
+place x, y, z0 and axis):
+  { "id": "g1", "type": "gear", "kind": "spur", "m": 2, "z": 20, "width": 10, "bore": 8, "alpha": 20, "x": 0, "y": 0, "z0": 0, "axis": "z", "op": "new" }
 Holes at the circle centres of a sketch:
   { "id": "ho1", "type": "hole", "name": "Hole1", "sketch": "sk3", "points": "all", "kind": "simple", "dia": 6.6, "through": true, "depth": 15 }
 
@@ -49,6 +53,7 @@ Manufacture (CAM): get_cam shows setups (stock, origin, machine), the tool libra
 length and time of their toolpaths or the reason they failed. add_operation creates an operation with the
 defaults the app would choose (tool by type, the last fitting sketch) – then read it with get_cam and adjust
 fields with update_operation. Operation types: ${Object.keys(OP_TYPES).join(', ')}.
+5-axis simultaneous: a 3D finishing operation (parallel3d, scallop3d, spiral3d, radial3d, contour3d, steep3d, flat3d, flow3d, morph3d …) with the fields "toolAxis": "normal", "maxTilt" (degrees, default 30), "leadAngle", "sideAngle" and a ball cutter: the tool leans towards the surface; the post writes tool vectors (Heidenhain, Sinumerik, Fanuc).
 Tool types: ${Object.keys(TOOL_TYPES).join(', ')}. A 2D operation follows a sketch ("sketch": id, "entities": "all"
 or a list of entity ids; "geomSource": "sketch") or faces picked in the model ("geomSource": "model"); "depth" is how deep it cuts below the top of the sketch plane. get_nc_program posts a setup
 with the post processor of the design or another one from the list in get_cam; check_nc_program reports collisions,

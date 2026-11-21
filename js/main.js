@@ -20,7 +20,7 @@ import { THREAD_SIZES, meshBody, exportGeometry, setViewTessellation, viewTessel
 import { sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, interferenceAsync, boxPairs, contactAsync, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache, dropWaitingSnaps, profileItems } from './model.js';
 import { Sketcher } from './sketcher.js';
 import { buildHeightmap, cornerOf } from './heightmap.js';
-import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel, orientationLabel, OP_TYPES, DRILL_CYCLES, ORIGINS, TOOL_TYPES, ORIENTATIONS, RAPID_FEED, setupMatrix, sketchHorizontalIn, OPS_3D, PROBE_MODES, MANUAL_KINDS, PATTERN_KINDS, orderByTool, opCells, toolBase, STOCK_MODES, STOCK_MATERIALS, BOUNDARY_MODES, setupBodies, heightSpec, HEIGHT_KEYS, HEIGHT_FROM, applyCutData, serialNumbers, serialText, FIT_OPS, fitOffset } from './cam.js';
+import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel, orientationLabel, OP_TYPES, DRILL_CYCLES, ORIGINS, MULTI_OPS, TOOL_TYPES, ORIENTATIONS, RAPID_FEED, setupMatrix, sketchHorizontalIn, OPS_3D, PROBE_MODES, MANUAL_KINDS, PATTERN_KINDS, orderByTool, opCells, toolBase, STOCK_MODES, STOCK_MATERIALS, BOUNDARY_MODES, setupBodies, heightSpec, HEIGHT_KEYS, HEIGHT_FROM, applyCutData, serialNumbers, serialText, FIT_OPS, fitOffset } from './cam.js';
 import { postProcess, runPost, allPosts, findPost, copyPost, setPostLibrary, SECTIONS, VARIABLES, POST_PROPS, POST_PROP_GROUPS, postProps, propApplies, propType, COOLANT_MODES, mCodeLabel, postMCodes, postFamily } from './post.js';
 import { allMachines, findMachine, copyMachine, newMachine, machineChecks, KIN_TYPES, kinAngles } from './machines.js';
 import { StockSim, defaultFluteLen, defaultHolderDia, defaultStickout } from './sim.js';
@@ -42,6 +42,7 @@ import { getBlob, putBlob, loadBlobs, withBlobs, takeBlobs, igesToStep, stepToIg
 import { makeDrawing, SHEETS, VIEWS as DRAW_VIEWS } from './drawing.js';
 import { bodyMatrix, hasAssembly, transformShape, JOINT_TYPES, JOINT_DOF, jointValues, jointFrame, jointMotion, LINK_KINDS, linkRatio } from './assembly.js';
 import { parsePointCloud, cloudBounds, cloudHeights } from './pointcloud.js';
+import { GEAR_KINDS, CHAINS, gearInfo } from './gears.js';
 import { STD_FAMILIES, STD_LENGTHS, stdFamily, stdPartName, stdPartSteps, boltSizeFor, boltStack, boltHole } from './stdparts.js';
 import { unfoldFaces } from './unfold.js';
 import { flatPattern, polyEdges, polyArcs, bendAllowance, sheetK, sheetChecks, SHEET_RULES, nestParts, pressForce, SHEET_RM, holeCircle, collarPlan, cutProgram, CUT_CONTROLS, shellPattern, transitionPattern, tabSlots } from './sheetmetal.js';
@@ -2912,6 +2913,7 @@ function toolbarTabs() {
       tgroup('ERSTELLEN',
         C('extrude', 'Extrusion', 'extrude', null, 'E'), C('revolve', 'Rotation', 'revolve'), C('hole', 'Bohrung', 'hole', null, 'H'), C('sweep', 'Sweep', 'sweep'), C('loft', 'Erhebung', 'loft'),
         C('box', 'Quader', 'box'), C('cylinder', 'Zylinder', 'cylinder'), C('sphere', 'Kugel', 'sphere'), C('torus', 'Torus', 'torus'), C('cone', 'Kegel', 'cone'), C('pipe', 'Rohr', 'pipe'),
+        tbtn('gearwheel', 'Zahnrad', () => createFeature('gear'), '', 'Zahnrad: Stirnrad gerade / schräg / Pfeil, Hohlrad, Zahnstange, Kegelrad, Schnecke, Schneckenrad, Kettenrad'),
         tbtn('bbox', 'Begrenzungskörper', () => createFeature('bbox'), '', 'Begrenzungskörper: Quader oder Zylinder, der einen Körper umschließt (Rohteil, Bauraum)'),
         C('thread', 'Gewinde', 'thread'),
         tbtn('bfill', 'Begrenzungsfüllung', () => createFeature('bfill'), '', 'Begrenzungsfüllung: geschlossene Hohlräume im Körper mit Material füllen'),
@@ -3138,7 +3140,11 @@ function toolbarTabs() {
       A('revolve', 'Spirale', 'spiral3d'), A('patternCirc', 'Radial', 'radial3d'), A('morphspiral3d', 'Morph-Spirale', 'morphspiral3d'), A('project', 'Projizieren', 'project3d'),
       A('blend3d', 'Leitkurven-Blend', 'blend3d'), A('guidemorph3d', 'Leitkurven-Morph', 'guidemorph3d'), A('corner3d', 'Ecke', 'corner3d'), A('flow3d', 'Fluss', 'flow3d'),
       A('morph3d', 'Flächen-Morph', 'morph3d'), A('deburr3d', 'Entgraten', 'deburr3d'), A('geodesic3d', 'Geodätische Linie', 'geodesic3d')),
-    tgroup('MEHRACHSEN', A('rough3d', '4-Achs-Schruppen', 'rotaryRough'), A('revolve', '4-Achs-Rotation', 'rotary'), A('trace', '4-Achs-Abwickeln', 'rotaryWrap')),
+    tgroup('MEHRACHSEN', A('rough3d', '4-Achs-Schruppen', 'rotaryRough'), A('revolve', '4-Achs-Rotation', 'rotary'), A('trace', '4-Achs-Abwickeln', 'rotaryWrap'),
+      tbtn('rough32', '5-Achs-Anstellen (3+2)', add32Rough, '', '5-Achs-Anstellen (3+2): neues Setup mit geschwenkter Werkzeugachse – die Maschine schwenkt einmal, dann wird 3-achsig gefräst'),
+      tbtn('parallel3d', '5-Achs-Simultan Parallel', () => addOp('parallel3d', { five: true }), '', '5-Achs-Simultan Parallel: Schlichten in parallelen Bahnen, der Kugelfräser neigt sich zur Fläche'),
+      tbtn('pocket', '5-Achs-Simultan HSC-Kontur', () => addOp('scallop3d', { five: true }), '', '5-Achs-Simultan HSC-Kontur: gleichmäßiger Bahnabstand auf der Fläche, der Kugelfräser neigt sich zur Fläche'),
+      tbtn('flow3d', '5-Achs-Simultan Fluss', () => addOp('flow3d', { five: true }), '', '5-Achs-Simultan Fluss: Bahnen entlang der Fläche, der Kugelfräser neigt sich zur Fläche')),
     tgroup('BOHREN', A('drill', 'Bohren', 'drill'), A('bore', 'Helix-Bohren', 'bore'), A('thread', 'Gewindefräsen', 'thread'),
       tbtn('measure', 'Bohrungen erkennen', recognizeHoles, '', 'Bohrungen erkennen: alle Bohrungen des Modells nach Durchmesser gruppieren und Anbohren, Bohren, Gewinde und Senkungen in einem Zug anlegen')),
     tgroup('ANTASTEN', A('measure', 'WKS antasten', 'probe')),
@@ -4547,6 +4553,33 @@ function propsExtra(b, f, ed) {
   const hint = t => h('p', { class: 'hint' }, t);
   const AXIS = S('Achse', 'axis', [['z', 'Z'], ['x', 'X'], ['y', 'Y']]);
   switch (f.type) {
+    case 'gear': {
+      const k = f.kind || 'spur', inv = !['rack', 'sprocket'].includes(k), ZI = (label, key, min = 1) => row(label, num(f[key], v => ed(x => (x[key] = typeof v === 'number' ? Math.max(min, Math.round(v)) : v))));
+      const A = (label, key, opt = {}) => row(label, num(f[key], v => ed(x => (x[key] = v)), { unit: '°', ...opt }));
+      const HAND = S('Richtung', 'hand', [['right', 'Rechtssteigend'], ['left', 'Linkssteigend']]);
+      let info = '';
+      try { info = gearInfo(resolved().features.find(x => x.id === f.id) || f); } catch (e) { info = e.message; }
+      b.append(S('Art', 'kind', Object.entries(GEAR_KINDS)), sec('VERZAHNUNG'),
+        k === 'sprocket' ? S('Kette (ISO 606)', 'chain', Object.entries(CHAINS).map(([id, [p, d1]]) => [id, `${id} – Teilung ${String(p).replace('.', ',')} mm, Rolle Ø ${String(d1).replace('.', ',')}`])) : N(k === 'worm' || k === 'wormwheel' ? 'Modul (axial an der Schnecke)' : k === 'helical' || k === 'herringbone' ? 'Normalmodul' : 'Modul', 'm', { min: 0.05 }),
+        k === 'worm' ? null : ZI(k === 'rack' ? 'Zähne (Anzahl)' : 'Zähnezahl', 'z', k === 'rack' ? 1 : 3),
+        k === 'bevel' ? ZI('Zähnezahl des Gegenrads', 'z2', 6) : null, k === 'bevel' ? A('Achswinkel', 'sigma', { min: 10, max: 170 }) : null,
+        k === 'worm' || k === 'wormwheel' ? ZI(k === 'worm' ? 'Gangzahl' : 'Gangzahl der Schnecke', 'z1', 1) : null,
+        k === 'worm' || k === 'wormwheel' ? row(k === 'worm' ? 'Formzahl q (Teilkreis = q × Modul)' : 'Formzahl q der Schnecke', num(f.q, v => ed(x => (x.q = v)), { min: 4 })) : null,
+        ['helical', 'herringbone'].includes(k) ? A('Schrägungswinkel', 'beta', { min: 1, max: 45 }) : null, k === 'rack' ? A('Schrägungswinkel (0 = gerade)', 'rackBeta', { min: 0, max: 45 }) : null,
+        ['helical', 'herringbone', 'worm', 'wormwheel'].includes(k) || (k === 'rack' && +f.rackBeta) ? HAND : null,
+        inv ? A('Eingriffswinkel', 'alpha', { min: 14, max: 30 }) : null,
+        ['spur', 'helical', 'herringbone', 'internal'].includes(k) ? row('Profilverschiebung x', num(f.shift, v => ed(x => (x.shift = v)), { min: -0.6, max: 1 })) : null,
+        k !== 'worm' && k !== 'sprocket' ? N('Flankenspiel (Zahn dünner)', 'backlash', { min: 0 }) : null,
+        sec('MASSE'), k === 'worm' ? N('Länge', 'length', { min: 0.1 }) : N(k === 'sprocket' ? 'Zahnbreite (0 = aus der Kette)' : 'Breite', 'width', { min: k === 'sprocket' ? 0 : 0.1 }),
+        k === 'internal' ? N('Kranzdicke (0 = 2,5 × Modul)', 'rim', { min: 0 }) : null, k === 'rack' ? N('Höhe unter dem Zahnfuß (0 = 2 × Modul)', 'base', { min: 0 }) : null,
+        k !== 'rack' && k !== 'internal' ? N('Bohrung Ø (0 = keine)', 'bore', { min: 0 }) : null,
+        sec('LAGE'), N('X', 'x'), N('Y', 'y'), N('Z', 'z0'), AXIS, opSelect(f, ed), hint(info),
+        k === 'bevel' ? hint('Zahnform nach Tredgold (Ersatz-Stirnrad auf dem Rückenkegel), gerade Zähne. Das große Ende liegt in der Grundebene, die Zähne laufen zur Kegelspitze. Für Darstellung, 3D-Druck und Fräsen aus dem Vollen; geschliffene Kegelräder brauchen die Daten des Herstellers.') : null,
+        k === 'wormwheel' ? hint('Als Schrägrad mit dem Steigungswinkel der Schnecke (ohne Kehle). Achsabstand = (Teilkreis Schnecke + Teilkreis Rad) / 2.') : null,
+        k === 'internal' ? hint('Passendes Ritzel: gleicher Modul, deutlich weniger Zähne (Unterschied mindestens 8–10).') : null,
+        inv && k !== 'worm' ? hint('Achsabstand zweier Stirnräder = Modul × (z1 + z2) / 2. Bewegung koppeln: ZUSAMMENBAU → Zahnrad.') : null);
+      break;
+    }
     case 'cone':
       b.append(sec('MITTELPUNKT DER GRUNDFLÄCHE'), N('X', 'x'), N('Y', 'y'), N('Z', 'z'), sec('MASSE'), N('Radius unten', 'r1', { min: 0 }), N('Radius oben', 'r2', { min: 0 }), N('Höhe', 'h', { min: 0.01 }), AXIS, opSelect(f, ed),
         hint('Radius oben 0 ergibt eine Spitze.'));
@@ -8265,6 +8298,18 @@ function propsOp(b, op) {
       break;
   }
 
+  // ===== 5-axis simultaneous: the tool axis follows the surface =====
+  if (MULTI_OPS.includes(op.type)) {
+    const on = op.toolAxis === 'normal';
+    put('passes', csec('5-Achs-Simultan (Werkzeug folgt der Fläche)', on, v => ed(x => { if (v) { x.toolAxis = 'normal'; if (x.maxTilt == null) x.maxTilt = 30; } else delete x.toolAxis; })));
+    if (on) {
+      put('passes', N('Größte Neigung', 'maxTilt', { unit: '°', min: 0, max: 85, allowEmpty: true, ph: '30' }),
+        N('Voreilwinkel', 'leadAngle', { unit: '°', min: -45, max: 45, allowEmpty: true, ph: '0' }),
+        N('Seitenwinkel', 'sideAngle', { unit: '°', min: -45, max: 45, allowEmpty: true, ph: '0' }),
+        h('p', { class: 'hint' }, 'Nur mit Kugelfräser. Das Werkzeug neigt sich zur Flächennormalen, höchstens um die größte Neigung; wo Schaft oder Halter das Teil berühren würden, richtet es sich auf. Ausgabe als Werkzeugvektor (Heidenhain, Sinumerik, Fanuc), sonst als 3-Achs-Bahn.'));
+    }
+  }
+
   // ===== ISO-Passung: auf Toleranzmitte =====
   if (FIT_OPS.includes(op.type)) {
     put('passes', csec('Passung (auf Toleranzmitte)', !!op.fit, v => ed(x => { if (v) x.fit = x.type === 'contour' && x.side !== 'inside' ? 'g6' : 'H7'; else delete x.fit; })));
@@ -10695,6 +10740,7 @@ const lastSketchWith = (p, test) => [...p.features].reverse().find(x => x.type =
 const lastBodyId = m => m.bodies[m.bodies.length - 1]?.id || '';
 const EXTRA_NEW = {
   cone: ({ m, hasBodies }) => ({ x: 0, y: 0, z: hasBodies ? f2(m.box.max.z) : 0, r1: 15, r2: 5, h: 25, axis: 'z', op: hasBodies ? 'join' : 'new' }),
+  gear: () => ({ kind: 'spur', m: 2, z: 20, width: 10, alpha: 20, shift: 0, backlash: 0, bore: 8, beta: 20, hand: 'right', z2: 20, sigma: 90, z1: 1, q: 10, length: 40, chain: '08B', x: 0, y: 0, z0: 0, axis: 'z', op: 'new' }),
   bbox: ({ m, hasBodies }) => (hasBodies ? { body: state.sel?.kind === 'body' ? state.sel.id : lastBodyId(m), kind: 'box', axis: 'z', margin: 0, op: 'new' } : 'Zuerst einen Körper erstellen.'),
   bfill: ({ m, hasBodies }) => (hasBodies ? { body: state.sel?.kind === 'body' ? state.sel.id : lastBodyId(m) } : 'Zuerst einen Körper erstellen.'),
   web: ({ p, hasBodies }) => { const sk = pickSketch() || lastSketchWith(p, e => e.type === 'poly' && !e.closed); return sk ? { sketch: sk.id, thickness: 2, height: 10, symmetric: false, op: hasBodies ? 'join' : 'new' } : 'Gewebe: zuerst eine Skizze mit offenen Linien zeichnen.'; },
@@ -10790,7 +10836,7 @@ function addOp(type, opt = {}) {
   const turnTool = { tface: 'turn', trough: 'turn', tfinish: 'turn', tgroove: 'groove', tpart: 'groove', tthread: 'tthread', tdrill: 'drill', tbore: 'turnbore', tlive: 'drill', tslot: 'flat', tflat: 'flat', tcontour: 'flat', twrap: 'flat', tpocket: 'flat', twpocket: 'flat' }[type];
   const byKind = k => p.cam.tools.find(t => t.type === k) || (k === 'turnbore' ? null : byType(k));
   if (turnTool && !byKind(turnTool)) return status(`Kein ${TOOL_TYPES[turnTool]} in der Werkzeugbibliothek – bitte dort anlegen.`);
-  const tool = opt.tool || (turnTool ? byKind(turnTool) : { probe: byType('probe'), rotary: byType('ball'), rotaryRough: byType('flat') || byType('ball'), rotaryWrap: byType('flat') || byType('ball'), drill: byType('drill') || byType('flat'), chamfer: byType('chamfer'), parallel3d: byType('ball') || byType('flat'), contour3d: byType('flat'), thread: byType('thread'), trace: byType('chamfer') || byType('flat'), vcarve: byType('chamfer'), project3d: byType('chamfer') || byType('ball') || byType('flat'),
+  const tool = opt.tool || (opt.five && byType('ball')) || (turnTool ? byKind(turnTool) : { probe: byType('probe'), rotary: byType('ball'), rotaryRough: byType('flat') || byType('ball'), rotaryWrap: byType('flat') || byType('ball'), drill: byType('drill') || byType('flat'), chamfer: byType('chamfer'), parallel3d: byType('ball') || byType('flat'), contour3d: byType('flat'), thread: byType('thread'), trace: byType('chamfer') || byType('flat'), vcarve: byType('chamfer'), project3d: byType('chamfer') || byType('ball') || byType('flat'),
     steep3d: byType('ball') || byType('flat'), scallop3d: byType('ball') || byType('flat'), spiral3d: byType('ball') || byType('flat'), radial3d: byType('ball') || byType('flat'),
     ramp3d: byType('ball') || byType('flat'), pencil3d: byType('ball'), morphspiral3d: byType('ball') || byType('flat'), blend3d: byType('ball') || byType('flat'), guidemorph3d: byType('ball') || byType('flat'),
     corner3d: byType('ball') || byType('flat'), flow3d: byType('ball') || byType('flat'), morph3d: byType('ball') || byType('flat'), deburr3d: byType('chamfer') || byType('ball'), geodesic3d: byType('ball') || byType('flat') }[type] || byType('flat'));
@@ -10829,6 +10875,7 @@ function addOp(type, opt = {}) {
     ...(type === 'vcarve' ? { maxDepth: 3, stepoverMm: 0.1 } : {}), ...(type === 'project3d' ? { depth: 0.3 } : {}), ...(type === 'steep3d' ? { slope: 45, stepdown: 0.5 } : {}),
   };
   if (FACE_OPS.includes(type)) { op.geomSource = 'model'; op.faces = []; }
+  if (opt.five) { op.toolAxis = 'normal'; op.maxTilt = 30; op.name = '5-Achs ' + op.name; }
   if (type === 'probe') Object.assign(op, { probeMode: 'z', probeDepth: 3, probeClear: 5 });
   if (opt.batch) return op;
   pendingNew = { id, depth: undoDepth() };
@@ -13361,6 +13408,8 @@ function cutSeg(s, t0, t1) {
   if (s.b.a != null) return;
   const res = simStock().cut(s.a, s.b, s.tool, t0, t1);
   if (s.b.t === 'r' && res.removed > 0.05) addCollision('rapid', { x: s.a.x + (s.b.x - s.a.x) * t1, y: s.a.y + (s.b.y - s.a.y) * t1, z: s.a.z + (s.b.z - s.a.z) * t1 }, s.op);
+  // 5-axis: the tool leans, shaft and holder were kept clear of the part when the axis was chosen
+  if ((s.a.ax && s.a.ax[2] < 0.9999) || (s.b.ax && s.b.ax[2] < 0.9999)) return;
   if (res.shankAt) addCollision('shank', res.shankAt, s.op);
   if (res.holderAt) addCollision('holder', res.holderAt, s.op);
 }
@@ -13372,6 +13421,7 @@ function buildSim() {
   sim.total = 0;
   sim.gen = g;
   // simulate in the setup frame, display in model orientation
+  simTurnPart(null);
   vp.sim.matrixAutoUpdate = false;
   vp.sim.matrix.copy(g.T).invert();
   let prev = null;
@@ -13486,6 +13536,23 @@ function liveHolesFromModel(toolDia, want) {
   return { ...set, set, n: angs.length, dia: 2 * g.r };
 }
 
+// 4-axis simulation as on the machine: the tool stays on top, the part (stock, model, paths) turns about the A axis.
+// deg = A angle of the tool on the part; null = everything back in place
+function simTurnPart(deg) {
+  const g = sim.gen, rot = sim.rot, on = deg != null && sim.open && rot && g;
+  for (const grp of [vp.model, vp.paths]) {
+    if (!on) { if (!grp.matrixAutoUpdate) { grp.matrix.identity(); grp.matrixAutoUpdate = true; grp.updateMatrixWorld(true); } continue; }
+    grp.matrixAutoUpdate = false;
+  }
+  if (!g) return;
+  const Ti = g.T.clone().invert();
+  if (!on) { vp.sim.matrix.copy(Ti); vp.sim.updateMatrixWorld(true); return; }
+  const M = new THREE.Matrix4().makeTranslation(0, rot.y, rot.z).multiply(new THREE.Matrix4().makeRotationX((deg * Math.PI) / 180)).multiply(new THREE.Matrix4().makeTranslation(0, -rot.y, -rot.z));
+  vp.sim.matrix.copy(Ti).multiply(M);
+  const W = vp.sim.matrix.clone().multiply(g.T);
+  vp.model.matrix.copy(W); vp.paths.matrix.copy(W);
+  for (const grp of [vp.sim, vp.model, vp.paths]) grp.updateMatrixWorld(true);
+}
 function placeTool() {
   if (!sim.segs) return;
   const s = sim.segs[Math.min(sim.idx, sim.segs.length - 1)];
@@ -13504,6 +13571,13 @@ function placeTool() {
   // 4-axis: tool radial to the A axis (along the setup X)
   const aDeg = s.b.a != null ? (s.a.a ?? s.b.a) + ((s.b.a - (s.a.a ?? s.b.a)) * t) : 0;
   sim.toolMesh.rotation.set((-aDeg * Math.PI) / 180, 0, 0);
+  if (sim.rot) simTurnPart(aDeg);
+  // 5-axis simultaneous: the ball stays where it is, the tool leans about its centre
+  if (s.b.ax || s.a.ax) {
+    const p = s.a.ax || [0, 0, 1], q = s.b.ax || [0, 0, 1], ax = new THREE.Vector3(p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t).normalize(), R = s.tool.dia / 2;
+    sim.toolMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), ax);
+    sim.toolMesh.position.set(x - R * ax.x, y - R * ax.y, z + R * (1 - ax.z));
+  }
   // lathe with driven tool: radial holes have the tool along the radius at the hole's angle
   const liveC = s.b.live ? (s.b.polar && s.a.polar ? (Math.atan2(y, x) * 180) / Math.PI : s.b.c) : null;
   if (s.b.live === 'rad') sim.toolMesh.rotation.set(0, Math.PI / 2, (liveC * Math.PI) / 180, 'ZYX');
@@ -13576,6 +13650,7 @@ function openSim() {
   sim.playing = false;
   $('#simBar').hidden = !sim.open;
   $('#simPlay').textContent = '▶';
+  if (!sim.open) simTurnPart(null);
   if (sim.open) buildSim();
   renderToolbar();
   rebuildScene();
@@ -16003,7 +16078,37 @@ async function writeOutput(name, code) {
 // ----- NC-Editor with backplot (NC program preview) -----
 // Lines with colours and numbers; clicking a line (or moving the slider) shows where the tool is at that line
 // in the 3D view and draws the path travelled so far.
+// 5-axis lines of a program (tool vector: Heidenhain LN … TX TY TZ, Sinumerik A3= B3= C3=, Fanuc I J K under G43.5):
+// rewritten as the same ball standing upright (tip below the centre of the ball), so every check that follows works
+// on them like on a 3-axis line. Line numbers stay as they are.
+function ncUpright(code, toolRad) {
+  if (!/TX[+-]?[\d.]|A3\s*=|G43\.5/i.test(code)) return code;
+  let tool = null, g435 = false;
+  const N = '([+-]?\\d*\\.?\\d+)', n4 = v => (Math.round(v * 1e4) / 1e4 + 0).toString();
+  const reHH = new RegExp('TX' + N + '\\s+TY' + N + '\\s+TZ' + N, 'i'), reSi = new RegExp('A3\\s*=\\s*' + N + '\\s+B3\\s*=\\s*' + N + '\\s+C3\\s*=\\s*' + N, 'i'), reFa = new RegExp('\\sI' + N + '\\s+J' + N + '\\s+K' + N, 'i');
+  const pos = { X: null, Y: null, Z: null };
+  return code.split('\n').map(raw => {
+    const up = raw.toUpperCase();
+    const tm = up.match(/(?:^|\s|N\d+\s*)T\s*(\d+)/) || up.match(/TOOL CALL\s+(\d+)/);
+    if (tm) tool = +tm[1];
+    if (/G43\.5/.test(up)) { g435 = true; return raw.replace(/G43\.5/i, 'G43'); }
+    if (/G49(?!\d)/.test(up)) g435 = false;
+    const v = raw.match(reHH) || raw.match(reSi) || (g435 ? raw.match(reFa) : null);
+    if (!v) return raw;
+    let line = raw.replace(v[0], '');
+    for (const k of 'XYZ') { const m = line.match(new RegExp('(?:^|[^A-Za-z])' + k + '\\s*' + N, 'i')); if (m) pos[k] = +m[1]; }
+    if (pos.X == null || pos.Y == null || pos.Z == null) return line;
+    const R = toolRad ? toolRad(tool) || 0 : 0, l = Math.hypot(+v[1], +v[2], +v[3]) || 1, a = [+v[1] / l, +v[2] / l, +v[3] / l];
+    const want = { X: pos.X + R * a[0], Y: pos.Y + R * a[1], Z: pos.Z - R * (1 - a[2]) };
+    for (const k of 'XYZ') {
+      const re = new RegExp('((?:^|[^A-Za-z])' + k + ')\\s*' + N, 'i'), val = (want[k] >= 0 && /TX|LN/i.test(raw) ? '+' : '') + n4(want[k]);
+      line = re.test(line) ? line.replace(re, (_, pre) => pre + val) : line.trimEnd() + ' ' + k + val;
+    }
+    return line.replace(/\bLN\b/i, 'L');
+  }).join('\n');
+}
 function parseNcPositions(code, heidenhain, toolRad = null) {
+  code = ncUpright(code, toolRad);
   const pos = { x: 0, y: 0, z: 0 }, seen = new Set();
   let mode = 0, tool = null, known = false, cyc = null, cc = null, tch = null, aPos = null;
   let hhDir = null, hhSide = 'L', hhCyc = null, sinCyc = null; // + the last CYCL DEF 2xx with its Q parameters // Heidenhain: direction at the end of the last move, side of the radius compensation

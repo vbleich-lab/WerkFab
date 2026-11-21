@@ -1,5 +1,15 @@
 # Änderungen
 
+## v1.0.0-rc.31 – 2026-11-21
+
+### Konstruktion
+- **Zahnrad** (MODELL → Erstellen): Stirnrad gerade, schräg und als Pfeilrad, Hohlrad, Zahnstange, Kegelrad, Schnecke, Schneckenrad und Kettenrad (ISO 606). Evolventenflanken mit ausgerundetem Zahnfuß; Modul, Zähnezahl, Eingriffswinkel, Profilverschiebung, Flankenspiel, Schrägungswinkel, Bohrung, Achse und Lage sind einstellbar. Die Eigenschaften zeigen Teilkreis, Kopfkreis, Fußkreis und warnen bei Unterschnitt. Das Kegelrad hat eine vereinfachte Zahnform (Tredgold), das Schneckenrad keine Kehle.
+
+### Fertigung
+- **5-Achs-Simultan:** 3D-Schlichtoperationen (Parallel, HSC-Kontur, Spirale, Radial, Fluss, Flächen-Morph …) können das Werkzeug zur Fläche neigen – „5-Achs-Simultan“ in den Eigenschaften oder die neuen Einträge unter MEHRACHSEN. Nur mit Kugelfräser; größte Neigung, Voreil- und Seitenwinkel sind einstellbar. Wo Schaft oder Halter das Teil berühren würden, richtet sich das Werkzeug auf. Ausgabe als Werkzeugvektor: Heidenhain `LN … TX TY TZ` mit TCPM, Sinumerik `TRAORI` mit `A3= B3= C3=`, Fanuc `G43.5` mit `I J K`; andere Steuerungen bekommen dieselbe Fläche als 3-Achs-Bahn. Die Simulation zeigt das geneigte Werkzeug, die NC-Prüfung liest die Vektorsätze. Die Ausgabe ist durch Tests geprüft, nicht an einer Steuerung – vor dem ersten Lauf an der Maschine prüfen.
+- **5-Achs-Anstellen (3+2)** steht zusätzlich unter MEHRACHSEN.
+- **4-Achs-Simulation:** Das Werkzeug bleibt oben, das Teil dreht sich – wie an der Maschine.
+
 ## v1.0.0-rc.30 – 2026-11-20
 
 - Wie rc.29, mit Installer für Windows: Der NC-Prüfer der Tests kannte den Text-Parameter von CYCLE800 nicht, deshalb wurde rc.29 für Windows nicht gebaut. Der erzeugte NC-Code ist unverändert.

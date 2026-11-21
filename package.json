@@ -1,7 +1,7 @@
 {
   "name": "werkfab",
   "productName": "WerkFab",
-  "version": "1.0.0-rc.30",
+  "version": "1.0.0-rc.31",
   "description": "WerkFab CAD/CAM – design and CNC machining, offline",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -19,12 +19,12 @@
     "test:trim": "node tools/test-trim.mjs",
     "test:sketch": "node tools/test-sketchtools.mjs && node tools/test-sketchcorner.mjs && node tools/test-sketchoffset.mjs",
     "test:solver": "node tools/test-solver-arcs.mjs",
-    "test:cam": "node tools/test-cam.mjs && node tools/test-rotary.mjs && node tools/test-cycle800.mjs",
+    "test:cam": "node tools/test-cam.mjs && node tools/test-rotary.mjs && node tools/test-cycle800.mjs && node tools/test-5axis.mjs",
     "test:hh": "node tools/test-heidenhain.mjs",
     "test:iso": "node tools/test-iso.mjs",
     "test:lathe": "node tools/test-lathe.mjs",
     "test:drawing": "node tools/test-drawing.mjs",
-    "test:design": "node tools/test-design.mjs && node tools/test-trace.mjs",
+    "test:design": "node tools/test-gears.mjs && node tools/test-design.mjs && node tools/test-trace.mjs",
     "test:sheetmesh": "node tools/test-sheetmesh.mjs",
     "test:urdf": "node tools/test-urdf.mjs",
     "test:arrange": "node tools/test-arrange.mjs && node tools/test-family.mjs && node tools/test-share.mjs && node tools/test-motionplan.mjs && node tools/test-explode.mjs && node tools/test-fixtures.mjs && node tools/test-lessons.mjs && node tools/test-holefind.mjs",
