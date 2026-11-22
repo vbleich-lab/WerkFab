@@ -3,6 +3,7 @@ import { STLExporter } from 'three/addons/exporters/STLExporter.js';
 import { state, onChange, commit, undo, redo, undoDepth, revertTo, setUndoLimit, persist, setProject, loadSaved, newProject, uid, nextName, feature, camOp, migrate, defaultSetup } from './state.js';
 import { Viewport } from './viewport.js';
 import { loadKernel, R as OC } from './kernel.js';
+import { TIPS, OP_TIPS, tipParts, initTips } from './tips.js';
 import { LANGS, lang as uiLang, langChoice, setLanguage, t as tr, tHtml, deText, deAttr } from './i18n.js';
 import { initUpdates, checkForUpdates } from './update.js';
 import { AGENT_TOOLS, agentCall } from './agent.js';
@@ -352,8 +353,7 @@ function applyTheme() {
   vp.setTheme(dark);
   vp.grid.visible = gridOn;
   cube.setTheme(dark);
-  matEdge.color.set(dark ? 0x0b0e11 : 0x1c2530);
-  matBody.color.set(dark ? 0x9aa6b2 : 0xc3ccd5);
+  applyLook();
   rebuildScene();
 }
 // Full screen (F11 or the button in the head bar): the desktop program switches its window, the browser its page –
@@ -531,6 +531,40 @@ let appliedDisplayPref = null;
 const matThread = new THREE.LineBasicMaterial({ color: 0xd08a1e });
 let gridOn = true;
 const matWire = new THREE.MeshBasicMaterial({ color: 0x8fa3b8, transparent: true, opacity: 0.06, depthWrite: false, side: THREE.DoubleSide });
+// "Verdeckte Kanten": faces in a flat paper colour hide the edges behind them
+const matHidden = new THREE.MeshBasicMaterial({ color: 0xf4f6f8, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+// "Transparent": a see-through copy of each body material (keeps the colour of the body)
+const xrayMats = new Map();
+function xrayOf(base) {
+  if (!base.isMeshPhysicalMaterial || base.transparent) return base;
+  let x = xrayMats.get(base);
+  if (!x) { x = base.clone(); x.transparent = true; x.depthWrite = false; xrayMats.set(base, x); }
+  x.color.copy(base.color); x.roughness = base.roughness; x.metalness = base.metalness;
+  x.opacity = Math.max(10, Math.min(90, +getSettings().xrayOpacity || 35)) / 100;
+  return x;
+}
+// material of a body in the current display style
+function styledMaterial(id) {
+  if (display === 'wire') return matWire;
+  const base = bodyMaterial(id);
+  if (state.workspace === 'render' || base.isShaderMaterial) return base;
+  return display === 'hidden' ? matHidden : display === 'xray' ? xrayOf(base) : base;
+}
+const DISPLAY_STYLES = [['edges', 'Schattiert mit Kanten'], ['shaded', 'Schattiert'], ['hidden', 'Verdeckte Kanten'], ['xray', 'Transparent'], ['wire', 'Drahtmodell']];
+const BODY_FINISH = {
+  matt: { roughness: 0.72, metalness: 0.1, clearcoat: 0, envMapIntensity: 0.8 },
+  normal: { roughness: 0.24, metalness: 0.5, clearcoat: 0.5, envMapIntensity: 1.25 },
+  glossy: { roughness: 0.07, metalness: 0.8, clearcoat: 1, envMapIntensity: 1.6 },
+};
+const EDGE_COLORS = { black: 0x000000, grey: 0x6b7785, white: 0xffffff, blue: 0x1487e0 };
+// colours and surface of the workpiece from the preferences (bodies with their own appearance keep it)
+function applyLook() {
+  const s = getSettings(), dark = isDark();
+  matEdge.color.set(EDGE_COLORS[s.edgeColor] ?? (dark ? 0x0b0e11 : 0x1c2530));
+  matBody.color.set(s.bodyTint === 'custom' && /^#[0-9a-f]{6}$/i.test(s.bodyColor || '') ? s.bodyColor : dark ? 0x9aa6b2 : 0xc3ccd5);
+  Object.assign(matBody, BODY_FINISH[s.bodyFinish] || BODY_FINISH.normal);
+  matHidden.color.set(dark ? 0x232a33 : 0xf4f6f8);
+}
 
 // ---------- caches ----------
 let resolvedCache = { key: null, p: null, info: {} };
@@ -1020,7 +1054,7 @@ function applySection() {
     if (sk) { const B = basis(sk); (planes ||= []).push(new THREE.Plane(B.n.clone().negate(), B.n.dot(B.o) + 0.001)); }
   }
   const count = planes ? planes.length : 0;
-  for (const m of [matBody, matGhost, matEdge, matEdgeGhost, matMesh, matMeshSel, ...bodyMats.values()]) {
+  for (const m of [matBody, matGhost, matEdge, matEdgeGhost, matMesh, matMeshSel, matHidden, ...bodyMats.values(), ...xrayMats.values()]) {
     m.clippingPlanes = planes;
     if (count !== lastClipCount) m.needsUpdate = true;
   }
@@ -1544,7 +1578,7 @@ function rebuildScene() {
   const multiSel = !cam && !state.pick && !state.sketchId ? selBodyIds() : [];
   for (const [bi, b] of flatShown ? [] : m.bodies.entries()) {
     if (state.hiddenBodies.has(b.id)) continue;
-    const mesh = new THREE.Mesh(b.geometry, ghost ? matGhost : xpl.hl?.has(b.id) ? matXplHl : display === 'wire' ? matWire : bodyMaterial(b.id));
+    const mesh = new THREE.Mesh(b.geometry, ghost ? matGhost : xpl.hl?.has(b.id) ? matXplHl : styledMaterial(b.id));
     // assembly placement/joints; switched off while picking edges/faces in model coordinates
     const am0 = assemblyActive() ? bodyMatrix(state.project.assembly, b.id, motionValues) : null, xm = xplMatrix(b.id);
     const am = xm ? (am0 ? xm.multiply(am0) : xm) : am0; // exploded view: moved on top of placement and joints
@@ -2529,9 +2563,15 @@ function tbtn(icon, label, onClick, cls = '', title = '') {
   const run = e => { if (!/active/.test(cls)) lastCmd = { icon, label, fn: onClick }; onClick(e); };
   const b = h('button', { class: 'tbtn ' + cls, onclick: run, title: title || label, html: ICONS[icon] + `<span>${label}</span>` });
   b.dataset.icon = icon;
+  return hinted(b, label, title);
+}
+// a tooltip that only repeats the name gets its short explanation from TIPS (shown by js/tips.js)
+const withHint = (el, hint) => { if (hint) el.dataset.hint = hint; return el; };
+function hinted(b, label, title, hint = TIPS[label]) {
+  if (hint && !tipParts(title || label).body.length) b.dataset.hint = hint;
   return b;
 }
-const gbtn = (glyph, label, onClick, title) => h('button', { class: 'tbtn gl', onclick: onClick, title: title || label }, h('b', { class: 'glyph-ic' }, glyph), h('span', null, label));
+const gbtn = (glyph, label, onClick, title) => hinted(h('button', { class: 'tbtn gl', onclick: onClick, title: title || label }, h('b', { class: 'glyph-ic' }, glyph), h('span', null, label)), label, title);
 // Like a group shows its main tools; the label opens a dropdown with all of them.
 const GROUP_VISIBLE = { VERWALTEN: 4, 'EINFÜGEN': 4, ERSTELLEN: 7, 'ÄNDERN': 6, 'ABHÄNGIGKEITEN': 8, SKIZZE: 8, KONSTRUKTION: 3, KONSTRUIEREN: 3, '2D-FRÄSEN': 6, '3D-FRÄSEN': 5, 'FLÄCHE ERSTELLEN': 7,
   ANORDNEN: 3, KONFIGURIEREN: 1, BEARBEITEN: 5, GELENKE: 4, POSITION: 2, ANSICHTEN: 7, 'AUSWÄHLEN': 6, PARAMETER: 3, MATERIALIEN: 3, REGELN: 3, DESIGN: 4, MESSEN: 3, OBERFLÄCHE: 4, VERLAUF: 3, BIBLIOTHEK: 3, ABWICKLUNG: 3, AUSGABE: 3, 'PRÜFEN': 5 };
@@ -2739,6 +2779,7 @@ function setShortcutPinned(b, on) {
   saveJ('openfab.shortcuts.v1', tbShortcuts);
 }
 // key shown next to a command: user binding first, else the built-in one from the tooltip "(E)"
+initTips(() => getSettings().tooltips !== false);
 const builtinKey = b => (b.title.match(/\(([A-Z])\)/) || [])[1] || '';
 const cmdKey = b => tbKeys[cmdId(b)] ?? builtinKey(b);
 
@@ -2756,10 +2797,10 @@ function openToolDrop(g) {
   const items = [...g._items, ...[...g.querySelectorAll('.tgroup-items > .tbtn')].filter(b => !g._items.includes(b))];
   toolDrop = h('div', { class: 'tdrop' }, ...items.map(it => {
     const row = h('div', { class: 'tdrop-row' },
-      h('button', {
+      withHint(h('button', {
         class: 'tdrop-item' + (it.classList.contains('active') ? ' active' : ''), title: it.title,
         html: it.innerHTML, onclick: () => { closeToolDrop(); it.click(); },
-      }),
+      }), it.dataset.hint),
       cmdKey(it) ? h('span', { class: 'tdrop-key' }, cmdKey(it)) : null,
       h('button', { class: 'tdrop-more', title: 'Optionen', onclick: e => { e.stopPropagation(); openPinMenu(row, g, it); } }, '⋮'));
     return row;
@@ -3081,7 +3122,11 @@ function toolbarTabs() {
         tbtn('spin', 'Kontinuierlich drehen', toggleSpin, spinRaf ? 'active' : '', 'Das Modell dreht sich langsam um die Hochachse (ein/aus)'),
         tbtn('dispShaded', 'Schattiert', () => setDisplayStyle('shaded'), display === 'shaded' ? 'active' : '', 'Darstellungsstil: schattiert'),
         tbtn('dispEdges', 'Schattiert mit Kanten', () => setDisplayStyle('edges'), display === 'edges' ? 'active' : '', 'Darstellungsstil: schattiert mit Kanten'),
+        tbtn('dispHidden', 'Verdeckte Kanten', () => setDisplayStyle('hidden'), display === 'hidden' ? 'active' : '', 'Darstellungsstil: nur Kanten, verdeckte Kanten ausgeblendet'),
+        tbtn('dispXray', 'Transparent', () => setDisplayStyle('xray'), display === 'xray' ? 'active' : '', 'Darstellungsstil: durchsichtige Körper – Bohrungen und Taschen im Inneren sind zu sehen'),
         tbtn('dispWire', 'Drahtmodell', () => setDisplayStyle('wire'), display === 'wire' ? 'active' : '', 'Darstellungsstil: Drahtmodell'),
+        tbtn('camOrtho', 'Orthogonal', toggleOrtho, getSettings().camera === 'ortho' ? 'active' : '', 'Kamera ohne Perspektive (ein/aus): parallele Kanten bleiben parallel'),
+        tbtn('dispLook', 'Anzeige', e => toggleLookPanel(e?.currentTarget), '', 'Darstellung des Werkstücks einstellen: Stil, Kamera, Farbe, Oberfläche, Kanten, Hintergrund'),
         tbtn('grid', 'Raster', toggleGrid, gridOn ? 'active' : '', 'Raster ein/aus'),
         tbtn('shadow', 'Bodenschatten', toggleGroundShadow, getSettings().groundShadow ? 'active' : '', 'Bodenschatten ein/aus'),
         tbtn('navbar', 'Navigationsleiste', toggleNavBar, $('#navBar')?.hidden ? '' : 'active', 'Navigationsleiste unten ein/aus'),
@@ -3147,7 +3192,7 @@ function toolbarTabs() {
     if (fusionButtons().length) tabs['MODELL'].push(ADDINS());
     return tabs;
   }
-  const A = (icon, label, type) => tbtn(icon, label, () => addOp(type));
+  const A = (icon, label, type) => hinted(tbtn(icon, label, () => addOp(type)), label, '', OP_TIPS[type]);
   tabs['FRÄSEN'] = [
     SETUP(),
     tgroup('2D-FRÄSEN', A('face', 'Planfräsen', 'face'), A('contour', '2D-Kontur', 'contour'), A('pocket', '2D-Tasche', 'pocket'), A('adaptive', '2D-Adaptiv', 'adaptive'), A('chamfer2d', '2D-Fase', 'chamfer'), A('slot', 'Nut', 'slot'), A('circle', 'Kreistasche', 'circular'), A('trace', 'Gravieren', 'trace'), A('text', 'V-Gravur', 'vcarve')),
@@ -12750,7 +12795,96 @@ function setDisplayStyle(disp) {
   document.querySelectorAll('#navBar [data-display]').forEach(x => x.classList.toggle('on', x.dataset.display === disp));
   rebuildScene();
   renderToolbar();
+  lookPanel?.rebuild();
 }
+function toggleOrtho() { saveSettings({ camera: getSettings().camera === 'ortho' ? 'perspective' : 'ortho' }); applySettings(); renderToolbar(); lookPanel?.rebuild(); }
+// Drag a small window inside the view by its handle; done(x, y) gets the new left/top in pixels of the view
+function dragInView(el, handle, done) {
+  handle.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || e.target.closest('button, input, select')) return;
+    e.preventDefault();
+    const w = $('#viewportWrap').getBoundingClientRect(), r = el.getBoundingClientRect();
+    const dx = e.clientX - r.left, dy = e.clientY - r.top;
+    const move = ev => {
+      const x = Math.max(4, Math.min(w.width - r.width - 4, ev.clientX - dx - w.left));
+      const y = Math.max(4, Math.min(w.height - r.height - 4, ev.clientY - dy - w.top));
+      Object.assign(el.style, { left: x + 'px', top: y + 'px', bottom: 'auto', transform: 'none' });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+      el.classList.remove('dragging');
+      const q = el.getBoundingClientRect();
+      done?.(q.left - w.left, q.top - w.top, q, w);
+    };
+    el.classList.add('dragging');
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  });
+}
+// navigation bar: where the user put it (kept as a share of the view, so it stays inside when the window changes)
+function placeNavBar() {
+  const nb = $('#navBar'), pos = getSettings().navBarPos;
+  if (!Array.isArray(pos)) { Object.assign(nb.style, { left: '', top: '', bottom: '', transform: '' }); return; }
+  const w = $('#viewportWrap').getBoundingClientRect(), bw = nb.offsetWidth, bh = nb.offsetHeight;
+  if (!w.width || !bw) return;
+  const x = Math.max(4, Math.min(w.width - bw - 4, pos[0] * w.width - bw / 2));
+  const y = Math.max(4, Math.min(w.height - bh - 4, pos[1] * w.height - bh / 2));
+  Object.assign(nb.style, { left: x + 'px', top: y + 'px', bottom: 'auto', transform: 'none' });
+}
+dragInView($('#navBar'), $('#navBar'), (x, y, q, w) => saveSettings({ navBarPos: [(x + q.width / 2) / w.width, (y + q.height / 2) / w.height] }));
+$('#navBar .nav-grip').addEventListener('dblclick', () => { saveSettings({ navBarPos: null }); placeNavBar(); });
+window.addEventListener('resize', () => requestAnimationFrame(placeNavBar));
+window.addEventListener('keydown', e => { if (e.key === 'Escape' && lookPanel && !e.target.closest?.('.lookpanel select')) closeLookPanel(); });
+// "Anzeige": the settings for how the workpiece is shown, in one small window next to the view
+let lookPanel = null;
+function closeLookPanel() { lookPanel?.remove(); lookPanel = null; }
+function toggleLookPanel(anchor) {
+  if (lookPanel) return closeLookPanel();
+  const set = patch => { saveSettings(patch); applySettings(); renderToolbar(); build(); };
+  const range = (value, min, max, onInput) => {
+    const i = h('input', { type: 'range', min, max, value });
+    i.oninput = () => onInput(+i.value);
+    return i;
+  };
+  const p = lookPanel = h('div', { class: 'lookpanel' });
+  const build = () => {
+    const s = getSettings();
+    const color = h('input', { type: 'color', value: s.bodyColor });
+    color.oninput = () => { saveSettings({ bodyTint: 'custom', bodyColor: color.value }); applyLook(); };
+    color.onchange = () => set({ bodyTint: 'custom', bodyColor: color.value });
+    p.replaceChildren(
+      h('div', { class: 'look-head' }, h('b', null, 'Anzeige'), h('button', { class: 'look-x', title: 'Schließen', onclick: closeLookPanel }, '×')),
+      sec('Werkstück'),
+      row('Darstellung', sel(DISPLAY_STYLES, display, setDisplayStyle)),
+      display === 'xray' ? row('Deckkraft', range(s.xrayOpacity, 10, 90, v => { saveSettings({ xrayOpacity: v }); rebuildScene(); })) : '',
+      row('Körperfarbe', h('div', { class: 'look-inline' }, color,
+        s.bodyTint === 'custom' ? btn('Standard', () => set({ bodyTint: 'auto' })) : h('span', { class: 'look-note' }, 'Standard'))),
+      row('Oberfläche', sel([['matt', 'Matt'], ['normal', 'Normal'], ['glossy', 'Glänzend']], s.bodyFinish, v => set({ bodyFinish: v }))),
+      row('Kantenfarbe', sel([['auto', 'Automatisch'], ['black', 'Schwarz'], ['grey', 'Grau'], ['white', 'Weiß'], ['blue', 'Blau']], s.edgeColor, v => set({ edgeColor: v }))),
+      sec('Ansicht'),
+      row('Kamera', sel([['perspective', 'Perspektive'], ['ortho', 'Orthogonal']], s.camera, v => set({ camera: v }))),
+      s.camera === 'ortho' ? '' : row('Blickwinkel', range(s.fov, 10, 90, v => { saveSettings({ fov: v }); applySettings(); })),
+      row('Hintergrund', sel([['gradient', 'Verlauf (Farbschema)'], ['light', 'Hell'], ['dark', 'Dunkelgrau'], ['solid', 'Einfarbig'], ...(s.background === 'image' ? [['image', 'Bild']] : [])], s.background, v => set({ background: v }))),
+      h('div', { class: 'look-checks' },
+        ...[['showGrid', 'Raster'], ['showAxes', 'Achsen'], ['groundShadow', 'Bodenschatten'], ['showViewCube', 'Ansichtswürfel']].map(([k, l]) =>
+          h('label', null, chk(k === 'showGrid' ? gridOn : s[k] !== false && !!s[k], v => set({ [k]: v })), ' ', l))),
+      h('div', { class: 'look-foot' }, btn('Zurücksetzen', () => { setDisplayStyle('edges'); set({ bodyTint: 'auto', bodyFinish: 'normal', edgeColor: 'auto', xrayOpacity: 35, camera: 'perspective', fov: 40, background: 'gradient', showGrid: true, showAxes: true, groundShadow: false, showViewCube: true, navBarPos: null }); })),
+    );
+  };
+  build();
+  p.rebuild = build;
+  $('#viewportWrap').append(p);
+  // next to the button that opened it, inside the view
+  const w = $('#viewportWrap').getBoundingClientRect(), a0 = anchor?.getBoundingClientRect?.(), a = a0?.width ? a0 : null;
+  dragInView(p, p);
+  const pw = p.offsetWidth, ph = p.offsetHeight;
+  const below = !a || a.top < w.top + w.height / 2;
+  const x = a ? a.left + a.width / 2 - pw / 2 - w.left : w.width - pw - 12;
+  p.style.left = Math.max(8, Math.min(w.width - pw - 8, x)) + 'px';
+  p.style.top = Math.max(8, Math.min(w.height - ph - 8, !a ? 8 : below ? Math.max(8, a.bottom - w.top + 6) : a.top - w.top - ph - 8)) + 'px';
+}
+window.addEventListener('pointerdown', e => {
+  if (lookPanel && !lookPanel.contains(e.target) && !e.target.closest?.('[data-nav="look"], .tbtn, .tdrop-item')) closeLookPanel();
+}, true);
 function toggleGrid() { gridOn = !gridOn; vp.grid.visible = gridOn; document.querySelector('#navBar [data-nav="grid"]')?.classList.toggle('on', gridOn); renderToolbar(); }
 function toggleGroundShadow() { saveSettings({ groundShadow: !getSettings().groundShadow }); rebuildScene(); renderToolbar(); }
 function toggleNavBar() { const nb = $('#navBar'); nb.hidden = !nb.hidden; saveSettings({ showNavBar: !nb.hidden }); renderToolbar(); }
@@ -14300,12 +14434,8 @@ $('#redoBtn').onclick = redo;
 document.querySelectorAll('#navBar button').forEach(b => b.addEventListener('click', () => {
   const { nav, view, display: disp } = b.dataset;
   if (view) { const box = getModel().box; vp.setView(view, box.isEmpty() ? null : box); return; }
-  if (disp) {
-    display = disp;
-    document.querySelectorAll('#navBar [data-display]').forEach(x => x.classList.toggle('on', x === b));
-    rebuildScene();
-    return;
-  }
+  if (disp) return setDisplayStyle(disp);
+  if (nav === 'look') return toggleLookPanel(b);
   if (nav === 'fit') return fitView();
   if (nav === 'measure') return toggleMeasure();
   if (nav === 'grid') { gridOn = !gridOn; vp.grid.visible = gridOn; b.classList.toggle('on', gridOn); return; }
@@ -14608,6 +14738,7 @@ function applySettings() {
   vp.axesGroup.visible = s.showAxes !== false;
   $('#cubeWrap').hidden = s.showViewCube === false;
   $('#navBar').hidden = s.showNavBar === false;
+  placeNavBar();
   vp.setMouse(s.mouse);
   vp.setNavigation({ ...s, fov: s.camera === 'ortho' ? 1.5 : s.fov });
   vp.onMiddleDouble = () => { const m = getSettings().midDouble; if (m === 'home') fitView(); else if (m !== 'off') fitKeepingView(); };
@@ -14658,6 +14789,7 @@ const PREF_TREE = [
     ]],
     ['Benutzeroberfläche', [
       ['hoverHighlight', 'Vorauswahl hervorheben', 'Fläche oder Kante unter dem Mauszeiger farbig anzeigen', 'bool'],
+      ['tooltips', 'Hinweise an den Schaltflächen', 'Kurze Erklärung zeigen, wenn die Maus auf einem Icon stehen bleibt', 'bool'],
       ['tabsOnly', 'Nur die Registerkarten zeigen', 'Die Werkzeugleiste zeigt nur ihre Karten; zeigt die Maus darauf, klappt sie auf – mehr Platz für das Modell', 'bool'],
       ['wheelEdit', 'Zahlen mit Mausrad und Pfeiltasten ändern', 'Im Eingabefeld, in dem der Cursor steht: Mausrad oder ↑ ↓ ändern den Wert um 1 (mit Umschalt um 10, mit Alt um 0,1)', 'bool'],
     ]],
@@ -14815,11 +14947,18 @@ const PREF_TREE = [
     ['Ansicht', [
       ['camera', 'Kamera', 'Orthogonal = ohne Perspektive, Maße wirken überall gleich groß', [['perspective', 'Perspektive'], ['ortho', 'Orthogonal']]],
       ['fov', 'Blickwinkel (Perspektive)', '20° = schwache, 60° = starke Perspektive', 'num', { unit: '°', min: 10, max: 90 }],
-      ['defaultDisplay', 'Visueller Stil beim Start', 'Darstellung der Körper', [['edges', 'Schattiert mit Kanten'], ['shaded', 'Schattiert'], ['wire', 'Drahtkörper']]],
+      ['defaultDisplay', 'Visueller Stil beim Start', 'Darstellung der Körper', [['edges', 'Schattiert mit Kanten'], ['shaded', 'Schattiert'], ['hidden', 'Verdeckte Kanten'], ['xray', 'Transparent'], ['wire', 'Drahtkörper']]],
+      ['xrayOpacity', 'Deckkraft im Stil „Transparent“', '10 % = fast durchsichtig, 90 % = fast deckend', 'num', { unit: '%', min: 10, max: 90 }],
       ['antialias', 'Kantenglättung', 'Glättet die Kanten im 3D-Bild; wirkt nach einem Neustart des Programms', 'bool'],
       ['groundShadow', 'Bodenschatten', 'Weicher Schatten unter dem Modell (Arbeitsbereich Konstruktion)', 'bool'],
       ['quality', 'Darstellungsqualität', 'Hoch = scharf auf hochauflösenden Bildschirmen, Leistung = schneller', [['high', 'Hoch'], ['normal', 'Normal'], ['performance', 'Leistung']]],
       ['tessellation', 'Gekrümmte Flächen', 'Wie fein Zylinder, Kugeln und Rundungen in der Ansicht aus Dreiecken bestehen. Feiner sieht runder aus, rechnet bei großen Modellen aber länger. Der Export hat eine eigene Einstellung (3D-Druck).', [['coarse', 'Grob'], ['normal', 'Normal'], ['fine', 'Fein'], ['ultra', 'Sehr fein']]],
+    ]],
+    ['Werkstück', [
+      ['bodyTint', 'Körperfarbe', 'Farbe der Körper ohne eigenes Aussehen oder Material', [['auto', 'Automatisch (Farbschema)'], ['custom', 'Eigene Farbe']]],
+      ['bodyColor', 'Eigene Körperfarbe', 'Gilt mit „Eigene Farbe“', 'color'],
+      ['bodyFinish', 'Oberfläche', 'Wie stark die Körper glänzen und die Umgebung spiegeln', [['matt', 'Matt'], ['normal', 'Normal'], ['glossy', 'Glänzend']]],
+      ['edgeColor', 'Kantenfarbe', 'Farbe der Körperkanten in der Ansicht', [['auto', 'Automatisch'], ['black', 'Schwarz'], ['grey', 'Grau'], ['white', 'Weiß'], ['blue', 'Blau']]],
     ]],
     ['Einblendungen', [
       ['showViewAngle', 'Blickrichtung anzeigen', 'Azimut (um Z, von +X aus) und Höhe über der XY-Ebene unten rechts in der Ansicht', 'bool'],

@@ -1496,3 +1496,31 @@ body.tb-moving, body.tb-moving * { cursor: grabbing !important; user-select: non
 .dw-wrap { display: flex; flex-direction: column; height: 100%; }
 .dw-wrap > .dw { flex: 1; min-height: 0; height: auto; }
 .dw-bar { display: flex; flex-shrink: 0; overflow-x: auto; border-bottom: 1px solid var(--line); background: var(--panel, transparent); }
+
+/* Hinweise an den Icons (js/tips.js) */
+.tipbox { position: fixed; z-index: 2000; max-width: 300px; padding: 7px 10px 8px; border: 1px solid var(--win-line); border-radius: 5px; background: var(--panel); color: var(--text); box-shadow: 0 6px 22px rgba(0, 0, 0, .3); font-size: 12px; line-height: 1.4; pointer-events: none; animation: tipIn .12s ease-out; }
+.tipbox[hidden] { display: none; }
+.tipbox .tip-head { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.tipbox .tip-head b { font-weight: 600; }
+.tipbox kbd { flex: none; font: 11px/1 "Roboto Mono", monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; padding: 2px 5px; background: var(--input); color: var(--text); }
+.tipbox .tip-body { color: var(--muted); }
+.tipbox .tip-head + .tip-body { margin-top: 3px; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+/* "Anzeige": settings of the workpiece display, a small window inside the view */
+.lookpanel { position: absolute; z-index: 30; width: 286px; padding: 8px 12px 10px; background: var(--glass, var(--panel)); border: 1px solid var(--win-line); border-radius: 6px; box-shadow: var(--win-shadow); font-size: 12px; }
+.lookpanel .look-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+.lookpanel .look-x { border: 0; background: none; font-size: 16px; line-height: 1; padding: 2px 6px; border-radius: 4px; color: var(--muted); }
+.lookpanel .look-x:hover { background: var(--accent-soft); color: var(--text); }
+.lookpanel .sec { margin: 8px 0 2px; }
+.lookpanel .row { grid-template-columns: 96px 1fr; margin: 5px 0; }
+.lookpanel input[type=range] { width: 100%; }
+.lookpanel input[type=color] { width: 44px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: none; }
+.lookpanel .look-inline { display: flex; align-items: center; gap: 8px; }
+.lookpanel .look-note { color: var(--muted); }
+.lookpanel .look-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin-top: 8px; }
+.lookpanel .look-checks label { display: flex; align-items: center; gap: 4px; }
+.lookpanel .look-foot { display: flex; justify-content: flex-end; margin-top: 8px; }
+#navBar .nav-grip { cursor: grab; color: var(--muted); font-size: 11px; letter-spacing: -2px; padding: 4px 6px 4px 2px; user-select: none; }
+#navBar.dragging, #navBar.dragging .nav-grip, .lookpanel.dragging { cursor: grabbing; }
+.lookpanel .look-head { cursor: grab; }

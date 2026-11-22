@@ -118,6 +118,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       <div id="loading"><div class="spinner"></div><div id="loadingText">CAD-Kern (OpenCascade) wird geladen …</div></div>
       <div id="banner" hidden></div>
       <div id="navBar">
+        <span class="nav-grip" title="Leiste verschieben" data-hint="Mit gedrückter Maustaste ziehen. Doppelklick setzt die Leiste zurück an ihren Platz">⋮⋮</span>
         <button data-nav="orbit" class="on" title="Orbit (linke Maustaste)">⟳</button>
         <button data-nav="pan" title="Verschieben (linke Maustaste)">✥</button>
         <button data-nav="fit" title="Einpassen (F)">⤢</button>
@@ -129,8 +130,11 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
         <span class="nav-sep"></span>
         <button data-display="edges" class="on" title="Schattiert mit Kanten">◧</button>
         <button data-display="shaded" title="Schattiert">◼</button>
+        <button data-display="hidden" title="Verdeckte Kanten" data-hint="Darstellungsstil: nur Kanten, verdeckte Kanten ausgeblendet">▣</button>
+        <button data-display="xray" title="Transparent" data-hint="Darstellungsstil: durchsichtige Körper – Bohrungen und Taschen im Inneren sind zu sehen">◌</button>
         <button data-display="wire" title="Drahtmodell">▢</button>
         <button data-nav="grid" class="on" title="Raster ein/aus">#</button>
+        <button data-nav="look" title="Anzeige" data-hint="Darstellung des Werkstücks einstellen: Stil, Kamera, Farbe, Oberfläche, Kanten, Hintergrund">◐</button>
         <span class="nav-sep"></span>
         <button data-nav="measure" title="Messen (I)">↔</button>
       </div>

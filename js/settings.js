@@ -12,6 +12,7 @@ export const DEFAULTS = {
   updateAuto: false,        // load a found version without asking (installed app only)
   toolbarLabels: true,
   hoverHighlight: true,
+  tooltips: true,
   accent: 'blue',           // blue | teal | green | orange | violet | red | pink | yellow | custom
   accentCustom: '#1487e0',  // for accent: 'custom'
   uiScale: 1,               // size of the whole interface (0.8 … 1.5)
@@ -41,7 +42,13 @@ export const DEFAULTS = {
   showAxes: true,
   showViewCube: true,
   showNavBar: true,
-  defaultDisplay: 'edges',  // edges | shaded | wire
+  navBarPos: null,          // moved navigation bar: [x, y] of its centre as a share of the view (null = bottom centre)
+  defaultDisplay: 'edges',  // edges | shaded | hidden | xray | wire
+  bodyTint: 'auto',         // colour of bodies without an appearance: auto (by theme) | custom
+  bodyColor: '#c3ccd5',     // for bodyTint: 'custom'
+  bodyFinish: 'normal',     // matt | normal | glossy
+  edgeColor: 'auto',        // auto (by theme) | black | grey | white | blue
+  xrayOpacity: 35,          // display style "transparent": 10 … 90 %
   camera: 'perspective',    // perspective | ortho
   fov: 40,
   quality: 'high',          // high | normal | performance

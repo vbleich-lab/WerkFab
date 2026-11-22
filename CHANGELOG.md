@@ -1,5 +1,13 @@
 # Änderungen
 
+## v1.0.0-rc.35 – 2026-11-22
+
+- **Anzeige des Werkstücks einstellen:** Das neue Fenster „Anzeige“ (Knopf ◐ in der Navigationsleiste, auch unter ANSICHT) fasst die Einstellungen zusammen: Darstellungsstil, Körperfarbe, Oberfläche (matt, normal, glänzend), Kantenfarbe, Kamera (Perspektive oder orthogonal) mit Blickwinkel, Hintergrund sowie Raster, Achsen, Bodenschatten und Ansichtswürfel. Änderungen wirken sofort und bleiben gespeichert; „Zurücksetzen“ stellt den Auslieferungszustand her. Dieselben Einstellungen stehen unter Einstellungen → Grafik.
+- **Zwei neue Darstellungsstile:** „Verdeckte Kanten“ zeigt das Teil als Strichzeichnung ohne die Kanten auf der Rückseite, „Transparent“ macht die Körper durchsichtig, sodass Bohrungen und Taschen im Inneren zu sehen sind (Deckkraft einstellbar). Körper mit eigenem Aussehen behalten ihre Farbe.
+- **Orthogonale Kamera per Knopf:** ANSICHT → „Orthogonal“ schaltet die Perspektive aus und wieder ein.
+- **Navigationsleiste verschiebbar:** Am Griff links (oder an einer freien Stelle) lässt sich die Leiste an eine andere Stelle der Ansicht ziehen; der Platz bleibt gespeichert, ein Doppelklick auf den Griff setzt sie zurück. Auch das Fenster „Anzeige“ lässt sich verschieben.
+- **Hinweise an den Icons:** Bleibt die Maus auf einer Schaltfläche stehen, erscheint eine kleine Blase mit dem Namen, der Taste und einer kurzen Erklärung, was der Befehl tut – in der Werkzeugleiste, in den Aufklapp-Menüs der Gruppen, in der Navigationsleiste, der Kopfzeile und der Zeitachse. Alle Befehle der Werkzeugleiste haben jetzt eine Erklärung (vorher zeigten viele nur ihren Namen noch einmal), auch jede Fräs- und Drehbearbeitung. Beim Wandern von Icon zu Icon kommt der nächste Hinweis sofort. Abschaltbar in den Einstellungen („Hinweise an den Schaltflächen“).
+
 ## v1.0.0-rc.34 – 2026-11-22
 
 ### Konstruktion
