@@ -1,5 +1,19 @@
 # Änderungen
 
+## v1.0.0-rc.33 – 2026-11-22
+
+### Konstruktion
+- **Körper in der Ansicht anklicken wählt ihn:** Ohne laufenden Befehl tat ein Klick in der 3D-Ansicht nichts – der Körper ließ sich nur im Browser wählen, und auch Kanten (für Verrundung/Fase) und Skizzenprofile (für Extrusion/Rotation) ließen sich nicht vorab anklicken. Jetzt wählt der Klick, was der Auswahlfilter erlaubt; ein Klick ins Leere hebt die Auswahl auf.
+- **Mehrere Körper wählen:** Strg oder Umschalt + Klick (in der Ansicht oder im Browser) nimmt weitere Körper dazu oder wieder heraus, der Auswahlrahmen (Lasso) wählt jetzt wirklich alle Körper im Rahmen – vorher nur den ersten. Die gewählten Körper sind eingefärbt. Entf entfernt sie alle (ein Schritt „Körper entfernen“ je Körper, ein Rückgängig für alle), V und „Ausblenden“/„Isolieren“ im Kontextmenü gelten für alle, ebenso Darstellung zuweisen und Starrgruppe.
+- **Auswahlrahmen auch über dem Modell:** Bei einer Mausbelegung mit freier linker Taste beginnt der Rahmen jetzt auch dann, wenn das Ziehen auf einem Körper startet (vorher nur neben dem Modell).
+- **Zeichnung – Kante anklicken bemaßt sie:** Im Maß-Werkzeug genügt ein Klick auf eine Körperkante für ihr Längenmaß (vorher zwei Eckpunkte). Zwei Punkte und Kreise gehen wie bisher.
+- **Zeichnung – Maßlinie mit der Maus ablegen:** Ein neues Maß folgt der Maus, der nächste Klick legt die Maßlinie ab – oberhalb oder unterhalb, rechts oder links der Kontur. Vorher stand es immer im festen Abstand oben bzw. rechts und musste nachgezogen werden.
+- **Zeichnung – Esc beendet das Werkzeug:** Esc lässt zuerst ein Maß los, das noch an der Maus hängt, und beendet dann Maß, Detail und die anderen Werkzeuge der Zeichnung. Vorher blieb das Werkzeug an, bis man seine Schaltfläche noch einmal anklickte.
+
+### Fertigung
+- **Geometrie einer 2D-Operation:** Ein Klick auf eine schon gewählte Kantenkette nimmt sie wieder heraus, egal auf welche ihrer Kanten (vorher nur auf die zuerst angeklickte; sonst kam die Kette doppelt in die Auswahl).
+- **Freifahren bei 5-Achs-Bearbeitung:** Bevor die Drehachsen einschwenken und nachdem sie zurückgeschwenkt sind, fährt das Werkzeug in Maschinenkoordinaten frei – erst Z ganz nach oben, dann X/Y weg vom Teil, nie beides zugleich. Im Postprozessor (Mehrachsen) einstellbar: „Z, dann X/Y“, „nur Z“ oder aus; die X/Y-Position ist Maschinen-Null oder eine eigene Position (z. B. eine Ecke des Verfahrbereichs). Heidenhain schreibt `L Z… M91` und `L X… Y… M91`, Sinumerik `G0 SUPA Z0 D0` und `G0 SUPA X… Y…`, Fanuc `G53 G0 Z0` und `G53 G0 X… Y…`. Gilt für 5-Achs-Simultan und bei Heidenhain auch vor dem Schwenken der Bearbeitungsebene. Voreinstellung: Z, dann X/Y auf Maschinen-Null – die Position vor dem ersten Lauf an die eigene Maschine anpassen.
+
 ## v1.0.0-rc.32 – 2026-11-21
 
 - **4-Achs-Bearbeitung: Wände, die zur Drehachse zeigen** – neben einer solchen Wand (Längsnut mit radialen Flanken) schnitt der Fräser am Wandfuß ins Teil: geprüft wurde nur die Oberkante der Wand, am Nutgrund überdeckt dieselbe Werkzeugbreite aber einen größeren Winkel. Jetzt zählt die ganze Wand bis zum Grund, bei Schaft- und Kugelfräser, beim Schlichten und Schruppen. Was der gerade Fräser an einer radialen Wand nicht erreicht, bleibt als Rest stehen und wird in der Simulation gemeldet.

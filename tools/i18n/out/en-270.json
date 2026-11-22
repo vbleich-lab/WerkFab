@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Clearing move for 5-axis machining",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z all the way up, then X/Y away from the part",
+ "Nur Z ganz nach oben": "Z all the way up only",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Before the axes swivel in and after they swivel back the tool moves clear in machine coordinates: Z first, then X/Y – the rotary axes only move once the tool stands away from the part",
+ "Freifahrposition X/Y": "Clearing position X/Y",
+ "Maschinen-Null (X0 Y0)": "Machine zero (X0 Y0)",
+ "Eigene Position": "Own position",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Where X and Y go in the clearing move, in machine coordinates",
+ "Freifahrposition X": "Clearing position X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Machine coordinate X of the own clearing position (e.g. the rear right corner of the travel)",
+ "Freifahrposition Y": "Clearing position Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Machine coordinate Y of the own clearing position",
+ "Freifahrhöhe Z": "Clearing height Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Machine coordinate Z of the clearing move (0 = all the way up). Heidenhain uses the \"Retract height M91\"",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

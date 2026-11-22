@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Svincolo nella lavorazione a 5 assi",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z tutto in alto, poi X/Y lontano dal pezzo",
+ "Nur Z ganz nach oben": "Solo Z tutto in alto",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Prima di inclinare gli assi e dopo averli riportati, l'utensile si svincola in coordinate macchina: prima Z, poi X/Y – gli assi rotanti si muovono solo quando l'utensile è lontano dal pezzo",
+ "Freifahrposition X/Y": "Posizione di svincolo X/Y",
+ "Maschinen-Null (X0 Y0)": "Zero macchina (X0 Y0)",
+ "Eigene Position": "Posizione personalizzata",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Dove si portano X e Y durante lo svincolo, in coordinate macchina",
+ "Freifahrposition X": "Posizione di svincolo X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Coordinata macchina X della posizione di svincolo personalizzata (ad es. l'angolo posteriore destro della corsa)",
+ "Freifahrposition Y": "Posizione di svincolo Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Coordinata macchina Y della posizione di svincolo personalizzata",
+ "Freifahrhöhe Z": "Altezza di svincolo Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Coordinata macchina Z durante lo svincolo (0 = tutto in alto). Heidenhain usa l'«Altezza di ritiro M91»",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

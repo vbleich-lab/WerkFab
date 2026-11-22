@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Vapaaksi ajo 5-akselisessa työstössä",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z aivan ylös, sitten X/Y pois kappaleelta",
+ "Nur Z ganz nach oben": "Vain Z aivan ylös",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Ennen akselien kääntämistä ja niiden käännön jälkeen työkalu ajaa vapaaksi konekoordinaateissa: ensin Z, sitten X/Y – kiertoakselit liikkuvat vasta, kun työkalu on poissa kappaleen luota",
+ "Freifahrposition X/Y": "Vapaaksiajon sijainti X/Y",
+ "Maschinen-Null (X0 Y0)": "Koneen nolla (X0 Y0)",
+ "Eigene Position": "Oma sijainti",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Minne X ja Y ajavat vapaaksiajossa, konekoordinaateissa",
+ "Freifahrposition X": "Vapaaksiajon sijainti X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Oman vapaaksiajosijainnin konekoordinaatti X (esim. liikealueen oikea takakulma)",
+ "Freifahrposition Y": "Vapaaksiajon sijainti Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Oman vapaaksiajosijainnin konekoordinaatti Y",
+ "Freifahrhöhe Z": "Vapaaksiajon korkeus Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Konekoordinaatti Z vapaaksiajossa (0 = aivan ylhäällä). Heidenhain käyttää arvoa „Vetäytymiskorkeus M91“",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "五轴加工的退让动作",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z 轴升到最高,然后 X/Y 离开工件",
+ "Nur Z ganz nach oben": "仅 Z 轴升到最高",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "在轴摆入之前和摆回之后,刀具在机床坐标下退让:先 Z,再 X/Y – 只有在刀具离开工件后,旋转轴才会运动",
+ "Freifahrposition X/Y": "退让位置 X/Y",
+ "Maschinen-Null (X0 Y0)": "机床零点 (X0 Y0)",
+ "Eigene Position": "自定义位置",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "退让时 X 和 Y 移动到的位置,按机床坐标",
+ "Freifahrposition X": "退让位置 X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "自定义退让位置的机床坐标 X(例如行程范围的右后角)",
+ "Freifahrposition Y": "退让位置 Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "自定义退让位置的机床坐标 Y",
+ "Freifahrhöhe Z": "退让高度 Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "退让时的机床坐标 Z(0 = 最高处)。Heidenhain 使用“M91 退刀高度”",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

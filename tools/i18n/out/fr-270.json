@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Dégagement en usinage 5 axes",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z tout en haut, puis X/Y loin de la pièce",
+ "Nur Z ganz nach oben": "Seulement Z tout en haut",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Avant le pivotement et après le retour des axes, l'outil se dégage en coordonnées machine : d'abord Z, puis X/Y – les axes rotatifs ne bougent qu'une fois l'outil éloigné de la pièce",
+ "Freifahrposition X/Y": "Position de dégagement X/Y",
+ "Maschinen-Null (X0 Y0)": "Zéro machine (X0 Y0)",
+ "Eigene Position": "Position personnalisée",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Où vont X et Y lors du dégagement, en coordonnées machine",
+ "Freifahrposition X": "Position de dégagement X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Coordonnée machine X de la position de dégagement personnalisée (p. ex. le coin arrière droit de la course)",
+ "Freifahrposition Y": "Position de dégagement Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Coordonnée machine Y de la position de dégagement personnalisée",
+ "Freifahrhöhe Z": "Hauteur de dégagement Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Coordonnée machine Z lors du dégagement (0 = tout en haut). Heidenhain utilise la « Hauteur de dégagement M91 »",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

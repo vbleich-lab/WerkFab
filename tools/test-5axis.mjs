@@ -124,6 +124,25 @@ if (five?.multi) {
     ok('Fanuc: G43.5 mit Werkzeugvektor I J K, danach G49', /G43\.5 H40/.test(s.code) && v.length > 300 && L.findIndex(l => /\bG49\b/.test(l)) > L.findIndex(l => /G43\.5/.test(l)), `${v.length} Sätze`);
   }
   {
+    // clear of the part before the tool leans and after it stood up again: Z to the top first, then X/Y
+    const idx = (L, re, from = 0) => L.findIndex((l, k) => k >= from && re.test(l));
+    const h = out('heidenhain').code.split('\n'), hOn = idx(h, /FUNCTION TCPM|M128/), hOff = idx(h, /FUNCTION RESET TCPM|M129/);
+    ok('Freifahren Heidenhain: Z M91, dann X/Y M91 vor TCPM', String(h[hOn - 2]).includes('L Z+0.000 R0 FMAX M91') && String(h[hOn - 1]).includes('L X+0.000 Y+0.000 R0 FMAX M91'), h.slice(hOn - 2, hOn + 1).join(' | '));
+    ok('Freifahren Heidenhain: nach TCPM aus wieder Z, dann X/Y', String(h[hOff + 1]).includes('L Z+0.000 R0 FMAX M91') && String(h[hOff + 2]).includes('L X+0.000 Y+0.000 R0 FMAX M91'), h.slice(hOff, hOff + 3).join(' | '));
+    const hc = out('heidenhain', { clearXY: 'custom', clearX: -650, clearY: -20, m91Z: -5 }).code.split('\n'), cOn = idx(hc, /FUNCTION TCPM|M128/);
+    ok('Freifahren Heidenhain: eigene Position und Höhe', String(hc[cOn - 2]).includes('L Z-5.000 R0 FMAX M91') && String(hc[cOn - 1]).includes('L X-650.000 Y-20.000 R0 FMAX M91'), hc.slice(cOn - 2, cOn).join(' | '));
+    const hz = out('heidenhain', { clearMove: 'z' }).code.split('\n'), zOn = idx(hz, /FUNCTION TCPM|M128/);
+    ok('Freifahren Heidenhain: nur Z', String(hz[zOn - 1]).includes('L Z+0.000 R0 FMAX M91') && !String(hz.join('\n')).includes('L X+0.000 Y+0.000 R0 FMAX M91'), hz[zOn - 1]);
+    ok('Freifahren aus: keine Sätze in Maschinenkoordinaten um TCPM', !/M91/.test(out('heidenhain', { clearMove: 'off' }).code));
+    const strip = l => l.replace(/^Nd+ /, '');
+    const si = out('sinumerik', { clearXY: 'custom', clearX: 500, clearY: 300 }).code.split('\n').map(strip), sOn = idx(si, /^TRAORI/), sOff = idx(si, /^TRAFOOF/);
+    ok('Freifahren Sinumerik: SUPA Z, SUPA X/Y, D1 vor TRAORI', si[sOn - 3] === 'G0 SUPA Z0 D0' && si[sOn - 2] === 'G0 SUPA X500 Y300' && si[sOn - 1] === 'D1', si.slice(sOn - 3, sOn + 1).join(' | '));
+    ok('Freifahren Sinumerik: nach TRAFOOF', si[sOff + 1] === 'G0 SUPA Z0 D0' && si[sOff + 2] === 'G0 SUPA X500 Y300', si.slice(sOff, sOff + 4).join(' | '));
+    const fa = out('fanuc').code.split('\n').map(strip), fOn = idx(fa, /^G43.5/), fOff = idx(fa, /^G49/);
+    ok('Freifahren Fanuc: G53 Z, dann G53 X/Y vor G43.5', fa[fOn - 2] === 'G53 G0 Z0' && fa[fOn - 1] === 'G53 G0 X0 Y0', fa.slice(fOn - 2, fOn + 1).join(' | '));
+    ok('Freifahren Fanuc: nach G49 / G43', fa[fOff + 2] === 'G53 G0 Z0' && fa[fOff + 3] === 'G53 G0 X0 Y0', fa.slice(fOff, fOff + 4).join(' | '));
+  }
+  {
     const s = out('linuxcnc');
     ok('Ohne 5-Achs-Ausgabe (LinuxCNC): Warnung, Bahn als 3-Achs-Programm', s.warnings.some(w => /5-Achs/.test(w)) && !/A3=|TX[+-]|G43\.5/.test(s.code), s.warnings.find(w => /5-Achs/.test(w)));
   }

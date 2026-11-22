@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Відведення при 5-осьовій обробці",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z до упору вгору, потім X/Y убік від деталі",
+ "Nur Z ganz nach oben": "Лише Z до упору вгору",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Перед поворотом осей і після їх повернення інструмент відводиться в координатах верстата: спочатку Z, потім X/Y – поворотні осі рухаються лише тоді, коли інструмент відведений від деталі",
+ "Freifahrposition X/Y": "Позиція відведення X/Y",
+ "Maschinen-Null (X0 Y0)": "Нуль верстата (X0 Y0)",
+ "Eigene Position": "Власна позиція",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Куди переміщуються X і Y під час відведення, у координатах верстата",
+ "Freifahrposition X": "Позиція відведення X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Координата верстата X власної позиції відведення (наприклад, правий задній кут робочої зони)",
+ "Freifahrposition Y": "Позиція відведення Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Координата верстата Y власної позиції відведення",
+ "Freifahrhöhe Z": "Висота відведення Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Координата верстата Z під час відведення (0 = до упору вгору). Heidenhain використовує «Висота відведення M91»",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

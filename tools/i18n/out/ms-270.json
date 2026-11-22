@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Gerakan bebas untuk pemesinan 5-paksi",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z sepenuhnya ke atas, kemudian X/Y menjauhi bahagian",
+ "Nur Z ganz nach oben": "Z sepenuhnya ke atas sahaja",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Sebelum paksi berputar masuk dan selepas berputar kembali, alat bergerak bebas dalam koordinat mesin: Z dahulu, kemudian X/Y – paksi putaran hanya bergerak apabila alat sudah jauh dari bahagian",
+ "Freifahrposition X/Y": "Kedudukan bebas X/Y",
+ "Maschinen-Null (X0 Y0)": "Sifar mesin (X0 Y0)",
+ "Eigene Position": "Kedudukan sendiri",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Ke mana X dan Y bergerak semasa gerakan bebas, dalam koordinat mesin",
+ "Freifahrposition X": "Kedudukan bebas X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Koordinat mesin X bagi kedudukan bebas sendiri (cth. sudut belakang kanan julat gerakan)",
+ "Freifahrposition Y": "Kedudukan bebas Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Koordinat mesin Y bagi kedudukan bebas sendiri",
+ "Freifahrhöhe Z": "Ketinggian bebas Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Koordinat mesin Z semasa gerakan bebas (0 = sepenuhnya di atas). Heidenhain menggunakan “Ketinggian tarik balik M91”",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

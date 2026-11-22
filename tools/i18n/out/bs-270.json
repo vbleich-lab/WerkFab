@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Odmicanje pri 5-osnoj obradi",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z skroz gore, zatim X/Y dalje od dijela",
+ "Nur Z ganz nach oben": "Samo Z skroz gore",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Prije zakretanja i nakon vraćanja osa alat se odmiče u koordinatama mašine: prvo Z, zatim X/Y – rotacione ose se pomiču tek kad je alat udaljen od dijela",
+ "Freifahrposition X/Y": "Pozicija odmicanja X/Y",
+ "Maschinen-Null (X0 Y0)": "Nula mašine (X0 Y0)",
+ "Eigene Position": "Vlastita pozicija",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Kamo idu X i Y pri odmicanju, u koordinatama mašine",
+ "Freifahrposition X": "Pozicija odmicanja X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Koordinata mašine X vlastite pozicije odmicanja (npr. stražnji desni ugao opsega kretanja)",
+ "Freifahrposition Y": "Pozicija odmicanja Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Koordinata mašine Y vlastite pozicije odmicanja",
+ "Freifahrhöhe Z": "Visina odmicanja Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Koordinata mašine Z pri odmicanju (0 = skroz gore). Heidenhain koristi „Visina povlačenja M91“",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Atvirzīšanās 5 asu apstrādē",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z līdz galam uz augšu, pēc tam X/Y prom no detaļas",
+ "Nur Z ganz nach oben": "Tikai Z līdz galam uz augšu",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Pirms asu pagriešanas un pēc to atgriešanas instruments atvirzās iekārtas koordinātās: vispirms Z, pēc tam X/Y – rotācijas asis kustas tikai tad, kad instruments ir tālu no detaļas",
+ "Freifahrposition X/Y": "Atvirzīšanās pozīcija X/Y",
+ "Maschinen-Null (X0 Y0)": "Iekārtas nulle (X0 Y0)",
+ "Eigene Position": "Pašu pozīcija",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Kurp X un Y pārvietojas atvirzīšanās laikā, iekārtas koordinātās",
+ "Freifahrposition X": "Atvirzīšanās pozīcija X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Pašu atvirzīšanās pozīcijas iekārtas koordināta X (piem., kustības diapazona labais aizmugures stūris)",
+ "Freifahrposition Y": "Atvirzīšanās pozīcija Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Pašu atvirzīšanās pozīcijas iekārtas koordināta Y",
+ "Freifahrhöhe Z": "Atvirzīšanās augstums Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Iekārtas koordināta Z atvirzīšanās laikā (0 = pilnīgi augšā). Heidenhain izmanto „Atvilkšanas augstums M91“",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

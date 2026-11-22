@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "5축 가공 시 이탈 동작",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z를 맨 위까지 올린 다음 X/Y를 공작물에서 멀리",
+ "Nur Z ganz nach oben": "Z만 맨 위까지",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "축을 선회하기 전과 되돌린 후에 공구는 기계 좌표에서 이탈합니다: 먼저 Z, 그다음 X/Y – 회전축은 공구가 공작물에서 떨어진 후에야 움직입니다",
+ "Freifahrposition X/Y": "이탈 위치 X/Y",
+ "Maschinen-Null (X0 Y0)": "기계 원점 (X0 Y0)",
+ "Eigene Position": "사용자 지정 위치",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "이탈 시 X와 Y가 이동할 위치(기계 좌표)",
+ "Freifahrposition X": "이탈 위치 X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "사용자 지정 이탈 위치의 기계 좌표 X (예: 이동 범위의 오른쪽 뒤 모서리)",
+ "Freifahrposition Y": "이탈 위치 Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "사용자 지정 이탈 위치의 기계 좌표 Y",
+ "Freifahrhöhe Z": "이탈 높이 Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "이탈 시 기계 좌표 Z (0 = 맨 위). Heidenhain은 “후퇴 높이 M91”을 사용합니다",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Frikørsel ved 5-akset bearbejdning",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z helt op, derefter X/Y væk fra emnet",
+ "Nur Z ganz nach oben": "Kun Z helt op",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Før akserne drejes ind og efter de er drejet tilbage, kører værktøjet fri i maskinkoordinater: først Z, derefter X/Y – drejeakserne bevæger sig først, når værktøjet står væk fra emnet",
+ "Freifahrposition X/Y": "Frikørselsposition X/Y",
+ "Maschinen-Null (X0 Y0)": "Maskinnul (X0 Y0)",
+ "Eigene Position": "Egen position",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Hvor X og Y kører hen ved frikørsel, i maskinkoordinater",
+ "Freifahrposition X": "Frikørselsposition X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Maskinkoordinat X for den egne frikørselsposition (f.eks. det bageste højre hjørne af kørselsområdet)",
+ "Freifahrposition Y": "Frikørselsposition Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Maskinkoordinat Y for den egne frikørselsposition",
+ "Freifahrhöhe Z": "Frikørselshøjde Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Maskinkoordinat Z ved frikørsel (0 = helt oppe). Heidenhain bruger „Tilbagetrækningshøjde M91“",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

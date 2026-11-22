@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Odjezd při 5osém obrábění",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z úplně nahoru, pak X/Y pryč od dílu",
+ "Nur Z ganz nach oben": "Pouze Z úplně nahoru",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Před natočením a po zpětném natočení os nástroj odjede ve strojních souřadnicích: nejdřív Z, pak X/Y – rotační osy se pohnou až tehdy, když je nástroj mimo díl",
+ "Freifahrposition X/Y": "Poloha odjezdu X/Y",
+ "Maschinen-Null (X0 Y0)": "Nula stroje (X0 Y0)",
+ "Eigene Position": "Vlastní poloha",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Kam se X a Y při odjezdu přesunou, ve strojních souřadnicích",
+ "Freifahrposition X": "Poloha odjezdu X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Strojní souřadnice X vlastní polohy odjezdu (např. zadní pravý roh pojezdu)",
+ "Freifahrposition Y": "Poloha odjezdu Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Strojní souřadnice Y vlastní polohy odjezdu",
+ "Freifahrhöhe Z": "Výška odjezdu Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Strojní souřadnice Z při odjezdu (0 = úplně nahoře). Heidenhain používá „Výška odjezdu M91“",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

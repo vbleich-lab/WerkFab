@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Odjazd przy obróbce 5-osiowej",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z maksymalnie w górę, potem X/Y od przedmiotu",
+ "Nur Z ganz nach oben": "Tylko Z maksymalnie w górę",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Przed wychyleniem i po powrocie osi narzędzie odjeżdża we współrzędnych maszynowych: najpierw Z, potem X/Y – osie obrotowe poruszają się dopiero, gdy narzędzie jest z dala od przedmiotu",
+ "Freifahrposition X/Y": "Pozycja odjazdu X/Y",
+ "Maschinen-Null (X0 Y0)": "Zero maszyny (X0 Y0)",
+ "Eigene Position": "Własna pozycja",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Dokąd jadą X i Y przy odjeździe, we współrzędnych maszynowych",
+ "Freifahrposition X": "Pozycja odjazdu X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Współrzędna maszynowa X własnej pozycji odjazdu (np. tylny prawy narożnik zakresu ruchu)",
+ "Freifahrposition Y": "Pozycja odjazdu Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Współrzędna maszynowa Y własnej pozycji odjazdu",
+ "Freifahrhöhe Z": "Wysokość odjazdu Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Współrzędna maszynowa Z przy odjeździe (0 = maksymalnie w górze). Heidenhain używa „Wysokość odjazdu M91”",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

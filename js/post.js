@@ -741,6 +741,11 @@ export const POST_PROPS = [
   { key: 'swivel', group: 'multiaxis', label: 'Geschwenkte Bearbeitungsebene', type: [['cycle800', 'CYCLE800'], ['off', 'Aus']], def: 'cycle800', only: ['sinumerik'], help: 'Für Setups, die nicht von oben bearbeitet werden' },
   { key: 'swivelRecord', group: 'multiaxis', label: 'Schwenkdatensatz (Name)', type: 'text', def: '', only: ['sinumerik'], help: 'Name des Schwenkdatensatzes der Maschine, z. B. TABLE. Leer: der einzige oder der aktive Datensatz' },
   { key: 'swivelRetract', group: 'multiaxis', label: 'Freifahren vor dem Schwenken', type: [['1', 'Z (Maschinenachse)'], ['2', 'Z, dann X/Y'], ['4', 'Werkzeugrichtung maximal'], ['0', 'Nicht freifahren']], def: '1', only: ['sinumerik'] },
+  { key: 'clearMove', group: 'multiaxis', label: 'Freifahren bei 5-Achs-Bearbeitung', type: [['zxy', 'Z ganz nach oben, dann X/Y weg vom Teil'], ['z', 'Nur Z ganz nach oben'], ['off', 'Nicht freifahren']], def: 'zxy', only: ['heidenhain', 'sinumerik', 'fanuc'], help: 'Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht' },
+  { key: 'clearXY', group: 'multiaxis', label: 'Freifahrposition X/Y', type: [['home', 'Maschinen-Null (X0 Y0)'], ['custom', 'Eigene Position']], def: 'home', only: ['heidenhain', 'sinumerik', 'fanuc'], help: 'Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten' },
+  { key: 'clearX', group: 'multiaxis', label: 'Freifahrposition X', type: 'num', def: 0, only: ['heidenhain', 'sinumerik', 'fanuc'], help: 'Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)' },
+  { key: 'clearY', group: 'multiaxis', label: 'Freifahrposition Y', type: 'num', def: 0, only: ['heidenhain', 'sinumerik', 'fanuc'], help: 'Maschinenkoordinate Y der eigenen Freifahrposition' },
+  { key: 'clearZ', group: 'multiaxis', label: 'Freifahrhöhe Z', type: 'num', def: 0, only: ['sinumerik', 'fanuc'], help: 'Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“' },
   { key: 'showNotes', group: 'formats', label: 'Notizen ausgeben', type: 'bool', def: false, help: 'Notizen der Operationen als Kommentar' },
   { key: 'structureComments', group: 'formats', label: 'Strukturkommentare', type: 'bool', def: true, help: 'Operationsname als Kommentar vor jeder Operation' },
   { key: 'writeMachine', group: 'formats', label: 'Maschine ausgeben', type: 'bool', def: true },
@@ -987,8 +992,19 @@ export function runPost(def, project, gen, opts = {}) {
   const sinuSwivel = fam === 'sinumerik' && !tilt.identity && P.swivel !== 'off';
   const c800n = v => String(+(+v).toFixed(3) + 0);
   const c800 = (a, b, c) => `CYCLE800(${+P.swivelRetract || 0},"${ascii(P.swivelRecord || '').replace(/[^\w.-]/g, '')}",200000,57,0,0,0,${c800n(a)},${c800n(b)},${c800n(c)},0,0,0,${P.preferTilt === 'pos' ? 1 : -1},100,1)`;
+  // Clear of the part before the rotary axes move (and after they came back): Z to the top in machine
+  // coordinates first, then X/Y to the place chosen in the post processor – never both at once.
+  const clearOut = () => {
+    if (lathe || okuma || !['heidenhain', 'sinumerik', 'fanuc'].includes(fam) || (P.clearMove || 'zxy') === 'off') return;
+    const xy = P.clearMove !== 'z', cx = P.clearXY === 'custom' ? +P.clearX || 0 : 0, cy = P.clearXY === 'custom' ? +P.clearY || 0 : 0, cz = +P.clearZ || 0;
+    if (hh) { W.expand(`L Z${W.num(+P.m91Z || 0)} R0 FMAX M91`); if (xy) W.expand(`L X${W.num(cx)} Y${W.num(cy)} R0 FMAX M91`); }
+    else if (fam === 'sinumerik') { W.expand(`G0 SUPA Z${c800n(cz)} D0`); if (xy) W.expand(`G0 SUPA X${c800n(cx)} Y${c800n(cy)}`); W.expand('D1'); }
+    else { W.expand(`G53 G0 Z${c800n(cz)}`); if (xy) W.expand(`G53 G0 X${c800n(cx)} Y${c800n(cy)}`); }
+    W.resetModal();
+  };
   const planeStart = () => {
     if (tilt.identity || planeOn) return;
+    if (hh && P.tiltedPlane !== 'off') clearOut();
     if (hh && P.tiltedPlane === 'spatial') W.expand(`PLANE SPATIAL SPA${W.num(tilt.a)} SPB${W.num(tilt.b)} SPC${W.num(tilt.c)} TURN MB MAX FMAX${tilt.seq ? ' SEQ' + tilt.seq : ''} TABLE ROT`);
     else if (hh && P.tiltedPlane === 'cycle19') {
       W.expand(`CYCL DEF 19.0 BEARBEITUNGSEBENE\nCYCL DEF 19.1 A${W.num(tilt.a)} B${W.num(tilt.b)} C${W.num(tilt.c)}`);
@@ -1015,6 +1031,7 @@ export function runPost(def, project, gen, opts = {}) {
     }
     if (!planeOn || tilt.identity || !hh) return;
     W.expand('M140 MB MAX');
+    clearOut();
     if (P.tiltedPlane === 'spatial') W.expand(final ? 'PLANE RESET TURN MB MAX FMAX' : 'PLANE RESET STAY');
     else if (P.tiltedPlane === 'cycle19') {
       W.expand(`CYCL DEF 19.0 BEARBEITUNGSEBENE\nCYCL DEF 19.1 A${W.num(0)} B${W.num(0)} C${W.num(0)}\nCYCL DEF 19.0 BEARBEITUNGSEBENE\nCYCL DEF 19.1`);
@@ -1484,6 +1501,7 @@ export function runPost(def, project, gen, opts = {}) {
           const kin = machine?.kin, lim = kin?.type === 'AC' ? kin.a : kin?.type === 'BC' ? kin.b : null;
           if (!kin || kin.type === 'A') warnings.push(`${op.name}: 5-Achs-Simultan – Maschine mit zwei Drehachsen wählen (Schwenktisch A/C oder Schwenkkopf B/C)`);
           else if (Array.isArray(lim) && mx.maxTilt > Math.max(Math.abs(lim[0]), Math.abs(lim[1])) + 1e-6) warnings.push(`${op.name}: Neigung bis ${mx.maxTilt.toFixed(1)}° – die Schwenkachse der Maschine reicht nur bis ${Math.max(Math.abs(lim[0]), Math.abs(lim[1]))}°`);
+          clearOut();
           if (hh) { if (!P.tcpm) W.expand(P.tcpmCode === 'm128' ? 'M128' : 'FUNCTION TCPM F TCP AXIS POS PATHCTRL AXIS'); }
           else if (fam === 'sinumerik') W.expand('TRAORI');
           else W.expand(`G43.5 H${t.number}`);
@@ -1662,6 +1680,7 @@ export function runPost(def, project, gen, opts = {}) {
         else W.expand(`G49\nG43 H${t.number}`);
         W.resetModal();
       }
+      if (mxOut) clearOut();
       if (polarOn) { W.expand(W.tag(def.polarOff, 'polarOff'), tv); W.resetModal(); }
       if (yOn) { W.expand(W.tag(def.yOff, 'yOff'), tv); W.resetModal(); }
       if (cylOn) { W.expand(W.tag(def.cylOff, 'cylOff'), { ...tv, cylr: r.cyl }); W.resetModal(); }

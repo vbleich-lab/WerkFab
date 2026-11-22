@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "5 eksenli işlemede serbest kalma hareketi",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z sonuna kadar yukarı, sonra X/Y parçadan uzağa",
+ "Nur Z ganz nach oben": "Yalnızca Z sonuna kadar yukarı",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Eksenler döndürülmeden önce ve geri döndürüldükten sonra takım makine koordinatlarında serbest kalır: önce Z, sonra X/Y – döner eksenler ancak takım parçadan uzaklaştığında hareket eder",
+ "Freifahrposition X/Y": "Serbest kalma konumu X/Y",
+ "Maschinen-Null (X0 Y0)": "Makine sıfırı (X0 Y0)",
+ "Eigene Position": "Özel konum",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Serbest kalırken X ve Y'nin gideceği yer, makine koordinatlarında",
+ "Freifahrposition X": "Serbest kalma konumu X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Özel serbest kalma konumunun makine koordinatı X (ör. hareket alanının sağ arka köşesi)",
+ "Freifahrposition Y": "Serbest kalma konumu Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Özel serbest kalma konumunun makine koordinatı Y",
+ "Freifahrhöhe Z": "Serbest kalma yüksekliği Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Serbest kalırken makine koordinatı Z (0 = en üstte). Heidenhain “Geri çekme yüksekliği M91” değerini kullanır",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

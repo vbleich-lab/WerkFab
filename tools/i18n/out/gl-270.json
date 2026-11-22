@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Retirada na mecanización de 5 eixes",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z todo arriba, despois X/Y lonxe da peza",
+ "Nur Z ganz nach oben": "Só Z todo arriba",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Antes de xirar os eixes e despois de volver xiralos, a ferramenta retírase en coordenadas da máquina: primeiro Z, despois X/Y – os eixes rotativos só se moven cando a ferramenta está lonxe da peza",
+ "Freifahrposition X/Y": "Posición de retirada X/Y",
+ "Maschinen-Null (X0 Y0)": "Cero da máquina (X0 Y0)",
+ "Eigene Position": "Posición propia",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Cara a onde van X e Y na retirada, en coordenadas da máquina",
+ "Freifahrposition X": "Posición de retirada X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Coordenada da máquina X da posición de retirada propia (p. ex. a esquina traseira dereita do percorrido)",
+ "Freifahrposition Y": "Posición de retirada Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Coordenada da máquina Y da posición de retirada propia",
+ "Freifahrhöhe Z": "Altura de retirada Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Coordenada da máquina Z na retirada (0 = todo arriba). Heidenhain usa a «Altura de retirada M91»",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

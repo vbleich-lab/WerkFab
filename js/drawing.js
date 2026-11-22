@@ -553,13 +553,15 @@ export function makeDrawing(bodies, opts) {
     const off = +dm.off || 16;
     const len = dm.kind === 'h' ? Math.abs(dm.a[0] - dm.b[0]) : dm.kind === 'v' ? Math.abs(dm.a[1] - dm.b[1]) : Math.hypot(dm.a[0] - dm.b[0], dm.a[1] - dm.b[1]);
     if (dm.kind === 'h') {
-      const y = Math.min(a[1], b[1]) - off;
-      line([a[0], a[1] - 1], [a[0], y - 2], 'ext'); line([b[0], b[1] - 1], [b[0], y - 2], 'ext');
+      // a negative distance puts the dimension line below the points: the extension lines run down then
+      const y = off < 0 ? Math.max(a[1], b[1]) - off : Math.min(a[1], b[1]) - off, sg = off < 0 ? -1 : 1;
+      line([a[0], a[1] - sg], [a[0], y - 2 * sg], 'ext'); line([b[0], b[1] - sg], [b[0], y - 2 * sg], 'ext');
       line([a[0], y], [b[0], y], 'dim arrow2');
       text((a[0] + b[0]) / 2, y - 1.5, f2(len) + sfxOf(len), 'dtx');
     } else if (dm.kind === 'v') {
-      const x = Math.max(a[0], b[0]) + off;
-      line([a[0] + 1, a[1]], [x + 2, a[1]], 'ext'); line([b[0] + 1, b[1]], [x + 2, b[1]], 'ext');
+      // a negative distance puts the dimension line left of the points
+      const x = off < 0 ? Math.min(a[0], b[0]) + off : Math.max(a[0], b[0]) + off, sg = off < 0 ? -1 : 1;
+      line([a[0] + sg, a[1]], [x + 2 * sg, a[1]], 'ext'); line([b[0] + sg, b[1]], [x + 2 * sg, b[1]], 'ext');
       line([x, a[1]], [x, b[1]], 'dim arrow2');
       text(x - 1.5, (a[1] + b[1]) / 2, f2(len) + sfxOf(len), 'dtx', 'middle', -90);
     } else {

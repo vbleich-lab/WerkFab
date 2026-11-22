@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Vrijrijden bij 5-assig bewerken",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z helemaal omhoog, daarna X/Y weg van het werkstuk",
+ "Nur Z ganz nach oben": "Alleen Z helemaal omhoog",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Voor het inzwenken en na het terugzwenken van de assen rijdt het gereedschap vrij in machinecoördinaten: eerst Z, dan X/Y – de draaias bewegen pas als het gereedschap bij het werkstuk vandaan staat",
+ "Freifahrposition X/Y": "Vrijrijpositie X/Y",
+ "Maschinen-Null (X0 Y0)": "Machinenul (X0 Y0)",
+ "Eigene Position": "Eigen positie",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Waarheen X en Y bij het vrijrijden rijden, in machinecoördinaten",
+ "Freifahrposition X": "Vrijrijpositie X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Machinecoördinaat X van de eigen vrijrijpositie (bijv. de rechterachterhoek van het verplaatsingsbereik)",
+ "Freifahrposition Y": "Vrijrijpositie Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Machinecoördinaat Y van de eigen vrijrijpositie",
+ "Freifahrhöhe Z": "Vrijrijhoogte Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Machinecoördinaat Z bij het vrijrijden (0 = helemaal boven). Heidenhain gebruikt de “Terugtrekhoogte M91”",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

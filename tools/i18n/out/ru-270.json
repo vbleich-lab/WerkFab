@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "Свободный отвод при 5-осевой обработке",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z до упора вверх, затем X/Y в сторону от детали",
+ "Nur Z ganz nach oben": "Только Z до упора вверх",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "Перед поворотом осей и после их возврата инструмент отводится в координатах станка: сначала Z, затем X/Y – поворотные оси двигаются только тогда, когда инструмент отведён от детали",
+ "Freifahrposition X/Y": "Позиция отвода X/Y",
+ "Maschinen-Null (X0 Y0)": "Ноль станка (X0 Y0)",
+ "Eigene Position": "Своя позиция",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "Куда перемещаются X и Y при отводе, в координатах станка",
+ "Freifahrposition X": "Позиция отвода X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "Координата станка X собственной позиции отвода (например, правый задний угол рабочей зоны)",
+ "Freifahrposition Y": "Позиция отвода Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "Координата станка Y собственной позиции отвода",
+ "Freifahrhöhe Z": "Высота отвода Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "Координата станка Z при отводе (0 = до упора вверх). Heidenhain использует «Высота отвода M91»",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

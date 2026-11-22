@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "مسار التحرير عند التشغيل الآلي بخمسة محاور",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z إلى الأعلى تمامًا، ثم X/Y بعيدًا عن القطعة",
+ "Nur Z ganz nach oben": "Z إلى الأعلى تمامًا فقط",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "قبل تدوير المحاور وبعد إعادتها، تتحرك الأداة إلى موضع آمن بإحداثيات الآلة: Z أولًا ثم X/Y – ولا تتحرك محاور الدوران إلا بعد ابتعاد الأداة عن القطعة",
+ "Freifahrposition X/Y": "موضع التحرير X/Y",
+ "Maschinen-Null (X0 Y0)": "صفر الآلة (X0 Y0)",
+ "Eigene Position": "موضع مخصص",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "إلى أين يتحرك X وY عند التحرير، بإحداثيات الآلة",
+ "Freifahrposition X": "موضع التحرير X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "إحداثي الآلة X لموضع التحرير المخصص (مثلًا الزاوية الخلفية اليمنى لمدى الحركة)",
+ "Freifahrposition Y": "موضع التحرير Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "إحداثي الآلة Y لموضع التحرير المخصص",
+ "Freifahrhöhe Z": "ارتفاع التحرير Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "إحداثي الآلة Z عند التحرير (0 = أعلى نقطة). يستخدم Heidenhain «ارتفاع التراجع M91»",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

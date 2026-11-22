@@ -940,7 +940,7 @@ function applyAppearance(key, bodyIds) {
 }
 function openAppearance() {
   if (appPanel) { appPanel.remove(); appPanel = null; return; }
-  const selBody = () => (state.sel?.kind === 'body' ? [state.sel.id] : []);
+  const selBody = () => selBodyIds();
   const used = () => [...new Set(getModel().bodies.map(b => bodyMeta(b.id).appearance || MATERIAL_LOOK[bodyMeta(b.id).material || 'alu']).filter(Boolean))];
   const sw = key => {
     const look = APPEARANCES[key];
@@ -1043,6 +1043,7 @@ const matMeasure = new THREE.LineBasicMaterial({ color: 0xff7a00, depthTest: fal
 
 // ---------- face selection (highlighted like in CAD programs) ----------
 const matFaceSel = new THREE.MeshBasicMaterial({ color: 0x9fdcff, transparent: true, opacity: 0.88, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+const matBodySel = new THREE.MeshBasicMaterial({ color: 0x4fb8ff, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
 const matFaceHover = new THREE.MeshBasicMaterial({ color: 0x4fb8ff, transparent: true, opacity: 0.45, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
 const _tri = new THREE.Triangle(), _fq = new THREE.Vector3(), _fp = new THREE.Vector3();
 let faceCache = { key: null, map: new Map() };
@@ -1542,6 +1543,7 @@ function rebuildScene() {
   drawMeshes();
   // common CAD/CAM "Flacher Zustand": the sheet metal part is shown developed, with its bend lines
   const flatShown = drawFlatPattern();
+  const multiSel = !cam && !state.pick && !state.sketchId ? selBodyIds() : [];
   for (const [bi, b] of flatShown ? [] : m.bodies.entries()) {
     if (state.hiddenBodies.has(b.id)) continue;
     const mesh = new THREE.Mesh(b.geometry, ghost ? matGhost : xpl.hl?.has(b.id) ? matXplHl : display === 'wire' ? matWire : bodyMaterial(b.id));
@@ -1553,6 +1555,12 @@ function rebuildScene() {
     const edges = new THREE.LineSegments(b.edges, ghost ? matEdgeGhost : matEdge);
     edges.userData = { cached: true, body: bi, edges: true };
     vp.model.add(mesh);
+    if (multiSel.length > 1 && multiSel.includes(b.id)) {
+      const tint = new THREE.Mesh(b.geometry, matBodySel);
+      tint.userData = { cached: true };
+      if (am) { tint.matrixAutoUpdate = false; tint.matrix.copy(am); }
+      vp.paths.add(tint);
+    }
     // edges stay pickable while selecting them for fillets, even in shaded mode
     if (am) { edges.matrixAutoUpdate = false; edges.matrix.copy(am); }
     if (state.workspace !== 'render' && (display !== 'shaded' || state.pick?.mode === 'edges')) vp.model.add(edges);
@@ -3355,10 +3363,12 @@ function sketchMenu(e, f) {
 function bodyMenu(e, b, all) {
   const hidden = state.hiddenBodies.has(b.id);
   const src = feature(b.id) || feature(String(b.id).replace(/_\d+$/, ''));
+  // the body is one of several chosen ones: the entry works on all of them
+  const sel = selBodyIds(), ids = sel.length > 1 && sel.includes(b.id) ? sel : [b.id];
   ctxMenu(e.clientX, e.clientY, [
     { label: 'Umbenennen', onclick: () => renameBody(b) },
-    { label: hidden ? 'Einblenden' : 'Ausblenden', icon: '👁', key: 'V', onclick: () => setBodyHidden([b.id], !hidden) },
-    { label: 'Isolieren', onclick: () => { state.hiddenBodies.clear(); setBodyHidden(all.filter(x => x.id !== b.id).map(x => x.id), true); } },
+    { label: hidden ? 'Einblenden' : 'Ausblenden', icon: '👁', key: 'V', onclick: () => setBodyHidden(ids, !hidden) },
+    { label: 'Isolieren', onclick: () => { state.hiddenBodies.clear(); setBodyHidden(all.filter(x => !ids.includes(x.id)).map(x => x.id), true); } },
     { label: 'Alle einblenden', onclick: () => { state.hiddenBodies.clear(); renderTree(); rebuildScene(); } },
     { sep: true },
     { label: 'Physikalisches Material / Eigenschaften', onclick: () => select('body', b.id) },
@@ -3535,10 +3545,11 @@ function renderTree() {
     t.append(node({ svg: SVG.folder, name: `Körper (${m.bodies.length})`, depth: 1, open: O('bodies'), okey: 'bodies',
       eye: m.bodies.length ? { on: !allHidden, toggle: () => setBodyHidden(m.bodies.map(b => b.id), !allHidden) } : null }));
     if (O('bodies')) {
+      const multiSel = selBodyIds();
       for (const b of m.bodies) {
         const src = feature(b.id) || feature(String(b.id).replace(/_\d+$/, ''));
         t.append(node({
-          svg: b.surface ? SVG.surfbody : SVG.body, name: bodyName(b) + (b.surface ? ' (Fläche)' : ''), depth: 2, selected: isSel('body', b.id), onclick: () => select('body', b.id), fid: src?.id,
+          svg: b.surface ? SVG.surfbody : SVG.body, name: bodyName(b) + (b.surface ? ' (Fläche)' : ''), depth: 2, selected: isSel('body', b.id) || multiSel.includes(b.id), onclick: e => (e?.ctrlKey || e?.metaKey || e?.shiftKey ? toggleBodySel(b.id) : select('body', b.id)), fid: src?.id,
           eye: { on: !state.hiddenBodies.has(b.id), toggle: () => setBodyHidden([b.id], !state.hiddenBodies.has(b.id)) },
           oncontext: e => bodyMenu(e, b, m.bodies),
         }));
@@ -10268,8 +10279,9 @@ function propsPost(b) {
 }
 
 // ---------- actions ----------
-function select(kind, id = null) {
+function select(kind, id = null, bodies = null) {
   if (kind === 'post') return openPostDialog();
+  state.selBodies = kind === 'body' && bodies?.length > 1 ? bodies : null;
   if (state.pick && state.pick.mode !== 'measure') state.pick = null;
   if (kind === 'setup' && id) state.camSetup = id;
   if (kind === 'op') state.camSetup = camOp(id)?.setup || state.camSetup;
@@ -10531,10 +10543,13 @@ function viewportClick(e) {
       if (eh && (!hit || eh.distance <= hit.distance + vp.worldPerPixel() * 6)) {
         const eb = m.bodies[eh.object.userData.body], ei = eb.segEdge[Math.floor(eh.index / 2)];
         const ref = edgeMidpoint(eb, ei);
+        // a click anywhere on a chain that is already chosen takes it out again (not only on the edge clicked first)
+        const upC = setupUp(state.project.cam.setups.find(x => x.id === hop.setup) || state.project.cam.setups[0]), mine = edgeChain(ref, upC);
+        const sameChain = r => { const c = edgeChain(r, upC); return !!c && !!mine && c.bi === mine.bi && c.fid === mine.fid && c.loop.length === mine.loop.length && c.loop[0].distanceTo(mine.loop[0]) < 1e-6; };
         return editOp(hop.id, o => {
           o.geomSource = 'model';
           o.edges ||= [];
-          const k = o.edges.findIndex(r => Math.hypot(r[0] - ref[0], r[1] - ref[1], r[2] - ref[2]) < 1e-3);
+          const k = o.edges.findIndex(r => Math.hypot(r[0] - ref[0], r[1] - ref[1], r[2] - ref[2]) < 1e-3 || sameChain(r));
           if (k >= 0) o.edges.splice(k, 1); else o.edges.push(ref);
         });
       }
@@ -12077,6 +12092,20 @@ onChange(() => { if (xpl.el) setTimeout(async () => { const X = await import('./
 const asmEdit = fn => commit(pp => { pp.assembly ||= { placements: {}, joints: [] }; pp.assembly.joints ||= []; fn(pp.assembly); });
 const movableJoints = () => (state.project.assembly?.joints || []).filter(j => (JOINT_DOF[j.type] || []).length);
 const selBodyId = () => (state.sel?.kind === 'body' ? state.sel.id : null);
+// several bodies chosen at once (selection frame, Strg/Umschalt + click); state.sel is one of them
+function selBodyIds() {
+  if (state.sel?.kind !== 'body') return [];
+  const bodies = getModel().bodies, list = (state.selBodies || []).filter(id => bodies.some(b => b.id === id));
+  return list.includes(state.sel.id) ? list : [state.sel.id];
+}
+const bodiesStatus = list => status(list.length ? `${list.length} Körper gewählt: ${list.map(bodyName).join(', ')}` : 'Kein Körper im Rahmen.');
+// Strg/Umschalt + click on a body: into the selection, or out of it again
+function toggleBodySel(id) {
+  const cur = selBodyIds(), list = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
+  if (!list.length) { state.sel = null; state.selBodies = null; status(''); return renderAll(); }
+  select('body', cur.includes(id) ? list[list.length - 1] : id, list);
+  if (list.length > 1) bodiesStatus(getModel().bodies.filter(b => list.includes(b.id)));
+}
 const bodyChecks = (ids = []) => getModel().bodies.map(b => ({ key: b.id, label: bodyName(b), check: true, value: ids.includes(b.id) }));
 
 // Neue Komponente: the next shape makes a body of its own (a sketch follows)
@@ -12100,7 +12129,7 @@ async function componentsFromBodies() {
 async function rigidGroup() {
   const bodies = getModel().bodies;
   if (bodies.length < 2) return status('Eine Starrgruppe braucht mindestens zwei Körper.');
-  const v = await formDialog('Starrgruppe', [...bodyChecks(selBodyId() ? [selBodyId()] : []), { key: 'hint', hint: 'Die gewählten Körper werden starr mit dem ersten verbunden und bewegen sich gemeinsam.' }], 'Verbinden');
+  const v = await formDialog('Starrgruppe', [...bodyChecks(selBodyIds()), { key: 'hint', hint: 'Die gewählten Körper werden starr mit dem ersten verbunden und bewegen sich gemeinsam.' }], 'Verbinden');
   if (!v) return;
   const ids = bodies.filter(b => v[b.id]).map(b => b.id);
   if (ids.length < 2) return status('Mindestens zwei Körper wählen.');
@@ -12698,12 +12727,14 @@ function filteredClick(e) {
       select('body', b.id);
       return showBanner([`Fläche: ${{ PLANE: 'Ebene', CYLINDER: 'Zylinder', CONE: 'Kegel', SPHERE: 'Kugel', TORUS: 'Torus', BSPLINE_SURFACE: 'Freiform' }[fc?.geomType] || fc?.geomType || '?'} · ${f2(A)} mm² · Körper ${bodyName(b)}`, h('button', { onclick: () => showBanner(null) }, 'OK')]);
     }
-    if (F.body) return select('body', b.id);
+    if (F.body) return e.ctrlKey || e.metaKey || e.shiftKey ? toggleBodySel(b.id) : select('body', b.id);
   }
   if (F.sketch) {
     const pl = planeUnderMouse(e);
     if (pl?.userData.plane) return select('feature', pl.userData.plane);
   }
+  // a click beside everything lets the chosen bodies go
+  if (!hit && state.sel?.kind === 'body' && !(e.ctrlKey || e.metaKey || e.shiftKey)) { state.sel = null; state.selBodies = null; status(''); renderAll(); }
 }
 // an edge clicked without a command is remembered for Verrundung / Fase (Umschalt/Strg: more edges)
 function preEdgeClick(e) {
@@ -12745,9 +12776,10 @@ function frameSelect(a, e, add) {
   const x0 = Math.min(a[0], e.clientX), x1 = Math.max(a[0], e.clientX), y0 = Math.min(a[1], e.clientY), y1 = Math.max(a[1], e.clientY);
   const inside = frameBodies(x0, y0, x1, y1, e.clientX < a[0]);
   const ids = inside.map(b => b.id);
-  state.selBodies = add ? [...new Set([...(state.selBodies || []), ...ids])] : ids;
-  if (inside[0]) select('body', inside[0].id); else renderAll();
-  status(inside.length ? `${inside.length} Körper gewählt: ${inside.map(bodyName).join(', ')}` : 'Kein Körper im Rahmen.');
+  const list = add ? [...new Set([...selBodyIds(), ...ids])] : ids;
+  if (list.length) select('body', list.includes(state.sel?.id) && state.sel.kind === 'body' ? state.sel.id : list[0], list);
+  else { if (state.sel?.kind === 'body') state.sel = null; state.selBodies = null; renderAll(); }
+  bodiesStatus(add ? getModel().bodies.filter(b => list.includes(b.id)) : inside);
 }
 function frameDrag(a, add, done) {
   const box = h('div', { class: 'lasso-box' });
@@ -12778,7 +12810,7 @@ vp.canvas.addEventListener('pointerdown', e => {
   const meshes = [];
   vp.model.traverse(o => { if (o.isMesh && o.visible) meshes.push(o); });
   vp.raycaster.setFromCamera(vp.ndc(e), vp.camera);
-  if (vp.raycaster.intersectObjects(meshes, false).length) return;
+  if (state.pick && vp.raycaster.intersectObjects(meshes, false).length) return;
   const a = [e.clientX, e.clientY], add = e.shiftKey || e.ctrlKey || e.metaKey;
   const start = ev => {
     if (Math.hypot(ev.clientX - a[0], ev.clientY - a[1]) < 6) return;
@@ -12799,6 +12831,20 @@ function editSketchCmd() {
 }
 function deleteSelectedCmd() {
   if (state.sel?.kind === 'feature' && feature(state.sel.id)) return deleteFeature(state.sel.id);
+  const many = selBodyIds();
+  if (many.length > 1) {
+    // several bodies: one step "Körper entfernen" each, in one undo step
+    commit(p => {
+      for (const id of many) {
+        const f = { id: uid('re'), type: 'removebody', name: nextName(p.features, FEATURE_TYPES.removebody), body: id };
+        if (state.rollback != null) { p.features.splice(state.rollback, 0, f); state.rollback++; if (state.rollback >= p.features.length) state.rollback = null; }
+        else p.features.push(f);
+      }
+    });
+    state.sel = null; state.selBodies = null;
+    renderAll();
+    return status(`${many.length} Körper entfernt – je ein Schritt „Körper entfernen“ in der Zeitleiste.`);
+  }
   if (selBodyId()) return createFeature('removebody');
   status('Zuerst einen Schritt in der Zeitleiste oder einen Körper wählen.');
 }
@@ -12945,6 +12991,8 @@ function sheetRulesCmd() {
 let drawingCache = null;
 // picking on the drawing sheet: 'dim' (two corner points → a dimension) or 'detail' (centre of a detail view)
 let dwPick = { mode: null, pts: [] };
+// a length dimension that was just set and still follows the mouse (index in userDims): the next click places it
+let dwPlace = null;
 // the detail views of a drawing with their view keys: the first one of older drawings is 'detail', the others 'det<id>'
 const drawingDetails = d => [...(d.detail ? [{ ...d.detail, key: 'detail' }] : []), ...(d.details || []).map(t => ({ ...t, key: 'det' + t.id }))];
 const drawingDetailRef = (d, key) => (key === 'detail' ? d.detail : (d.details || []).find(t => 'det' + t.id === key));
@@ -13261,8 +13309,44 @@ function enableViewDrag(sheet, d, ed) {
     const o = d.offsets?.[k] || { dx: 0, dy: 0 };
     return { k, u: x.x0 + (p.x - o.dx - x.px) / x.s, v: x.y1 - (p.y - o.dy - x.py) / x.s, x };
   };
+  // where the dimension line of a length dimension goes for a mouse position on the sheet: above or below (h),
+  // right or left (v) of the points, or across the edge (aligned)
+  const placeLine = dm => {
+    const x = drawingCache.xf?.[dm.view], o = d.offsets?.[dm.view] || { dx: 0, dy: 0 };
+    const S = q => [x.px + (q[0] - x.x0) * x.s + o.dx, x.py + (x.y1 - q[1]) * x.s + o.dy];
+    return { a: S(dm.a), b: S(dm.b) };
+  };
+  const placeOff = (i, p) => {
+    const dm = d.userDims?.[i];
+    if (!dm || !['h', 'v', 'a'].includes(dm.kind) || !drawingCache.xf?.[dm.view]) return null;
+    const { a, b } = placeLine(dm);
+    if (dm.kind === 'h') { const lo = Math.min(a[1], b[1]), hi = Math.max(a[1], b[1]); return +(p.y < (lo + hi) / 2 ? Math.max(2, lo - p.y) : -Math.max(2, p.y - hi)).toFixed(1); }
+    if (dm.kind === 'v') { const lo = Math.min(a[0], b[0]), hi = Math.max(a[0], b[0]); return +(p.x > (lo + hi) / 2 ? Math.max(2, p.x - hi) : -Math.max(2, lo - p.x)).toFixed(1); }
+    const L0 = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    let n = [-(b[1] - a[1]) / L0, (b[0] - a[0]) / L0];
+    if (n[1] > 0) n = [-n[0], -n[1]];
+    return +Math.max(2, (p.x - a[0]) * n[0] + (p.y - a[1]) * n[1]).toFixed(1);
+  };
+  if (dwPlace && !(dwPick.mode === 'dim' && d.userDims?.[dwPlace.i])) dwPlace = null;
+  if (dwPlace) svg.addEventListener('pointermove', e => {
+    const pl = dwPlace, dm = pl && d.userDims?.[pl.i], g = pl && svg.querySelector(`g.udim[data-dim="${pl.i}"]`), off = pl && placeOff(pl.i, toMM(e));
+    if (!dm || !g || off == null) return;
+    // the line itself moves with the mouse (the extension lines follow at the click)
+    const { a, b } = placeLine(dm), cur = +dm.off || 16;
+    const at = f => (dm.kind === 'h' ? (f < 0 ? Math.max(a[1], b[1]) - f : Math.min(a[1], b[1]) - f) : dm.kind === 'v' ? (f < 0 ? Math.min(a[0], b[0]) + f : Math.max(a[0], b[0]) + f) : f);
+    const dl = at(off) - at(cur);
+    if (dm.kind === 'h') g.setAttribute('transform', `translate(0 ${dl.toFixed(2)})`);
+    else if (dm.kind === 'v') g.setAttribute('transform', `translate(${dl.toFixed(2)} 0)`);
+    else { const L0 = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; let n = [-(b[1] - a[1]) / L0, (b[0] - a[0]) / L0]; if (n[1] > 0) n = [-n[0], -n[1]]; g.setAttribute('transform', `translate(${(n[0] * dl).toFixed(2)} ${(n[1] * dl).toFixed(2)})`); }
+  });
   svg.addEventListener('click', e => {
     if (!dwPick.mode) return;
+    if (dwPlace) {
+      const i = dwPlace.i, off = placeOff(i, toMM(e));
+      dwPlace = null;
+      status('Maß gesetzt – nächstes Maß: Kante, Kreis oder zwei Punkte anklicken. Esc beendet.');
+      return off == null ? renderDrawing() : ed(x => { x.userDims[i].off = off; });
+    }
     const q = toView(toMM(e));
     const inDetail = !!q && /^det/.test(q.k);
     if (!q || q.k === 'iso') return status('Bitte in die Vorder-, Drauf- oder Seitenansicht (oder in eine Detailansicht) klicken.');
@@ -13334,7 +13418,27 @@ function enableViewDrag(sheet, d, ed) {
     // dimension: snap to the nearest corner of the view (within 4 mm on the sheet)
     let best = null, bd = 4 / q.x.s;
     for (const p of drawingCache.snaps?.[q.k] || []) { const dd = Math.hypot(p[0] - q.u, p[1] - q.v); if (dd < bd) { bd = dd; best = p; } }
-    if (!best) return status('Kein Eckpunkt in der Nähe – näher an eine Ecke oder ein Linienende klicken.');
+    // no corner under the mouse, but an edge: its length (both ends), as a click on a line does everywhere else
+    if (!best && !dwPick.pts.length && !['ang', 'cha', 'rad'].includes(d.dimKind)) {
+      const gv = svg.querySelector(`g[data-view="${q.k}"]`), o = d.offsets?.[q.k] || { dx: 0, dy: 0 }, pm = toMM(e);
+      let hit = null, hd = 2.5;
+      for (const l of gv?.querySelectorAll('line.vis') || []) {
+        const a = [+l.getAttribute('x1') + o.dx, +l.getAttribute('y1') + o.dy], b = [+l.getAttribute('x2') + o.dx, +l.getAttribute('y2') + o.dy];
+        const ux = b[0] - a[0], uy = b[1] - a[1], L2 = ux * ux + uy * uy;
+        if (L2 < 0.25) continue;
+        const t = Math.max(0, Math.min(1, ((pm.x - a[0]) * ux + (pm.y - a[1]) * uy) / L2)), dd = Math.hypot(pm.x - a[0] - t * ux, pm.y - a[1] - t * uy);
+        if (dd < hd) { hd = dd; hit = [a, b]; }
+      }
+      if (hit) {
+        const V = s => [+(q.x.x0 + (s[0] - o.dx - q.x.px) / q.x.s).toFixed(3), +(q.x.y1 - (s[1] - o.dy - q.x.py) / q.x.s).toFixed(3)], A = V(hit[0]), B = V(hit[1]);
+        const ddx = Math.abs(A[0] - B[0]), ddy = Math.abs(A[1] - B[1]);
+        const kind = d.dimKind && d.dimKind !== 'auto' ? d.dimKind : ddy < 1e-6 ? 'h' : ddx < 1e-6 ? 'v' : 'a';
+        dwPlace = { i: (d.userDims || []).length };
+        status('Maßlinie mit der Maus an ihre Stelle ziehen und klicken.');
+        return ed(x => { x.userDims = [...(x.userDims || []), { view: q.k, a: A, b: B, kind, off: 16 }]; });
+      }
+    }
+    if (!best) return status('Kein Eckpunkt und keine Kante in der Nähe – näher an eine Ecke, ein Linienende oder eine Kante klicken.');
     if (dwPick.pts.length && dwPick.pts[0].k !== q.k) return status('Beide Punkte müssen in derselben Ansicht liegen.');
     dwPick.pts.push({ k: q.k, p: best });
     // angle: corner first, then one point on each leg
@@ -13363,6 +13467,8 @@ function enableViewDrag(sheet, d, ed) {
     }
     const kind = d.dimKind && !['auto', 'rad'].includes(d.dimKind) ? d.dimKind : dy < 1e-6 ? 'h' : dx < 1e-6 ? 'v' : dx >= dy ? 'h' : 'v';
     dwPick = { mode: 'dim', pts: [] };
+    dwPlace = { i: (d.userDims || []).length };
+    status('Maßlinie mit der Maus an ihre Stelle ziehen und klicken.');
     ed(x => { x.userDims = [...(x.userDims || []), { view: q.k, a: A, b: B, kind, off: 16 }]; });
   });
   // own dimensions are moved with the mouse: lengths by the distance of the dimension line, diameters / notes
@@ -13399,7 +13505,8 @@ function enableViewDrag(sheet, d, ed) {
         let n = dm.kind === 'h' ? [0, -1] : dm.kind === 'v' ? [1, 0] : null;
         if (!n) { const a = S(dm.a), b = S(dm.b), L0 = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; n = [-(b[1] - a[1]) / L0, (b[0] - a[0]) / L0]; if (n[1] > 0) n = [-n[0], -n[1]]; }
         const t = dx * n[0] + dy * n[1];
-        patch = { off: +Math.max(2, (+dm.off || 16) + t).toFixed(1) };
+        // (a dimension line below or left of the points has a negative distance and stays on its side)
+        patch = { off: +((+dm.off || 16) < 0 && dm.kind !== 'a' ? Math.min(-2, +dm.off + t) : Math.max(2, (+dm.off || 16) + t)).toFixed(1) };
         const tt = patch.off - (+dm.off || 16);
         g.setAttribute('transform', `translate(${(n[0] * tt).toFixed(2)} ${(n[1] * tt).toFixed(2)})`);
       }
@@ -14150,7 +14257,8 @@ document.querySelectorAll('[data-tl]').forEach(b => b.addEventListener('click', 
 let downAt = null;
 vp.canvas.addEventListener('pointerdown', e => (downAt = [e.clientX, e.clientY]));
 vp.canvas.addEventListener('pointerup', e => {
-  if (!downAt || !state.pick || state.sketchId || e.button !== 0) return;
+  // (without a command only KONSTRUKTION takes clicks: the selection filter decides what they select)
+  if (!downAt || (!state.pick && state.workspace !== 'design') || state.sketchId || e.button !== 0) return;
   if (Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) < 5) viewportClick(e);
 });
 
@@ -14203,7 +14311,12 @@ window.addEventListener('keydown', e => {
   if (state.sketchId) { const r = sketcher.key(e); if (r) { if (r !== 'focus') e.preventDefault(); return; } }
   if (e.key === 'Escape') {
     // a command dialog that is picking: Esc cancels the command (as Abbrechen); a selection made without a command goes
-    if (state.pick && state.pick.mode !== 'measure' && dialogTarget()?.kind === 'feature' && state.pick.id === dialogTarget().id) { measure.pts = []; dialogCancel(); }
+    // drawing window: Esc first drops the dimension that still follows the mouse, then ends the tool
+    if (!wm.get('winDrawing').el.hidden && (dwPlace || dwPick.mode)) {
+      if (dwPlace) dwPlace = null; else dwPick = { mode: null, pts: [] };
+      status(''); renderDrawing();
+    }
+    else if (state.pick && state.pick.mode !== 'measure' && dialogTarget()?.kind === 'feature' && state.pick.id === dialogTarget().id) { measure.pts = []; dialogCancel(); }
     else if (state.pick) { state.pick = null; measure.pts = []; showBanner(null); renderAll(); }
     else if (state.preRegions || state.preEdges) { state.preRegions = null; state.preEdges = null; status(''); rebuildScene(); }
     else if (state.sketchId) {
@@ -14222,7 +14335,7 @@ window.addEventListener('keydown', e => {
   if (k === 'f' && !(state.workspace === 'design' && !state.sketchId)) return fitView();
   if (k === 'v' && !state.sketchId) {
     // V toggles visibility of the selected body or sketch
-    if (state.sel?.kind === 'body') return setBodyHidden([state.sel.id], !state.hiddenBodies.has(state.sel.id));
+    if (state.sel?.kind === 'body') return setBodyHidden(selBodyIds(), !state.hiddenBodies.has(state.sel.id));
     const f = state.sel?.kind === 'feature' && feature(state.sel.id);
     if (f?.type === 'sketch') return setSketchesHidden([f.id], !f.hidden);
   }
@@ -14237,7 +14350,7 @@ window.addEventListener('keydown', e => {
     if (k === 'a') return openAppearance();
     if (k === 'i') return toggleMeasure();
     if (k === 'k') return startPickPlane();
-    if (e.key === 'Delete' && state.sel?.kind === 'feature') return deleteFeature(state.sel.id);
+    if (e.key === 'Delete' && (state.sel?.kind === 'feature' || state.sel?.kind === 'body')) return deleteSelectedCmd();
   }
 });
 

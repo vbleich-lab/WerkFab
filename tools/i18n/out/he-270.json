@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "תנועת פינוי בעיבוד 5 צירים",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z עד למעלה, ואז X/Y הרחק מהחלק",
+ "Nur Z ganz nach oben": "רק Z עד למעלה",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "לפני הטיית הצירים ואחרי החזרתם, הכלי מתפנה בקואורדינטות מכונה: קודם Z, אחר כך X/Y – צירי הסיבוב זזים רק לאחר שהכלי התרחק מהחלק",
+ "Freifahrposition X/Y": "מיקום פינוי X/Y",
+ "Maschinen-Null (X0 Y0)": "אפס מכונה (X0 Y0)",
+ "Eigene Position": "מיקום מותאם",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "לאן X ו-Y נעים בתנועת הפינוי, בקואורדינטות מכונה",
+ "Freifahrposition X": "מיקום פינוי X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "קואורדינטת מכונה X של מיקום הפינוי המותאם (למשל הפינה האחורית הימנית של טווח התנועה)",
+ "Freifahrposition Y": "מיקום פינוי Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "קואורדינטת מכונה Y של מיקום הפינוי המותאם",
+ "Freifahrhöhe Z": "גובה פינוי Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "קואורדינטת מכונה Z בפינוי (0 = עד למעלה). Heidenhain משתמש ב״גובה נסיגה M91״",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}

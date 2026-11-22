@@ -1,0 +1,17 @@
+{
+ "Freifahren bei 5-Achs-Bearbeitung": "გასვლა 5-ღერძიანი დამუშავებისას",
+ "Z ganz nach oben, dann X/Y weg vom Teil": "Z სულ ზემოთ, შემდეგ X/Y ნაწილიდან მოშორებით",
+ "Nur Z ganz nach oben": "მხოლოდ Z სულ ზემოთ",
+ "Vor dem Einschwenken und nach dem Ausschwenken fährt das Werkzeug in Maschinenkoordinaten frei: erst Z, dann X/Y – die Drehachsen bewegen sich erst, wenn das Werkzeug weg vom Teil steht": "ღერძების მობრუნებამდე და უკან დაბრუნების შემდეგ ხელსაწყო დაზგის კოორდინატებში გადის უსაფრთხო პოზიციაზე: ჯერ Z, შემდეგ X/Y – მბრუნავი ღერძები მოძრაობს მხოლოდ მაშინ, როცა ხელსაწყო ნაწილს მოშორებულია",
+ "Freifahrposition X/Y": "გასვლის პოზიცია X/Y",
+ "Maschinen-Null (X0 Y0)": "დაზგის ნული (X0 Y0)",
+ "Eigene Position": "საკუთარი პოზიცია",
+ "Wohin X und Y beim Freifahren fahren, in Maschinenkoordinaten": "სად გადადის X და Y გასვლისას, დაზგის კოორდინატებში",
+ "Freifahrposition X": "გასვლის პოზიცია X",
+ "Maschinenkoordinate X der eigenen Freifahrposition (z. B. die Ecke hinten rechts des Verfahrbereichs)": "საკუთარი გასვლის პოზიციის დაზგის კოორდინატა X (მაგ. სვლის არის უკანა მარჯვენა კუთხე)",
+ "Freifahrposition Y": "გასვლის პოზიცია Y",
+ "Maschinenkoordinate Y der eigenen Freifahrposition": "საკუთარი გასვლის პოზიციის დაზგის კოორდინატა Y",
+ "Freifahrhöhe Z": "გასვლის სიმაღლე Z",
+ "Maschinenkoordinate Z beim Freifahren (0 = ganz oben). Heidenhain nimmt die „Rückzugshöhe M91“": "დაზგის კოორდინატა Z გასვლისას (0 = სულ ზემოთ). Heidenhain იყენებს „უკან გაყვანის სიმაღლე M91“-ს",
+ "L X{0} Y{1} R0 FMAX M91": "L X{0} Y{1} R0 FMAX M91"
+}
