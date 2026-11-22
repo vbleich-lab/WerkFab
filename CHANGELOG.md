@@ -1,5 +1,19 @@
 # Änderungen
 
+## v1.0.0-rc.34 – 2026-11-22
+
+### Konstruktion
+- **Fläche anklicken, dann den Befehl:** Ein Klick auf einen Körper merkt sich die Fläche unter der Maus (hellblau), Strg oder Umschalt + Klick nimmt weitere dazu oder wieder heraus. Der nächste Befehl nimmt sie: „Skizze“ (K) legt die Skizze gleich auf die ebene Fläche, Drücken/Ziehen (Q) und Extrusion (E) ziehen sie, Bohrung (H) setzt die Bohrung an die angeklickte Stelle, Schale, Formschräge, Fläche versetzen/ersetzen/löschen/verschieben, Aufdicken, Versatzfläche und Gewinde bekommen sie als Auswahl. Vorher musste immer erst der Befehl gestartet und dann die Fläche gewählt werden.
+- **Entf löscht die gewählte Fläche:** Sind Flächen in der Ansicht angeklickt, öffnet Entf „Fläche löschen“ mit diesen Flächen – so verschwindet eine Bohrung, eine Rundung oder ein Zapfen (Wand und Deckfläche gemeinsam wählen). Den ganzen Körper entfernt Entf, wenn er im Browser gewählt ist oder mehrere Körper gewählt sind.
+- **Versatzebene, Ebene unter Winkel und Mittelebene an einer Fläche:** Ist eine ebene Fläche gewählt, ist sie der Bezug der neuen Ebene („Gewählte Fläche“); zwei gewählte Flächen ergeben die Mittelebene dazwischen. Die Ebene behält die Lage, die die Fläche beim Anklicken hatte.
+- **Esc bricht den Befehl ab:** Im offenen Befehlsfenster nimmt Esc ein neues Feature wieder weg und macht Änderungen an einem bestehenden rückgängig – wie „Abbrechen“. Vorher blieb das Feature mit den Vorgabewerten stehen, wenn gerade keine Auswahl lief.
+- **Muster und Spiegeln nehmen das gewählte Feature:** Ist in der Zeitachse ein Schritt gewählt, wird er vervielfältigt (vorher immer der letzte).
+- **Verschieben/Kopieren, Skalieren und Teilen** beginnen mit dem gewählten Körper (vorher immer mit dem letzten).
+- **Flächenbefehle ohne Fläche** lassen sich nicht mehr mit OK abschließen – es kommt der Hinweis, zuerst eine Fläche anzuklicken.
+
+### Fertigung
+- **Esc nimmt eine neue Operation wieder weg:** Wer eine Operation aus der Werkzeugleiste startet und Esc drückt, hat danach keine leere Operation mehr im Browser. Bei einer bestehenden Operation beendet Esc wie bisher nur die Auswahl.
+
 ## v1.0.0-rc.33 – 2026-11-22
 
 ### Konstruktion

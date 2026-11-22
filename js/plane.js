@@ -68,6 +68,10 @@ export function withOffset(plane, off) {
 // A reference is a base plane name, a construction plane feature id or a sketch id.
 export function planeRef(ref, features, depth = 0) {
   if (BASE_PLANES[ref]) return BASE_PLANES[ref];
+  // a flat face of a body, kept as the plane it had when it was clicked
+  if (typeof ref === 'string' && ref.startsWith('face:')) {
+    try { const p = JSON.parse(ref.slice(5)); return p?.o && p?.x && p?.n ? p : null; } catch { return null; }
+  }
   const f = features.find(x => x.id === ref);
   if (!f || depth > 20) return null;
   if (f.type === 'sketch') return sketchPlane(f);

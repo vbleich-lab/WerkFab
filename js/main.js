@@ -979,6 +979,8 @@ vp.canvas.addEventListener('drop', e => {
 // common CAD/CAM "Drücken/Ziehen": a planar face is pushed or pulled (face extrusion), an edge is rounded.
 function startPressPull() {
   if (!getModel().bodies.length) return status('Kein Körper vorhanden.');
+  const flat = preFlat();
+  if (flat.length) return extrudeFaces(flat.map(r => r.ref));
   state.pick = { mode: 'presspull' };
   showBanner(['Drücken/Ziehen: ebene Fläche anklicken (verschieben) oder Kante anklicken (verrunden).', h('button', { onclick: () => { state.pick = null; showBanner(null); renderAll(); } }, 'Abbrechen')]);
   renderAll();
@@ -1001,13 +1003,7 @@ function pressPullPick(e, meshes, m) {
   const body = m.bodies[hit.object.userData.body], fid = body.faceOf[hit.faceIndex];
   const gt = body.shape?.faces?.[fid]?.geomType;
   if (gt && gt !== 'PLANE') return status('Drücken/Ziehen geht bei ebenen Flächen – für Kanten die Kante anklicken.');
-  state.pick = null; showBanner(null);
-  const id = uid('ex');
-  pendingNew = { id, depth: undoDepth() };
-  insertFeature({ id, type: 'extrude', name: nextName(p.features, FEATURE_TYPES.extrude), source: 'faces', faces: [faceRefPoint(body, hit.faceIndex)], extent: 'one', distance: 5, distance2: 5, op: 'auto' });
-  state.sel = { kind: 'feature', id };
-  renderAll();
-  status('Am blauen Pfeil ziehen oder Abstand eingeben – negativ drückt die Fläche ins Material.');
+  extrudeFaces([faceRefPoint(body, hit.faceIndex)]);
 }
 
 let lastClipCount = 0;
@@ -1392,6 +1388,8 @@ function highlightedFaces() {
     const op = id && camOp(id);
     return op && op.geomSource === 'model' ? op.faces || [] : [];
   }
+  const pre = preFaceList();
+  if (pre.length) return pre.map(r => r.ref);
   const id = state.pick?.mode === 'faces' ? state.pick.id : state.sel?.kind === 'feature' ? state.sel.id : null;
   const f = id && feature(id);
   return f && Array.isArray(f.faces) && (['shell', 'draft', 'thread'].includes(f.type) || (f.type === 'extrude' && f.source === 'faces')) ? f.faces : [];
@@ -2253,7 +2251,10 @@ function planeRefOptions(exceptId) {
   let upto = exceptId ? fs.findIndex(f => f.id === exceptId) : fs.length;
   if (upto < 0) upto = fs.length;
   const before = fs.slice(0, upto);
+  const own = exceptId ? fs.find(f => f.id === exceptId) : null;
+  const faces = [...new Set([own?.base, own?.base2].filter(v => typeof v === 'string' && v.startsWith('face:')))];
   return [...['XY', 'XZ', 'YZ'].map(k => [k, basePlaneName(k, true)]),
+    ...faces.map((v, i) => [v, faces.length > 1 ? `Gewählte Fläche ${i + 1}` : 'Gewählte Fläche']),
     ...before.filter(f => f.type === 'plane').map(f => [f.id, f.name]),
     ...before.filter(f => f.type === 'sketch').map(f => [f.id, `Ebene von ${f.name}`])];
 }
@@ -3797,7 +3798,8 @@ function dialogOk() {
   const t = dialogTarget();
   // an extrusion that still waits for its profile cannot be finished (OK would leave an empty feature)
   if (t?.kind === 'feature') { const f = feature(t.id); if (f?.type === 'extrude' && f.source !== 'faces' && f.profiles === 'pick' && !(f.regions || []).length) return status('Extrusion: zuerst ein Profil anklicken – oder „Ganze Skizze“ wählen.');
-    if ((f?.type === 'fillet' || f?.type === 'chamfer') && !f.all && !(f.edges || []).length && !(f.faces || []).length) return status('Zuerst mindestens eine Kante anklicken.'); }
+    if ((f?.type === 'fillet' || f?.type === 'chamfer') && !f.all && !(f.edges || []).length && !(f.faces || []).length) return status('Zuerst mindestens eine Kante anklicken.');
+    if (['offsetface', 'delface', 'movefaces', 'draft', 'thicken', 'offsetsurf', 'replaceface', 'thread'].includes(f?.type) && !(f.faces || []).length) return status('Zuerst mindestens eine Fläche anklicken.'); }
   dlg = { key: null, depth: 0 };
   if (state.pick && state.pick.mode !== 'measure') { state.pick = null; showBanner(null); }
   if (t?.kind === 'op') state.camSetup = camOp(t.id)?.setup || state.camSetup;
@@ -3827,7 +3829,7 @@ function renderProps() {
   const key = t ? t.kind + ':' + t.id : null;
   if (key !== dlg.key) {
     const fresh = pendingNew && pendingNew.id === t?.id;
-    dlg = { key, depth: fresh ? pendingNew.depth : undoDepth() };
+    dlg = { key, depth: fresh ? pendingNew.depth : undoDepth(), fresh };
     if (fresh) pendingNew = null;
   }
   buildProps();
@@ -10279,9 +10281,10 @@ function propsPost(b) {
 }
 
 // ---------- actions ----------
-function select(kind, id = null, bodies = null) {
+function select(kind, id = null, bodies = null, faces = null) {
   if (kind === 'post') return openPostDialog();
   state.selBodies = kind === 'body' && bodies?.length > 1 ? bodies : null;
+  state.preFaces = kind === 'body' && faces?.length ? faces : null;
   if (state.pick && state.pick.mode !== 'measure') state.pick = null;
   if (kind === 'setup' && id) state.camSetup = id;
   if (kind === 'op') state.camSetup = camOp(id)?.setup || state.camSetup;
@@ -10343,6 +10346,8 @@ function insertFeature(f) {
 
 function startPickPlane() {
   if (state.pick?.mode === 'plane') { state.pick = null; showBanner(null); renderToolbar(); rebuildScene(); return; }
+  const flat = preFlat();
+  if (flat.length === 1 && !state.sketchId) return createSketch(preFacePlane(flat[0]));
   state.pick = { mode: 'plane' };
   const mk = name => h('button', { onclick: () => createSketch(BASE_PLANES[name]) }, name);
   const cps = state.project.features.filter(f => f.type === 'plane' && !f.suppressed).map(f => h('button', { onclick: () => sketchOnPlaneFeature(f.id) }, f.name));
@@ -10436,6 +10441,7 @@ function preRegionClick(e) {
   const cells = add ? (k >= 0 ? cur.filter((_, i) => i !== k) : [...cur, best.cell]) : k >= 0 && cur.length === 1 ? [] : [best.cell];
   state.preRegions = cells.length ? { sketch: best.rsk.id, cells } : null;
   state.preEdges = null;
+  state.preFaces = null;
   status(cells.length ? `${cells.length} Profil${cells.length > 1 ? 'e' : ''} gewählt – Extrusion (E), Rotation oder Prägen nimmt sie. Umschalt/Strg + Klick: weitere Profile.` : '');
   rebuildScene();
   return true;
@@ -10500,14 +10506,7 @@ function viewportClick(e) {
     const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
     // planar check: every triangle of the picked B-rep face must share this normal
     const fid = body.faceOf[hit.faceIndex];
-    const idx = body.geometry.index.array, pos = body.geometry.attributes.position;
-    const a = new THREE.Vector3(), bb = new THREE.Vector3(), c = new THREE.Vector3(), tn = new THREE.Vector3();
-    for (let t = 0; t < body.faceOf.length; t++) {
-      if (body.faceOf[t] !== fid) continue;
-      a.fromBufferAttribute(pos, idx[t * 3]); bb.fromBufferAttribute(pos, idx[t * 3 + 1]); c.fromBufferAttribute(pos, idx[t * 3 + 2]);
-      tn.crossVectors(bb.sub(a), c.sub(a));
-      if (tn.lengthSq() > 1e-12 && Math.abs(tn.normalize().dot(n)) < 0.9999) return status('Nur ebene Flächen können als Skizzenebene dienen.');
-    }
+    if (!faceIsPlanar(body, fid, n)) return status('Nur ebene Flächen können als Skizzenebene dienen.');
     if (forHole) return holeAtPoint(planeFromFace(hit.point, n), hit.point);
     return createSketch(planeFromFace(hit.point, n));
   }
@@ -10655,10 +10654,11 @@ const planeDefaults = (ref, kind) => (kind === '3pt' ? { kind, pts: [] } : kind 
 // several → none yet, they are clicked (the command waits for them)
 function profileStart(rsk, preR) {
   state.preRegions = null;
-  if (preR?.cells?.length) return { profiles: 'pick', regions: preR.cells.map(c => [...c]) };
+  if (preR?.cells?.length) { status(''); return { profiles: 'pick', regions: preR.cells.map(c => [...c]) }; }
   return allCells(profileItems(rsk)).length > 1 ? { profiles: 'pick', regions: [] } : { profiles: 'all' };
 }
 
+const PRE_FACE_TYPES = ['shell', 'draft', 'thread', 'delface', 'movefaces', 'replaceface', 'offsetface', 'thicken', 'offsetsurf', 'splitface', 'untrim', 'straighten', 'endcap', 'lip'];
 function createFeature(type, extra = {}) {
   if (state.sketchId) return;
   const p = state.project;
@@ -10667,6 +10667,10 @@ function createFeature(type, extra = {}) {
   const id = uid(type.slice(0, 2));
   const base = { id, type, name: nextName(p.features, FEATURE_TYPES[type]) };
   let f;
+  // faces clicked beforehand: flat ones are extruded or get the hole, any kind goes into the face commands
+  const preF = preFaceList(), preFl = preF.filter(r => r.n);
+  if (type === 'extrude' && preFl.length && !state.preRegions) return extrudeFaces(preFl.map(r => r.ref));
+  if (type === 'hole' && preFl.length) { const r = preFl[preFl.length - 1]; state.preFaces = null; return holeAtPoint(preFacePlane(r), new THREE.Vector3(...r.pt)); }
   if (type === 'extrude' || type === 'revolve' || type === 'hole') {
     const preR = type !== 'hole' && state.preRegions ? state.preRegions : null;
     const sk = preR ? feature(preR.sketch) : pickSketch();
@@ -10720,7 +10724,7 @@ function createFeature(type, extra = {}) {
     f = { ...base, x: 0, y: 0, z: hasBodies ? f2(m.box.max.z) : 0, axis: 'z', dia: 20, turns: 5, height: 30, section: 2, shape: 'circle', hand: 'right', op: 'new' };
   } else if (type === 'scale') {
     if (!hasBodies) return status('Zuerst einen Körper erstellen.');
-    f = { ...base, body: m.bodies[m.bodies.length - 1].id, factor: 2, center: 'origin', cx: 0, cy: 0, cz: 0, copy: false };
+    f = { ...base, body: selBodyId() || m.bodies[m.bodies.length - 1].id, factor: 2, center: 'origin', cx: 0, cy: 0, cz: 0, copy: false };
   } else if (type === 'thread') {
     if (!hasBodies) return status('Gewinde braucht einen Körper mit Bohrung oder Bolzen.');
     f = { ...base, faces: [], size: 'auto', pitch: null, full: true, length: 10, modeled: false, hand: 'right', flip: false };
@@ -10729,7 +10733,7 @@ function createFeature(type, extra = {}) {
     f = { ...base, angle: 3, z: f2(m.box.min.z), faces: [] };
   } else if (type === 'split') {
     if (!hasBodies) return status('Zuerst einen Körper erstellen.');
-    f = { ...base, body: m.bodies[m.bodies.length - 1].id, plane: 'XY', offset: f2((m.box.min.z + m.box.max.z) / 2) };
+    f = { ...base, body: selBodyId() || m.bodies[m.bodies.length - 1].id, plane: 'XY', offset: f2((m.box.min.z + m.box.max.z) / 2) };
   } else if (type === 'freeform') {
     f = { ...base, x: 0, y: 0, w: 100, d: 80, base: 0, smooth: true, op: hasBodies ? 'join' : 'new',
       heights: [[15, 18, 22, 18, 15], [18, 26, 32, 26, 18], [15, 18, 22, 18, 15]] };
@@ -10791,7 +10795,9 @@ function createFeature(type, extra = {}) {
     if (getModel().bodies.length < 2) return status('Ausrichten braucht zwei Körper.');
     f = { ...base, mode: 'face', faces: [], edges: [], flip: false, offset: 0 };
   } else if (type === 'pattern' || type === 'mirror') {
-    const src = lastSolidSource();
+    // the step chosen in the timeline or browser is the one that is multiplied, else the last one
+    const selF = state.sel?.kind === 'feature' ? feature(state.sel.id) : null;
+    const src = selF && SOLID_SOURCES.includes(selF.type) ? selF : lastSolidSource();
     if (!src) return status('Kein Feature zum Vervielfältigen vorhanden.');
     f = type === 'mirror' ? { ...base, target: src.id, plane: 'YZ', offset: 0 }
       : extra.kind === 'circ' ? { ...base, kind: 'circ', target: src.id, axis: 'z', cx: 0, cy: 0, cz: 0, n: 6, angle: 360 }
@@ -10802,11 +10808,14 @@ function createFeature(type, extra = {}) {
         : { ...base, kind: 'rect', target: src.id, dir1: 'x', n1: 3, s1: 20, dir2: 'y', n2: 1, s2: 20 };
   } else if (type === 'move') {
     if (!hasBodies) return status('Kein Körper vorhanden.');
-    f = { ...base, body: m.bodies[m.bodies.length - 1].id, dx: 10, dy: 0, dz: 0, rz: 0, cx: 0, cy: 0, copy: false };
+    f = { ...base, body: selBodyId() || m.bodies[m.bodies.length - 1].id, dx: 10, dy: 0, dz: 0, rz: 0, cx: 0, cy: 0, copy: false };
   } else if (type === 'plane') {
     const kind = extra.kind || 'offset';
-    const ref = state.sel?.kind === 'feature' && ['plane', 'sketch'].includes(feature(state.sel.id)?.type) ? state.sel.id : 'XY';
-    f = { ...planeDefaults(ref, kind), id, type, name: nextName(p.features, { offset: 'Versatzebene', angle: 'Winkelebene', mid: 'Mittelebene', '3pt': 'Ebene durch 3 Punkte', tangent: 'Tangentialebene' }[kind]) };
+    // flat faces clicked beforehand are the reference (two of them: the plane midway between)
+    const faceRef = r => 'face:' + JSON.stringify(preFacePlane(r));
+    const onFace = preFl.length && ['offset', 'angle', 'mid'].includes(kind);
+    const ref = onFace ? faceRef(preFl[0]) : state.sel?.kind === 'feature' && ['plane', 'sketch'].includes(feature(state.sel.id)?.type) ? state.sel.id : 'XY';
+    f = { ...planeDefaults(ref, kind), ...(onFace && kind === 'mid' && preFl.length > 1 ? { base2: faceRef(preFl[1]) } : {}), id, type, name: nextName(p.features, { offset: 'Versatzebene', angle: 'Winkelebene', mid: 'Mittelebene', '3pt': 'Ebene durch 3 Punkte', tangent: 'Tangentialebene' }[kind]) };
     if (kind === 'tangent' && !hasBodies) return status('Tangentialebene braucht einen Körper mit Zylinderfläche.');
     // a second offset plane on the same reference would lie exactly on the first and look as if
     // nothing happened: step the default distance on until the plane is free
@@ -10856,6 +10865,11 @@ function createFeature(type, extra = {}) {
   // areas of the sketch clicked beforehand become the profile of any command that takes the whole sketch
   if (f?.profiles === 'all' && f.sketch && state.preRegions?.sketch === f.sketch) { f.profiles = 'pick'; f.regions = state.preRegions.cells.map(c => [...c]); }
   if (f) state.preRegions = null;
+  if (f && preF.length && Array.isArray(f.faces) && !f.faces.length && PRE_FACE_TYPES.includes(type)) {
+    const take = type === 'thread' ? preF.filter(r => !r.n) : type === 'replaceface' || type === 'lip' || type === 'endcap' ? preF.slice(-1) : preF;
+    f.faces = take.map(r => [...r.ref]);
+  }
+  if (f) state.preFaces = null;
   if (state.newBody && f && 'op' in f && type !== 'sketch') { f.op = 'new'; delete f.target; state.newBody = false; }
   pendingNew = { id, depth: undoDepth() };
   insertFeature(f);
@@ -12098,6 +12112,55 @@ function selBodyIds() {
   const bodies = getModel().bodies, list = (state.selBodies || []).filter(id => bodies.some(b => b.id === id));
   return list.includes(state.sel.id) ? list : [state.sel.id];
 }
+// faces clicked without a command (with their body): the next command takes them
+function preFaceList() {
+  return !state.pick && !state.sketchId && state.workspace === 'design' && state.sel?.kind === 'body' && state.preFaces?.length ? state.preFaces.filter(r => faceAt(r.ref)) : [];
+}
+const preFlat = () => preFaceList().filter(r => r.n);
+const preFacePlane = r => planeFromFace(new THREE.Vector3(...r.pt), new THREE.Vector3(...r.n));
+function faceIsPlanar(body, fid, n) {
+  const idx = body.geometry.index.array, pos = body.geometry.attributes.position;
+  const a = new THREE.Vector3(), bb = new THREE.Vector3(), c = new THREE.Vector3(), tn = new THREE.Vector3();
+  for (let t = 0; t < body.faceOf.length; t++) {
+    if (body.faceOf[t] !== fid) continue;
+    a.fromBufferAttribute(pos, idx[t * 3]); bb.fromBufferAttribute(pos, idx[t * 3 + 1]); c.fromBufferAttribute(pos, idx[t * 3 + 2]);
+    tn.crossVectors(bb.sub(a), c.sub(a));
+    if (tn.lengthSq() > 1e-12 && Math.abs(tn.normalize().dot(n)) < 0.9999) return false;
+  }
+  return true;
+}
+// click on a body in the view: the body is chosen and the face under the mouse remembered.
+// Strg/Umschalt + click adds a face (and its body) or takes it out again.
+function bodyFaceClick(e, b, hit) {
+  const bi = hit.object.userData.body, fid = b.faceOf[hit.faceIndex];
+  const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+  const entry = { ref: faceRefPoint(b, hit.faceIndex), pt: hit.point.toArray().map(v => +v.toFixed(4)), n: faceIsPlanar(b, fid, n) ? n.toArray().map(v => +v.toFixed(6)) : null, body: b.id };
+  const cur = preFaceList(), k = cur.findIndex(r => { const fa = faceAt(r.ref); return fa && fa.bi === bi && fa.fid === fid; });
+  let faces, bodies = [b.id];
+  if (!(e.ctrlKey || e.metaKey || e.shiftKey)) faces = [entry];
+  else {
+    bodies = selBodyIds();
+    const mine = cur.some(r => r.body === b.id);
+    if (k >= 0) { faces = cur.filter((_, i) => i !== k); if (!faces.some(r => r.body === b.id)) bodies = bodies.filter(x => x !== b.id); }
+    else if (bodies.includes(b.id) && !mine) { faces = cur; bodies = bodies.filter(x => x !== b.id); }
+    else { faces = [...cur, entry]; if (!bodies.includes(b.id)) bodies = [...bodies, b.id]; }
+    if (!bodies.length) { state.sel = null; state.selBodies = null; state.preFaces = null; status(''); return renderAll(); }
+  }
+  select('body', bodies.includes(b.id) ? b.id : bodies[bodies.length - 1], bodies, faces);
+  if (bodies.length > 1) bodiesStatus(getModel().bodies.filter(x => bodies.includes(x.id)));
+  else if (faces.length) status('Fläche gewählt – Skizze, Drücken/Ziehen (Q), Extrusion (E), Bohrung (H) oder Schale nimmt sie. Umschalt/Strg + Klick: weitere Flächen.');
+}
+// extrusion of flat faces of a body (Drücken/Ziehen, Extrusion with faces chosen beforehand)
+function extrudeFaces(refs) {
+  const p = state.project, id = uid('ex');
+  state.pick = null; showBanner(null);
+  state.preFaces = null;
+  pendingNew = { id, depth: undoDepth() };
+  insertFeature({ id, type: 'extrude', name: nextName(p.features, FEATURE_TYPES.extrude), source: 'faces', faces: refs, extent: 'one', distance: 5, distance2: 5, op: 'auto' });
+  state.sel = { kind: 'feature', id };
+  renderAll();
+  status('Am blauen Pfeil ziehen oder Abstand eingeben – negativ drückt die Fläche ins Material.');
+}
 const bodiesStatus = list => status(list.length ? `${list.length} Körper gewählt: ${list.map(bodyName).join(', ')}` : 'Kein Körper im Rahmen.');
 // Strg/Umschalt + click on a body: into the selection, or out of it again
 function toggleBodySel(id) {
@@ -12727,14 +12790,14 @@ function filteredClick(e) {
       select('body', b.id);
       return showBanner([`Fläche: ${{ PLANE: 'Ebene', CYLINDER: 'Zylinder', CONE: 'Kegel', SPHERE: 'Kugel', TORUS: 'Torus', BSPLINE_SURFACE: 'Freiform' }[fc?.geomType] || fc?.geomType || '?'} · ${f2(A)} mm² · Körper ${bodyName(b)}`, h('button', { onclick: () => showBanner(null) }, 'OK')]);
     }
-    if (F.body) return e.ctrlKey || e.metaKey || e.shiftKey ? toggleBodySel(b.id) : select('body', b.id);
+    if (F.body) return bodyFaceClick(e, b, hit);
   }
   if (F.sketch) {
     const pl = planeUnderMouse(e);
     if (pl?.userData.plane) return select('feature', pl.userData.plane);
   }
   // a click beside everything lets the chosen bodies go
-  if (!hit && state.sel?.kind === 'body' && !(e.ctrlKey || e.metaKey || e.shiftKey)) { state.sel = null; state.selBodies = null; status(''); renderAll(); }
+  if (!hit && state.sel?.kind === 'body' && !(e.ctrlKey || e.metaKey || e.shiftKey)) { state.sel = null; state.selBodies = null; state.preFaces = null; status(''); renderAll(); }
 }
 // an edge clicked without a command is remembered for Verrundung / Fase (Umschalt/Strg: more edges)
 function preEdgeClick(e) {
@@ -12832,6 +12895,11 @@ function editSketchCmd() {
 function deleteSelectedCmd() {
   if (state.sel?.kind === 'feature' && feature(state.sel.id)) return deleteFeature(state.sel.id);
   const many = selBodyIds();
+  // faces clicked in the view: they are deleted (a hole, a rounding … closes), not the whole body
+  if (many.length === 1 && preFaceList().length) {
+    createFeature('delface');
+    return status('Fläche löschen: OK schließt die Lücke. Den ganzen Körper entfernt Entf, wenn er im Browser gewählt ist.');
+  }
   if (many.length > 1) {
     // several bodies: one step "Körper entfernen" each, in one undo step
     commit(p => {
@@ -14316,9 +14384,12 @@ window.addEventListener('keydown', e => {
       if (dwPlace) dwPlace = null; else dwPick = { mode: null, pts: [] };
       status(''); renderDrawing();
     }
-    else if (state.pick && state.pick.mode !== 'measure' && dialogTarget()?.kind === 'feature' && state.pick.id === dialogTarget().id) { measure.pts = []; dialogCancel(); }
+    // an open command window without a pick: Esc is Abbrechen as well (a new feature goes, changes are taken back)
+    else if (dialogTarget()?.kind === 'feature' && (!state.pick || (state.pick.mode !== 'measure' && state.pick.id === dialogTarget().id))) { measure.pts = []; dialogCancel(); }
+    // an operation that was just added: Esc takes it away again (an existing one only loses its pick)
+    else if (dlg.fresh && dialogTarget()?.kind === 'op' && (!state.pick || state.pick.id === dialogTarget().id)) { measure.pts = []; dialogCancel(); }
     else if (state.pick) { state.pick = null; measure.pts = []; showBanner(null); renderAll(); }
-    else if (state.preRegions || state.preEdges) { state.preRegions = null; state.preEdges = null; status(''); rebuildScene(); }
+    else if (state.preRegions || state.preEdges || preFaceList().length) { state.preRegions = null; state.preEdges = null; state.preFaces = null; status(''); rebuildScene(); }
     else if (state.sketchId) {
       // "Esc zweimal": a single Esc too many must not close a sketch
       const now = performance.now();
