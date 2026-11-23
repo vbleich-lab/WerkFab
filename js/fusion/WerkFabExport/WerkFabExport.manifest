@@ -1,0 +1,10 @@
+{
+	"autodeskProduct": "Fusion360",
+	"type": "script",
+	"author": "WerkFab",
+	"description": {
+		"": "Writes the timeline of the active design (sketches, features, checked states) into a file WerkFab can open."
+	},
+	"supportedOS": "windows|mac",
+	"editEnabled": true
+}

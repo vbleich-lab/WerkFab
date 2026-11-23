@@ -292,6 +292,7 @@ export const ICONS = {
   dispShaded: svg(isoBox(12, 3, 8.5, 10)),
   dispEdges: svg(isoBox(12, 3, 8.5, 10) + P('M12 3l8.5 4.25v10L12 21.5l-8.5-4.25v-10zM3.5 7.25 12 11.5l8.5-4.25M12 11.5v10', 'a').replace('/>', ' fill="none"/>')),
   camOrtho: svg(isoBox(12, 5, 6.5, 7.5) + P('M2.5 7V3h4M21.5 17v4h-4', 'a').replace('/>', ' fill="none"/>')),
+  timelineIn: svg(P('M3 17h18', 'a') + R(5, 14.5, 3.5, 5, 'f1', 0.6) + R(10.2, 14.5, 3.5, 5, 'f2', 0.6) + R(15.4, 14.5, 3.5, 5, 'f1', 0.6) + P('M12 3v7M9 7.5l3 3 3-3', 'a').replace('/>', ' fill="none"/>')),
   dispHidden: svg(P('M12 3l8.5 4.25v10L12 21.5l-8.5-4.25v-10zM3.5 7.25 12 11.5l8.5-4.25M12 11.5v10', 'a').replace('/>', ' fill="none"/>')),
   dispXray: svg(isoBox(12, 3, 8.5, 10).replace(/\/>/g, ' opacity=".4"/>') + P('M12 3l8.5 4.25v10L12 21.5l-8.5-4.25v-10zM3.5 7.25 12 11.5l8.5-4.25M12 11.5v10', 'a').replace('/>', ' fill="none"/>') + P('M12 3v8.5M3.5 17.25 12 13M20.5 17.25 12 13', '').replace('/>', ' stroke-dasharray="1.5 1.5" opacity=".6"/>')),
   dispLook: svg(isoBox(10, 3, 6.5, 7.5) + C(17.5, 17.5, 3.2, 'af') + P('M17.5 12.6v1.6M17.5 20.8v1.6M12.6 17.5h1.6M20.8 17.5h1.6M14 14l1.2 1.2M19.8 19.8 21 21M21 14l-1.2 1.2M15.2 19.8 14 21', 'a')),

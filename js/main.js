@@ -66,7 +66,7 @@ import { parseSTL, parseOBJ, weld as meshWeld, decodeMesh, encodeMesh, applyMatr
 // analysis results are cached per mesh object
 const meshMemo = (fn, wm = new WeakMap()) => m => { if (!wm.has(m)) wm.set(m, fn(m)); return wm.get(m); };
 const meshStats = meshMemo(meshStatsRaw), meshOpenEdges = meshMemo(meshOpenEdgesRaw);
-import { listDocs, storeCurrent, saveVersion, loadCurrent, loadVersion, renameDoc, deleteDoc, thumbnail } from './docs.js';
+import { listDocs, storeCurrent, saveVersion, loadCurrent, loadVersion, renameDoc, deleteDoc, thumbnail, folderSupported, folderInfo, initFolder, unlockFolder, setFolder, syncFolder, flushFolder } from './docs.js';
 
 const $ = s => document.querySelector(s);
 
@@ -1939,13 +1939,17 @@ function axisCylClick(e, meshes, m) {
 // distance, the box at its tip takes a typed value (also parameters / formulas).
 let exGiz = null, exDrag = null;
 const exMat = new THREE.MeshBasicMaterial({ color: 0x1e88ff, depthTest: false, transparent: true });
+const exMatDefault = exMat;
 const exMatHover = new THREE.MeshBasicMaterial({ color: 0x74c0fc, depthTest: false, transparent: true });
 const exPrevMat = new THREE.LineBasicMaterial({ color: 0x1e88ff, depthTest: false, transparent: true, opacity: 0.9 });
-function exArrowMesh() {
+// arrows of "Verschieben/Kopieren": red = X, green = Y, blue = Z
+const mvMats = [0xe5484d, 0x3fb950, 0x2f81f7].map(color => new THREE.MeshBasicMaterial({ color, depthTest: false, transparent: true }));
+function exArrowMesh(exMat = exMatDefault, big = false) {
   // unit arrow along +Z: shaft and cone (scaled to a constant screen size every frame)
   const g = new THREE.Group();
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.72, 10).rotateX(Math.PI / 2).translate(0, 0, 0.36), exMat);
-  const head = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.28, 18).rotateX(Math.PI / 2).translate(0, 0, 0.86), exMat);
+  const k = big ? 1.5 : 1; // thicker, easier to grab
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.035 * k, 0.035 * k, 0.72, 10).rotateX(Math.PI / 2).translate(0, 0, 0.36), exMat);
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.11 * k, 0.28 * k, 18).rotateX(Math.PI / 2).translate(0, 0, 0.72 + 0.14 * k), exMat);
   const grip = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 10), exMat);
   for (const m of [shaft, head, grip]) { m.renderOrder = 20; g.add(m); }
   g.userData.parts = [shaft, head, grip];
@@ -1957,6 +1961,7 @@ function drawExtrudeGizmo() {
   if (t?.kind !== 'feature') return;
   const f = feature(t.id);
   if (f?.type === 'plane' && f.kind === 'offset' && !f.suppressed && !f.hidden) return drawPlaneGizmo(f);
+  if (f?.type === 'move' && !f.suppressed) return drawMoveGizmo(f);
   if (!f || f.type !== 'extrude' || f.suppressed) return;
   const rf = resolved().features.find(x => x.id === f.id), rsk = rf && resolved().features.find(x => x.id === rf.sketch);
   if (rf?.source === 'faces') return drawFaceExtrudeGizmo(f, rf);
@@ -2003,6 +2008,29 @@ function drawExtrudeGizmo() {
     group.add(lab);
     exGiz.handles.push({ ...hd, raw, pos, dir, arrow, lab, inp });
   }
+  updateExtrudeGizmo();
+}
+// "Verschieben/Kopieren": three arrows in the middle of the body, one per axis; dragging one changes dx, dy or dz
+function drawMoveGizmo(f) {
+  const rf = resolved().features.find(x => x.id === f.id);
+  if (!rf) return;
+  const b = getModel().bodies.find(x => x.id === (rf.copy ? rf.id : rf.body));
+  if (!b?.geometry) return;
+  b.geometry.computeBoundingBox();
+  const box = b.geometry.boundingBox.clone(), c = box.getCenter(new THREE.Vector3());
+  // the rotation about Z comes after the shift: the arrows turn with it
+  const rot = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), (+rf.rz || 0) * Math.PI / 180);
+  const group = new THREE.Group();
+  vp.paths.add(group);
+  exGiz = { fid: f.id, o: c, n: new THREE.Vector3(0, 0, 1), b: null, loops: [], sym: false, group, handles: [], moveBox: box };
+  ['dx', 'dy', 'dz'].forEach((key, i) => {
+    const n = new THREE.Vector3(i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0).applyQuaternion(rot);
+    const pos = +rf[key] || 0;
+    const arrow = exArrowMesh(mvMats[i], true);
+    arrow.matrixAutoUpdate = false;
+    group.add(arrow);
+    exGiz.handles.push({ key, side: 1, raw: pos, pos, dir: 1, fixedDir: true, zeroOk: true, n, o: c.clone().addScaledVector(n, -pos), mat: mvMats[i], arrow, axis: 'XYZ'[i] });
+  });
   updateExtrudeGizmo();
 }
 // the same manipulator for an extrusion of body faces
@@ -2092,19 +2120,23 @@ function updateExtrudeGizmo() {
   const zAxis = new THREE.Vector3(0, 0, 1);
   for (const hd of exGiz.handles) {
     const pos = exDrag && exDrag.key === hd.key ? exDrag.pos : hd.pos;
-    const dir = pos === 0 ? hd.dir : Math.sign(pos) * (exGiz.sym ? 1 : 1);
-    const base = exGiz.o.clone().addScaledVector(exGiz.n, pos);
-    const q = new THREE.Quaternion().setFromUnitVectors(zAxis, exGiz.n.clone().multiplyScalar(dir || 1));
-    hd.arrow.matrix.compose(base, q, new THREE.Vector3(L, L, L));
+    const dir = hd.fixedDir ? 1 : pos === 0 ? hd.dir : Math.sign(pos) * (exGiz.sym ? 1 : 1);
+    const hn = hd.n || exGiz.n;
+    const base = (hd.o || exGiz.o).clone().addScaledVector(hn, pos);
+    // the arrows of "Verschieben" all sit on the body: they follow the one that is dragged
+    if (hd.fixedDir && exDrag && exDrag.key !== hd.key) base.addScaledVector(exDrag.hd.n, exDrag.pos - exDrag.pos0);
+    const q = new THREE.Quaternion().setFromUnitVectors(zAxis, hn.clone().multiplyScalar(dir || 1));
+    hd.arrow.matrix.compose(base, q, new THREE.Vector3(L, L, L).multiplyScalar(hd.fixedDir ? 1.25 : 1));
+    if (!hd.lab) continue;
     hd.lab.position.copy(base).addScaledVector(exGiz.n, (dir || 1) * L * (hd.mini ? 0.86 : 1.25));
     // the small box sits right beside the arrow head
     if (hd.mini) hd.lab.position.addScaledVector(new THREE.Vector3().setFromMatrixColumn(vp.camera.matrixWorld, 0), L * 0.2);
   }
 }
 // closest point of the mouse ray to the extrusion axis (signed distance from the sketch plane)
-function exAxisParam(e) {
+function exAxisParam(e, hd) {
   vp.raycaster.setFromCamera(vp.ndc(e), vp.camera);
-  const r = vp.raycaster.ray, n = exGiz.n, w0 = exGiz.o.clone().sub(r.origin);
+  const r = vp.raycaster.ray, n = hd?.n || exGiz.n, w0 = (hd?.o || exGiz.o).clone().sub(r.origin);
   const bb = n.dot(r.direction), d1 = n.dot(w0), e1 = r.direction.dot(w0), den = 1 - bb * bb;
   if (Math.abs(den) < 1e-6) return null;
   return (bb * e1 - d1) / den;
@@ -2121,6 +2153,17 @@ function exHit(e) {
 function exPreview(hd, pos) {
   // outline of the profiles at the dragged distance (the body updates on release)
   exGiz.group.children.filter(c => c.userData.preview).forEach(c => { exGiz.group.remove(c); c.geometry.dispose(); });
+  if (exGiz.moveBox) {
+    // "Verschieben": the box around the body at its new place
+    const bx = exGiz.moveBox.clone().translate(hd.n.clone().multiplyScalar(pos - hd.pos));
+    const l = new THREE.Box3Helper(bx, 0x1e88ff);
+    l.material.depthTest = false; l.material.transparent = true;
+    l.userData.preview = true;
+    l.renderOrder = 19;
+    exGiz.group.add(l);
+    updateExtrudeGizmo();
+    return;
+  }
   const from = exGiz.sym ? -pos : 0;
   for (const loop3 of exGiz.loops3 || []) {
     for (const off of exGiz.endOnly ? [pos] : [from, pos]) {
@@ -2150,7 +2193,7 @@ function exPreview(hd, pos) {
 vp.canvas.addEventListener('pointermove', e => {
   if (!exGiz || exDrag) return;
   const hd = exHit(e);
-  for (const x of exGiz.handles) for (const m of x.arrow.userData.parts) m.material = x === hd ? exMatHover : exMat;
+  for (const x of exGiz.handles) for (const m of x.arrow.userData.parts) m.material = x === hd ? exMatHover : x.mat || exMat;
   if (hd) vp.canvas.style.cursor = 'grab';
   else if (vp.canvas.style.cursor === 'grab') vp.canvas.style.cursor = '';
 });
@@ -2160,18 +2203,19 @@ vp.canvas.addEventListener('pointerdown', e => {
   if (!hd) return;
   e.stopImmediatePropagation();
   e.preventDefault();
-  const s0 = exAxisParam(e);
+  const s0 = exAxisParam(e, hd);
   if (s0 == null) return;
   exDrag = { key: hd.key, hd, start: s0, pos0: hd.pos, pos: hd.pos };
   vp.canvas.style.cursor = 'grabbing';
   const move = ev => {
-    const s1 = exAxisParam(ev);
+    const s1 = exAxisParam(ev, hd);
     if (s1 == null) return;
     let pos = exDrag.pos0 + (s1 - exDrag.start);
     pos = ev.shiftKey ? Math.round(pos) : Math.round(pos * 10) / 10; // 0.1 mm, Umschalt = 1 mm
     exDrag.pos = pos;
     const val = exGiz.sym ? 2 * Math.abs(pos) : hd.side * pos;
-    hd.inp.value = String(f2(val));
+    if (hd.inp) hd.inp.value = String(f2(val));
+    else status(`${hd.axis}: ${f2(val)} mm`);
     hd.fit?.();
     exPreview(hd, pos);
   };
@@ -2183,7 +2227,7 @@ vp.canvas.addEventListener('pointerdown', e => {
     exDrag = null;
     if (!d || Math.abs(d.pos - d.pos0) < 1e-9) return;
     const val = exGiz.sym ? 2 * Math.abs(d.pos) : hd.side * d.pos;
-    if (Math.abs(val) < 1e-6 && d.key !== 'offset') return status('Abstand 0 ist nicht möglich.');
+    if (Math.abs(val) < 1e-6 && d.key !== 'offset' && !hd.zeroOk) return status('Abstand 0 ist nicht möglich.');
     editFeature(exGiz.fid, x => { x[d.key] = +val.toFixed(4); });
   };
   addEventListener('pointermove', move, true);
@@ -3052,7 +3096,7 @@ function toolbarTabs() {
         tbtn('contact', 'Kontakt', toggleContactAll, movableJoints().length && movableJoints().every(j => j.contact) ? 'active' : '', 'Kontakt: Gelenke halten an, wo sich Teile berühren (ein/aus)')),
     ];
     tabs['EINFÜGEN'] = [
-      tgroup('DATEIEN', tbtn('import', 'STEP/IGES', () => $('#cadInput').click(), '', 'STEP oder IGES einfügen'), tbtn('mesh', 'Netz', () => $('#cadInput').click(), '', 'STL-, OBJ-, 3MF- oder PLY-Datei als Netz einfügen'),
+      tgroup('DATEIEN', tbtn('import', 'STEP/IGES', () => $('#cadInput').click(), '', 'STEP oder IGES einfügen'), tbtn('timelineIn', 'Fusion-Zeitachse', fusionHelp, '', 'Ein Fusion-Design mit seiner Zeitachse übernehmen: über das Export-Skript für Fusion'), tbtn('mesh', 'Netz', () => $('#cadInput').click(), '', 'STL-, OBJ-, 3MF- oder PLY-Datei als Netz einfügen'),
         tbtn('pointcloud', 'Punktwolke', insertPointCloud, '', 'Punktwolke aus XYZ-, TXT-, CSV-, PTS- oder PLY-Datei einfügen')),
       tgroup('BILDER', tbtn('canvas', 'Ansichtsbereich', insertCanvas, '', 'Ansichtsbereich: Vorlagebild auf einer Ebene'), tbtn('decal', 'Aufkleber', insertDecal, '', 'Aufkleber: Bild auf eine Körperfläche legen'),
         tbtn('measure', 'Vorlage kalibrieren', () => calibrateCanvas(), '', 'Vorlage kalibrieren: zwei Punkte im Bild anklicken und ihren wirklichen Abstand eingeben'),
@@ -4967,9 +5011,12 @@ function importToOrigin(f) {
 async function importCAD(file) {
   const ext = file.name.toLowerCase().split('.').pop();
   if (['stl', 'obj', '3mf', 'ply'].includes(ext)) return importMesh(file);
-  if (ext === 'f3d') {
-    alert('Fusion-360-Dateien (.f3d) sind ein geschlossenes Autodesk-Format und können nicht gelesen werden.\n\nIn Fusion 360: Datei → Exportieren → STEP (.stp) wählen und diese Datei hier importieren.');
-    return;
+  if (ext === 'f3d' || ext === 'f3z') return fusionHelp();
+  if (ext === 'json') {
+    let doc = null;
+    try { doc = JSON.parse(await file.text()); } catch { /* not JSON */ }
+    if (!doc || doc.format !== 'werkfab-fusion-timeline') return alert('Das ist keine Datei des Skripts „WerkFabExport“ (Name.fusion.json).');
+    return importFusionTimeline(doc, file.name);
   }
   const busy = $('#loading');
   try {
@@ -4990,6 +5037,155 @@ async function importCAD(file) {
   } finally {
     if (busy) busy.hidden = true;
   }
+}
+
+// ---------- Fusion design with its timeline (file of the script js/fusion/WerkFabExport, see js/fusionimport.js) ----------
+// Every timeline step is built and compared with what Fusion reported for it (volume, number of bodies, centre of
+// mass). A step that cannot be rebuilt takes the STEP state the file carries for it; the steps after it go on from
+// that body.
+const FUSION_SCRIPT_FILES = ['WerkFabExport.py', 'WerkFabExport.manifest'];
+async function importFusionTimeline(doc, fileName) {
+  const F = await import('./fusionimport.js');
+  const busy = $('#loading');
+  const say = text => { if (busy) { busy.hidden = false; $('#loadingText').textContent = text; } };
+  const project = newProject();
+  project.name = String(doc.name || fileName || 'Fusion').replace(/\.fusion\.json$|\.json$/i, '').replace(/ v\d+$/, '') || 'Fusion';
+  project.params = F.fusionParams(doc);
+  await openAsNewDoc(migrate(project));
+  const accepted = [], rows = [], ctx = { sketches: new Map(), diag: 0 }, blobs = new Map();
+  const blobOf = async key => { if (!blobs.has(key)) blobs.set(key, await putBlob(doc.snapshots[key])); return blobs.get(key); };
+  const build = async feats => {
+    state.project.features = feats;
+    const m = await agentApi.settled();
+    let vol = 0, n = 0;
+    const c = [0, 0, 0], box = new THREE.Box3();
+    for (const b of m.bodies) {
+      if (b.surface) continue;
+      b.geometry.computeBoundingBox();
+      box.union(b.geometry.boundingBox);
+      let v = 0;
+      try { v = bodyProps(b).volume; } catch { /* no solid */ }
+      const mc = F.meshCentroid(b.geometry);
+      vol += v; n++;
+      if (mc) for (let k = 0; k < 3; k++) c[k] += mc.c[k] * v;
+    }
+    return { volume: vol, bodies: n, centroid: vol > 1e-9 ? c.map(q => q / vol) : null, errors: m.errors || {}, diag: box.isEmpty() ? 0 : box.getSize(new THREE.Vector3()).length() };
+  };
+  // what the step changed in the volume decides (a small pocket in a big body must not pass unbuilt); the volume
+  // itself only roughly – the two kernels measure a body of free-form faces a little differently
+  const fits = (exp, got) => got.bodies === exp.bodies && Math.abs(got.volume - exp.volume) <= Math.max(2, 1e-3 * exp.volume)
+    && Math.abs((got.volume - last.volume) - (exp.volume - prev.volume)) <= Math.max(0.5, 2e-5 * exp.volume, 0.01 * Math.abs(exp.volume - prev.volume))
+    && (!exp.centroid || !got.centroid || Math.hypot(exp.centroid[0] - got.centroid[0], exp.centroid[1] - got.centroid[1], exp.centroid[2] - got.centroid[2]) <= 0.3 + 0.004 * got.diag);
+  const clean = (alt, got) => alt.features.every(f => !got.errors[f.id]);
+  const takeSnapshot = async (step, key, name) => {
+    if (!key || !doc.snapshots?.[key]) return null;
+    const alt = F.snapshotAlternative(step, key, name);
+    alt.features[0].blob = await blobOf(key);
+    delete alt.features[0].snapshot;
+    const got = await build(accepted.concat(alt.features));
+    return clean(alt, got) ? { alt, got } : null;
+  };
+  let prev = { volume: 0, bodies: 0 }, drift = false, last = { diag: 0, volume: 0, bodies: 0 };
+  try {
+    const steps = doc.steps || [];
+    for (const [k, step] of steps.entries()) {
+      say(`Fusion-Zeitachse: Schritt ${k + 1} von ${steps.length} …`);
+      await new Promise(r => setTimeout(r, 0));
+      if (step.kind === 'group') continue;
+      if (step.suppressed) { rows.push([step, 'off']); continue; }
+      const exp = step.volume != null ? step : null;
+      const unchanged = !!exp && Math.abs(exp.volume - prev.volume) <= 1e-3 + 1e-6 * prev.volume && exp.bodies === prev.bodies;
+      ctx.diag = last.diag;
+      let ok = null, got = null, first = null, how = 'feature';
+      for (const alt of F.stepAlternatives(step, ctx)) {
+        const g = await build(accepted.concat(alt.features));
+        if (!clean(alt, g)) continue;
+        first ||= { alt, got: g };
+        if (drift || !exp || fits(exp, g)) { ok = alt; got = g; break; }
+      }
+      if (!ok && !(unchanged && !first)) {
+        const s = await takeSnapshot(step, step.snapshot, step.name || 'Fusion');
+        if (s) { ok = s.alt; got = s.got; how = 'step'; drift = false; }
+      }
+      if (!ok && first) { ok = first.alt; got = first.got; how = 'differs'; drift = true; }
+      if (exp) prev = { volume: exp.volume, bodies: exp.bodies };
+      if (!ok) {
+        how = unchanged ? 'none' : 'missing';
+        if (!unchanged) drift = true;
+        rows.push([step, how]);
+        continue;
+      }
+      if (how === 'feature') F.linkParams(ok.features, step, state.project.params || []);
+      accepted.push(...ok.features);
+      if (ok.sketchIndex != null) ctx.sketches.set(ok.sketchIndex, ok.features[0].id);
+      last = got;
+      rows.push([step, how, exp && how === 'differs' ? `Volumen ${fmtMm(got.volume)} statt ${fmtMm(exp.volume)} mm³` : '']);
+    }
+    // the finished model must be the one of Fusion: otherwise its STEP state closes the timeline
+    let end = await build(accepted.slice());
+    if (doc.final?.volume != null && (drift || !fits(doc.final, end))) {
+      const s = await takeSnapshot({ name: 'Endzustand aus Fusion' }, doc.final.snapshot, 'Endzustand aus Fusion');
+      if (s) { accepted.push(...s.alt.features); end = s.got; rows.push([{ name: 'Endzustand aus Fusion', kind: 'final' }, 'step']); drift = false; }
+    }
+    state.project.features = accepted;
+    setProject(state.project);
+    cleanSnap.set(state.project.docId, '');
+    fitView();
+    renderDocTabs();
+    storeCurrent(state.project, docThumb()).catch(() => {});
+    fusionReport(doc, rows, drift);
+  } catch (err) {
+    state.project.features = accepted;
+    setProject(state.project);
+    alert(`Import der Fusion-Zeitachse abgebrochen: ${err.message || err}`);
+  } finally {
+    if (busy) busy.hidden = true;
+  }
+}
+// what became of every timeline step
+function fusionReport(doc, rows, drift) {
+  const LABEL = { feature: ['✓', 'als Feature übernommen'], step: ['◼', 'als STEP-Stand aus Fusion'], differs: ['⚠', 'übernommen, weicht aber von Fusion ab'], missing: ['✕', 'nicht übernommen (keine Beschreibung in der Datei)'], none: ['○', 'ohne Geometrie – ausgelassen'], off: ['○', 'in Fusion unterdrückt – ausgelassen'] };
+  const count = k => rows.filter(r => r[1] === k).length;
+  const back = h('div', { class: 'modal-back' });
+  const close = () => back.remove();
+  const list = h('div', { class: 'fus-list' }, ...rows.map(([s, how, note]) => h('div', { class: 'fus-row fus-' + how },
+    h('span', { class: 'fus-ico' }, LABEL[how][0]), h('b', null, s.name || s.type || '–'), h('span', { class: 'fus-what' }, h('span', null, LABEL[how][1]), note ? h('span', { class: 'fus-note' }, note) : null,
+      how === 'step' && s.kind === 'other' && s.type ? h('span', { class: 'fus-note' }, s.why ? `${s.type}: ${s.why}` : s.type) : null))));
+  const head = `${count('feature')} Schritte als Features, ${count('step')} als STEP-Stand, ${count('differs') + count('missing')} mit Abweichung.`;
+  back.append(h('div', { class: 'modal', style: 'height:auto;max-height:86vh;width:min(640px,calc(100vw - 32px));display:flex;flex-direction:column' },
+    h('div', { class: 'modal-head' }, 'FUSION-ZEITACHSE', h('button', { onclick: close }, '✕')),
+    h('div', { style: 'padding:12px 16px 4px' }, h('p', { style: 'margin:0 0 6px' }, head),
+      drift ? h('p', { class: 'hint', style: 'margin:0 0 6px' }, 'Das Modell weicht am Ende von Fusion ab und die Datei enthält keinen STEP-Stand zum Ausgleich. In Fusion noch einmal exportieren und die Frage nach dem STEP-Stand für jeden Schritt mit „Ja“ beantworten.') : h('p', { class: 'hint', style: 'margin:0 0 6px' }, 'Jeder Schritt ist gegen Volumen, Körperzahl und Schwerpunkt aus Fusion geprüft. Skizzen kommen mit festen Maßen, ohne Abhängigkeiten.')),
+    list,
+    h('div', { class: 'modal-foot' }, h('button', { class: 'primary', onclick: close }, 'OK'))));
+  document.body.append(back);
+}
+// a .f3d file itself cannot be read (closed format): the way through the export script, explained
+function fusionHelp() {
+  const back = h('div', { class: 'modal-back' });
+  const close = () => back.remove();
+  const save = async () => {
+    for (const name of FUSION_SCRIPT_FILES) {
+      const text = await (await fetch(`js/fusion/WerkFabExport/${name}`)).text();
+      download(name, text, 'text/plain');
+      await new Promise(r => setTimeout(r, 400));
+    }
+    status('Beide Dateien in einen Ordner „WerkFabExport“ legen und diesen in Fusion als Skript hinzufügen.');
+  };
+  back.append(h('div', { class: 'modal', style: 'height:auto;width:min(600px,calc(100vw - 32px))' },
+    h('div', { class: 'modal-head' }, 'FUSION-DESIGN MIT ZEITACHSE', h('button', { onclick: close }, '✕')),
+    h('div', { style: 'padding:12px 18px;display:grid;gap:8px' },
+      h('p', { style: 'margin:0' }, 'Eine .f3d-Datei ist ein geschlossenes Format – die Zeitachse darin kann kein anderes Programm lesen. Fusion selbst gibt sie aber über seine Skript-Schnittstelle heraus:'),
+      h('ol', { style: 'margin:0;padding-left:20px;display:grid;gap:4px' },
+        h('li', null, 'Das Skript „WerkFabExport“ einmal in Fusion einrichten: Dienstprogramme → Zusatzmodule → Skripte und Zusatzmodule (Umschalt+S) → „+“ → Skript vom Gerät → den Ordner „WerkFabExport“ wählen.'),
+        h('li', null, 'Das Design in Fusion öffnen und das Skript ausführen. Es schreibt eine Datei „Name.fusion.json“.'),
+        h('li', null, 'Diese Datei hier öffnen: EINFÜGEN → Fusion-Zeitachse.')),
+      h('p', { class: 'hint', style: 'margin:0' }, 'Übernommen werden Skizzen, Extrusion, Rotation, Bohrung, Verrundung, Fase und Schale als eigene Schritte der Zeitachse. Für alles andere legt das Skript den Stand des Modells als STEP bei, sodass die Form stimmt.')),
+    h('div', { class: 'modal-foot' },
+      h('button', { onclick: save }, 'Skript speichern …'),
+      h('button', { onclick: async () => { close(); const f = await chooseFile('.json'); if (f) importCAD(f); } }, 'Datei .fusion.json öffnen …'),
+      h('button', { class: 'primary', onclick: close }, 'Schließen'))));
+  document.body.append(back);
 }
 
 // ---------- EINFÜGEN (Aufkleber, Ansichtsbereich, SVG, DXF, Netz, Komponente, Schraube, Mit Gelenken duplizieren, Ableitung) ----------
@@ -14983,7 +15179,7 @@ const PREF_TREE = [
     ]],
   ] },
   { id: 'data', label: 'Daten und Speicher', groups: [
-    ['Speicher', [['__storage']]],
+    ['Speicher', [['__storeDir'], ['__storage']]],
     ['Einstellungen', [['__prefsIO']]],
     ['Profile', [['__profiles']]],
     ['Fenster', [['__layout']]],
@@ -15047,7 +15243,7 @@ function openSettings(page) {
     if (key === '__lang') return h('div', { class: 'prefs-row no-i18n' }, h('label', null, 'Sprache / Language', info('Die Oberfläche wird neu geladen · The page reloads')),
       h('div', { class: 'prefs-ctl' }, sel([['system', 'System (' + LANGS[langChoice() === 'system' ? uiLang : 'en'] + ')'], ...Object.entries(LANGS).sort((a, b) => a[1].localeCompare(b[1]))], langChoice(), v => setLanguage(v))));
     if (key === '__update') return h('div', { class: 'prefs-row' }, h('label', null, 'Neue Version', info('Installierte Windows-App und Linux-AppImage laden das Update selbst; sonst öffnet sich die Download-Seite')),
-      h('div', { class: 'prefs-ctl' }, h('button', { class: 'btn', onclick: () => checkForUpdates(true) }, 'Jetzt nach Updates suchen')));
+      h('div', { class: 'prefs-ctl' }, h('button', { class: 'prefs-btn', onclick: () => checkForUpdates(true) }, 'Jetzt nach Updates suchen')));
     if (key === '__agent') {
       const box = h('div', { style: 'display:grid;gap:8px' }), ag = window.werkfabApp?.agent;
       const about = 'Ein verbundener Agent arbeitet am geöffneten Entwurf: Er liest und ändert die Zeitachse, fragt Körper, Volumen und Fehler ab, holt Normteile aus dem Bauteilkatalog, lässt sich ein Bild der Ansicht geben, exportiert STEP oder STL, legt Werkzeuge und Fertigungsoperationen an und gibt das NC-Programm aus – das vor dem ersten Schnitt zu prüfen bleibt. Auf Dateien, Einstellungen und andere Entwürfe hat er keinen Zugriff. Jede Änderung ist ein Schritt, den Strg+Z zurücknimmt.';
@@ -15124,6 +15320,15 @@ function openSettings(page) {
     }
     if (key === '__smCalib') return h('div', { class: 'prefs-row' }, h('label', null, 'Kalibrierung', info('Nullpunkt, Totzone, Empfindlichkeit und Richtung jeder Achse einstellen')),
       h('div', { class: 'prefs-ctl' }, h('button', { class: 'prefs-btn', onclick: () => openSmCalibration(draw) }, 'Kalibrieren …')));
+    if (key === '__storeDir') {
+      const f = folderInfo();
+      const where = f.state === 'none' ? 'Im Programm (dieser Computer)' : f.state === 'locked' ? `Ordner „${f.name}“ – noch nicht verbunden` : `Ordner „${f.name}“`;
+      return h('div', { class: 'prefs-row' }, h('label', null, 'Speicherort der Designs', info('Im Programm: die Designs liegen im Speicher des Programms auf diesem Computer. Ordner: jedes Design liegt zusätzlich als .ofab-Datei in einem Ordner Ihrer Wahl, z. B. auf einem Netzlaufwerk oder in einem synchronisierten Ordner. Die gespeicherten Versionen bleiben im Programm.')),
+        h('div', { class: 'prefs-ctl' }, h('b', null, where), ' ',
+          h('button', { class: 'prefs-btn', onclick: async () => { await chooseFolder(); draw(); } }, 'Ordner wählen …'),
+          f.state === 'locked' ? h('button', { class: 'prefs-btn', onclick: async () => { await reconnectFolder(); draw(); } }, 'Ordner verbinden') : null,
+          f.state !== 'none' ? h('button', { class: 'prefs-btn', onclick: async () => { await leaveFolder(); draw(); } }, 'Nur im Programm') : null));
+    }
     if (key === '__storage') {
       const out = h('b', null, '…');
       const sizeOf = k => { try { return (localStorage.getItem(k) || '').length * 2; } catch { return 0; } };
@@ -15877,7 +16082,57 @@ onChange(reason => {
   clearTimeout(storeTimer);
   storeTimer = setTimeout(() => storeCurrent(state.project).then(() => { if (dataOpen) renderDataPanel(); }).catch(() => {}), reason === 'load' ? 50 : 1200);
 });
-addEventListener('visibilitychange', () => { if (document.hidden && state.project?.docId) storeCurrent(state.project, docThumb()).catch(() => {}); });
+addEventListener('visibilitychange', () => { if (document.hidden && state.project?.docId) storeCurrent(state.project, docThumb()).then(flushFolder).catch(() => {}); });
+// ----- where the designs are stored: in the program's own store, or as files in a folder of the computer -----
+const folderReady = initFolder().then(async f => { if (f.state === 'ok') await syncFolder(state.project?.docId).catch(() => {}); if (dataOpen) renderDataPanel(); });
+function folderReport(r) {
+  const name = folderInfo().name;
+  status(r.added + r.updated + r.written ? `Ordner „${name}“: ${r.added} neu eingelesen, ${r.updated} aktualisiert, ${r.written} in den Ordner geschrieben.` : `Ordner „${name}“ ist auf dem Stand.`);
+}
+async function chooseFolder() {
+  if (!folderSupported()) return status('Dieser Browser kann keinen Ordner als Speicherort verwenden – in der WerkFab-App, in Chrome oder in Edge geht es.');
+  let hd;
+  try { hd = await window.showDirectoryPicker({ mode: 'readwrite', id: 'werkfab-designs' }); } catch { return; }
+  if (state.project?.docId) await storeCurrent(state.project, docThumb()).catch(() => {});
+  await setFolder(hd);
+  const r = await syncFolder(state.project?.docId);
+  await renderDataPanel();
+  folderReport(r);
+}
+async function leaveFolder() {
+  const name = folderInfo().name;
+  await setFolder(null);
+  await renderDataPanel();
+  status(`Die Designs bleiben im Programm; die Dateien im Ordner „${name}“ bleiben liegen.`);
+}
+async function reconnectFolder() {
+  const f = await unlockFolder();
+  if (f.state !== 'ok') { status(`Kein Zugriff auf den Ordner „${f.name}“.`); return renderDataPanel(); }
+  const r = await syncFolder(state.project?.docId);
+  await renderDataPanel();
+  folderReport(r);
+}
+async function refreshFolder() {
+  if (state.project?.docId) await storeCurrent(state.project, docThumb()).catch(() => {});
+  const r = await syncFolder(state.project?.docId);
+  await renderDataPanel();
+  folderReport(r);
+}
+// the row "Speicherort" of the data panel
+function storageRow() {
+  const f = folderInfo();
+  const pick = h('select', { class: 'dp-store-sel', title: 'Wo die Designs gespeichert werden' },
+    h('option', { value: 'app', selected: f.state === 'none' }, 'Im Programm (dieser Computer)'),
+    f.state !== 'none' ? h('option', { value: 'dir', selected: true }, `Ordner: ${f.name}`) : null,
+    h('option', { value: 'pick' }, f.state === 'none' ? 'Ordner wählen …' : 'Anderen Ordner wählen …'));
+  pick.onchange = () => { const v = pick.value; if (v === 'pick') { pick.value = f.state === 'none' ? 'app' : 'dir'; chooseFolder(); } else if (v === 'app' && f.state !== 'none') leaveFolder(); };
+  return h('div', { class: 'dp-store' },
+    h('div', { class: 'dp-store-row' }, h('label', null, 'Speicherort'), pick,
+      f.state === 'ok' ? h('button', { class: 'dp-ico', title: 'Ordner neu einlesen', onclick: refreshFolder }, '⟳') : null),
+    f.state === 'locked' ? h('div', { class: 'dp-store-warn' }, `Der Ordner „${f.name}“ ist nach dem Neustart noch nicht freigegeben – bis dahin wird nur im Programm gespeichert.`,
+      h('button', { class: 'dp-btn primary', onclick: reconnectFolder }, 'Ordner verbinden')) : null,
+    f.state === 'ok' ? h('div', { class: 'dp-store-note' }, 'Jedes Design liegt als .ofab-Datei im Ordner und wird nach jeder Änderung neu geschrieben. Dateien, die dort hineinkopiert werden, erscheinen hier.') : null);
+}
 
 async function openAsNewDoc(project) {
   if (state.project?.docId) await storeCurrent(state.project, docThumb()).catch(() => {});
@@ -16051,6 +16306,7 @@ async function renderDataPanel() {
       d.thumb ? h('img', { class: 'dp-thumb', src: d.thumb, alt: '' }) : h('div', { class: 'dp-thumb dp-nothumb' }, '◆'),
       h('div', { class: 'dp-info' },
         h('div', { class: 'dp-name' }, d.name || 'Unbenannt'),
+        folderInfo().state === 'ok' && d.file && d.dir === folderInfo().name ? h('div', { class: 'dp-file', title: 'Datei im Ordner' }, d.file) : null,
         h('div', { class: 'dp-meta' }, last ? h('span', { class: 'dp-v', title: 'Versionen anzeigen', onclick: e => { e.stopPropagation(); versionsOf = versionsOf === d.id ? null : d.id; renderDataPanel(); } }, `V${last.v}`) : h('span', { class: 'dp-v none', title: 'Noch nicht gespeichert (Strg+S)' }, 'V–'), ' ', ago(d.updated))),
       h('button', { class: 'dp-more', title: 'Mehr', onclick: menu }, '⋯'));
     if (versionsOf !== d.id || !d.versions?.length) return node;
@@ -16077,8 +16333,9 @@ async function renderDataPanel() {
     h('div', { class: 'dp-bar' },
       h('button', { class: 'dp-btn primary', onclick: newDoc }, '+ Neues Design'),
       h('button', { class: 'dp-btn', onclick: () => $('#fileInput').click(), title: '.ofab-Datei von diesem Computer öffnen' }, 'Hochladen')),
+    storageRow(),
     search,
-    h('div', { class: 'dp-title' }, `Meine Designs · ${docs.length}`, h('small', null, 'auf diesem Computer')),
+    h('div', { class: 'dp-title' }, `Meine Designs · ${docs.length}`, h('small', null, folderInfo().state === 'ok' ? `im Ordner „${folderInfo().name}“` : 'auf diesem Computer')),
     h('div', { class: 'dp-list' }, ...docs.filter(d => !q || (d.name || '').toLowerCase().includes(q)).map(card),
       docs.length ? null : h('p', { class: 'hint', style: 'padding:10px' }, 'Noch keine Designs gespeichert.')),
   );

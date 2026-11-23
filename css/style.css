@@ -1524,3 +1524,23 @@ body.tb-moving, body.tb-moving * { cursor: grabbing !important; user-select: non
 #navBar .nav-grip { cursor: grab; color: var(--muted); font-size: 11px; letter-spacing: -2px; padding: 4px 6px 4px 2px; user-select: none; }
 #navBar.dragging, #navBar.dragging .nav-grip, .lookpanel.dragging { cursor: grabbing; }
 .lookpanel .look-head { cursor: grab; }
+/* data panel: where the designs are stored */
+.dp-store { padding: 2px 12px 8px; }
+.dp-store-row { display: flex; align-items: center; gap: 6px; }
+.dp-store-row label { color: var(--muted); font-size: 12px; flex-shrink: 0; }
+.dp-store-sel { flex: 1; min-width: 0; height: 28px; padding: 0 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--input); font-size: 12px; }
+.dp-ico { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 3px; background: var(--input); flex-shrink: 0; }
+.dp-ico:hover { background: var(--hover); }
+.dp-store-note { color: var(--muted); font-size: 11px; margin-top: 5px; line-height: 1.35; }
+.dp-store-warn { margin-top: 6px; padding: 6px 8px; border: 1px solid var(--accent-line); border-radius: 4px; background: var(--accent-soft); font-size: 11.5px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.dp-file { color: var(--muted); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* report of an imported Fusion timeline */
+.fus-list { overflow: auto; padding: 4px 16px 10px; display: grid; gap: 2px; font-size: 12px; }
+.fus-row { display: grid; grid-template-columns: 18px minmax(120px, 34%) 1fr; gap: 8px; align-items: baseline; padding: 3px 4px; border-radius: 3px; }
+.fus-row:nth-child(odd) { background: var(--hover); }
+.fus-what { color: var(--muted); }
+.fus-feature .fus-ico { color: #3fb950; }
+.fus-step .fus-ico { color: var(--accent); }
+.fus-differs .fus-ico, .fus-missing .fus-ico { color: #e5484d; }
+.fus-differs .fus-what, .fus-missing .fus-what { color: #e5484d; }
+.fus-note::before { content: ' – '; }

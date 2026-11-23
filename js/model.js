@@ -1174,7 +1174,27 @@ function edgeMatcher(shape, refs) {
   for (const r of refs) {
     let bi = -1, bd = 1.0;
     mids.forEach((m, i) => { const d = Math.hypot(m.x - r[0], m.y - r[1], m.z - r[2]); if (d < bd) { bd = d; bi = i; } });
-    if (bi >= 0) chosen.add(`${mids[bi].x.toFixed(4)},${mids[bi].y.toFixed(4)},${mids[bi].z.toFixed(4)}`);
+    if (bi >= 0) { chosen.add(`${mids[bi].x.toFixed(4)},${mids[bi].y.toFixed(4)},${mids[bi].z.toFixed(4)}`); continue; }
+    // no middle there: the point may still lie on an edge (a full circle starts where its kernel put the seam –
+    // the middle another program gives for it is somewhere else on the same circle)
+    let ei = -1, ed = Infinity;
+    shape.edges.forEach((e, i) => {
+      let last = null, dmin = Infinity, seg = 0;
+      for (let k = 0; k <= 48; k++) {
+        let q;
+        try { q = e.pointAt(k / 48); } catch { return; }
+        if (last) {
+          const ax = q.x - last.x, ay = q.y - last.y, az = q.z - last.z, L2 = ax * ax + ay * ay + az * az || 1e-12;
+          const t = Math.max(0, Math.min(1, ((r[0] - last.x) * ax + (r[1] - last.y) * ay + (r[2] - last.z) * az) / L2));
+          dmin = Math.min(dmin, Math.hypot(last.x + ax * t - r[0], last.y + ay * t - r[1], last.z + az * t - r[2]));
+          seg = Math.max(seg, Math.sqrt(L2));
+        }
+        last = q;
+      }
+      // the 48 chords of a curve lie inside it by a sliver: allow that much
+      if (dmin <= 0.05 + 0.02 * seg && dmin < ed) { ed = dmin; ei = i; }
+    });
+    if (ei >= 0) chosen.add(`${mids[ei].x.toFixed(4)},${mids[ei].y.toFixed(4)},${mids[ei].z.toFixed(4)}`);
   }
   const fn = e => { const m = e.pointAt(0.5); return chosen.has(`${m.x.toFixed(4)},${m.y.toFixed(4)},${m.z.toFixed(4)}`); };
   return { count: chosen.size, fn };
@@ -1584,6 +1604,8 @@ function runFeature(f0, ctx) {
   if (f.type === 'import') {
     // STEP data (IGES is converted to STEP on import); every solid becomes a body
     const solids = stepSolids(f.blob);
+    // a state of the whole model (timeline of another program): it takes the place of the bodies so far
+    if (f.replace && solids.length) bodies.length = 0;
     solids.forEach((s0, k) => {
       let s = s0;
       const sc = +f.scale || 1;
