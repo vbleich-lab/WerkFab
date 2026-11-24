@@ -72,6 +72,10 @@ app.whenReady().then(async () => {
   await js(`localStorage.setItem('openfab.lang', ${JSON.stringify(LANG)});`);
   await win.loadURL(url);
   await sleep(6000);
+  // the start page comes first: the pictures show the workspace
+  const closeStart = () => js(`document.querySelector('#homeBtn.on')?.click();`);
+  await closeStart();
+  await sleep(500);
 
   const loadExample = async turning => { await click(turning ? '[data-act=example-turn]' : '[data-act=example]'); await sleep(5000); await click('[data-view=iso]'); await sleep(700); await click('[data-nav=fit]'); await sleep(700); await zoom(ZOOM); };
 
@@ -79,6 +83,9 @@ app.whenReady().then(async () => {
   const tool = async (label, group) => {
     const hit = await js(`const {deText:D}=await import('/js/i18n.js'); const b=[...document.querySelectorAll('#tools button.tbtn')].find(x=>D(x).trim()===${JSON.stringify(label)}); if(b){b.click(); return true;} return false;`);
     if (hit) return;
+    // a tab of the toolbar with this name: switch to it and take the button there
+    const viaTab = await js(`const {deText:D}=await import('/js/i18n.js'); const t=[...document.querySelectorAll('#tabs button')].find(x=>D(x).trim()===${JSON.stringify(group)}); if(!t) return false; t.click(); await new Promise(r=>setTimeout(r,600)); const b=[...document.querySelectorAll('#tools button.tbtn')].find(x=>D(x).trim()===${JSON.stringify(label)}); if(b){b.click(); return true;} return false;`);
+    if (viaTab) return;
     await js(`const {deText:D}=await import('/js/i18n.js'); const g=[...document.querySelectorAll('#tools .tgroup-label.dd')].find(x=>D(x).trim().startsWith(${JSON.stringify(group)})); if(!g) throw new Error('group '+${JSON.stringify(group)}); g.click();`);
     await sleep(500);
     await js(`const {deText:D}=await import('/js/i18n.js'); const e=[...document.querySelectorAll('.tdrop-item, .tdrop button')].find(x=>D(x).trim().includes(${JSON.stringify(label)})); if(!e) throw new Error('entry '+${JSON.stringify(label)}); e.click();`);
@@ -116,6 +123,24 @@ app.whenReady().then(async () => {
     await js(`document.querySelector('.mwin .modal-head button')?.click();`);
     await sleep(500);
   };
+  // 12 the start page with the designs made so far, 13 the window "Anzeige"
+  const news = async () => {
+    await loadExample(true);
+    await click('[data-act=example-mill]');
+    await sleep(6000);
+    await click('[data-view=iso]'); await sleep(700); await click('[data-nav=fit]'); await sleep(900);
+    await loadExample(false);
+    await js(`document.querySelector('#homeBtn').click();`);
+    await sleep(2500);
+    await still('12-startseite');
+    await closeStart();
+    await sleep(800);
+    await click('[data-nav=look]');
+    await sleep(1200);
+    await still('13-anzeige');
+    await click('[data-nav=look]');
+    await sleep(500);
+  };
   // the two test parts: stills 09 / 10 / 11 and the frames of testteile.gif
   const settled = () => js(`const m = await window.werkfabAgent.call('get_model', {}); return Object.keys(m.errors || {}).length;`);
   // no recomputation running for 5 s in a row (the big part recomputes once more when the full kernel is ready)
@@ -126,7 +151,7 @@ app.whenReady().then(async () => {
     await click('[data-act=example-design]');
     await idle();
     for (let i = 0; i < 6 && (await settled()); i++) { await sleep(3000); await idle(); }
-    await click('[data-view=iso]'); await sleep(700); await click('[data-nav=fit]'); await sleep(900); await zoom(1);
+    await click('[data-view=iso]'); await sleep(700); await click('[data-nav=fit]'); await sleep(900); await zoom(4);
     await still('09-konstruktionstestteil');
     if (ONLY === 'tests' || ONLY === 'testgif') {
       fs.rmSync(FRAMES, { recursive: true, force: true });
@@ -159,6 +184,7 @@ app.whenReady().then(async () => {
   };
   try {
     if (ONLY === 'extra') { await extra(); app.quit(); return; }
+    if (ONLY === 'news') { await news(); server.close(); app.quit(); return; }
     if (ONLY === 'tests' || ONLY === 'teststills' || ONLY === 'testgif') { await testParts(); server.close(); app.quit(); return; }
     if (ONLY !== 'gif') {
       // 1 design
@@ -199,6 +225,7 @@ app.whenReady().then(async () => {
       await workspace('design');
       await sleep(1500);
       await extra();
+      await news();
     }
     if (ONLY !== 'stills') {
       fs.rmSync(FRAMES, { recursive: true, force: true });

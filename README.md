@@ -13,7 +13,7 @@ WerkFab is a parametric 3D CAD program with integrated CAM. Parts are designed w
 > [!CAUTION]
 > **Every NC program must be verified before it runs on a machine for the first time – in a dry run on the machine (single block, reduced rapid, in the air or with a safe Z offset) or in an external NC simulator.** The simulation inside WerkFab does not replace this check. WerkFab is free software and comes with no warranty of any kind; there is no liability for damage to machines, tools, workpieces or people. See [Safety](#safety-always-simulate-nc-programs-first).
 
-> **Status: Release Candidate 25 (v1.0.0-rc.25).** Feature complete for 1.0.
+> **Status: Release Candidate 39 (v1.0.0-rc.39).** Feature complete for 1.0.
 
 ![Designing a part on the timeline, then toolpaths and a simulation with stock removal](docs/media/demo.gif)
 
@@ -40,6 +40,8 @@ WerkFab is a parametric 3D CAD program with integrated CAM. Parts are designed w
 | ![A part that uses every design step: solids, surfaces, sheet metal, frames, patterns and text](docs/media/09-konstruktionstestteil.png) | ![A part with pockets, bosses, holes and 3D surfaces, and the toolpaths of all milling strategies](docs/media/10-fraestestteil.png) |
 | **Simulation of the milling test part** | |
 | ![Simulation of the milling test part with stock removal](docs/media/11-fraestestteil-simulation.png) | |
+| **Start page** | **Display** |
+| ![Start page with new design, examples and the recently used designs](docs/media/12-startseite.png) | ![The display window: appearance, body colour, surface, edge colour, camera and background](docs/media/13-anzeige.png) |
 
 The interface is available in **28 languages**: English (US and UK), German, Chinese, French, Spanish, Italian, Portuguese (Brazil), Dutch, Polish, Turkish, Japanese, Korean, Russian, Czech, Danish, Finnish, Norwegian, Ukrainian, Croatian, Bosnian, Serbian, Georgian, Latvian, Malay, Galician, Arabic and Hebrew (the last two with a mirrored, right-to-left layout).
 

@@ -74,6 +74,10 @@ app.whenReady().then(async () => {
   await js(`localStorage.setItem('openfab.lang', ${JSON.stringify(LANG)});`);
   await win.loadURL(url);
   await sleep(6000);
+  // the start page comes first: the pictures show the workspace
+  const closeStart = () => js(`document.querySelector('#homeBtn.on')?.click();`);
+  await closeStart();
+  await sleep(500);
 
   const loadExample = async turning => { await click(turning ? '[data-act=example-turn]' : '[data-act=example]'); await sleep(5000); await click('[data-view=iso]'); await sleep(700); await click('[data-nav=fit]'); await sleep(700); await zoom(ZOOM); };
 
@@ -142,6 +146,9 @@ app.whenReady().then(async () => {
     // close whatever is open
     for (let i = 0; i < 4; i++) { await js(`const m=[...document.querySelectorAll('.modal-back')].pop(); if (m) { const x=m.querySelector('.modal-head button') || [...m.querySelectorAll('button')].pop(); x && x.click(); }`); await sleep(500); }
     await js(`document.querySelectorAll('.modal-back').forEach(m => m.remove());`);
+    // the window with the program is no modal one: its own close button
+    const left = await js(`const b=[...document.querySelectorAll('.modal-head button')]; b.forEach(x => x.click()); return b.length;`);
+    console.log('  nc windows', left);
     await sleep(500);
   });
   await step('g-turn', async () => {
@@ -168,6 +175,51 @@ app.whenReady().then(async () => {
     await orbit(60, 0, 30, frame);
     await workspace('design');
     await sleep(1000);
+  });
+  await step('i-start', async () => {
+    // a few designs first, so that the start page has something to show
+    await loadExample(true);
+    await click('[data-act=example-mill]');
+    await sleep(6000);
+    await click('[data-view=iso]'); await sleep(700); await click('[data-nav=fit]'); await sleep(900);
+    await loadExample(false);
+    await js(`document.querySelector('#homeBtn').click();`);
+    await sleep(2500);
+    await hold(3);
+    await closeStart();
+    await sleep(800);
+  });
+  await step('j-display', async () => {
+    await loadExample(false);
+    await click('[data-nav=look]');
+    await sleep(1200);
+    await hold(2);
+    const n = await js(`return document.querySelector('.lookpanel select').options.length;`);
+    for (let i = 1; i <= n; i++) {
+      if (!(await js(`return !!document.querySelector('.lookpanel');`))) { await click('[data-nav=look]'); await sleep(800); }
+      await js(`const s=document.querySelector('.lookpanel select'); s.selectedIndex=${i % n}; s.dispatchEvent(new Event('change'));`);
+      await sleep(1500);
+      await orbit(16, 0, 8, frame);
+    }
+    await js(`document.querySelector('.lookpanel .look-foot button')?.click();`);
+    await sleep(800);
+    await click('[data-nav=look]').catch(() => {});
+    await sleep(500);
+  });
+  await step('k-testpart', async () => {
+    // nothing of the steps before may lie over the view
+    await js(`document.querySelectorAll('.modal-head button, .mwin .fw-close').forEach(b => b.click()); document.querySelectorAll('.modal-back').forEach(m => m.remove());`);
+    await sleep(500);
+    // the design test part: the full kernel first, then wait until nothing is recomputed any more
+    await js(`const io = await import('/js/interop.js'); io.requestFullKernel(); for (let i = 0; i < 240 && !io.fullKernelReady(); i++) await new Promise(r => setTimeout(r, 500));`);
+    await click('[data-act=example-design]');
+    const idle = async () => { let calm = 0; for (let t = 0; t < 720 && calm < 5; t++) { await sleep(1000); calm = (await js(`return !!document.getElementById('regenProgress');`)) ? 0 : calm + 1; } };
+    await idle();
+    for (let i = 0; i < 6 && (await js(`const m = await window.werkfabAgent.call('get_model', {}); return Object.keys(m.errors || {}).length;`)); i++) { await sleep(3000); await idle(); }
+    await click('[data-view=iso]'); await sleep(700); await click('[data-nav=fit]'); await sleep(900); await zoom(4);
+    await hold(3);
+    await orbit(720, 0, 72, frame);
+    await hold(3);
   });
   server.close();
   app.quit();
