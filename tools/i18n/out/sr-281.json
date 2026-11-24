@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "Јединице: инчи",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "Растојање {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "Ивица: {0} · дужина {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "Унос и приказ дужина у милиметрима (метрички) или у инчима (империјални). Модел остаје исти; укуцано „12mm“ или „0.5in“ важи у оба подешавања.",
+ "Metrisch (mm)": "Метрички (mm)",
+ "Imperial (Zoll)": "Империјални (инчи)"
+}

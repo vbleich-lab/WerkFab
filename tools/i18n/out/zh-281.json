@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "单位：英寸",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "距离 {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "边：{0} · 长度 {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "以毫米（公制）或英寸（英制）输入并显示长度。模型保持不变；输入的“12mm”或“0.5in”在两种设置下均有效。",
+ "Metrisch (mm)": "公制 (mm)",
+ "Imperial (Zoll)": "英制 (英寸)"
+}

@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "単位：インチ",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "距離 {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "エッジ：{0} · 長さ {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "長さをミリメートル（メートル法）またはインチ（ヤード・ポンド法）で入力・表示します。モデルは同じままで、入力した「12mm」や「0.5in」はどちらの設定でも有効です。",
+ "Metrisch (mm)": "メートル法 (mm)",
+ "Imperial (Zoll)": "ヤード・ポンド法 (インチ)"
+}

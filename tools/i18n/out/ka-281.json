@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "ერთეულები: ინჩი",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "მანძილი {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "წიბო: {0} · სიგრძე {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "სიგრძეების შეყვანა და ჩვენება მილიმეტრებში (მეტრული) ან ინჩებში (იმპერიული). მოდელი იგივე რჩება; აკრეფილი „12mm“ ან „0.5in“ ორივე პარამეტრში მოქმედებს.",
+ "Metrisch (mm)": "მეტრული (mm)",
+ "Imperial (Zoll)": "იმპერიული (ინჩი)"
+}

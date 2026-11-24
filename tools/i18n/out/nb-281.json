@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "Enheter: tommer",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "Avstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "Kant: {0} · lengde {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "Skriv inn og vis lengder i millimeter (metrisk) eller i tommer (imperial). Modellen forblir den samme; en inntastet „12mm“ eller „0.5in“ gjelder i begge innstillinger.",
+ "Metrisch (mm)": "Metrisk (mm)",
+ "Imperial (Zoll)": "Imperial (tommer)"
+}

@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "Birimler: inç",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "Mesafe {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "Kenar: {0} · uzunluk {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "Uzunlukları milimetre (metrik) veya inç (imperial) olarak girin ve gösterin. Model aynı kalır; yazılan „12mm“ veya „0.5in“ her iki ayarda da geçerlidir.",
+ "Metrisch (mm)": "Metrik (mm)",
+ "Imperial (Zoll)": "Imperial (inç)"
+}

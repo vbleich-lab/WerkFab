@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "Jednotky: palce",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "Vzdálenost {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "Hrana: {0} · délka {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "Zadávat a zobrazovat délky v milimetrech (metrické) nebo v palcích (imperiální). Model zůstává stejný; zadané „12mm“ nebo „0.5in“ platí v obou nastaveních.",
+ "Metrisch (mm)": "Metrické (mm)",
+ "Imperial (Zoll)": "Imperiální (palce)"
+}

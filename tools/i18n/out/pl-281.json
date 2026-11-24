@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "Jednostki: cale",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "Odległość {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "Krawędź: {0} · długość {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "Wpisuj i wyświetlaj długości w milimetrach (metryczne) lub w calach (imperialne). Model pozostaje ten sam; wpisane „12mm” lub „0.5in” obowiązuje w obu ustawieniach.",
+ "Metrisch (mm)": "Metryczne (mm)",
+ "Imperial (Zoll)": "Imperialne (cale)"
+}

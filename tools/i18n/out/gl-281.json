@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "Unidades: polgadas",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "Distancia {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "Aresta: {0} · lonxitude {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "Introducir e amosar lonxitudes en milímetros (métrico) ou en polgadas (imperial). O modelo segue sendo o mesmo; un «12mm» ou «0.5in» escrito vale en ambos axustes.",
+ "Metrisch (mm)": "Métrico (mm)",
+ "Imperial (Zoll)": "Imperial (polgadas)"
+}

@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "Одиниці: дюйми",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "Відстань {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "Ребро: {0} · довжина {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "Вводити й показувати довжини в міліметрах (метрична система) або в дюймах (імперська). Модель залишається тією самою; введене «12mm» або «0.5in» діє за будь-якого налаштування.",
+ "Metrisch (mm)": "Метрична (мм)",
+ "Imperial (Zoll)": "Імперська (дюйми)"
+}

@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "Units: inch",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "Distance {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "Edge: {0} · length {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "Type and show lengths in millimetres (metric) or in inches (imperial). The model stays the same; a typed “12mm” or “0.5in” holds in either setting.",
+ "Metrisch (mm)": "Metric (mm)",
+ "Imperial (Zoll)": "Imperial (inch)"
+}

@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "단위: 인치",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "거리 {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "모서리: {0} · 길이 {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "길이를 밀리미터(미터법) 또는 인치(야드파운드법)로 입력하고 표시합니다. 모델은 그대로이며, 입력한 “12mm” 또는 “0.5in”은 어느 설정에서나 유효합니다.",
+ "Metrisch (mm)": "미터법 (mm)",
+ "Imperial (Zoll)": "야드파운드법 (인치)"
+}

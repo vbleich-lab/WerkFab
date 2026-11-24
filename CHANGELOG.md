@@ -1,5 +1,9 @@
 # Änderungen
 
+## v1.0.0-rc.38 – 2026-11-24
+
+- **Einheiten: metrisch oder imperial:** Voreinstellungen → Allgemein → „Einheiten“: „Metrisch (mm)“ oder „Imperial (Zoll)“. Mit Zoll zeigen und nehmen die Längenfelder der Eigenschaften, die Wertfelder an den Pfeilen am Körper und die Skizzenmaße Zoll; Messen, Kantenlänge, Volumen und Oberfläche des Körpers stehen in Zoll, in³ und in². Ein getipptes „12mm“ oder „0.5in“ (auch 0.5") gilt in jeder Einstellung. Das Modell selbst bleibt unverändert – die Einstellung lässt sich jederzeit umschalten; der Browser zeigt sie unter Dokumenteinstellungen. Ausdrücke mit Parametern rechnen weiter in Millimetern. Noch metrisch: die Wertfelder beim Zeichnen in der Skizze, Blech- und Normteil-Fenster, Vorschübe (mm/min), die Zeichnung und die NC-Programme.
+
 ## v1.0.0-rc.37 – 2026-11-24
 
 - **Startseite:** WerkFab beginnt mit einer Startseite statt mit dem leeren Design. Links stehen „Neues Design“, „Datei öffnen …“, das Einfügen von STEP, IGES oder Netzen, die Fusion-Zeitachse, die vier Beispiele, die Lernaufgaben, die Hilfe und die Voreinstellungen; in der Mitte die Designs dieses Computers mit Vorschaubild, das zuletzt geänderte zuerst, mit Suche. Ein Klick auf ein Design öffnet es. Das Haus-Symbol oben links holt die Seite jederzeit zurück, Esc oder „Weiter zum Design“ schließt sie. Abschalten: Haken „Startseite beim Start zeigen“ auf der Seite oder unter Voreinstellungen → Allgemein.

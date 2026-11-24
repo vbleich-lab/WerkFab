@@ -5,6 +5,7 @@ export const DEFAULTS = {
   // Allgemein
   autosave: true,
   confirmDelete: true,
+  units: 'mm', // mm | in – lengths are typed and shown in this unit; the model itself is always in mm
   startExample: false,
   startPage: true, // the start page comes first when the program starts
   startWorkspace: 'design', // design | cam

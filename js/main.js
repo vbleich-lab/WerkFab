@@ -84,22 +84,40 @@ function h(tag, props, ...kids) {
   return el;
 }
 
+// Unit of lengths (Voreinstellungen → Allgemein): the model is always in millimetres; with "in" a plain length
+// is shown and typed in inches. A typed "12mm" or "0.5in" (also 0.5") says its unit itself, in either setting.
+const INCH = 25.4;
+const inchUnits = () => getSettings().units === 'in';
+const lenUnit = () => (inchUnits() ? 'in' : 'mm');
+const lenOut = mm => (inchUnits() ? +(mm / INCH).toFixed(4) : +(+mm).toFixed(PREC));
+const fmtL = mm => `${lenOut(mm)} ${lenUnit()}`;
+// typed text of a length → [text without its unit, factor to mm]
+function lenIn(text) {
+  const s = String(text).trim();
+  const m = s.match(/^(.*?)(?:\s*(mm|in|"|″))$/i);
+  if (m && m[1].trim() && !/[A-Za-z_]$/.test(m[1].trim())) return [m[1].trim(), m[2].toLowerCase() === 'mm' ? 1 : INCH];
+  return [s, inchUnits() ? INCH : 1];
+}
 // Numeric input: plain arithmetic is stored as a number, anything with parameter
 // names as an "=expr" string that stays parametric.
 function num(value, set, opt = {}) {
   const isExpr = typeof value === 'string' && value.startsWith('=');
-  const shown = value == null ? '' : isExpr ? value.slice(1) : value;
+  // a length in inches: only the plain number is converted – an expression with parameters stays in mm
+  const isLen = opt.unit === 'mm', inch = isLen && inchUnits();
+  if (inch) opt = { ...opt, unit: 'in', min: opt.min != null ? opt.min / INCH : opt.min, step: opt.step || 0.1 };
+  const shown = value == null ? '' : isExpr ? value.slice(1) : inch && typeof value === 'number' ? +(value / INCH).toFixed(4) : value;
   const i = h('input', { type: 'text', inputmode: 'decimal', value: shown, placeholder: opt.ph ?? '', class: isExpr ? 'expr' : null, title: isExpr ? 'Ausdruck mit Parametern' : null, disabled: !!opt.disabled });
   i.addEventListener('change', () => {
-    const s = i.value.trim().replace(/,/g, '.');
+    let s = i.value.trim().replace(/,/g, '.'), k = 1;
     if (s === '' && opt.allowEmpty) return set(null);
+    if (isLen) [s, k] = lenIn(s);
     const scope = paramScope(state.project);
     let v = evalExpr(s, scope);
     if (!Number.isFinite(v)) { status('Ungültiger Wert oder unbekannter Parameter'); i.value = shown; return; }
     if (/[A-Za-z_]/.test(s) && !opt.int) return set('=' + s);
     if (opt.min != null) v = Math.max(opt.min, v);
     if (opt.int) v = Math.round(v);
-    set(+v.toFixed(4));
+    set(+(v * k).toFixed(4));
   });
   i.addEventListener('keydown', e => { if (e.key === 'Enter') i.blur(); });
   // Einstellungen → Allgemein: mouse wheel and ↑ ↓ change a plain number (Umschalt ×10, Alt ×0,1)
@@ -1996,12 +2014,12 @@ function drawExtrudeGizmo() {
     arrow.matrixAutoUpdate = false;
     group.add(arrow);
     // value box at the tip
-    const inp = h('input', { type: 'text', value: String(f2(raw)), spellcheck: 'false' });
-    const box = h('div', { class: 'exg-box', onpointerdown: e => e.stopPropagation() }, inp, h('span', null, 'mm'));
+    const inp = h('input', { type: 'text', value: String(lenOut(raw)), spellcheck: 'false' });
+    const box = h('div', { class: 'exg-box', onpointerdown: e => e.stopPropagation() }, inp, h('span', null, lenUnit()));
     inp.addEventListener('keydown', e => {
       e.stopPropagation();
       if (e.key === 'Enter') { e.preventDefault(); if (setExtrudeValue(f.id, hd.key, inp.value)) gizEnterOk(f.id); }
-      if (e.key === 'Escape') { inp.value = String(f2(raw)); inp.blur(); }
+      if (e.key === 'Escape') { inp.value = String(lenOut(raw)); inp.blur(); }
     });
     inp.addEventListener('change', () => setExtrudeValue(f.id, hd.key, inp.value));
     const lab = new CSS2DObject(box);
@@ -2055,9 +2073,9 @@ function drawFaceExtrudeGizmo(f, rf) {
     const arrow = exArrowMesh();
     arrow.matrixAutoUpdate = false;
     group.add(arrow);
-    const inp = h('input', { type: 'text', value: String(f2(raw)), spellcheck: 'false' });
-    const box = h('div', { class: 'exg-box', onpointerdown: e => e.stopPropagation() }, inp, h('span', null, 'mm'));
-    inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); if (setExtrudeValue(f.id, hd.key, inp.value)) gizEnterOk(f.id); } if (e.key === 'Escape') { inp.value = String(f2(raw)); inp.blur(); } });
+    const inp = h('input', { type: 'text', value: String(lenOut(raw)), spellcheck: 'false' });
+    const box = h('div', { class: 'exg-box', onpointerdown: e => e.stopPropagation() }, inp, h('span', null, lenUnit()));
+    inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); if (setExtrudeValue(f.id, hd.key, inp.value)) gizEnterOk(f.id); } if (e.key === 'Escape') { inp.value = String(lenOut(raw)); inp.blur(); } });
     inp.addEventListener('change', () => setExtrudeValue(f.id, hd.key, inp.value));
     const lab = new CSS2DObject(box);
     group.add(lab);
@@ -2087,7 +2105,7 @@ function drawPlaneGizmo(f) {
   const arrow = exArrowMesh();
   arrow.matrixAutoUpdate = false;
   group.add(arrow);
-  const inp = h('input', { type: 'text', value: String(f2(off)), spellcheck: 'false', size: 1 });
+  const inp = h('input', { type: 'text', value: String(lenOut(off)), spellcheck: 'false', size: 1 });
   const fit = () => { inp.style.width = Math.max(2, inp.value.length + 0.5) + 'ch'; };
   fit();
   inp.addEventListener('input', fit);
@@ -2095,7 +2113,7 @@ function drawPlaneGizmo(f) {
   inp.addEventListener('keydown', e => {
     e.stopPropagation();
     if (e.key === 'Enter') { e.preventDefault(); if (setExtrudeValue(f.id, 'offset', inp.value)) gizEnterOk(f.id); }
-    if (e.key === 'Escape') { inp.value = String(f2(off)); fit(); inp.blur(); }
+    if (e.key === 'Escape') { inp.value = String(lenOut(off)); fit(); inp.blur(); }
   });
   inp.addEventListener('change', () => setExtrudeValue(f.id, 'offset', inp.value));
   const lab = new CSS2DObject(h('div', { class: 'exg-anchor' }, lbox));
@@ -2104,11 +2122,11 @@ function drawPlaneGizmo(f) {
   updateExtrudeGizmo();
 }
 function setExtrudeValue(fid, key, text) {
-  const t = String(text).trim().replace(',', '.');
+  const [t, k] = lenIn(String(text).trim().replace(',', '.'));
   if (!t) return;
   const v = /^[-+]?[0-9.]+$/.test(t) ? +t : evalExpr(t, paramScope(state.project));
   if (!Number.isFinite(v)) return status(`„${text}“ ist kein gültiger Wert.`);
-  editFeature(fid, x => { x[key] = /[A-Za-z_]/.test(t) ? '=' + t : +(+v).toFixed(4); });
+  editFeature(fid, x => { x[key] = /[A-Za-z_]/.test(t) ? '=' + t : +(v * k).toFixed(4); });
   return true;
 }
 // Enter in the value box on the arrow finishes the command when its window is open
@@ -2214,8 +2232,8 @@ vp.canvas.addEventListener('pointerdown', e => {
     pos = ev.shiftKey ? Math.round(pos) : Math.round(pos * 10) / 10; // 0.1 mm, Umschalt = 1 mm
     exDrag.pos = pos;
     const val = exGiz.sym ? 2 * Math.abs(pos) : hd.side * pos;
-    if (hd.inp) hd.inp.value = String(f2(val));
-    else status(`${hd.axis}: ${f2(val)} mm`);
+    if (hd.inp) hd.inp.value = String(lenOut(val));
+    else status(`${hd.axis}: ${fmtL(val)}`);
     hd.fit?.();
     exPreview(hd, pos);
   };
@@ -2448,12 +2466,12 @@ function sketchOverlay(sk) {
       const lp = dimDrag?.cid === c.id ? dimDrag.lp : c.lp;
       if (c.type === 'dim' && lp) {
         const rc = raw.constraints.find(x => x.id === c.id);
-        text = (typeof rc?.value === 'string' ? 'ƒ ' : '') + (c.kind === 'diameter' ? 'Ø' : c.kind === 'radius' ? 'R' : '') + f2(c.value) + (c.kind === 'angle' ? '°' : '');
+        text = (typeof rc?.value === 'string' ? 'ƒ ' : '') + (c.kind === 'diameter' ? 'Ø' : c.kind === 'radius' ? 'R' : '') + (c.kind === 'angle' ? f2(c.value) + '°' : lenOut(c.value));
         pos = placedDim(c, lp);
       } else if (c.type === 'dim') {
         const rc = raw.constraints.find(x => x.id === c.id);
         const isExpr = typeof rc?.value === 'string';
-        text = (isExpr ? 'ƒ ' : '') + (c.kind === 'diameter' ? 'Ø' : c.kind === 'radius' ? 'R' : '') + f2(c.value) + (c.kind === 'angle' ? '°' : '');
+        text = (isExpr ? 'ƒ ' : '') + (c.kind === 'diameter' ? 'Ø' : c.kind === 'radius' ? 'R' : '') + (c.kind === 'angle' ? f2(c.value) + '°' : lenOut(c.value));
         const a = anchorOf(c.refs[0]), b = c.refs[1] ? anchorOf(c.refs[1]) : null;
         if (c.kind === 'length') { const [p, q] = H.line(c.refs[0]); dimLines.push(V(p, 0.06), V(q, 0.06)); }
         else if ((c.kind === 'dist' || c.kind === 'hdist' || c.kind === 'vdist') && b) {
@@ -2473,12 +2491,12 @@ function sketchOverlay(sk) {
       if (c.type === 'dim' && c.id === dimEdit) {
         // value box right at the dimension (Enter = apply, Esc = keep)
         const rc = raw.constraints.find(x => x.id === c.id);
-        const inp = h('input', { type: 'text', value: String(rc?.value ?? c.value), spellcheck: 'false' });
+        const inp = h('input', { type: 'text', value: String(typeof rc?.value === 'number' && c.kind !== 'angle' ? lenOut(rc.value) : rc?.value ?? c.value), spellcheck: 'false' });
         let done = false;
         const finish = ok => { if (done) return; done = true; if (ok) applyDimEdit(c.id, inp.value); else { dimEdit = null; refreshSketchOverlay(); } };
         inp.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); finish(true); } if (ev.key === 'Escape') { ev.preventDefault(); finish(false); } });
         inp.addEventListener('blur', () => setTimeout(() => finish(true), 0));
-        el = h('div', { class: 'sk-label dim edit at', onpointerdown: ev => ev.stopPropagation() }, c.kind === 'diameter' ? 'Ø' : c.kind === 'radius' ? 'R' : '', inp, c.kind === 'angle' ? '°' : 'mm');
+        el = h('div', { class: 'sk-label dim edit at', onpointerdown: ev => ev.stopPropagation() }, c.kind === 'diameter' ? 'Ø' : c.kind === 'radius' ? 'R' : '', inp, c.kind === 'angle' ? '°' : lenUnit());
         if (dimEditFocus) { dimEditFocus = false; setTimeout(() => { inp.focus(); inp.select(); }, 0); }
       } else {
         el = h('div', {
@@ -3615,7 +3633,7 @@ function renderTree() {
     // document settings
     t.append(node({ svg: SVG.folder, name: 'Dokumenteinstellungen', depth: 1, open: O('docset'), okey: 'docset' }));
     if (O('docset')) {
-      t.append(node({ svg: SVG.gear, name: 'Einheiten: mm', depth: 2 }));
+      t.append(node({ svg: SVG.gear, name: inchUnits() ? 'Einheiten: Zoll' : 'Einheiten: mm', depth: 2, onclick: openSettings }));
       t.append(node({ svg: SVG.param, name: `Parameter (${p.params.length})`, depth: 2, selected: isSel('params'), onclick: () => select('params') }));
     }
     // named views
@@ -4095,9 +4113,9 @@ function propsBody(b, body) {
     pr ? h('div', { class: 'stats' },
       // a surface body has no volume or mass (shows only its area)
       ...(body.surface ? [h('span', null, 'Art'), h('b', null, 'Flächenkörper (ohne Dicke)')] : [
-        h('span', null, 'Volumen'), h('b', null, `${f2(pr.volume / 1000)} cm³`),
+        h('span', null, 'Volumen'), h('b', null, inchUnits() ? `${f2(pr.volume / INCH ** 3)} in³` : `${f2(pr.volume / 1000)} cm³`),
         h('span', null, 'Masse'), h('b', null, `${f2((pr.volume / 1000) * mat.density)} g`)]),
-      h('span', null, 'Oberfläche'), h('b', null, `${f2(pr.area / 100)} cm²`),
+      h('span', null, 'Oberfläche'), h('b', null, inchUnits() ? `${f2(pr.area / INCH ** 2)} in²` : `${f2(pr.area / 100)} cm²`),
       h('span', null, 'Schwerpunkt'), h('b', null, (assemblyActive() ? new THREE.Vector3(...pr.com).applyMatrix4(bodyMatrix(state.project.assembly, body.id, motionValues)).toArray() : pr.com).map(v => f2(v)).join(' / ') + ' mm'),
       ...(() => {
         // moments of inertia about the axes through the centre of mass (from the mesh, with the material's density)
@@ -10864,8 +10882,8 @@ function viewportClick(e) {
     if (measure.pts.length === 2) {
       const [p, q] = measure.pts;
       const d = q.clone().sub(p);
-      showBanner(`Abstand ${f2(d.length())} mm · ΔX ${f2(d.x)} · ΔY ${f2(d.y)} · ΔZ ${f2(d.z)}`);
-    } else showBanner(`Punkt 1: ${f2(hit.point.x)}, ${f2(hit.point.y)}, ${f2(hit.point.z)} – zweiten Punkt anklicken`);
+      showBanner(`Abstand ${fmtL(d.length())} · ΔX ${lenOut(d.x)} · ΔY ${lenOut(d.y)} · ΔZ ${lenOut(d.z)}`);
+    } else showBanner(`Punkt 1: ${lenOut(hit.point.x)}, ${lenOut(hit.point.y)}, ${lenOut(hit.point.z)} – zweiten Punkt anklicken`);
     rebuildScene();
     return;
   }
@@ -11369,10 +11387,11 @@ function createDim(d) {
 }
 function applyDimEdit(cid, text) {
   dimEdit = null;
-  const t = String(text).trim().replace(',', '.');
+  let t = String(text).trim().replace(',', '.'), k = 1;
   const rc = feature(state.sketchId)?.constraints?.find(x => x.id === cid);
   if (!rc || !t) return refreshSketchOverlay();
-  let v = /^[-+]?[0-9.]+$/.test(t) ? +t : t;
+  if (rc.kind !== 'angle') [t, k] = lenIn(t);
+  let v = /^[-+]?[0-9.]+$/.test(t) ? +(t * k).toFixed(4) : t;
   if (typeof v === 'string' && !Number.isFinite(evalExpr(v, paramScope(state.project)))) { status(`„${t}“ ist kein gültiger Wert.`); return refreshSketchOverlay(); }
   if (typeof v === 'number' && (!Number.isFinite(v) || (v <= 0 && rc.kind !== 'angle'))) { status('Das Maß muss größer als 0 sein.'); return refreshSketchOverlay(); }
   if (rc.value === v) return refreshSketchOverlay();
@@ -13148,7 +13167,7 @@ function filteredClick(e) {
         const v = ends.sort((a, c) => a.distanceTo(hp) - c.distanceTo(hp))[0];
         if (v.distanceTo(hp) < vp.worldPerPixel() * 12 || !F.edge) { select('body', eb.id); return showBanner([`Scheitelpunkt: X ${f2(v.x)} · Y ${f2(v.y)} · Z ${f2(v.z)} mm`, h('button', { onclick: () => showBanner(null) }, 'OK')]); }
       }
-      if (F.edge && e3) { select('body', eb.id); let L = 0; try { L = e3.length; } catch { /* unknown */ } return showBanner([`Kante: ${{ LINE: 'Gerade', CIRCLE: 'Kreisbogen', BSPLINE_CURVE: 'Freiformkurve', ELLIPSE: 'Ellipse' }[e3.geomType] || e3.geomType} · Länge ${f2(L)} mm`, h('button', { onclick: () => showBanner(null) }, 'OK')]); }
+      if (F.edge && e3) { select('body', eb.id); let L = 0; try { L = e3.length; } catch { /* unknown */ } return showBanner([`Kante: ${{ LINE: 'Gerade', CIRCLE: 'Kreisbogen', BSPLINE_CURVE: 'Freiformkurve', ELLIPSE: 'Ellipse' }[e3.geomType] || e3.geomType} · Länge ${fmtL(L)}`, h('button', { onclick: () => showBanner(null) }, 'OK')]); }
     }
   }
   const hit = vp.raycast(e, vp.model.children.filter(o => o.isMesh && o.userData.body != null))[0];
@@ -14999,6 +15018,7 @@ const PREF_TREE = [
   { id: 'general', label: 'Allgemein', groups: [
     ['Allgemein', [
       ['startWorkspace', 'Standard-Arbeitsbereich', 'Arbeitsbereich beim Start von WerkFab', [['design', 'Konstruktion'], ['cam', 'Fertigung']]],
+      ['units', 'Einheiten', 'Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.', [['mm', 'Metrisch (mm)'], ['in', 'Imperial (Zoll)']]],
       ['startPage', 'Startseite beim Start zeigen', 'Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)', 'bool'],
       ['startExample', 'Mit Beispielprojekt starten', 'Wenn noch kein Projekt gespeichert ist, das Beispiel laden', 'bool'],
       ['autosave', 'Automatisch speichern', 'Projekt bei jeder Änderung auf diesem Rechner sichern', 'bool'],

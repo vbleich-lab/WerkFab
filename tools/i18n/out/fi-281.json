@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "Yksiköt: tuumat",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "Etäisyys {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "Reuna: {0} · pituus {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "Syötä ja näytä pituudet millimetreinä (metrinen) tai tuumina (brittiläinen). Malli pysyy samana; kirjoitettu „12mm“ tai „0.5in“ pätee kummassakin asetuksessa.",
+ "Metrisch (mm)": "Metrinen (mm)",
+ "Imperial (Zoll)": "Brittiläinen (tuumat)"
+}

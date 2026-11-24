@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "יחידות: אינץ'",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "מרחק {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "קצה: {0} · אורך {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "הזנה והצגה של אורכים במילימטרים (מטרי) או באינצ'ים (אימפריאלי). המודל נשאר זהה; הקלדת „12mm“ או „0.5in“ תקפה בכל אחת מההגדרות.",
+ "Metrisch (mm)": "מטרי (mm)",
+ "Imperial (Zoll)": "אימפריאלי (אינץ')"
+}

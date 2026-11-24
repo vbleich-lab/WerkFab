@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "Unit: inci",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "Jarak {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "Tepi: {0} · panjang {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "Masukkan dan paparkan panjang dalam milimeter (metrik) atau inci (imperial). Model kekal sama; „12mm“ atau „0.5in“ yang ditaip sah dalam kedua-dua tetapan.",
+ "Metrisch (mm)": "Metrik (mm)",
+ "Imperial (Zoll)": "Imperial (inci)"
+}

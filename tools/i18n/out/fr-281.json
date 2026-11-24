@@ -1,0 +1,8 @@
+{
+ "Einheiten: Zoll": "Unités : pouces",
+ "Abstand {0} · ΔX {1} · ΔY {2} · ΔZ {3}": "Distance {0} · ΔX {1} · ΔY {2} · ΔZ {3}",
+ "Kante: {0} · Länge {1}": "Arête : {0} · longueur {1}",
+ "Längen in Millimetern (metrisch) oder in Zoll (imperial) eingeben und anzeigen. Das Modell bleibt dasselbe; ein getipptes „12mm“ oder „0.5in“ gilt in jeder Einstellung.": "Saisir et afficher les longueurs en millimètres (métrique) ou en pouces (impérial). Le modèle reste le même ; un « 12mm » ou « 0.5in » saisi est valable dans les deux réglages.",
+ "Metrisch (mm)": "Métrique (mm)",
+ "Imperial (Zoll)": "Impérial (pouces)"
+}
