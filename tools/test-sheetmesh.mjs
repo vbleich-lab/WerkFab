@@ -110,6 +110,16 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
   const zip = new Uint8Array(Buffer.concat([Buffer.from(lh.buffer), nm, def, Buffer.from(ch.buffer), nm, Buffer.from(en.buffer)]));
   const tet = M.weld(await M.parse3MF(zip.buffer)), stt = M.stats(tet);
   ok('3MF lesen: komprimiert, Zoll, auf der Bauplatte verschoben', stt.tris === 4 && stt.closed && near(Math.abs(stt.volume), 25.4 ** 3 / 6, 0.01) && near(stt.box.min.x, 50.8) && near(stt.box.max.x, 76.2), `Volumen ${Math.abs(stt.volume).toFixed(2)} mm³, X ${stt.box.min.x.toFixed(2)} … ${stt.box.max.x.toFixed(2)}`);
+  // a slicer project: the triangles in a file of their own, the main model only refers to it (p:path)
+  {
+    const enc = t => new TextEncoder().encode(t);
+    const sub = xml.replace('unit="inch"', 'unit="millimeter"').split('<build>')[0] + '<build/></model>';
+    const main = `<?xml version="1.0"?><model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06"><resources><object id="2" p:UUID="a" type="model"><components>
+<component p:path="/3D/Objects/object_1.model" objectid="7" p:UUID="b" transform="1 0 0 0 1 0 0 0 1 0 0 0"/></components></object></resources><build><item objectid="2" p:UUID="c" transform="2 0 0 0 2 0 0 0 2 10 0 0"/></build></model>`;
+    const pk = M.zipStore([['3D/3dmodel.model', enc(main)], ['3D/Objects/object_1.model', enc(sub)]]);
+    const st = M.stats(M.weld(await M.parse3MF(pk.buffer.slice(pk.byteOffset, pk.byteOffset + pk.byteLength))));
+    ok('3MF lesen: Dreiecke in einer Unterdatei (Slicer-Projekt), skaliert und verschoben', st.tris === 4 && st.closed && near(Math.abs(st.volume), 8 / 6, 1e-4) && near(st.box.min.x, 10) && near(st.box.max.x, 12), `${st.tris} Dreiecke, X ${st.box.min.x} … ${st.box.max.x}`);
+  }
   // PLY: ASCII and binary
   const quad = 'ply\nformat ascii 1.0\nelement vertex 4\nproperty float x\nproperty float y\nproperty float z\nelement face 1\nproperty list uchar int vertex_indices\nend_header\n0 0 0\n10 0 0\n10 5 0\n0 5 0\n4 0 1 2 3\n';
   const pa = M.weld(M.parsePLY(new TextEncoder().encode(quad).buffer));

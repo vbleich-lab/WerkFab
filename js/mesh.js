@@ -730,21 +730,29 @@ export function to3MF(list) {
 }
 
 // all triangles of a 3MF file as a triangle soup in mm. Objects are read where they are defined; placements of
-// the build plate (item transform) and of components are applied when they are plain 3×4 matrices.
+// the build plate (item transform) and of components are applied when they are plain 3×4 matrices. A slicer
+// project keeps the triangles in files of their own (3D/Objects/….model) and only refers to them from the main
+// model (component with p:path, "production extension"): every model file of the package is read.
 export async function parse3MF(buf) {
   const files = await unzip(buf);
-  const key = [...files.keys()].find(k => /\.model$/i.test(k));
-  if (!key) throw new Error('Kein 3D-Modell in der 3MF-Datei');
-  const xml = new TextDecoder().decode(files.get(key));
-  const unit = { micron: 0.001, millimeter: 1, centimeter: 10, inch: 25.4, foot: 304.8, meter: 1000 }[(/<model[^>]*\bunit="(\w+)"/.exec(xml) || [])[1]] || 1;
-  const attr = (s, n) => { const m = new RegExp('\\b' + n + '="([^"]*)"').exec(s); return m ? m[1] : null; };
-  const objs = new Map();
-  for (const m of xml.matchAll(/<object\b([^>]*)>([\s\S]*?)<\/object>/g)) {
-    const body = m[2], v = [], tri = [], comps = [];
-    for (const q of body.matchAll(/<vertex\b([^>]*)\/?>/g)) v.push(+attr(q[1], 'x'), +attr(q[1], 'y'), +attr(q[1], 'z'));
-    for (const q of body.matchAll(/<triangle\b([^>]*)\/?>/g)) tri.push(+attr(q[1], 'v1'), +attr(q[1], 'v2'), +attr(q[1], 'v3'));
-    for (const q of body.matchAll(/<component\b([^>]*)\/?>/g)) comps.push({ id: attr(q[1], 'objectid'), tf: attr(q[1], 'transform') });
-    objs.set(attr(m[1], 'id'), { v, tri, comps });
+  const norm = p => String(p || '').replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
+  const keys = [...files.keys()].filter(k => /\.model$/i.test(k));
+  if (!keys.length) throw new Error('Kein 3D-Modell in der 3MF-Datei');
+  const attr = (s, n) => { const m = new RegExp('(?:^|\\s)' + n + '="([^"]*)"').exec(s); return m ? m[1] : null; };
+  const UNITS = { micron: 0.001, millimeter: 1, centimeter: 10, inch: 25.4, foot: 304.8, meter: 1000 };
+  const objs = new Map(), models = [];
+  for (const k of keys) {
+    const xml = new TextDecoder().decode(files.get(k)), path = norm(k);
+    const unit = UNITS[(/<model[^>]*\bunit="(\w+)"/.exec(xml) || [])[1]] || 1;
+    for (const m of xml.matchAll(/<object\b([^>]*)>([\s\S]*?)<\/object>/g)) {
+      const body = m[2], v = [], tri = [], comps = [];
+      for (const q of body.matchAll(/<vertex\b([^>]*)\/?>/g)) v.push(+attr(q[1], 'x'), +attr(q[1], 'y'), +attr(q[1], 'z'));
+      for (const q of body.matchAll(/<triangle\b([^>]*)\/?>/g)) tri.push(+attr(q[1], 'v1'), +attr(q[1], 'v2'), +attr(q[1], 'v3'));
+      for (const q of body.matchAll(/<component\b([^>]*)\/?>/g)) comps.push({ id: attr(q[1], 'objectid'), tf: attr(q[1], 'transform'), path: attr(q[1], 'p:path') || attr(q[1], '\\w+:path') });
+      objs.set(path + '#' + attr(m[1], 'id'), { v, tri, comps, unit, path });
+    }
+    const items = [...xml.matchAll(/<item\b([^>]*)\/?>/g)].map(q => ({ id: attr(q[1], 'objectid'), tf: attr(q[1], 'transform'), path: attr(q[1], 'p:path') || path }));
+    models.push({ path, items, unit });
   }
   const out = [];
   const mat = tf => { const a = (tf || '').trim().split(/\s+/).map(Number); return a.length === 12 && a.every(Number.isFinite) ? a : null; };
@@ -754,19 +762,21 @@ export async function parse3MF(buf) {
     for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) r.push(B[i * 3] * A[j] + B[i * 3 + 1] * A[3 + j] + B[i * 3 + 2] * A[6 + j] + (i === 3 ? A[9 + j] : 0));
     return r;
   };
-  const emit = (id, M, depth) => {
-    const o = objs.get(id);
+  // unit: the one of the model the placement comes from (a transform shifts in that unit)
+  const emit = (path, id, M, depth, unit) => {
+    const o = objs.get(norm(path) + '#' + id);
     if (!o || depth > 8) return;
     for (const i of o.tri) {
       const x = o.v[i * 3], y = o.v[i * 3 + 1], z = o.v[i * 3 + 2];
       if (M) out.push((x * M[0] + y * M[3] + z * M[6] + M[9]) * unit, (x * M[1] + y * M[4] + z * M[7] + M[10]) * unit, (x * M[2] + y * M[5] + z * M[8] + M[11]) * unit);
       else out.push(x * unit, y * unit, z * unit);
     }
-    for (const c of o.comps) emit(c.id, mul(M, mat(c.tf)), depth + 1);
+    for (const c of o.comps) emit(c.path || o.path, c.id, mul(M, mat(c.tf)), depth + 1, unit);
   };
-  const items = [...xml.matchAll(/<item\b([^>]*)\/?>/g)].map(q => ({ id: attr(q[1], 'objectid'), tf: mat(attr(q[1], 'transform')) }));
-  if (items.length) for (const it of items) emit(it.id, it.tf, 0);
-  else for (const id of objs.keys()) emit(id, null, 0);
+  // the main model is the one with the build plate; without any, every object as it is
+  const main = models.filter(m => m.items.length);
+  if (main.length) for (const m of main) for (const it of m.items) emit(it.path, it.id, mat(it.tf), 0, m.unit);
+  else for (const [k, o] of objs) emit(o.path, k.slice(k.indexOf('#') + 1), null, 0, o.unit);
   if (!out.length) throw new Error('Keine Dreiecke in der 3MF-Datei gefunden');
   return new Float32Array(out);
 }
