@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "הצגת דף הפתיחה בהפעלה",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "בהפעלה להציג תחילה את דף הפתיחה עם העיצובים שהיו בשימוש לאחרונה (סמל הבית בפינה השמאלית העליונה)",
+ "Ein leeres Design beginnen": "התחלת עיצוב ריק",
+ "Datei öffnen …": "פתיחת קובץ …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "פתיחת קובץ .ofab מהמחשב הזה",
+ "STEP, IGES oder Netz einfügen …": "הוספת STEP, IGES או רשת …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "הוספת קובץ STEP, IGES, STL, OBJ, 3MF או PLY לעיצוב חדש",
+ "Fusion-Zeitachse …": "ציר הזמן של Fusion …",
+ "Beispielprojekt": "פרויקט לדוגמה",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "חלק גמור עם תכנון וכרסום",
+ "HILFE": "עזרה",
+ "Kurze Aufgaben, die sich selbst abhaken": "משימות קצרות שמסמנות את עצמן",
+ "Tastenkürzel und Maus": "קיצורי מקלדת ועכבר",
+ "Zuletzt verwendet": "בשימוש לאחרונה",
+ "Die Startseite schließen (Esc)": "סגירת דף הפתיחה (Esc)",
+ "Weiter zum Design": "המשך לעיצוב",
+ "Klicken zum Öffnen": "לחיצה לפתיחה",
+ "Kein Design mit diesem Namen.": "אין עיצוב בשם זה.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "עדיין אין עיצובים – התחילו משמאל עם „עיצוב חדש“ או עם דוגמה.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "דף פתיחה: עיצוב חדש, פתיחה, עיצובים שהיו בשימוש לאחרונה"
+}

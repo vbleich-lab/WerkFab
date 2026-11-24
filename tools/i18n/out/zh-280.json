@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "启动时显示起始页",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "启动时先显示包含最近使用设计的起始页（左上角房子图标）",
+ "Ein leeres Design beginnen": "开始一个空白设计",
+ "Datei öffnen …": "打开文件 …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "从此计算机打开 .ofab 文件",
+ "STEP, IGES oder Netz einfügen …": "插入 STEP、IGES 或网格 …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "将 STEP、IGES、STL、OBJ、3MF 或 PLY 文件插入新设计",
+ "Fusion-Zeitachse …": "Fusion 时间轴 …",
+ "Beispielprojekt": "示例项目",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "包含设计和铣削加工的完整零件",
+ "HILFE": "帮助",
+ "Kurze Aufgaben, die sich selbst abhaken": "会自动打勾的简短任务",
+ "Tastenkürzel und Maus": "键盘快捷键和鼠标",
+ "Zuletzt verwendet": "最近使用",
+ "Die Startseite schließen (Esc)": "关闭起始页 (Esc)",
+ "Weiter zum Design": "继续进入设计",
+ "Klicken zum Öffnen": "点击打开",
+ "Kein Design mit diesem Namen.": "没有此名称的设计。",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "还没有设计 – 请在左侧从“新建设计”或示例开始。",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "起始页：新建设计、打开、最近使用的设计"
+}

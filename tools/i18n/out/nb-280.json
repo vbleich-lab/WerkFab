@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Vis startsiden ved oppstart",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "Vis først startsiden med de sist brukte designene ved oppstart (hussymbol øverst til venstre)",
+ "Ein leeres Design beginnen": "Begynn et tomt design",
+ "Datei öffnen …": "Åpne fil …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Åpne en .ofab-fil fra denne datamaskinen",
+ "STEP, IGES oder Netz einfügen …": "Sett inn STEP, IGES eller nett …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Sett inn en STEP-, IGES-, STL-, OBJ-, 3MF- eller PLY-fil i et nytt design",
+ "Fusion-Zeitachse …": "Fusion-tidslinje …",
+ "Beispielprojekt": "Eksempelprosjekt",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "En ferdig del med konstruksjon og fresing",
+ "HILFE": "HJELP",
+ "Kurze Aufgaben, die sich selbst abhaken": "Korte oppgaver som krysser seg selv av",
+ "Tastenkürzel und Maus": "Hurtigtaster og mus",
+ "Zuletzt verwendet": "Sist brukt",
+ "Die Startseite schließen (Esc)": "Lukk startsiden (Esc)",
+ "Weiter zum Design": "Fortsett til designet",
+ "Klicken zum Öffnen": "Klikk for å åpne",
+ "Kein Design mit diesem Namen.": "Ingen design med dette navnet.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Ingen design ennå – begynn til venstre med «Nytt design» eller et eksempel.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Startside: nytt design, åpne, sist brukte design"
+}

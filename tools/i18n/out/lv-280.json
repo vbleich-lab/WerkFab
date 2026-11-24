@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Startējot rādīt sākumlapu",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "Startējot vispirms rādīt sākumlapu ar nesen izmantotajiem dizainiem (mājas simbols augšā kreisajā pusē)",
+ "Ein leeres Design beginnen": "Sākt tukšu dizainu",
+ "Datei öffnen …": "Atvērt failu …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Atvērt .ofab failu no šī datora",
+ "STEP, IGES oder Netz einfügen …": "Ievietot STEP, IGES vai tīklu …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Ievietot STEP, IGES, STL, OBJ, 3MF vai PLY failu jaunā dizainā",
+ "Fusion-Zeitachse …": "Fusion laika josla …",
+ "Beispielprojekt": "Parauga projekts",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "Gatava detaļa ar konstruēšanu un frēzēšanu",
+ "HILFE": "PALĪDZĪBA",
+ "Kurze Aufgaben, die sich selbst abhaken": "Īsi uzdevumi, kas atzīmējas paši",
+ "Tastenkürzel und Maus": "Īsinājumtaustiņi un pele",
+ "Zuletzt verwendet": "Nesen izmantotie",
+ "Die Startseite schließen (Esc)": "Aizvērt sākumlapu (Esc)",
+ "Weiter zum Design": "Turpināt ar dizainu",
+ "Klicken zum Öffnen": "Noklikšķiniet, lai atvērtu",
+ "Kein Design mit diesem Namen.": "Nav dizaina ar šādu nosaukumu.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Vēl nav dizainu – sāciet kreisajā pusē ar „Jauns dizains“ vai paraugu.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Sākumlapa: jauns dizains, atvērt, nesen izmantotie dizaini"
+}

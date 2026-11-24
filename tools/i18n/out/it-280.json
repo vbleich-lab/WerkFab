@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Mostra la pagina iniziale all’avvio",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "All’avvio mostra prima la pagina iniziale con i progetti usati di recente (icona a forma di casa in alto a sinistra)",
+ "Ein leeres Design beginnen": "Inizia un progetto vuoto",
+ "Datei öffnen …": "Apri file …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Apri un file .ofab da questo computer",
+ "STEP, IGES oder Netz einfügen …": "Inserisci STEP, IGES o mesh …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Inserisci un file STEP, IGES, STL, OBJ, 3MF o PLY in un nuovo progetto",
+ "Fusion-Zeitachse …": "Timeline di Fusion …",
+ "Beispielprojekt": "Progetto di esempio",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "Un pezzo finito con progettazione e fresatura",
+ "HILFE": "GUIDA",
+ "Kurze Aufgaben, die sich selbst abhaken": "Brevi lezioni che si spuntano da sole",
+ "Tastenkürzel und Maus": "Scorciatoie e mouse",
+ "Zuletzt verwendet": "Usati di recente",
+ "Die Startseite schließen (Esc)": "Chiudi la pagina iniziale (Esc)",
+ "Weiter zum Design": "Continua con il progetto",
+ "Klicken zum Öffnen": "Clic per aprire",
+ "Kein Design mit diesem Namen.": "Nessun progetto con questo nome.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Ancora nessun progetto – inizia a sinistra con «Nuovo progetto» o un esempio.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Pagina iniziale: nuovo progetto, apri, progetti usati di recente"
+}

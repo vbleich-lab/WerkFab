@@ -6,6 +6,7 @@ export const DEFAULTS = {
   autosave: true,
   confirmDelete: true,
   startExample: false,
+  startPage: true, // the start page comes first when the program starts
   startWorkspace: 'design', // design | cam
   undoLimit: 200,
   updateCheck: true,        // ask GitHub for a new version at start

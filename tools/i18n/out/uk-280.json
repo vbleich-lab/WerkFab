@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Показувати початкову сторінку під час запуску",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "Під час запуску спершу показувати початкову сторінку з нещодавно використаними проєктами (значок будинку вгорі ліворуч)",
+ "Ein leeres Design beginnen": "Почати порожній проєкт",
+ "Datei öffnen …": "Відкрити файл …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Відкрити файл .ofab з цього комп’ютера",
+ "STEP, IGES oder Netz einfügen …": "Вставити STEP, IGES або сітку …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Вставити файл STEP, IGES, STL, OBJ, 3MF або PLY у новий проєкт",
+ "Fusion-Zeitachse …": "Часова шкала Fusion …",
+ "Beispielprojekt": "Приклад проєкту",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "Готова деталь із конструкцією та фрезерною обробкою",
+ "HILFE": "ДОВІДКА",
+ "Kurze Aufgaben, die sich selbst abhaken": "Короткі завдання, що позначаються самі",
+ "Tastenkürzel und Maus": "Комбінації клавіш і миша",
+ "Zuletzt verwendet": "Нещодавно використані",
+ "Die Startseite schließen (Esc)": "Закрити початкову сторінку (Esc)",
+ "Weiter zum Design": "Продовжити роботу з проєктом",
+ "Klicken zum Öffnen": "Натисніть, щоб відкрити",
+ "Kein Design mit diesem Namen.": "Немає проєкту з такою назвою.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Проєктів ще немає – почніть ліворуч із «Новий проєкт» або з прикладу.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Початкова сторінка: новий проєкт, відкрити, нещодавні проєкти"
+}

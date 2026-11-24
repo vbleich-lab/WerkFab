@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "起動時にスタートページを表示",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "起動時に、最近使ったデザインを並べたスタートページを最初に表示します（左上の家のアイコン）",
+ "Ein leeres Design beginnen": "空のデザインを開始",
+ "Datei öffnen …": "ファイルを開く …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "このコンピューターから .ofab ファイルを開きます",
+ "STEP, IGES oder Netz einfügen …": "STEP、IGES、メッシュを挿入 …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "STEP、IGES、STL、OBJ、3MF、PLY ファイルを新しいデザインに挿入します",
+ "Fusion-Zeitachse …": "Fusionのタイムライン …",
+ "Beispielprojekt": "サンプルプロジェクト",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "設計とフライス加工を含む完成部品",
+ "HILFE": "ヘルプ",
+ "Kurze Aufgaben, die sich selbst abhaken": "自動でチェックされる短い課題",
+ "Tastenkürzel und Maus": "ショートカットとマウス",
+ "Zuletzt verwendet": "最近使用",
+ "Die Startseite schließen (Esc)": "スタートページを閉じる（Esc）",
+ "Weiter zum Design": "デザインに進む",
+ "Klicken zum Öffnen": "クリックして開く",
+ "Kein Design mit diesem Namen.": "この名前のデザインはありません。",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "デザインはまだありません。左の「新規デザイン」またはサンプルから始めてください。",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "スタートページ：新規デザイン、開く、最近使ったデザイン"
+}

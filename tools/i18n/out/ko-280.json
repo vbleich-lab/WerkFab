@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "시작 시 시작 페이지 표시",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "시작할 때 최근 사용한 디자인이 있는 시작 페이지를 먼저 표시합니다 (왼쪽 위 집 아이콘)",
+ "Ein leeres Design beginnen": "빈 디자인 시작",
+ "Datei öffnen …": "파일 열기 …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "이 컴퓨터에서 .ofab 파일 열기",
+ "STEP, IGES oder Netz einfügen …": "STEP, IGES 또는 메시 삽입 …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "STEP, IGES, STL, OBJ, 3MF 또는 PLY 파일을 새 디자인에 삽입",
+ "Fusion-Zeitachse …": "Fusion 타임라인 …",
+ "Beispielprojekt": "예제 프로젝트",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "설계와 밀링 가공이 완성된 부품",
+ "HILFE": "도움말",
+ "Kurze Aufgaben, die sich selbst abhaken": "스스로 완료 표시되는 짧은 과제",
+ "Tastenkürzel und Maus": "단축키와 마우스",
+ "Zuletzt verwendet": "최근 사용",
+ "Die Startseite schließen (Esc)": "시작 페이지 닫기 (Esc)",
+ "Weiter zum Design": "디자인으로 계속",
+ "Klicken zum Öffnen": "클릭하여 열기",
+ "Kein Design mit diesem Namen.": "이 이름의 디자인이 없습니다.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "아직 디자인이 없습니다. 왼쪽에서 „새 디자인“ 또는 예제로 시작하세요.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "시작 페이지: 새 디자인, 열기, 최근 사용한 디자인"
+}

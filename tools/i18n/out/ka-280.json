@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "გაშვებისას საწყისი გვერდის ჩვენება",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "გაშვებისას ჯერ აჩვენე საწყისი გვერდი ბოლოს გამოყენებული დიზაინებით (სახლის ხატულა ზედა მარცხენა კუთხეში)",
+ "Ein leeres Design beginnen": "ცარიელი დიზაინის დაწყება",
+ "Datei öffnen …": "ფაილის გახსნა …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "ამ კომპიუტერიდან .ofab ფაილის გახსნა",
+ "STEP, IGES oder Netz einfügen …": "STEP-ის, IGES-ის ან ბადის ჩასმა …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "STEP, IGES, STL, OBJ, 3MF ან PLY ფაილის ჩასმა ახალ დიზაინში",
+ "Fusion-Zeitachse …": "Fusion-ის დროის ღერძი …",
+ "Beispielprojekt": "სანიმუშო პროექტი",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "დასრულებული დეტალი კონსტრუქციითა და ფრეზირებით",
+ "HILFE": "დახმარება",
+ "Kurze Aufgaben, die sich selbst abhaken": "მოკლე დავალებები, რომლებიც თავად მოინიშნება",
+ "Tastenkürzel und Maus": "ცხელი კლავიშები და მაუსი",
+ "Zuletzt verwendet": "ბოლოს გამოყენებული",
+ "Die Startseite schließen (Esc)": "საწყისი გვერდის დახურვა (Esc)",
+ "Weiter zum Design": "დიზაინზე გადასვლა",
+ "Klicken zum Öffnen": "დააწკაპუნეთ გასახსნელად",
+ "Kein Design mit diesem Namen.": "ამ სახელის დიზაინი არ არსებობს.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "დიზაინები ჯერ არ არის – დაიწყეთ მარცხნივ „ახალი დიზაინი“-თი ან მაგალითით.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "საწყისი გვერდი: ახალი დიზაინი, გახსნა, ბოლოს გამოყენებული დიზაინები"
+}

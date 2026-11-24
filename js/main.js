@@ -3450,6 +3450,43 @@ function sketchMenu(e, f) {
   ], f.name);
 }
 
+// the bodies leave the model from here on: one step "Körper entfernen" each, in one undo step
+function removeBodies(ids) {
+  commit(p => {
+    for (const id of ids) {
+      const f = { id: uid('re'), type: 'removebody', name: nextName(p.features, FEATURE_TYPES.removebody), body: id };
+      if (state.rollback != null) { p.features.splice(state.rollback, 0, f); state.rollback++; if (state.rollback >= p.features.length) state.rollback = null; }
+      else p.features.push(f);
+    }
+  });
+  state.sel = null; state.selBodies = null;
+  renderAll();
+  status(ids.length > 1 ? `${ids.length} Körper entfernt – je ein Schritt „Körper entfernen“ in der Zeitleiste.` : 'Körper entfernt – als Schritt „Körper entfernen“ in der Zeitleiste.');
+}
+// the bodies as a design of their own (the shape without its history); this design stays open and unchanged
+async function saveBodyCopyAs(bodies) {
+  const name = await askValue('Name des neuen Designs', bodies.length === 1 ? bodyName(bodies[0]) : `${state.project.name} (Kopie)`);
+  if (!name?.trim()) return;
+  try {
+    const project = newProject();
+    project.name = name.trim();
+    project.docId = uid('doc');
+    for (const b of bodies) {
+      const blob = await putBlob(await exportSTEP([b]).text());
+      const f = { id: uid('im'), type: 'import', name: bodyName(b), file: `${bodyName(b)}.step`, format: 'step', blob, op: 'new', scale: 1, yUp: false, rz: 0, dx: 0, dy: 0, dz: 0 };
+      project.features.push(f);
+      const meta = state.project.bodyMeta?.[b.id];
+      project.bodyMeta ||= {};
+      project.bodyMeta[f.id] = { ...(meta ? JSON.parse(JSON.stringify(meta)) : {}), name: bodyName(b) };
+    }
+    await storeCurrent(migrate(project));
+    if (dataOpen) renderDataPanel();
+    status(`Kopie als Design „${project.name}“ gespeichert – zu öffnen im Datenpanel.`);
+  } catch (err) {
+    status(`Kopie speichern fehlgeschlagen: ${err.message || err}`);
+  }
+}
+
 function bodyMenu(e, b, all) {
   const hidden = state.hiddenBodies.has(b.id);
   const src = feature(b.id) || feature(String(b.id).replace(/_\d+$/, ''));
@@ -3464,6 +3501,9 @@ function bodyMenu(e, b, all) {
     { label: 'Physikalisches Material / Eigenschaften', onclick: () => select('body', b.id) },
     { label: 'Verschieben/Kopieren', onclick: () => { createFeature('move'); const mv = state.sel && feature(state.sel.id); if (mv?.type === 'move') editFeature(mv.id, x => (x.body = b.id)); } },
     src ? { label: 'Erzeugendes Feature in Zeitachse suchen', onclick: () => findInTimeline(src.id) } : null,
+    { sep: true },
+    { label: 'Kopie speichern unter …', onclick: () => saveBodyCopyAs(all.filter(x => ids.includes(x.id))) },
+    { label: 'Löschen', icon: '✕', key: 'Entf', danger: true, onclick: () => removeBodies(ids) },
   ], bodyName(b));
 }
 
@@ -13231,17 +13271,7 @@ function deleteSelectedCmd() {
     return status('Fläche löschen: OK schließt die Lücke. Den ganzen Körper entfernt Entf, wenn er im Browser gewählt ist.');
   }
   if (many.length > 1) {
-    // several bodies: one step "Körper entfernen" each, in one undo step
-    commit(p => {
-      for (const id of many) {
-        const f = { id: uid('re'), type: 'removebody', name: nextName(p.features, FEATURE_TYPES.removebody), body: id };
-        if (state.rollback != null) { p.features.splice(state.rollback, 0, f); state.rollback++; if (state.rollback >= p.features.length) state.rollback = null; }
-        else p.features.push(f);
-      }
-    });
-    state.sel = null; state.selBodies = null;
-    renderAll();
-    return status(`${many.length} Körper entfernt – je ein Schritt „Körper entfernen“ in der Zeitleiste.`);
+    return removeBodies(many);
   }
   if (selBodyId()) return createFeature('removebody');
   status('Zuerst einen Schritt in der Zeitleiste oder einen Körper wählen.');
@@ -14969,6 +14999,7 @@ const PREF_TREE = [
   { id: 'general', label: 'Allgemein', groups: [
     ['Allgemein', [
       ['startWorkspace', 'Standard-Arbeitsbereich', 'Arbeitsbereich beim Start von WerkFab', [['design', 'Konstruktion'], ['cam', 'Fertigung']]],
+      ['startPage', 'Startseite beim Start zeigen', 'Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)', 'bool'],
       ['startExample', 'Mit Beispielprojekt starten', 'Wenn noch kein Projekt gespeichert ist, das Beispiel laden', 'bool'],
       ['autosave', 'Automatisch speichern', 'Projekt bei jeder Änderung auf diesem Rechner sichern', 'bool'],
       ['confirmDelete', 'Löschen bestätigen', 'Vor dem Löschen eines Features nachfragen', 'bool'],
@@ -16135,6 +16166,7 @@ function storageRow() {
 }
 
 async function openAsNewDoc(project) {
+  closeStart();
   if (state.project?.docId) await storeCurrent(state.project, docThumb()).catch(() => {});
   project.docId = uid('doc');
   closeModes();
@@ -16149,6 +16181,7 @@ function newDoc() { openAsNewDoc(freshProject()); }
 
 async function switchDoc(id) {
   if (!id || id === state.project.docId) return;
+  closeStart();
   await storeCurrent(state.project, docThumb()).catch(() => {});
   const p = await loadCurrent(id);
   if (!p) { openTabs = openTabs.filter(t => t.id !== id); saveTabs(); renderDocTabs(); return status('Design nicht gefunden.'); }
@@ -16344,6 +16377,72 @@ async function openTabFor(id) {
   if (id === state.project.docId) return;
   await switchDoc(id);
 }
+
+// ---------- start page ----------
+// What the program shows first: new design, open, examples and lessons on the left, the designs of this computer
+// (newest first) in the middle. It lies over the workspace; the design that was open last waits underneath.
+let startEl = null;
+function closeStart() {
+  if (!startEl) return;
+  startEl.remove();
+  startEl = null;
+  $('#homeBtn')?.classList.remove('on');
+}
+async function openStart() {
+  closeStart();
+  const page = h('div', { id: 'startPage', tabindex: '-1' });
+  startEl = page;
+  $('#homeBtn')?.classList.add('on');
+  page.style.top = Math.round($('#topbar').getBoundingClientRect().bottom) + 'px';
+  // keys typed here are not commands of the workspace underneath
+  page.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') closeStart(); });
+  const act = (icon, label, hint, fn, cls = '') => h('button', { class: 'sp-act ' + cls, title: hint, onclick: fn }, h('span', { class: 'sp-act-ico', html: icon }), h('span', null, label));
+  const run = fn => () => { closeStart(); fn(); };
+  const left = h('div', { class: 'sp-left' },
+    h('div', { class: 'sp-brand' }, h('b', null, 'WerkFab'), h('span', null, 'CAD/CAM')),
+    act('<b class="sp-plus">+</b>', 'Neues Design', 'Ein leeres Design beginnen', run(newDoc), 'primary'),
+    act($('#topbar .filebtn')?.innerHTML || '', 'Datei öffnen …', 'Eine .ofab-Datei von diesem Computer öffnen', () => $('#fileInput').click()),
+    act(ICONS.import || '', 'STEP, IGES oder Netz einfügen …', 'Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen', () => { newDoc(); $('#cadInput').click(); }),
+    act(ICONS.timelineIn || '', 'Fusion-Zeitachse …', 'Ein Fusion-Design mit seiner Zeitachse übernehmen: über das Export-Skript für Fusion', run(fusionHelp)),
+    h('div', { class: 'sp-head' }, 'BEISPIELE'),
+    act(ICONS.example || '', 'Beispielprojekt', 'Ein fertiges Teil mit Konstruktion und Fräsbearbeitung', run(() => loadExample())),
+    act(ICONS.revolve || '', 'Drehteil', 'Beispiel: Welle für die Drehbearbeitung', run(() => loadExample(true))),
+    act(ICONS.pocket || '', 'Frästestteil', 'Beispiel: Bauteil mit einer Operation für jede Frässtrategie', run(() => loadExample('mill'))),
+    act(ICONS.box || '', 'Konstruktionstestteil', 'Beispiel: Teil mit jedem Konstruktionsschritt', run(() => loadExample('design'))),
+    h('div', { class: 'sp-head' }, 'HILFE'),
+    act($('#learnBtn')?.innerHTML || '', 'Lernaufgaben', 'Kurze Aufgaben, die sich selbst abhaken', run(lessonsDialog)),
+    act($('#helpBtn')?.innerHTML || '', 'Tastenkürzel und Maus', 'Hilfe: Tastenkürzel und Maus', run(() => $('#helpBtn').click())),
+    act($('#settingsBtn')?.innerHTML || '', 'Voreinstellungen', 'Voreinstellungen', run(() => $('#settingsBtn').click())));
+  const grid = h('div', { class: 'sp-grid' });
+  const search = h('input', { type: 'search', class: 'sp-search', placeholder: 'Designs suchen' });
+  const show = h('input', { type: 'checkbox' });
+  show.checked = getSettings().startPage !== false;
+  show.onchange = () => saveSettings({ startPage: show.checked });
+  const right = h('div', { class: 'sp-right' },
+    h('div', { class: 'sp-top' }, h('h2', null, 'Zuletzt verwendet'), search),
+    grid,
+    h('div', { class: 'sp-foot' }, h('label', { class: 'sp-show' }, show, h('span', null, 'Startseite beim Start zeigen')), h('span', { style: 'flex:1' }),
+      h('button', { class: 'primary', onclick: closeStart, title: 'Die Startseite schließen (Esc)' }, 'Weiter zum Design')));
+  page.append(left, right);
+  $('#app').append(page);
+  page.focus();
+  if (state.project?.docId) await storeCurrent(state.project, docThumb()).catch(() => {});
+  let docs = [];
+  try { docs = await listDocs(); } catch { /* IndexedDB unavailable */ }
+  if (startEl !== page) return;
+  const draw = () => {
+    const q = search.value.trim().toLowerCase();
+    const list = docs.filter(d => !q || (d.name || '').toLowerCase().includes(q));
+    grid.replaceChildren(...list.map(d => h('button', { class: 'sp-card' + (d.id === state.project.docId ? ' on' : ''), title: 'Klicken zum Öffnen', onclick: async () => { closeStart(); await openTabFor(d.id); } },
+      d.thumb ? h('img', { src: d.thumb, alt: '' }) : h('div', { class: 'sp-nothumb' }, '◆'),
+      h('b', null, d.name || 'Unbenannt'), h('small', null, ago(d.updated)))));
+    if (!list.length) grid.append(h('p', { class: 'hint' }, docs.length ? 'Kein Design mit diesem Namen.' : 'Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.'));
+  };
+  search.oninput = draw;
+  draw();
+}
+const toggleStart = () => (startEl ? closeStart() : openStart());
+$('#homeBtn')?.addEventListener('click', toggleStart);
 
 // ---------- comments ----------
 function renderComments() {
@@ -18574,6 +18673,8 @@ function openPostDialog(saved = null) {
   initAgent();
   openSharedFromAddress();
   initFusion(fusionEnv());
+  // the start page first – not for a shared link and not for a program that drives WerkFab (tests, agents)
+  if (getSettings().startPage !== false && !navigator.webdriver && !location.hash && !location.search) openStart();
   setTimeout(startAddins, 1500);
   // steps waiting for the full kernel (delete face, fillet with radius points) are computed as soon as it is there
   onFullKernel(() => { dropWaitingSnaps(); model.key = null; renderAll(); });

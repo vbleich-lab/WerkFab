@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Başlangıçta başlangıç sayfasını göster",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "Başlangıçta önce son kullanılan tasarımların bulunduğu başlangıç sayfasını göster (sol üstteki ev simgesi)",
+ "Ein leeres Design beginnen": "Boş bir tasarım başlat",
+ "Datei öffnen …": "Dosya aç …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Bu bilgisayardan bir .ofab dosyası aç",
+ "STEP, IGES oder Netz einfügen …": "STEP, IGES veya ağ ekle …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Yeni bir tasarıma STEP, IGES, STL, OBJ, 3MF veya PLY dosyası ekle",
+ "Fusion-Zeitachse …": "Fusion zaman çizelgesi …",
+ "Beispielprojekt": "Örnek proje",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "Tasarımı ve frezeleme işlemiyle hazır bir parça",
+ "HILFE": "YARDIM",
+ "Kurze Aufgaben, die sich selbst abhaken": "Kendiliğinden işaretlenen kısa görevler",
+ "Tastenkürzel und Maus": "Klavye kısayolları ve fare",
+ "Zuletzt verwendet": "Son kullanılanlar",
+ "Die Startseite schließen (Esc)": "Başlangıç sayfasını kapat (Esc)",
+ "Weiter zum Design": "Tasarıma devam et",
+ "Klicken zum Öffnen": "Açmak için tıklayın",
+ "Kein Design mit diesem Namen.": "Bu adda bir tasarım yok.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Henüz tasarım yok – solda „Yeni tasarım“ veya bir örnekle başlayın.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Başlangıç sayfası: yeni tasarım, aç, son kullanılan tasarımlar"
+}

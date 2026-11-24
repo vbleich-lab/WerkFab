@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Afficher la page de démarrage au lancement",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "Au lancement, afficher d’abord la page de démarrage avec les conceptions récemment utilisées (icône de maison en haut à gauche)",
+ "Ein leeres Design beginnen": "Commencer une conception vide",
+ "Datei öffnen …": "Ouvrir un fichier …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Ouvrir un fichier .ofab depuis cet ordinateur",
+ "STEP, IGES oder Netz einfügen …": "Insérer STEP, IGES ou maillage …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Insérer un fichier STEP, IGES, STL, OBJ, 3MF ou PLY dans une nouvelle conception",
+ "Fusion-Zeitachse …": "Chronologie Fusion …",
+ "Beispielprojekt": "Projet d’exemple",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "Une pièce terminée avec conception et fraisage",
+ "HILFE": "AIDE",
+ "Kurze Aufgaben, die sich selbst abhaken": "Courtes leçons qui se cochent d’elles-mêmes",
+ "Tastenkürzel und Maus": "Raccourcis clavier et souris",
+ "Zuletzt verwendet": "Récemment utilisées",
+ "Die Startseite schließen (Esc)": "Fermer la page de démarrage (Échap)",
+ "Weiter zum Design": "Continuer vers la conception",
+ "Klicken zum Öffnen": "Cliquer pour ouvrir",
+ "Kein Design mit diesem Namen.": "Aucune conception portant ce nom.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Aucune conception pour l’instant – commencer à gauche avec « Nouvelle conception » ou un exemple.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Page de démarrage : nouvelle conception, ouvrir, conceptions récemment utilisées"
+}

@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Pokaż stronę startową przy uruchomieniu",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "Przy uruchomieniu najpierw pokaż stronę startową z ostatnio używanymi projektami (ikona domu w lewym górnym rogu)",
+ "Ein leeres Design beginnen": "Rozpocznij pusty projekt",
+ "Datei öffnen …": "Otwórz plik …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Otwórz plik .ofab z tego komputera",
+ "STEP, IGES oder Netz einfügen …": "Wstaw STEP, IGES lub siatkę …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Wstaw plik STEP, IGES, STL, OBJ, 3MF lub PLY do nowego projektu",
+ "Fusion-Zeitachse …": "Oś czasu Fusion …",
+ "Beispielprojekt": "Projekt przykładowy",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "Gotowa część z konstrukcją i obróbką frezarską",
+ "HILFE": "POMOC",
+ "Kurze Aufgaben, die sich selbst abhaken": "Krótkie zadania, które same się odhaczają",
+ "Tastenkürzel und Maus": "Skróty klawiszowe i mysz",
+ "Zuletzt verwendet": "Ostatnio używane",
+ "Die Startseite schließen (Esc)": "Zamknij stronę startową (Esc)",
+ "Weiter zum Design": "Przejdź do projektu",
+ "Klicken zum Öffnen": "Kliknij, aby otworzyć",
+ "Kein Design mit diesem Namen.": "Brak projektu o tej nazwie.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Brak projektów – zacznij po lewej od „Nowy projekt” lub od przykładu.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Strona startowa: nowy projekt, otwórz, ostatnio używane projekty"
+}

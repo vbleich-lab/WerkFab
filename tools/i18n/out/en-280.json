@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Show the start page at startup",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "At startup show the start page with the recently used designs first (house icon at the top left)",
+ "Ein leeres Design beginnen": "Begin an empty design",
+ "Datei öffnen …": "Open file …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Open a .ofab file from this computer",
+ "STEP, IGES oder Netz einfügen …": "Insert STEP, IGES or mesh …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Insert a STEP, IGES, STL, OBJ, 3MF or PLY file into a new design",
+ "Fusion-Zeitachse …": "Fusion timeline …",
+ "Beispielprojekt": "Example project",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "A finished part with design and milling",
+ "HILFE": "HELP",
+ "Kurze Aufgaben, die sich selbst abhaken": "Short lessons that tick themselves off",
+ "Tastenkürzel und Maus": "Keyboard shortcuts and mouse",
+ "Zuletzt verwendet": "Recently used",
+ "Die Startseite schließen (Esc)": "Close the start page (Esc)",
+ "Weiter zum Design": "Continue to the design",
+ "Klicken zum Öffnen": "Click to open",
+ "Kein Design mit diesem Namen.": "No design with this name.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "No designs yet – begin with “New design” or an example on the left.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Start page: new design, open, recently used designs"
+}

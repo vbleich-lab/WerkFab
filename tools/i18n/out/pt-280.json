@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Mostrar a página inicial ao iniciar",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "Ao iniciar, mostrar primeiro a página inicial com os designs usados recentemente (ícone de casa no canto superior esquerdo)",
+ "Ein leeres Design beginnen": "Começar um design vazio",
+ "Datei öffnen …": "Abrir arquivo …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Abrir um arquivo .ofab deste computador",
+ "STEP, IGES oder Netz einfügen …": "Inserir STEP, IGES ou malha …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Inserir um arquivo STEP, IGES, STL, OBJ, 3MF ou PLY em um novo design",
+ "Fusion-Zeitachse …": "Linha do tempo do Fusion …",
+ "Beispielprojekt": "Projeto de exemplo",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "Uma peça pronta com projeto e fresamento",
+ "HILFE": "AJUDA",
+ "Kurze Aufgaben, die sich selbst abhaken": "Tarefas curtas que se marcam sozinhas",
+ "Tastenkürzel und Maus": "Atalhos de teclado e mouse",
+ "Zuletzt verwendet": "Usados recentemente",
+ "Die Startseite schließen (Esc)": "Fechar a página inicial (Esc)",
+ "Weiter zum Design": "Continuar para o design",
+ "Klicken zum Öffnen": "Clique para abrir",
+ "Kein Design mit diesem Namen.": "Nenhum design com este nome.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Ainda não há designs – comece à esquerda com „Novo design“ ou com um exemplo.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Página inicial: novo design, abrir, designs usados recentemente"
+}

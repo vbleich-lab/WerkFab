@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "إظهار صفحة البدء عند التشغيل",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "عند التشغيل، إظهار صفحة البدء أولًا مع التصاميم المستخدمة مؤخرًا (أيقونة المنزل أعلى اليسار)",
+ "Ein leeres Design beginnen": "بدء تصميم فارغ",
+ "Datei öffnen …": "فتح ملف …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "فتح ملف .ofab من هذا الحاسوب",
+ "STEP, IGES oder Netz einfügen …": "إدراج STEP أو IGES أو شبكة …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "إدراج ملف STEP أو IGES أو STL أو OBJ أو 3MF أو PLY في تصميم جديد",
+ "Fusion-Zeitachse …": "المخطط الزمني لـ Fusion …",
+ "Beispielprojekt": "مشروع نموذجي",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "قطعة جاهزة بتصميم وتفريز",
+ "HILFE": "مساعدة",
+ "Kurze Aufgaben, die sich selbst abhaken": "دروس قصيرة يُؤشَّر عليها تلقائيًا",
+ "Tastenkürzel und Maus": "اختصارات لوحة المفاتيح والفأرة",
+ "Zuletzt verwendet": "المستخدمة مؤخرًا",
+ "Die Startseite schließen (Esc)": "إغلاق صفحة البدء (Esc)",
+ "Weiter zum Design": "المتابعة إلى التصميم",
+ "Klicken zum Öffnen": "انقر للفتح",
+ "Kein Design mit diesem Namen.": "لا يوجد تصميم بهذا الاسم.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "لا توجد تصاميم بعد – ابدأ من اليسار بـ „تصميم جديد“ أو بمثال.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "صفحة البدء: تصميم جديد، فتح، التصاميم المستخدمة مؤخرًا"
+}

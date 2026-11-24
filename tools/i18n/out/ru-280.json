@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Показывать начальную страницу при запуске",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "При запуске сначала показывать начальную страницу с недавно использованными проектами (значок дома вверху слева)",
+ "Ein leeres Design beginnen": "Начать пустой проект",
+ "Datei öffnen …": "Открыть файл …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Открыть файл .ofab с этого компьютера",
+ "STEP, IGES oder Netz einfügen …": "Вставить STEP, IGES или сетку …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Вставить файл STEP, IGES, STL, OBJ, 3MF или PLY в новый проект",
+ "Fusion-Zeitachse …": "Временная шкала Fusion …",
+ "Beispielprojekt": "Пример проекта",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "Готовая деталь с конструкцией и фрезерной обработкой",
+ "HILFE": "СПРАВКА",
+ "Kurze Aufgaben, die sich selbst abhaken": "Короткие задания, которые отмечаются сами",
+ "Tastenkürzel und Maus": "Сочетания клавиш и мышь",
+ "Zuletzt verwendet": "Недавно использованные",
+ "Die Startseite schließen (Esc)": "Закрыть начальную страницу (Esc)",
+ "Weiter zum Design": "Продолжить работу с проектом",
+ "Klicken zum Öffnen": "Нажмите, чтобы открыть",
+ "Kein Design mit diesem Namen.": "Нет проекта с таким именем.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Проектов пока нет – начните слева с «Новый проект» или с примера.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Начальная страница: новый проект, открыть, недавние проекты"
+}

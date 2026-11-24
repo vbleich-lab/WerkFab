@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Prikaži početnu stranicu pri pokretanju",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "Pri pokretanju prvo prikaži početnu stranicu s nedavno korištenim dizajnima (ikona kuće gore lijevo)",
+ "Ein leeres Design beginnen": "Započni prazan dizajn",
+ "Datei öffnen …": "Otvori datoteku …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Otvori .ofab datoteku s ovog računala",
+ "STEP, IGES oder Netz einfügen …": "Umetni STEP, IGES ili mrežu …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Umetni STEP, IGES, STL, OBJ, 3MF ili PLY datoteku u novi dizajn",
+ "Fusion-Zeitachse …": "Fusion vremenska crta …",
+ "Beispielprojekt": "Primjer projekta",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "Gotov dio s konstrukcijom i glodanjem",
+ "HILFE": "POMOĆ",
+ "Kurze Aufgaben, die sich selbst abhaken": "Kratki zadaci koji se sami označavaju",
+ "Tastenkürzel und Maus": "Tipkovnički prečaci i miš",
+ "Zuletzt verwendet": "Nedavno korišteno",
+ "Die Startseite schließen (Esc)": "Zatvori početnu stranicu (Esc)",
+ "Weiter zum Design": "Nastavi na dizajn",
+ "Klicken zum Öffnen": "Kliknite za otvaranje",
+ "Kein Design mit diesem Namen.": "Nema dizajna s tim imenom.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Još nema dizajna – počnite lijevo s „Novi dizajn“ ili primjerom.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Početna stranica: novi dizajn, otvori, nedavno korišteni dizajni"
+}

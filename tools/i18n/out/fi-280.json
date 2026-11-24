@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Näytä aloitussivu käynnistettäessä",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "Näytä käynnistettäessä ensin aloitussivu viimeksi käytetyillä suunnitelmilla (talokuvake vasemmalla ylhäällä)",
+ "Ein leeres Design beginnen": "Aloita tyhjä suunnitelma",
+ "Datei öffnen …": "Avaa tiedosto …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Avaa .ofab-tiedosto tältä tietokoneelta",
+ "STEP, IGES oder Netz einfügen …": "Lisää STEP, IGES tai verkko …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Lisää STEP-, IGES-, STL-, OBJ-, 3MF- tai PLY-tiedosto uuteen suunnitelmaan",
+ "Fusion-Zeitachse …": "Fusionin aikajana …",
+ "Beispielprojekt": "Esimerkkiprojekti",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "Valmis kappale suunnittelun ja jyrsinnän kanssa",
+ "HILFE": "OHJE",
+ "Kurze Aufgaben, die sich selbst abhaken": "Lyhyitä tehtäviä, jotka merkitsevät itsensä tehdyiksi",
+ "Tastenkürzel und Maus": "Pikanäppäimet ja hiiri",
+ "Zuletzt verwendet": "Viimeksi käytetyt",
+ "Die Startseite schließen (Esc)": "Sulje aloitussivu (Esc)",
+ "Weiter zum Design": "Jatka suunnitelmaan",
+ "Klicken zum Öffnen": "Avaa napsauttamalla",
+ "Kein Design mit diesem Namen.": "Ei suunnitelmaa tällä nimellä.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Ei vielä suunnitelmia – aloita vasemmalta ”Uusi suunnitelma” -toiminnolla tai esimerkillä.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Aloitussivu: uusi suunnitelma, avaa, viimeksi käytetyt suunnitelmat"
+}

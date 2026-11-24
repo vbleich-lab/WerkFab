@@ -1,5 +1,10 @@
 # Änderungen
 
+## v1.0.0-rc.37 – 2026-11-24
+
+- **Startseite:** WerkFab beginnt mit einer Startseite statt mit dem leeren Design. Links stehen „Neues Design“, „Datei öffnen …“, das Einfügen von STEP, IGES oder Netzen, die Fusion-Zeitachse, die vier Beispiele, die Lernaufgaben, die Hilfe und die Voreinstellungen; in der Mitte die Designs dieses Computers mit Vorschaubild, das zuletzt geänderte zuerst, mit Suche. Ein Klick auf ein Design öffnet es. Das Haus-Symbol oben links holt die Seite jederzeit zurück, Esc oder „Weiter zum Design“ schließt sie. Abschalten: Haken „Startseite beim Start zeigen“ auf der Seite oder unter Voreinstellungen → Allgemein.
+- **Körper im Browser: „Löschen“ und „Kopie speichern unter …“:** Der Rechtsklick auf einen Körper im Browser hat zwei neue Einträge. „Löschen“ entfernt den Körper (als Schritt „Körper entfernen“ in der Zeitleiste, also rückgängig zu machen). „Kopie speichern unter …“ legt den Körper als eigenes Design ab – die Form ohne ihre Zeitleiste, mit Name und Material; das offene Design bleibt, wie es ist. Sind mehrere Körper gewählt, gelten beide Einträge für alle.
+
 ## v1.0.0-rc.36 – 2026-11-23
 
 - **Fusion-Designs mit Zeitachse einlesen:** EINFÜGEN → „Fusion-Zeitachse“. Eine .f3d-Datei ist ein geschlossenes Format; die Zeitachse gibt Fusion aber über seine Skript-Schnittstelle heraus. Das mitgelieferte Skript „WerkFabExport“ (im Fenster über „Skript speichern …“, einmal in Fusion unter Skripte und Zusatzmodule hinzufügen) schreibt zu einem Design die Datei „Name.fusion.json“. WerkFab baut daraus die Zeitachse Schritt für Schritt nach: Skizzen, Extrusion, Rotation, Bohrung, Verrundung, Fase und Schale werden eigene, änderbare Features; Benutzerparameter kommen als Parameter mit. Jeder Schritt wird gegen Volumen, Körperzahl und Schwerpunkt aus Fusion geprüft. Was sich nicht nachbauen lässt (z. B. eingefügte Basiskörper, Lofts, Muster), kommt als STEP-Stand des Modells an dieser Stelle der Zeitachse – die Form stimmt also immer. Am Ende zeigt ein Bericht, was aus jedem Schritt geworden ist. Skizzen kommen mit festen Maßen, ohne Abhängigkeiten. Wer eine .f3d-Datei öffnet, bekommt diesen Weg erklärt.

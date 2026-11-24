@@ -1,0 +1,22 @@
+{
+ "Startseite beim Start zeigen": "Zobrazit úvodní stránku při spuštění",
+ "Beim Start zuerst die Startseite mit den zuletzt verwendeten Designs zeigen (Haus-Symbol oben links)": "Při spuštění nejdřív zobrazit úvodní stránku s naposledy použitými návrhy (symbol domu vlevo nahoře)",
+ "Ein leeres Design beginnen": "Začít prázdný návrh",
+ "Datei öffnen …": "Otevřít soubor …",
+ "Eine .ofab-Datei von diesem Computer öffnen": "Otevřít soubor .ofab z tohoto počítače",
+ "STEP, IGES oder Netz einfügen …": "Vložit STEP, IGES nebo síť …",
+ "Eine STEP-, IGES-, STL-, OBJ-, 3MF- oder PLY-Datei in ein neues Design einfügen": "Vložit soubor STEP, IGES, STL, OBJ, 3MF nebo PLY do nového návrhu",
+ "Fusion-Zeitachse …": "Časová osa Fusion …",
+ "Beispielprojekt": "Ukázkový projekt",
+ "Ein fertiges Teil mit Konstruktion und Fräsbearbeitung": "Hotový díl s konstrukcí a frézováním",
+ "HILFE": "NÁPOVĚDA",
+ "Kurze Aufgaben, die sich selbst abhaken": "Krátké úlohy, které se samy odškrtávají",
+ "Tastenkürzel und Maus": "Klávesové zkratky a myš",
+ "Zuletzt verwendet": "Naposledy použité",
+ "Die Startseite schließen (Esc)": "Zavřít úvodní stránku (Esc)",
+ "Weiter zum Design": "Pokračovat k návrhu",
+ "Klicken zum Öffnen": "Kliknutím otevřete",
+ "Kein Design mit diesem Namen.": "Žádný návrh s tímto názvem.",
+ "Noch keine Designs – links mit „Neues Design“ oder einem Beispiel beginnen.": "Zatím žádné návrhy – začněte vlevo tlačítkem „Nový návrh“ nebo příkladem.",
+ "Startseite: neues Design, öffnen, zuletzt verwendete Designs": "Úvodní stránka: nový návrh, otevřít, naposledy použité návrhy"
+}
