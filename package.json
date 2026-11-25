@@ -1,7 +1,7 @@
 {
   "name": "werkfab",
   "productName": "WerkFab",
-  "version": "1.0.0-rc.40",
+  "version": "1.0.0-rc.41",
   "description": "WerkFab CAD/CAM – design and CNC machining, offline",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -130,20 +130,28 @@
           "mimeType": "application/x-werkfab"
         },
         {
-          "ext": [
-            "step",
-            "stp"
-          ],
+          "ext": "step",
           "name": "STEP model",
           "mimeType": "model/step",
           "role": "Viewer",
           "rank": "Alternate"
         },
         {
-          "ext": [
-            "igs",
-            "iges"
-          ],
+          "ext": "stp",
+          "name": "STEP model",
+          "mimeType": "model/step",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": "igs",
+          "name": "IGES model",
+          "mimeType": "model/iges",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": "iges",
           "name": "IGES model",
           "mimeType": "model/iges",
           "role": "Viewer",

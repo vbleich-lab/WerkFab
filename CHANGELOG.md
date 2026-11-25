@@ -1,5 +1,9 @@
 # Änderungen
 
+## v1.0.0-rc.41 – 2026-11-25
+
+- **Linux-Pakete wieder dabei:** Bei v1.0.0-rc.40 brach der Bau von AppImage und tar.gz ab (die Liste der Dateitypen hatte für den AppImage-Bau die falsche Form), die Veröffentlichung hatte deshalb keine Linux-Dateien. Inhaltlich gleich mit rc.40.
+
 ## v1.0.0-rc.40 – 2026-11-25
 
 - **WerkFab als Standardprogramm für STEP und andere Dateien:** Das installierte Programm lässt sich für STEP-, IGES-, STL-, OBJ-, 3MF- und PLY-Dateien wählen (Windows: Rechtsklick auf die Datei → „Öffnen mit“ → WerkFab → „Immer“, oder Einstellungen → Apps → Standard-Apps). Der Installer nimmt diese Dateitypen dem Programm, das sie bisher öffnet, nicht weg – er trägt WerkFab nur zur Auswahl ein; das eigene Format .ofab öffnet WerkFab von selbst. Ein Doppelklick auf eine Datei öffnet sie: ein .ofab-Design als eigenen Reiter, eine STEP-, IGES- oder Netzdatei in einem neuen Design mit dem Namen der Datei. Läuft WerkFab schon, geht die Datei in das offene Fenster. Gilt für die installierte Fassung (Windows-Installer, macOS-App); beim Linux-AppImage und beim entpackten Programm lässt sich WerkFab über „Öffnen mit“ → Programm wählen angeben.
