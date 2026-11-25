@@ -1588,3 +1588,16 @@ body.tb-moving, body.tb-moving * { cursor: grabbing !important; user-select: non
 .measurepanel .ms-res .ms-row b { color: var(--accent); }
 .measurepanel .look-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .measurepanel .hint { margin: 6px 0; }
+
+/* measuring: notes in the view (a table at the end of a thin line to the element or the dimension) */
+.ms-anchor { position: relative; width: 0; height: 0; pointer-events: none; }
+.ms-leader { position: absolute; left: 0; top: 0; height: 1px; background: var(--text); transform-origin: 0 0; box-shadow: 0 0 1px var(--bg); }
+.ms-knob { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px #1c1c1c; }
+.ms-call { position: absolute; white-space: nowrap; font: 13px/1.25 Arial, sans-serif; box-shadow: 0 1px 4px rgba(0, 0, 0, .45); }
+.ms-call-row { display: flex; }
+.ms-call-row + .ms-call-row { border-top: 1px solid #777; }
+.ms-call-row span { flex: 1; padding: 1px 6px; background: #9c9c9c; color: #111; }
+.ms-call-row b { min-width: 74px; padding: 1px 8px; background: #fff; color: #000; font-weight: 400; }
+.ms-call.ms-normal span { background: #7a00ff; color: #fff; }
+.ms-call.ms-centre span { background: #0a6fd6; color: #fff; }
+.ms-call.ms-min span { background: #ff7a00; color: #111; }

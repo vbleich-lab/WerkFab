@@ -1,5 +1,12 @@
 # Änderungen
 
+## v1.0.0-rc.43 – 2026-11-25
+
+- **Messen: die Maße stehen im Modell:** Was gemessen wird, steht jetzt in der Ansicht am Element – eine Notiz mit Hinweislinie (beim Kreis Durchmesser und Mittelpunkt, bei der Kante die Länge, bei der Fläche Flächeninhalt und Umfang). Zwischen zwei Elementen sind die Abstände als farbige Maßlinien mit Schild gezeichnet: Mittenabstand blau, normaler Abstand violett, kleinster Abstand orange; der Winkel zwischen zwei Kanten oder Flächen hat eine eigene Notiz. Die Notizen weichen dem Rand der Ansicht und dem Fenster „Messen“ aus. Die erste gewählte Fläche ist grün, Kanten sind rot hervorgehoben.
+- **Messen in der Baugruppe:** Bei einem Körper, den die Baugruppe verschoben oder gedreht hat, wurde in der unbewegten Lage gemessen – Abstände zwischen zwei Körpern waren falsch, die Markierung saß daneben. Jetzt wird dort gemessen, wo der Körper steht.
+- **Messen auf Netzkörpern:** Auf einem Netzkörper (STL, 3MF, OBJ, PLY) reagierte das Messen nicht. Jetzt lassen sich Punkte auf dem Netz anklicken (nahe einer Dreiecksecke rastet der Punkt dort ein) und der Abstand zweier Punkte messen.
+- **Messen, Kleineres:** Zwei Kreise auf einer Achse (z. B. am Drehteil) zeigten kein Maß – jetzt Mittenabstand und Abstand ihrer Ebenen. Eine Fläche und eine Bohrung senkrecht dazu zeigen den Abstand der Öffnung zur Fläche. Fläche und Kreis in parallelen Ebenen galten als 90° statt parallel. Zwei Punkte heißen „Abstand“ statt „Mittenabstand“. Große Designs mit vielen Körpern brauchen beim Messen deutlich weniger Speicher.
+
 ## v1.0.0-rc.42 – 2026-11-25
 
 - **Messen durch Anklicken von Elementen:** Statt zweier Punkte wird angeklickt, was gemessen werden soll – eine Ecke, eine Kante, eine Fläche oder eine Bohrung. Das Fenster „Messen“ zeigt, was es ist: bei einer Bohrung Durchmesser, Tiefe (oder „durchgehend“), Senkung und die Mitte der Öffnung – die Bohrung wird als Ganzes erkannt, gleich welche ihrer Flächen angeklickt wird; bei einem Kreis Durchmesser und Mittelpunkt, bei einem Bogen Radius, Winkel und Bogenlänge, bei einer Kante die Länge, bei einer Fläche Flächeninhalt und Umfang. Ein zweites Element zeigt, was zwischen beiden gilt: Mittenabstand zweier Bohrungen (quer zu den Achsen, mit ΔX, ΔY, ΔZ), Abstand paralleler Flächen oder Kanten, Mitte zur Fläche, kleinster Abstand und Winkel. Ein dritter Klick beginnt eine neue Messung. Die gewählten Elemente sind im Modell eingefärbt.

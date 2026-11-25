@@ -6,7 +6,7 @@
 //   { kind: 'line', p, d }                   straight edge: a point on it and its direction
 //   { kind: 'circle', p, d, r }              circle or arc: centre, axis direction, radius
 //   { kind: 'axis', p, d, r }                bore or cylinder: a point on the axis (the opening), direction, radius
-//   { kind: 'plane', p, d }                  flat face: a point on it and its normal
+//   { kind: 'plane', p, d, c }               flat face: a point on it, its normal and (if known) its centroid
 //   null                                     anything else (free-form faces and curves)
 
 export const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -59,36 +59,49 @@ const round = g => g && (g.kind === 'circle' || g.kind === 'axis');
 const centred = g => g && (g.kind === 'point' || round(g));
 const deg = x => (x * 180) / Math.PI;
 
-// What two elements say about each other. → { centre: { d, p, q, axes: bool }, planes: d, toPlane: d, angle: deg,
-// parallel: bool } – only the entries that apply.
+// the point an element is measured from, centre to centre: a point, the centre of a circle, the opening of a
+// bore, the centroid of a flat face (c)
+const centreOf = g => (!g ? null : centred(g) ? g.p : g.kind === 'plane' && g.c ? g.c : null);
+const footOn = (p, pl) => sub(p, mul(pl.d, dot(sub(p, pl.p), pl.d)));
+
+// What two elements say about each other. Every distance comes with its two points { d, p, q }:
+//   centre   centre to centre (axes: two parallel axes, measured square to them)
+//   normal   square to a flat face: two parallel faces, or a centre above a face
+//   lines    two parallel straight edges
+// and angle (degrees), parallel (bool) – only the entries that apply.
 export function relate(a, b) {
   const out = {};
   if (!a || !b) return out;
-  // centre to centre: two parallel axes are measured square to them (two bores of a plate, whatever their depth)
-  if (centred(a) && centred(b)) {
-    if (round(a) && round(b) && parallel(a.d, b.d)) {
-      const w = sub(b.p, a.p), q = sub(b.p, mul(a.d, dot(w, a.d)));
-      out.centre = { d: dist(a.p, q), p: a.p, q, axes: true };
-    } else if (round(a) && b.kind === 'point') {
-      out.centre = { d: dist(a.p, b.p), p: a.p, q: b.p, axes: false };
-    } else out.centre = { d: dist(a.p, b.p), p: a.p, q: b.p, axes: false };
+  const ca = centreOf(a), cb = centreOf(b);
+  if (ca && cb) {
+    // two parallel axes are measured square to them (two bores of a plate, whatever their depth)
+    // (two circles, or two things on one axis: their centres as they are)
+    const w = sub(cb, ca), q = round(a) && round(b) && parallel(a.d, b.d) && (a.kind === 'axis' || b.kind === 'axis') ? sub(cb, mul(a.d, dot(w, a.d))) : null;
+    if (q && dist(ca, q) > 1e-9) out.centre = { d: dist(ca, q), p: ca, q, axes: true };
+    else out.centre = { d: dist(ca, cb), p: ca, q: cb, axes: false };
   }
-  if (a.kind === 'plane' && b.kind === 'plane' && parallel(a.d, b.d)) out.planes = Math.abs(dot(sub(b.p, a.p), a.d));
-  // a centre (or an axis lying parallel to the plane) above a plane
-  for (const [pl, o] of [[a, b], [b, a]]) {
-    if (pl.kind !== 'plane' || !centred(o)) continue;
-    if (o.kind === 'axis' && !perpendicular(o.d, pl.d)) continue;
-    if (o.kind === 'circle' && !perpendicular(o.d, pl.d) && !parallel(o.d, pl.d)) continue;
-    out.toPlane = Math.abs(dot(sub(o.p, pl.p), pl.d));
+  if (a.kind === 'plane' && b.kind === 'plane') {
+    if (parallel(a.d, b.d)) { const p = ca || a.p, q = footOn(p, b); out.normal = { d: dist(p, q), p, q }; }
+  } else if (a.kind === 'circle' && b.kind === 'circle') {
+    // two parallel circles: the distance of the planes they lie in
+    if (parallel(a.d, b.d)) { const q = footOn(a.p, b); if (dist(a.p, q) > 1e-9) out.normal = { d: dist(a.p, q), p: a.p, q }; }
+  } else {
+    // a centre (or an axis lying parallel to the face) above a flat face
+    for (const [pl, o] of [[a, b], [b, a]]) {
+      if (pl.kind !== 'plane' || !centred(o)) continue;
+      if (round(o) && !perpendicular(o.d, pl.d) && !parallel(o.d, pl.d)) continue;
+      const q = footOn(o.p, pl);
+      if (dist(o.p, q) > 1e-9) out.normal = { d: dist(o.p, q), p: o.p, q }; // (a bore opening in that very face: nothing)
+    }
   }
-  // a straight edge parallel to a plane, or two parallel straight edges
-  if (a.kind === 'line' && b.kind === 'line' && parallel(a.d, b.d)) { const w = sub(b.p, a.p); out.lines = len(sub(w, mul(a.d, dot(w, a.d)))); }
+  if (a.kind === 'line' && b.kind === 'line' && parallel(a.d, b.d)) { const w = sub(b.p, a.p), q = sub(b.p, mul(a.d, dot(w, a.d))); out.lines = { d: dist(a.p, q), p: a.p, q }; }
   // angle: between directions (normals of planes, axes of round things, straight edges)
   const dirOf = g => (g && g.d && g.kind !== 'point' ? g.d : null), da = dirOf(a), db = dirOf(b);
   if (da && db) {
     const c = Math.min(1, Math.abs(dot(da, db)));
     const between = deg(Math.acos(c)); // 0…90 between the two directions
-    const planeA = a.kind === 'plane', planeB = b.kind === 'plane';
+    // (a circle counts as the plane it lies in, a bore as its axis)
+    const flat = g => g.kind === 'plane' || g.kind === 'circle', planeA = flat(a), planeB = flat(b);
     // a line against a plane: the angle to the plane itself, not to its normal
     out.angle = planeA !== planeB ? 90 - between : between;
     out.parallel = out.angle < 1e-4;

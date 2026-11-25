@@ -33,15 +33,25 @@ const arc = (c, r, a0, a1, n = 24, z = 0) => Array.from({ length: n + 1 }, (_, i
   const r = relate(a, b);
   ok('Zwei Bohrungen: Mittenabstand quer zu den Achsen', r.centre.axes && near(r.centre.d, Math.hypot(80, 40)) && near(r.centre.q[2], 20) && r.parallel, `${r.centre.d}`);
   const top = { kind: 'plane', p: [0, 0, 20], d: [0, 0, 1] }, bottom = { kind: 'plane', p: [50, 30, 0], d: [0, 0, -1] }, side = { kind: 'plane', p: [0, 5, 3], d: [-1, 0, 0] };
-  ok('Parallele Flächen: Abstand 20', near(relate(top, bottom).planes, 20) && relate(top, bottom).parallel);
-  ok('Flächen im rechten Winkel: 90°, kein Abstand', relate(top, side).planes === undefined && near(relate(top, side).angle, 90));
-  ok('Bohrung zur Seitenfläche: Mitte zur Fläche 10', near(relate(a, side).toPlane, 10) && near(relate(side, a).toPlane, 10));
-  ok('Bohrung zur Deckfläche (Achse senkrecht darauf): kein Mittenmaß', relate(a, top).toPlane === undefined);
+  ok('Parallele Flächen: Abstand 20', near(relate(top, bottom).normal.d, 20) && near(relate(top, bottom).normal.q[2], 0) && relate(top, bottom).parallel);
+  ok('Flächen im rechten Winkel: 90°, kein Abstand', relate(top, side).normal === undefined && near(relate(top, side).angle, 90));
+  ok('Bohrung zur Seitenfläche: Mitte zur Fläche 10', near(relate(a, side).normal.d, 10) && near(relate(side, a).normal.d, 10) && near(relate(a, side).normal.q[0], 0));
+  ok('Bohrung zur Deckfläche (Achse senkrecht darauf): kein Mittenmaß', relate(a, top).normal === undefined);
   const edge = { kind: 'line', p: [0, 0, 0], d: [1, 0, 0] }, slanted = { kind: 'line', p: [0, 0, 0], d: [Math.SQRT1_2, Math.SQRT1_2, 0] };
   ok('Zwei Kanten: 45°', near(relate(edge, slanted).angle, 45, 1e-9));
   ok('Kante zur Fläche: Winkel zur Fläche selbst', near(relate(edge, top).angle, 0, 1e-9) && near(relate({ kind: 'line', p: [0, 0, 0], d: [0, 0, 1] }, top).angle, 90, 1e-9));
-  ok('Parallele Kanten: Abstand', near(relate(edge, { kind: 'line', p: [7, 3, 4], d: [-1, 0, 0] }).lines, 5));
+  ok('Parallele Kanten: Abstand', near(relate(edge, { kind: 'line', p: [7, 3, 4], d: [-1, 0, 0] }).lines.d, 5));
   const pt = { kind: 'point', p: [10, 10, 0] };
   ok('Kreis und Punkt: Mittenabstand', near(relate({ kind: 'circle', p: [10, 10, 20], d: [0, 0, 1], r: 3 }, pt).centre.d, 20));
+  // a flat face with its centroid against a circle: centre distance and the distance square to the face
+  const face = { kind: 'plane', p: [3, 4, 0], d: [0, 0, 1], c: [0, 0, 0] }, ring = { kind: 'circle', p: [12, 0, 90], d: [0, 0, 1], r: 30 };
+  const fr = relate(face, ring);
+  ok('Fläche und Kreis: Mittenabstand und normaler Abstand', near(fr.centre.d, Math.hypot(12, 90)) && near(fr.normal.d, 90) && near(fr.normal.q[0], 12) && near(fr.normal.q[2], 0), `${fr.centre.d} / ${fr.normal.d}`);
+  ok('Fläche ohne Schwerpunkt: kein Mittenabstand', relate(top, ring).centre === undefined && near(relate(top, ring).normal.d, 70));
+  // two circles of a turned part on one axis, and two circles side by side
+  const c1 = { kind: 'circle', p: [0, 0, 30], d: [0, 0, 1], r: 15 }, c2 = { kind: 'circle', p: [0, 0, 70], d: [0, 0, -1], r: 10 }, c3 = { kind: 'circle', p: [30, 40, 50], d: [0, 0, 1], r: 4 };
+  ok('Kreise auf einer Achse: Abstand der Mitten und der Ebenen', near(relate(c1, c2).centre.d, 40) && !relate(c1, c2).centre.axes && near(relate(c1, c2).normal.d, 40) && relate(c1, c2).parallel);
+  ok('Kreise nebeneinander: Mitte zu Mitte und Abstand der Ebenen', near(relate(c1, c3).centre.d, Math.hypot(30, 40, 20)) && near(relate(c1, c3).normal.d, 20));
+  ok('Bohrungen auf einer Achse: Abstand der Öffnungen', near(relate({ kind: 'axis', p: [5, 5, 20], d: [0, 0, -1], r: 3 }, { kind: 'axis', p: [5, 5, 0], d: [0, 0, 1], r: 3 }).centre.d, 20));
   ok('Freiform: nichts zu sagen', Object.keys(relate(null, top)).length === 0);
 }

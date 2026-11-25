@@ -6094,9 +6094,22 @@ const testApi = {
     return { x, y };
   },
   pick: () => state.pick && { ...state.pick },
+  // measuring: what is chosen and what is shown, and the edges of a body (to click them in a test)
+  measureState() {
+    const e = x => x && { title: x.title, rows: x.rows, geo: x.geo && x.geo.kind, hi: x.hi, bi: x.bi };
+    return { a: e(measure.a), b: e(measure.b), rows: measure.res?.rows || [], dims: (measure.res?.dims || []).map(d => ({ ...d })), links: measure.res?.links || [],
+      notes: [...document.querySelectorAll('.ms-call')].map(c => [...c.querySelectorAll('.ms-call-row')].map(r => r.textContent)) };
+  },
+  bodies: () => getModel().bodies.map(b => b.id),
+  bodyEdges(bi = 0) {
+    const body = getModel().bodies[bi], n = body ? Math.max(-1, ...body.segEdge) + 1 : 0, out = [];
+    for (let ei = 0; ei < n; ei++) { const m = measureEdge(body, bi, ei); if (m) out.push({ ei, title: m.title, at: m.at, ends: m.ends, geo: m.geo }); }
+    return out;
+  },
   assembly: () => JSON.parse(JSON.stringify(state.project.assembly || null)),
   status: () => document.querySelector('#status')?.textContent || '',
-  run: name => ({ joint: addJoint, jointOrigin: addJointOrigin })[name]?.(),
+  run: name => ({ joint: addJoint, jointOrigin: addJointOrigin, bodyToMesh })[name]?.(),
+  hideBody(id) { state.hiddenBodies.add(id); rebuildScene(); },
 };
 function initAgent() {
   window.werkfabTest = testApi;
@@ -10721,9 +10734,24 @@ function drawMeasurePanel() {
     ...(measure.a ? [h('div', { class: 'look-foot' }, h('span', { class: 'hint' }, measure.b ? '' : 'Zweites Element anklicken'), h('span', { style: 'flex:1' }), newBtn)] : []));
 }
 const msArea = a => (inchUnits() ? `${f2(a / INCH ** 2)} in²` : `${f2(a)} mm²`);
-const msXYZ = p => `X ${lenOut(p[0])} · Y ${lenOut(p[1])} · Z ${lenOut(p[2])}`;
+// A body the assembly has moved (placement, joint, exploded view) is measured where it stands: msPose is its
+// matrix while one of its elements is being described, so that the positions written out are the ones seen
+let msPose = null;
+const msW = p => (msPose ? new THREE.Vector3(...p).applyMatrix4(msPose).toArray() : p);
+const msXYZ = p0 => { const p = msW(p0); return `X ${lenOut(p[0])} · Y ${lenOut(p[1])} · Z ${lenOut(p[2])}`; };
 const msAngle = d => `${+d.toFixed(3)}°`;
-const msDelta = (p, q) => `${lenOut(Math.abs(q[0] - p[0]))} · ${lenOut(Math.abs(q[1] - p[1]))} · ${lenOut(Math.abs(q[2] - p[2]))}`;
+const msDelta = (p0, q0) => { const p = msW(p0), q = msW(q0); return `${lenOut(Math.abs(q[0] - p[0]))} · ${lenOut(Math.abs(q[1] - p[1]))} · ${lenOut(Math.abs(q[2] - p[2]))}`; };
+// the kernel's edges and faces of a body, fetched once per body (every call of shape.edges builds them all anew)
+const msShapeLists = new WeakMap();
+function msList(body, what) {
+  const sh = body?.shape;
+  if (!sh || typeof sh !== 'object') return [];
+  let c = msShapeLists.get(sh);
+  if (!c) msShapeLists.set(sh, (c = {}));
+  if (!c[what]) { try { c[what] = sh[what] || []; } catch { c[what] = []; } }
+  return c[what];
+}
+const msEdges = body => msList(body, 'edges'), msFaces = body => msList(body, 'faces');
 function measurePoint(p, bi) {
   let shapes = null;
   try { shapes = [getKernelR().makeVertex(p)]; } catch { /* no kernel shape */ }
@@ -10732,7 +10760,7 @@ function measurePoint(p, bi) {
 function measureEdge(body, bi, ei) {
   const pos = body.edges.attributes.position.array, pts = [];
   body.segEdge.forEach((e, k) => { if (e !== ei) return; if (!pts.length) pts.push([pos[k * 6], pos[k * 6 + 1], pos[k * 6 + 2]]); pts.push([pos[k * 6 + 3], pos[k * 6 + 4], pos[k * 6 + 5]]); });
-  const e3 = body.shape?.edges?.[ei], occ = !!e3?.wrapped;
+  const e3 = msEdges(body)[ei], occ = !!e3?.wrapped;
   let exact = pts, length = null, closed = null;
   if (occ) {
     // points and length from the kernel (the drawn edge is a polyline of single-precision points)
@@ -10747,9 +10775,9 @@ function measureEdge(body, bi, ei) {
   const type = occ && ['LINE', 'CIRCLE'].includes(e3.geomType) ? e3.geomType : occ ? 'OTHER' : '';
   const d = MS.describeCurve(exact, { type, length, closed });
   const ends = [exact[0], exact[exact.length - 1]];
-  const base = { geo: d.geo, shapes: occ ? [e3] : null, at: exact[Math.floor(exact.length / 2)], hi: { edge: [bi, ei] }, bi, ends: d.sub === 'circle' ? [] : ends };
+  const base = { geo: d.geo, shapes: occ ? [e3] : null, at: d.sub === 'line' ? d.geo.p : exact[Math.floor(exact.length / 2)], hi: { edge: [bi, ei] }, bi, ends: d.sub === 'circle' ? [] : ends };
   if (d.sub === 'line') return { ...base, title: 'Gerade Kante', rows: [['Länge', fmtL(d.length)], ['ΔX · ΔY · ΔZ', msDelta(ends[0], ends[1])]] };
-  if (d.sub === 'circle') return { ...base, title: 'Kreis', rows: [['Durchmesser', '⌀ ' + fmtL(2 * d.geo.r)], ['Radius', 'R ' + fmtL(d.geo.r)], ['Umfang', fmtL(d.length)], ['Mittelpunkt', msXYZ(d.geo.p)]] };
+  if (d.sub === 'circle') return { ...base, title: 'Kreis', note: 2, rows: [['Durchmesser', '⌀ ' + fmtL(2 * d.geo.r)], ['Mittelpunkt', msXYZ(d.geo.p)], ['Radius', 'R ' + fmtL(d.geo.r)], ['Umfang', fmtL(d.length)]] };
   if (d.sub === 'arc') return { ...base, title: 'Kreisbogen', rows: [['Radius', 'R ' + fmtL(d.geo.r)], ['Bogenlänge', fmtL(d.length)], ['Winkel', msAngle(d.angle)], ['Mittelpunkt', msXYZ(d.geo.p)]] };
   return { ...base, title: 'Kurve', rows: [['Länge', fmtL(d.length)]] };
 }
@@ -10760,7 +10788,7 @@ function bodyHoles(body) {
   if (msHoles.key !== m.key) msHoles = { key: m.key, map: new Map() };
   if (!msHoles.map.has(body.id)) {
     let data = { cyls: [], caps: [] }, holes = [];
-    try { data = holeFaceData(body); holes = findHoles(data.cyls, data.caps).map(x => ({ ...x, cylFaces: x.faces.filter(i => body.shape.faces[i]?.geomType === 'CYLINDRE') })); } catch (err) { console.warn(err); }
+    try { data = holeFaceData(body); holes = findHoles(data.cyls, data.caps).map(x => ({ ...x, cylFaces: x.faces.filter(i => msFaces(body)[i]?.geomType === 'CYLINDRE') })); } catch (err) { console.warn(err); }
     msHoles.map.set(body.id, { holes, cyls: data.cyls });
   }
   return msHoles.map.get(body.id);
@@ -10776,8 +10804,22 @@ function meshFaceArea(body, fid) {
   }
   return A;
 }
+// centroid of a face (from its triangles)
+function meshFaceCentre(body, fid) {
+  const idx = body.geometry.index.array, pos = body.geometry.attributes.position;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), sum = new THREE.Vector3();
+  let A = 0;
+  for (let t = 0; t < body.faceOf.length; t++) {
+    if (body.faceOf[t] !== fid) continue;
+    a.fromBufferAttribute(pos, idx[t * 3]); b.fromBufferAttribute(pos, idx[t * 3 + 1]); c.fromBufferAttribute(pos, idx[t * 3 + 2]);
+    const w = b.clone().sub(a).cross(c.clone().sub(a)).length() / 2;
+    sum.addScaledVector(a.add(b).add(c), w / 3);
+    A += w;
+  }
+  return A > 0 ? sum.divideScalar(A).toArray() : null;
+}
 function measureFace(body, bi, fid, hitPoint) {
-  const fc = body.shape?.faces?.[fid], occ = !!fc?.wrapped, at = hitPoint.toArray();
+  const fc = msFaces(body)[fid], occ = !!fc?.wrapped, at = hitPoint.toArray();
   let area = NaN;
   try { area = occ ? getKernelR().measureArea(fc) : meshFaceArea(body, fid); } catch { area = meshFaceArea(body, fid); }
   const base = { geo: null, shapes: occ ? [fc] : null, at, hi: { faces: [bi, [fid]] }, bi };
@@ -10791,7 +10833,7 @@ function measureFace(body, bi, fid, hitPoint) {
       if (hole.kind === 'cbore') rows.push(['Senkung', `⌀ ${fmtL(hole.cbDia)} × ${fmtL(hole.cbDepth)}`]);
       rows.push(['Mitte der Öffnung', msXYZ(hole.entry)]);
       return { ...base, title: hole.kind === 'cbore' ? 'Bohrung mit Senkung' : hole.through ? 'Durchgangsbohrung' : 'Sackbohrung', rows,
-        geo: { kind: 'axis', p: hole.entry, d: MS.unit(hole.dir), r: hole.dia / 2 }, shapes: hole.cylFaces.map(i => body.shape.faces[i]), hi: { faces: [bi, hole.cylFaces] } };
+        geo: { kind: 'axis', p: hole.entry, d: MS.unit(hole.dir), r: hole.dia / 2 }, shapes: hole.cylFaces.map(i => msFaces(body)[i]), hi: { faces: [bi, hole.cylFaces] } };
     }
     const me = found.cyls.find(c => c.id === fid);
     if (me) {
@@ -10803,7 +10845,7 @@ function measureFace(body, bi, fid, hitPoint) {
       return { ...base, geo: { kind: 'axis', p: MS.add(me.loc, MS.mul(dir, (t0 + t1) / 2)), d: dir, r: me.r },
         title: me.concave ? (full ? 'Zylinder innen' : 'Rundung innen') : full ? 'Zylinder' : 'Rundung außen',
         rows: [...(full ? [['Durchmesser', '⌀ ' + fmtL(2 * me.r)]] : []), ['Radius', 'R ' + fmtL(me.r)], ['Länge', fmtL(t1 - t0)], ['Fläche', msArea(area)]],
-        ...(full ? { shapes: same.map(c => body.shape.faces[c.id]), hi: { faces: [bi, same.map(c => c.id)] } } : {}) };
+        ...(full ? { shapes: same.map(c => msFaces(body)[c.id]), hi: { faces: [bi, same.map(c => c.id)] } } : {}) };
     }
   }
   if (gt === 'PLANE') {
@@ -10811,7 +10853,8 @@ function measureFace(body, bi, fid, hitPoint) {
     try { const q = fc.normalAt(hitPoint); n = MS.unit([q.x, q.y, q.z]); } catch { n = null; }
     if (!n) { const q = faceNormal(body, fid); n = q ? MS.unit(q.toArray()) : null; }
     try { for (const w of fc.wires) for (const e of w.edges) per += e.length; } catch { per = 0; }
-    return { ...base, geo: n ? { kind: 'plane', p: at, d: n } : null, title: 'Ebene Fläche', rows: [['Fläche', msArea(area)], ...(per > 0 ? [['Umfang', fmtL(per)]] : [])] };
+    const c = meshFaceCentre(body, fid);
+    return { ...base, anchor: c || at, geo: n ? { kind: 'plane', p: at, d: n, ...(c ? { c } : {}) } : null, title: 'Ebene Fläche', rows: [['Fläche', msArea(area)], ...(per > 0 ? [['Umfang', fmtL(per)]] : [])] };
   }
   if (occ && gt === 'SPHERE') {
     try {
@@ -10822,22 +10865,47 @@ function measureFace(body, bi, fid, hitPoint) {
   const names = { CONE: 'Kegelfläche', TORUS: 'Torusfläche', SPHERE: 'Kugelfläche', CYLINDRE: 'Zylinderfläche' };
   return { ...base, title: names[gt] || 'Freiformfläche', rows: [['Fläche', msArea(area)]] };
 }
+// the element as it stands in the view: points, directions and kernel shapes moved with its body
+function msPlaced(ent, M) {
+  if (!ent || !M) return ent;
+  const P = p => new THREE.Vector3(...p).applyMatrix4(M).toArray(), Dn = d => new THREE.Vector3(...d).transformDirection(M).toArray();
+  const geo = ent.geo && { ...ent.geo, p: P(ent.geo.p), ...(ent.geo.d ? { d: Dn(ent.geo.d) } : {}), ...(ent.geo.c ? { c: P(ent.geo.c) } : {}) };
+  let shapes = null;
+  try { shapes = ent.shapes && ent.shapes.map(sh => transformShape(sh, M)); } catch { shapes = null; }
+  return { ...ent, geo, shapes, at: P(ent.at), ...(ent.anchor ? { anchor: P(ent.anchor) } : {}), ...(ent.ends ? { ends: ent.ends.map(P) } : {}), pose: M };
+}
 function measurePick(e) {
   const m = getModel();
+  // the matrix of a body the assembly has moved (null: it stands where it was built)
+  const poseOf = bi => { const bm = vp.model.children.find(o => o.isMesh && o.userData.body === bi); return bm && !bm.matrixAutoUpdate ? bm.matrix.clone() : null; };
+  const local = (v, M) => (M ? v.clone().applyMatrix4(M.clone().invert()) : v);
   const mh = vp.raycast(e, vp.model.children.filter(o => o.isMesh && o.userData.body != null && o.visible))[0];
   const objs = edgePickObjects();
   const eh = objs.length ? vp.raycast(e, objs, 6)[0] : null;
-  if (eh && (!mh || eh.distance <= mh.distance + vp.worldPerPixel() * 6)) {
-    const bi = eh.object.userData.body, body = m.bodies[bi], ed = body && measureEdge(body, bi, body.segEdge[Math.floor(eh.index / 2)]);
-    if (ed) {
-      // a corner: the end of the edge right under the mouse
-      const hp = eh.point.toArray(), end = [...ed.ends].sort((p, q) => MS.dist(p, hp) - MS.dist(q, hp))[0];
-      if (end && MS.dist(end, hp) < vp.worldPerPixel() * 9) return measurePoint(end, bi);
-      return ed;
+  // a mesh body (STL, 3MF …) in front of everything else: the point under the mouse, or the corner of its triangle
+  const nh = vp.raycast(e, vp.meshes.children.filter(o => o.isMesh && o.visible))[0];
+  if (nh && (!mh || nh.distance < mh.distance) && (!eh || nh.distance < eh.distance - vp.worldPerPixel() * 6)) {
+    let p = nh.point.toArray();
+    const pos = nh.object.geometry.attributes.position;
+    if (nh.face && pos) for (const i of [nh.face.a, nh.face.b, nh.face.c]) {
+      const v = new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(nh.object.matrixWorld).toArray();
+      if (MS.dist(v, nh.point.toArray()) < vp.worldPerPixel() * 9) { p = v; break; }
     }
+    return { ...measurePoint(p, null), title: 'Punkt auf dem Netz' };
   }
-  if (mh) { const bi = mh.object.userData.body, body = m.bodies[bi]; return measureFace(body, bi, body.faceOf[mh.faceIndex], mh.point); }
-  return null;
+  try {
+    if (eh && (!mh || eh.distance <= mh.distance + vp.worldPerPixel() * 6)) {
+      const bi = eh.object.userData.body, body = m.bodies[bi], M = msPose = poseOf(bi), ed = body && measureEdge(body, bi, body.segEdge[Math.floor(eh.index / 2)]);
+      if (ed) {
+        // a corner: the end of the edge right under the mouse
+        const hp = local(eh.point, M).toArray(), end = [...ed.ends].sort((p, q) => MS.dist(p, hp) - MS.dist(q, hp))[0];
+        if (end && MS.dist(end, hp) < vp.worldPerPixel() * 9) return msPlaced(measurePoint(end, bi), M);
+        return msPlaced(ed, M);
+      }
+    }
+    if (mh) { const bi = mh.object.userData.body, body = m.bodies[bi], M = msPose = poseOf(bi); return msPlaced(measureFace(body, bi, body.faceOf[mh.faceIndex], local(mh.point, M)), M); }
+    return null;
+  } finally { msPose = null; }
 }
 function measureBetween(a, b) {
   const rows = [], lines = [];
@@ -10845,48 +10913,101 @@ function measureBetween(a, b) {
   if (a.shapes && b.shapes) {
     for (const s1 of a.shapes) for (const s2 of b.shapes) { const r = shapeDistance(s1, s2); if (r && (!near || r.d < near.d)) near = r; }
   }
-  const rel = MS.relate(a.geo, b.geo);
-  if (rel.centre) { rows.push([rel.centre.axes ? 'Mittenabstand (Achsen)' : 'Mittenabstand', fmtL(rel.centre.d)], ['ΔX · ΔY · ΔZ der Mitten', msDelta(rel.centre.p, rel.centre.q)]); lines.push([rel.centre.p, rel.centre.q]); }
-  if (rel.planes != null) rows.push(['Abstand der Flächen', fmtL(rel.planes)]);
-  if (rel.lines != null) rows.push(['Abstand der Kanten', fmtL(rel.lines)]);
-  if (rel.toPlane != null) rows.push(['Mitte zur Fläche', fmtL(rel.toPlane)]);
-  if (near) {
+  const rel = MS.relate(a.geo, b.geo), dims = [], points = a.geo?.kind === 'point' && b.geo?.kind === 'point';
+  if (rel.centre) {
+    // (two points: simply their distance)
+    rows.push([points ? 'Abstand' : rel.centre.axes ? 'Mittenabstand (Achsen)' : 'Mittenabstand', fmtL(rel.centre.d)], [points ? 'ΔX · ΔY · ΔZ' : 'ΔX · ΔY · ΔZ der Mitten', msDelta(rel.centre.p, rel.centre.q)]);
+    dims.push({ kind: 'centre', label: points ? 'Abstand' : 'Mittenabstand', value: fmtL(rel.centre.d), p: rel.centre.p, q: rel.centre.q });
+  }
+  if (rel.normal) { rows.push(['Normaler Abstand', fmtL(rel.normal.d)]); dims.push({ kind: 'normal', label: 'Normaler Abstand', value: fmtL(rel.normal.d), p: rel.normal.p, q: rel.normal.q }); }
+  if (rel.lines) { rows.push(['Abstand der Kanten', fmtL(rel.lines.d)]); dims.push({ kind: 'normal', label: 'Abstand der Kanten', value: fmtL(rel.lines.d), p: rel.lines.p, q: rel.lines.q }); }
+  if (points) { /* said already */ } else if (near) {
     rows.push(['Kleinster Abstand', fmtL(near.d)]);
-    if (near.d > 1e-9) { rows.push(['ΔX · ΔY · ΔZ', msDelta(near.p, near.q)]); if (!lines.length) lines.push([near.p, near.q]); }
-  } else if (!rel.centre) { rows.push(['Abstand der Klickpunkte', fmtL(MS.dist(a.at, b.at))], ['ΔX · ΔY · ΔZ', msDelta(a.at, b.at)]); lines.push([a.at, b.at]); }
-  if (rel.angle != null) rows.push(['Winkel', rel.parallel ? 'parallel (0°)' : msAngle(rel.angle)]);
-  return { rows, lines };
+    if (near.d > 1e-9) { rows.push(['ΔX · ΔY · ΔZ', msDelta(near.p, near.q)]); if (!dims.length) dims.push({ kind: 'min', label: 'Kleinster Abstand', value: fmtL(near.d), p: near.p, q: near.q }); }
+  } else if (!rel.centre) {
+    rows.push(['Abstand der Klickpunkte', fmtL(MS.dist(a.at, b.at))], ['ΔX · ΔY · ΔZ', msDelta(a.at, b.at)]);
+    if (!dims.length) dims.push({ kind: 'min', label: 'Abstand der Klickpunkte', value: fmtL(MS.dist(a.at, b.at)), p: a.at, q: b.at });
+  }
+  const notes = [];
+  if (rel.angle != null) {
+    rows.push(['Winkel', rel.parallel ? 'parallel (0°)' : msAngle(rel.angle)]);
+    // (in the view only between edges and faces: a bore standing on a face says nothing new)
+    const roundOne = [a.geo, b.geo].some(g => g.kind === 'axis' || g.kind === 'circle');
+    if (!rel.parallel && !(roundOne && dims.length)) notes.push({ at: near && near.d < 1e-9 ? near.p : b.at, rows: [['Winkel', msAngle(rel.angle)]] });
+  }
+  const same = (p, q) => MS.dist(p, q) < 1e-4;
+  for (let i = dims.length - 1; i > 0; i--) if (dims.slice(0, i).some(d => (same(d.p, dims[i].p) && same(d.q, dims[i].q)) || (same(d.p, dims[i].q) && same(d.q, dims[i].p)))) dims.splice(i > 0 && dims[i].kind !== 'centre' && dims[0].kind === 'centre' ? 0 : i, 1);
+  // two dimensions from one point: the piece between their other ends closes the triangle
+  const links = [];
+  for (let i = 0; i < dims.length; i++) for (let j = i + 1; j < dims.length; j++) {
+    for (const [p1, q1] of [[dims[i].p, dims[i].q], [dims[i].q, dims[i].p]]) for (const [p2, q2] of [[dims[j].p, dims[j].q], [dims[j].q, dims[j].p]]) {
+      if (same(p1, p2) && !same(q1, q2) && !links.length) links.push([q1, q2]);
+    }
+  }
+  return { rows, dims: dims.filter(d => MS.dist(d.p, d.q) > 1e-9), links, notes };
 }
 function measureClick(e) {
   const ent = measurePick(e);
   if (!ent) return;
   if (!measure.a || measure.b) { measure.a = ent; measure.b = null; measure.res = null; }
-  else { measure.b = ent; try { measure.res = measureBetween(measure.a, ent); } catch (err) { console.warn(err); measure.res = { rows: [], lines: [] }; } }
+  else { measure.b = ent; try { measure.res = measureBetween(measure.a, ent); } catch (err) { console.warn(err); measure.res = { rows: [], dims: [], links: [], notes: [] }; } }
   if (!measure.panel) openMeasurePanel(); else drawMeasurePanel();
   rebuildScene();
 }
-const msFaceMat = color => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-const matMeasureA = msFaceMat(0xff7a00), matMeasureB = msFaceMat(0x1f9d55);
-const matMeasureEA = new THREE.MeshBasicMaterial({ color: 0xff7a00, depthTest: false, transparent: true });
-const matMeasureEB = new THREE.MeshBasicMaterial({ color: 0x1f9d55, depthTest: false, transparent: true });
+const matMeasureFace = new THREE.MeshBasicMaterial({ color: 0x00c000, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+const matMeasureEdge = new THREE.MeshBasicMaterial({ color: 0xff1010, depthTest: false, transparent: true });
+const MS_DIM = { centre: 0x0a84ff, normal: 0x7a00ff, min: 0xff7a00 };
+const msDimMats = Object.fromEntries(Object.entries(MS_DIM).map(([k, c]) => [k, new THREE.MeshBasicMaterial({ color: c, depthTest: false, transparent: true })]));
+const matMeasureLink = new THREE.MeshBasicMaterial({ color: 0xffe600, depthTest: false, transparent: true });
+// a note in the view: a table of rows next to the point it belongs to, with a thin line to that point
+function msCallout(at, rows, k, cls = '') {
+  const [ax, ay] = [[150, -60], [150, 90], [130, 130], [170, -110]][k % 4];
+  const box = h('div', { class: 'ms-call ' + cls },
+    ...rows.map(([name, value]) => h('div', { class: 'ms-call-row' }, h('span', null, name + ':'), h('b', null, value))));
+  const leader = h('i', { class: 'ms-leader' });
+  const o = new CSS2DObject(h('div', { class: 'ms-anchor' }, leader, h('i', { class: 'ms-knob' }), box));
+  o.position.set(...at);
+  // the note stays inside the view and clear of the "Messen" window: it goes to the side that has room
+  let side = 0;
+  const place = () => {
+    const sp = vp.screenPos(o.position), W = vp.el.clientWidth, H = vp.el.clientHeight;
+    const bw = box.offsetWidth || 220, bh = box.offsetHeight || 60;
+    const free = measure.panel ? W - measure.panel.offsetWidth - 30 : W;
+    const sx = sp.x + ax + bw > free ? -1 : 1;
+    const sy = sp.y + ay - bh / 2 < 8 ? 1 : sp.y + ay + bh / 2 > H - 8 ? -1 : Math.sign(ay);
+    const key = sx * 2 + sy;
+    if (key === side) return;
+    side = key;
+    const dx = ax * sx, dy = Math.abs(ay) * sy;
+    box.style.cssText = `left:${dx}px;top:${dy}px;transform:translate(${dx < 0 ? '-100%' : '0'}, -50%)`;
+    leader.style.cssText = `width:${Math.hypot(dx, dy)}px;transform:rotate(${Math.atan2(dy, dx)}rad)`;
+  };
+  o.onAfterRender = place;
+  place();
+  return o;
+}
 function drawMeasure() {
   if (state.pick?.mode !== 'measure') { if (measure.panel) closeMeasurePanel(); return; }
-  const m = getModel(), dots = [];
-  for (const [ent, mf, me] of [[measure.a, matMeasureA, matMeasureEA], [measure.b, matMeasureB, matMeasureEB]]) {
+  const m = getModel(), V = p => new THREE.Vector3(...p);
+  let k = 0;
+  for (const ent of [measure.a, measure.b]) {
     if (!ent) continue;
     const body = m.bodies[ent.bi];
-    if (ent.hi.faces && body) for (const fid of ent.hi.faces[1]) vp.paths.add(faceMesh(body, fid, mf));
-    if (ent.hi.edge && body) vp.paths.add(edgeMesh(body, ent.hi.edge[1], me));
-    if (ent.hi.point) dots.push(new THREE.Vector3(...ent.hi.point));
-    if (ent.geo && (ent.geo.kind === 'circle' || ent.geo.kind === 'axis')) dots.push(new THREE.Vector3(...ent.geo.p));
+    const posed = o => { if (ent.pose) { o.matrixAutoUpdate = false; o.matrix.copy(ent.pose); } return o; };
+    if (ent.hi.faces && body) for (const fid of ent.hi.faces[1]) vp.paths.add(posed(faceMesh(body, fid, matMeasureFace)));
+    if (ent.hi.edge && body) vp.paths.add(posed(edgeMesh(body, ent.hi.edge[1], matMeasureEdge)));
+    // what the element is, right at the element (the first rows; the window has all of them)
+    const at = ent.anchor || (ent.geo && (ent.geo.kind === 'circle' || ent.geo.kind === 'axis' || ent.geo.kind === 'point') ? ent.geo.p : ent.at);
+    if (!measure.res || !(measure.res.dims.length + measure.res.notes.length)) vp.paths.add(msCallout(at, ent.rows.slice(0, ent.note || 4), k));
+    k++;
   }
-  for (const [p, q] of measure.res?.lines || []) {
-    const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...p), new THREE.Vector3(...q)]), matMeasure);
-    l.renderOrder = 13;
-    vp.paths.add(l);
-    dots.push(new THREE.Vector3(...p), new THREE.Vector3(...q));
-  }
-  if (dots.length) vp.paths.add(new THREE.Points(new THREE.BufferGeometry().setFromPoints(dots), new THREE.PointsMaterial({ color: 0xff7a00, size: 8, sizeAttenuation: false, depthTest: false, transparent: true })));
+  (measure.res?.dims || []).forEach((d, i) => {
+    const t = pxTube(V(d.p), V(d.q), msDimMats[d.kind], 1.4);
+    if (t) vp.paths.add(t);
+    vp.paths.add(msCallout(MS.mul(MS.add(d.p, d.q), 0.5), [[d.label, d.value]], i, 'ms-' + d.kind));
+  });
+  (measure.res?.notes || []).forEach((n, i) => vp.paths.add(msCallout(n.at, n.rows, i + 2, 'ms-min')));
+  for (const [p, q] of measure.res?.links || []) { const t = pxTube(V(p), V(q), matMeasureLink, 1.4); if (t) vp.paths.add(t); }
 }
 
 // ---- sketch areas ("Profile"): clicked for an extrusion or a rotation, like the profiles of the usual CAD programs ----
@@ -10977,6 +11098,7 @@ function drawRegionCells() {
 function viewportClick(e) {
   // while a long recomputation runs the shown model is the previous one: no picking on it
   if (modelBusy()) return status('Einen Moment – das Modell wird noch berechnet.');
+  if (state.pick?.mode === 'measure') return measureClick(e); // (also where there is no solid under the mouse: mesh bodies)
   const meshes = vp.model.children.filter(o => o.isMesh);
   const m = getModel();
   if (state.pick?.mode === 'opheight' || state.pick?.mode === 'oppoints') return opPointPick(e, meshes);
