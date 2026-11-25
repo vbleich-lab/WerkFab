@@ -15,12 +15,11 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+# Bauen und Veröffentlichen sind zwei Aufträge: im selben Auftrag fand das Veröffentlichen das eben
+# hochgeladene Paket öfter noch nicht („No artifacts named github-pages“).
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,5 +31,12 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/WerkFab-Browser
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
