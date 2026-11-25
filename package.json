@@ -1,7 +1,7 @@
 {
   "name": "werkfab",
   "productName": "WerkFab",
-  "version": "1.0.0-rc.39",
+  "version": "1.0.0-rc.40",
   "description": "WerkFab CAD/CAM – design and CNC machining, offline",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -82,7 +82,16 @@
           ]
         }
       ],
-      "icon": "electron/icon.ico"
+      "icon": "electron/icon.ico",
+      "fileAssociations": [
+        {
+          "ext": "ofab",
+          "name": "WerkFab design",
+          "description": "WerkFab design",
+          "role": "Editor",
+          "mimeType": "application/x-werkfab"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -90,7 +99,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "WerkFab",
-      "artifactName": "WerkFab-${version}-windows-x64-setup.${ext}"
+      "artifactName": "WerkFab-${version}-windows-x64-setup.${ext}",
+      "include": "tools/installer.nsh"
     },
     "linux": {
       "target": [
@@ -110,7 +120,64 @@
       "category": "Engineering",
       "icon": "icons/icon-512.png",
       "synopsis": "CAD/CAM for design and CNC machining",
-      "artifactName": "WerkFab-${version}-linux-x86_64.${ext}"
+      "artifactName": "WerkFab-${version}-linux-x86_64.${ext}",
+      "fileAssociations": [
+        {
+          "ext": "ofab",
+          "name": "WerkFab design",
+          "description": "WerkFab design",
+          "role": "Editor",
+          "mimeType": "application/x-werkfab"
+        },
+        {
+          "ext": [
+            "step",
+            "stp"
+          ],
+          "name": "STEP model",
+          "mimeType": "model/step",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": [
+            "igs",
+            "iges"
+          ],
+          "name": "IGES model",
+          "mimeType": "model/iges",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": "stl",
+          "name": "STL mesh",
+          "mimeType": "model/stl",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": "obj",
+          "name": "OBJ mesh",
+          "mimeType": "model/obj",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": "3mf",
+          "name": "3MF model",
+          "mimeType": "model/3mf",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": "ply",
+          "name": "PLY mesh",
+          "mimeType": "application/x-ply",
+          "role": "Viewer",
+          "rank": "Alternate"
+        }
+      ]
     },
     "mac": {
       "target": [
@@ -125,7 +192,65 @@
       "category": "public.app-category.graphics-design",
       "icon": "icons/icon-512.png",
       "identity": null,
-      "artifactName": "WerkFab-${version}-macos-${arch}.${ext}"
+      "artifactName": "WerkFab-${version}-macos-${arch}.${ext}",
+      "fileAssociations": [
+        {
+          "ext": "ofab",
+          "name": "WerkFab design",
+          "description": "WerkFab design",
+          "role": "Editor",
+          "mimeType": "application/x-werkfab",
+          "rank": "Owner"
+        },
+        {
+          "ext": [
+            "step",
+            "stp"
+          ],
+          "name": "STEP model",
+          "mimeType": "model/step",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": [
+            "igs",
+            "iges"
+          ],
+          "name": "IGES model",
+          "mimeType": "model/iges",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": "stl",
+          "name": "STL mesh",
+          "mimeType": "model/stl",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": "obj",
+          "name": "OBJ mesh",
+          "mimeType": "model/obj",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": "3mf",
+          "name": "3MF model",
+          "mimeType": "model/3mf",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": "ply",
+          "name": "PLY mesh",
+          "mimeType": "application/x-ply",
+          "role": "Viewer",
+          "rank": "Alternate"
+        }
+      ]
     },
     "publish": [
       {

@@ -278,9 +278,36 @@ function setupAgent(win) {
   if (cfg.on) start();
 }
 
-app.on('second-instance', () => {
+// ---------- files handed over by the system ----------
+// A double click on a file, "Open with" or a file dropped on the program icon starts the program with the path
+// (Windows, Linux: argument; macOS: the event open-file). The paths wait here until the page fetches the files –
+// the page never names a path itself.
+const OPEN_EXT = /.(ofab|step|stp|igs|iges|stl|obj|3mf|ply|json)$/i;
+const handed = [];
+let mainWin = null;
+const handFiles = (list, cwd) => {
+  for (const a of list) {
+    if (typeof a !== 'string' || a.startsWith('-') || !OPEN_EXT.test(a)) continue;
+    const file = path.resolve(cwd || process.cwd(), a);
+    try { if (fs.statSync(file).isFile()) handed.push(file); } catch { /* not a file */ }
+  }
+  if (handed.length && mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('file:open');
+};
+ipcMain.handle('file:take', async e => {
+  if (!mainWin || e.sender !== mainWin.webContents) return [];
+  const out = [];
+  for (const file of handed.splice(0)) {
+    try { out.push({ name: path.basename(file), data: await fs.promises.readFile(file) }); } catch (err) { out.push({ name: path.basename(file), error: String(err.message || err) }); }
+  }
+  return out;
+});
+handFiles(process.argv.slice(1));
+app.on('open-file', (e, file) => { e.preventDefault(); handFiles([file]); });
+
+app.on('second-instance', (_e, argv, cwd) => {
   const [w] = BrowserWindow.getAllWindows();
   if (w) { if (w.isMinimized()) w.restore(); w.focus(); }
+  handFiles(argv.slice(1), cwd);
 });
 
 app.whenReady().then(() => {
@@ -298,7 +325,7 @@ app.whenReady().then(() => {
   });
   // no menu bar on Windows and Linux; macOS needs its app and edit menus (quit, copy, paste, undo by keyboard)
   Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
-  const win = createWindow();
+  const win = mainWin = createWindow();
   setupUpdates(win);
   setupAgent(win);
 });

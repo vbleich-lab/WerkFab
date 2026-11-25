@@ -14633,12 +14633,9 @@ function menuAction(act) {
   }
 }
 
-$('#fileInput').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
+async function openProjectFile(file, text) {
   try {
-    const p = JSON.parse(await file.text());
+    const p = JSON.parse(text ?? await file.text());
     if (!Array.isArray(p.features) || !p.cam) throw new Error('Keine WerkFab-Datei');
     await takeBlobs(p);
     await openAsNewDoc(migrate(p));
@@ -14646,7 +14643,36 @@ $('#fileInput').addEventListener('change', async e => {
   } catch (err) {
     alert('Datei konnte nicht geöffnet werden: ' + err.message);
   }
+}
+$('#fileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (file) openProjectFile(file);
 });
+
+// Files the system hands to the desktop app (double click on a file, „Öffnen mit“, a file dropped on the program
+// icon): a design opens in its own tab, a STEP, IGES or mesh file goes into a new design named after the file.
+async function openHandedFile(file) {
+  const ext = file.name.toLowerCase().split('.').pop();
+  let text;
+  if (ext === 'json') { text = await file.text(); if (!/"format"s*:s*"werkfab-fusion-timeline"/.test(text.slice(0, 2000))) return openProjectFile(file, text); }
+  if (ext === 'ofab') return openProjectFile(file);
+  if (ext !== 'json') { const p = freshProject(); p.name = file.name.replace(/.[^.]+$/, '') || p.name; await openAsNewDoc(p); }
+  await importCAD(file);
+}
+let handedQueue = Promise.resolve(0);
+function takeHandedFiles() {
+  const f = window.werkfabApp?.files;
+  if (!f) return handedQueue;
+  return (handedQueue = handedQueue.then(async () => {
+    const list = await f.take().catch(() => []);
+    for (const x of list) {
+      if (x.error) { alert(`„${x.name}“ konnte nicht gelesen werden: ${x.error}`); continue; }
+      try { await openHandedFile(new File([x.data], x.name)); } catch (err) { alert('Datei konnte nicht geöffnet werden: ' + (err.message || err)); }
+    }
+    return list.length;
+  }));
+}
 
 $('#cadInput').addEventListener('change', e => {
   const file = e.target.files[0];
@@ -18694,7 +18720,10 @@ function openPostDialog(saved = null) {
   openSharedFromAddress();
   initFusion(fusionEnv());
   // the start page first – not for a shared link and not for a program that drives WerkFab (tests, agents)
-  if (getSettings().startPage !== false && !navigator.webdriver && !location.hash && !location.search) openStart();
+  // … and not when the program was started with a file (double click on a file): that file opens instead
+  const handedN = await takeHandedFiles();
+  window.werkfabApp?.files?.onOpen(() => { takeHandedFiles(); });
+  if (!handedN && getSettings().startPage !== false && !navigator.webdriver && !location.hash && !location.search) openStart();
   setTimeout(startAddins, 1500);
   // steps waiting for the full kernel (delete face, fillet with radius points) are computed as soon as it is there
   onFullKernel(() => { dropWaitingSnaps(); model.key = null; renderAll(); });

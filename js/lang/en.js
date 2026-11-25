@@ -5932,6 +5932,7 @@ export default {"# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achs
 "„{0}“ ist jetzt auch ein Körper (Verrundung, Ausschneiden, 2D-Bearbeitung möglich){1}{2}{3}{4}. Das Netz ist ausgeblendet.":"“{0}” is now a body as well (fillet, cut, 2D machining possible){1}{2}{3}{4}. The mesh is hidden.",
 "„{0}“ ist kein gültiger Parametername":"“{0}” is not a valid parameter name",
 "„{0}“ ist kein gültiger Wert.":"“{0}” is not a valid value.",
+"„{0}“ konnte nicht gelesen werden: {1}":"“{0}” could not be read: {1}",
 "„{0}“ kopiert – Einfügen im Kontextmenü oder mit Strg+V":"\"{0}\" copied – paste from the context menu or with Ctrl+V",
 "„{0}“ liegt jetzt auf {1}.":"“{0}” is now assigned to {1}.",
 "„{0}“ löschen?":"Delete “{0}”?",

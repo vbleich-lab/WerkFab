@@ -13,7 +13,7 @@ WerkFab is a parametric 3D CAD program with integrated CAM. Parts are designed w
 > [!CAUTION]
 > **Every NC program must be verified before it runs on a machine for the first time – in a dry run on the machine (single block, reduced rapid, in the air or with a safe Z offset) or in an external NC simulator.** The simulation inside WerkFab does not replace this check. WerkFab is free software and comes with no warranty of any kind; there is no liability for damage to machines, tools, workpieces or people. See [Safety](#safety-always-simulate-nc-programs-first).
 
-> **Status: Release Candidate 39 (v1.0.0-rc.39).** Feature complete for 1.0.
+> **Status: Release Candidate 40 (v1.0.0-rc.40).** Feature complete for 1.0.
 
 ![Designing a part on the timeline, then toolpaths and a simulation with stock removal](docs/media/demo.gif)
 
@@ -118,7 +118,7 @@ All downloads are on the [Releases](../../releases) page.
 
 | System | File | How to start |
 |---|---|---|
-| Windows | `WerkFab-<version>-windows-x64-setup.exe` | Run the installer. It installs for the current user, adds a start menu and desktop entry and an uninstaller. |
+| Windows | `WerkFab-<version>-windows-x64-setup.exe` | Run the installer. It installs for the current user, adds a start menu and desktop entry and an uninstaller. WerkFab is then offered under “Open with” for STEP, IGES, STL, OBJ, 3MF and PLY files and can be chosen as their default program. |
 | Windows, without installing | `WerkFab-<version>-windows-x64-portable.zip` | Unpack and start `WerkFab.exe`. |
 | Linux | `WerkFab-<version>-linux-x86_64.AppImage` | Make it executable (`chmod +x WerkFab-*.AppImage`) and start it. Or unpack the `.tar.gz` and start `werkfab`. |
 | macOS (Apple silicon) | `WerkFab-<version>-macos-arm64.dmg` | Open the image and drag WerkFab to Applications. |

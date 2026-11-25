@@ -7,6 +7,11 @@ contextBridge.exposeInMainWorld('werkfabApp', {
   download: () => ipcRenderer.invoke('update:download'),
   install: () => ipcRenderer.invoke('update:install'),
   onState: fn => { ipcRenderer.on('update:state', (_e, s) => fn(s)); },
+  // files the system handed over (double click on a file, "Open with"): take() answers [{ name, data }] once
+  files: {
+    take: () => ipcRenderer.invoke('file:take'),
+    onOpen: fn => { ipcRenderer.on('file:open', () => fn()); },
+  },
   // full screen of the window (on: true / false, nothing = the other state); answers the state it is in then
   fullscreen: on => ipcRenderer.invoke('win:fullscreen', on),
   // AI agents (Einstellungen → KI-Agenten): the local port of the desktop app and the calls it passes on

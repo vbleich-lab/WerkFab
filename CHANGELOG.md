@@ -1,5 +1,9 @@
 # Änderungen
 
+## v1.0.0-rc.40 – 2026-11-25
+
+- **WerkFab als Standardprogramm für STEP und andere Dateien:** Das installierte Programm lässt sich für STEP-, IGES-, STL-, OBJ-, 3MF- und PLY-Dateien wählen (Windows: Rechtsklick auf die Datei → „Öffnen mit“ → WerkFab → „Immer“, oder Einstellungen → Apps → Standard-Apps). Der Installer nimmt diese Dateitypen dem Programm, das sie bisher öffnet, nicht weg – er trägt WerkFab nur zur Auswahl ein; das eigene Format .ofab öffnet WerkFab von selbst. Ein Doppelklick auf eine Datei öffnet sie: ein .ofab-Design als eigenen Reiter, eine STEP-, IGES- oder Netzdatei in einem neuen Design mit dem Namen der Datei. Läuft WerkFab schon, geht die Datei in das offene Fenster. Gilt für die installierte Fassung (Windows-Installer, macOS-App); beim Linux-AppImage und beim entpackten Programm lässt sich WerkFab über „Öffnen mit“ → Programm wählen angeben.
+
 ## v1.0.0-rc.39 – 2026-11-24
 
 - **3MF-Dateien aus Slicern lassen sich einfügen:** Ein 3MF-Projekt aus Bambu Studio oder Orca Slicer (z. B. von MakerWorld) wurde mit „Keine Dreiecke in der 3MF-Datei gefunden“ abgelehnt. Solche Dateien halten die Dreiecke in eigenen Dateien des Pakets und verweisen im Hauptmodell nur darauf; WerkFab liest jetzt alle Modelldateien des Pakets und setzt die Teile mit ihrer Lage und Skalierung auf der Bauplatte zusammen.
