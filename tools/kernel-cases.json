@@ -1,0 +1,1087 @@
+[
+ {
+  "name": "Platte",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   }
+  ]
+ },
+ {
+  "name": "Platte mit Tasche",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "sk2",
+    "type": "sketch",
+    "name": "Skizze2",
+    "plane": {
+     "o": [
+      0,
+      0,
+      20
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e2",
+      "type": "rect",
+      "x": 20,
+      "y": 15,
+      "w": 40,
+      "h": 30,
+      "r": 5
+     }
+    ]
+   },
+   {
+    "id": "ex2",
+    "type": "extrude",
+    "name": "Tasche",
+    "sketch": "sk2",
+    "profiles": "all",
+    "distance": -8,
+    "extent": "one",
+    "op": "cut"
+   }
+  ]
+ },
+ {
+  "name": "Platte mit Durchgangsbohrungen",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "sk3",
+    "type": "sketch",
+    "name": "Skizze3",
+    "plane": {
+     "o": [
+      0,
+      0,
+      20
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "h1",
+      "type": "circle",
+      "cx": 10,
+      "cy": 10,
+      "r": 3
+     },
+     {
+      "id": "h2",
+      "type": "circle",
+      "cx": 90,
+      "cy": 50,
+      "r": 3
+     }
+    ]
+   },
+   {
+    "id": "ho1",
+    "type": "hole",
+    "name": "Bohrung",
+    "sketch": "sk3",
+    "points": "all",
+    "kind": "simple",
+    "dia": 6.6,
+    "through": true,
+    "depth": 15,
+    "cbDia": 11,
+    "cbDepth": 6.5,
+    "csDia": 12,
+    "csAngle": 90,
+    "tip": false
+   }
+  ]
+ },
+ {
+  "name": "Platte mit Zylindersenkungen",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "sk3",
+    "type": "sketch",
+    "name": "Skizze3",
+    "plane": {
+     "o": [
+      0,
+      0,
+      20
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "h1",
+      "type": "circle",
+      "cx": 10,
+      "cy": 10,
+      "r": 3
+     },
+     {
+      "id": "h2",
+      "type": "circle",
+      "cx": 90,
+      "cy": 50,
+      "r": 3
+     }
+    ]
+   },
+   {
+    "id": "ho1",
+    "type": "hole",
+    "name": "Bohrung",
+    "sketch": "sk3",
+    "points": "all",
+    "kind": "cbore",
+    "dia": 6.6,
+    "through": true,
+    "depth": 15,
+    "cbDia": 11,
+    "cbDepth": 6.5,
+    "csDia": 12,
+    "csAngle": 90,
+    "tip": false
+   }
+  ]
+ },
+ {
+  "name": "Platte mit Kegelsenkungen",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "sk3",
+    "type": "sketch",
+    "name": "Skizze3",
+    "plane": {
+     "o": [
+      0,
+      0,
+      20
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "h1",
+      "type": "circle",
+      "cx": 10,
+      "cy": 10,
+      "r": 3
+     },
+     {
+      "id": "h2",
+      "type": "circle",
+      "cx": 90,
+      "cy": 50,
+      "r": 3
+     }
+    ]
+   },
+   {
+    "id": "ho1",
+    "type": "hole",
+    "name": "Bohrung",
+    "sketch": "sk3",
+    "points": "all",
+    "kind": "csink",
+    "dia": 6.6,
+    "through": true,
+    "depth": 15,
+    "cbDia": 11,
+    "cbDepth": 6.5,
+    "csDia": 12,
+    "csAngle": 90,
+    "tip": false
+   }
+  ]
+ },
+ {
+  "name": "Sackbohrung mit Bohrspitze",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "sk3",
+    "type": "sketch",
+    "name": "Skizze3",
+    "plane": {
+     "o": [
+      0,
+      0,
+      20
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "h1",
+      "type": "circle",
+      "cx": 10,
+      "cy": 10,
+      "r": 3
+     },
+     {
+      "id": "h2",
+      "type": "circle",
+      "cx": 90,
+      "cy": 50,
+      "r": 3
+     }
+    ]
+   },
+   {
+    "id": "ho1",
+    "type": "hole",
+    "name": "Bohrung",
+    "sketch": "sk3",
+    "points": "all",
+    "kind": "simple",
+    "dia": 6.6,
+    "through": false,
+    "depth": 12,
+    "cbDia": 11,
+    "cbDepth": 6.5,
+    "csDia": 12,
+    "csAngle": 90,
+    "tip": true
+   }
+  ]
+ },
+ {
+  "name": "Zapfen und Rechteckmuster",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "sk4",
+    "type": "sketch",
+    "name": "Skizze4",
+    "plane": {
+     "o": [
+      0,
+      0,
+      20
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "c4",
+      "type": "circle",
+      "cx": 80,
+      "cy": 15,
+      "r": 6
+     }
+    ]
+   },
+   {
+    "id": "ex4",
+    "type": "extrude",
+    "name": "Zapfen",
+    "sketch": "sk4",
+    "profiles": "all",
+    "distance": 10,
+    "extent": "one",
+    "op": "join"
+   },
+   {
+    "id": "pa1",
+    "type": "pattern",
+    "name": "Muster",
+    "kind": "rect",
+    "target": "ex4",
+    "dir1": "x",
+    "n1": 1,
+    "s1": 0,
+    "dir2": "y",
+    "n2": 3,
+    "s2": 15
+   }
+  ]
+ },
+ {
+  "name": "Tasche gespiegelt",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "sk2",
+    "type": "sketch",
+    "name": "Skizze2",
+    "plane": {
+     "o": [
+      0,
+      0,
+      20
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e2",
+      "type": "rect",
+      "x": 10,
+      "y": 15,
+      "w": 25,
+      "h": 30,
+      "r": 4
+     }
+    ]
+   },
+   {
+    "id": "ex2",
+    "type": "extrude",
+    "name": "Tasche",
+    "sketch": "sk2",
+    "profiles": "all",
+    "distance": -8,
+    "extent": "one",
+    "op": "cut"
+   },
+   {
+    "id": "mi1",
+    "type": "mirror",
+    "name": "Spiegeln",
+    "target": "ex2",
+    "plane": "YZ",
+    "offset": 50
+   }
+  ]
+ },
+ {
+  "name": "Verrundung nach Tasche (Übergabe)",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "sk2",
+    "type": "sketch",
+    "name": "Skizze2",
+    "plane": {
+     "o": [
+      0,
+      0,
+      20
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e2",
+      "type": "rect",
+      "x": 20,
+      "y": 15,
+      "w": 40,
+      "h": 30,
+      "r": 5
+     }
+    ]
+   },
+   {
+    "id": "ex2",
+    "type": "extrude",
+    "name": "Tasche",
+    "sketch": "sk2",
+    "profiles": "all",
+    "distance": -8,
+    "extent": "one",
+    "op": "cut"
+   },
+   {
+    "id": "fi1",
+    "type": "fillet",
+    "name": "Verrundung",
+    "radius": 2,
+    "all": false,
+    "edges": [
+     [
+      50,
+      0,
+      20
+     ],
+     [
+      100,
+      30,
+      20
+     ],
+     [
+      50,
+      60,
+      20
+     ],
+     [
+      0,
+      30,
+      20
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Fase und danach Bohrungen (Übergabe)",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "ch1",
+    "type": "chamfer",
+    "name": "Fase",
+    "distance": 1,
+    "all": false,
+    "edges": [
+     [
+      50,
+      0,
+      0
+     ],
+     [
+      100,
+      30,
+      0
+     ],
+     [
+      50,
+      60,
+      0
+     ],
+     [
+      0,
+      30,
+      0
+     ]
+    ]
+   },
+   {
+    "id": "sk3",
+    "type": "sketch",
+    "name": "Skizze3",
+    "plane": {
+     "o": [
+      0,
+      0,
+      20
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "h1",
+      "type": "circle",
+      "cx": 10,
+      "cy": 10,
+      "r": 3
+     },
+     {
+      "id": "h2",
+      "type": "circle",
+      "cx": 90,
+      "cy": 50,
+      "r": 3
+     }
+    ]
+   },
+   {
+    "id": "ho1",
+    "type": "hole",
+    "name": "Bohrung",
+    "sketch": "sk3",
+    "points": "all",
+    "kind": "cbore",
+    "dia": 6.6,
+    "through": true,
+    "depth": 15,
+    "cbDia": 11,
+    "cbDepth": 6.5,
+    "csDia": 12,
+    "csAngle": 90,
+    "tip": false
+   }
+  ]
+ },
+ {
+  "name": "Grundkörper kombiniert",
+  "steps": [
+   {
+    "id": "b1",
+    "type": "box",
+    "name": "Quader",
+    "x": 0,
+    "y": 0,
+    "z": 0,
+    "w": 60,
+    "d": 40,
+    "h": 20,
+    "op": "new"
+   },
+   {
+    "id": "c1",
+    "type": "cylinder",
+    "name": "Zylinder",
+    "x": 30,
+    "y": 20,
+    "z": 5,
+    "r": 10,
+    "h": 30,
+    "op": "join"
+   },
+   {
+    "id": "s1",
+    "type": "sphere",
+    "name": "Kugel",
+    "x": 0,
+    "y": 0,
+    "z": 20,
+    "r": 8,
+    "op": "cut"
+   }
+  ]
+ },
+ {
+  "name": "Rohr (Rotation)",
+  "steps": [
+   {
+    "id": "skr",
+    "type": "sketch",
+    "name": "Skizze",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      -1,
+      0
+     ]
+    },
+    "entities": [
+     {
+      "id": "r1",
+      "type": "rect",
+      "x": 10,
+      "y": 0,
+      "w": 5,
+      "h": 30,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "rv1",
+    "type": "revolve",
+    "name": "Rotation",
+    "sketch": "skr",
+    "profiles": "all",
+    "axis": "y",
+    "angle": 360,
+    "op": "new"
+   }
+  ]
+ }
+]

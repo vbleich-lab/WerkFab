@@ -1,7 +1,7 @@
 {
   "name": "werkfab",
   "productName": "WerkFab",
-  "version": "1.0.0-rc.41",
+  "version": "1.0.0-rc.42",
   "description": "WerkFab CAD/CAM – design and CNC machining, offline",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -34,12 +34,13 @@
     "test:lsv2": "node tools/test-lsv2.mjs",
     "test:netsend": "node tools/test-netsend.mjs",
     "test:i18n": "node tools/test-i18n.mjs",
-    "test": "npm run test:trim && npm run test:sketch && npm run test:solver && npm run test:kernel && npm run test:cam && npm run test:hh && npm run test:iso && npm run test:lathe && npm run test:drawing && npm run test:design && npm run test:sheetmesh && npm run test:urdf && npm run test:arrange && npm run test:assembly && npm run test:nc && npm run test:fits && npm run test:lsv2 && npm run test:netsend && npm run test:i18n && npm run test:update",
+    "test": "npm run test:trim && npm run test:sketch && npm run test:solver && npm run test:kernel && npm run test:cam && npm run test:hh && npm run test:iso && npm run test:lathe && npm run test:drawing && npm run test:design && npm run test:sheetmesh && npm run test:urdf && npm run test:arrange && npm run test:assembly && npm run test:nc && npm run test:measure && npm run test:fits && npm run test:lsv2 && npm run test:netsend && npm run test:i18n && npm run test:update",
     "dist:win": "electron-builder --win --publish never",
     "dist:linux": "electron-builder --linux --publish never",
     "dist:mac": "electron-builder --mac --publish never",
     "smoke": "node tools/smoke-app.mjs",
-    "test:update": "node tools/test-update.mjs"
+    "test:update": "node tools/test-update.mjs",
+    "test:measure": "node tools/test-measure.mjs"
   },
   "devDependencies": {
     "@electron/packager": "18.3.6",

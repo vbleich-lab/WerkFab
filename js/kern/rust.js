@@ -1,7 +1,7 @@
 // WerkFab Rust-Kern (B-rep auf Basis von truck, als WebAssembly) – Anbindung an die Kern-Schnittstelle.
 // Unterstützt: Quader, Zylinder, Kugel, Torus, Extrusion und Rotation von Skizzenprofilen, Bohrung,
 // Muster, Spiegeln, Verschieben, Skalieren, Kombinieren sowie Vernetzung und STEP-Export.
-// Alles andere meldet der Kern als „noch nicht unterstützt“.
+// Alles andere meldet der Kern als „noch nicht unterstützt“ – ein Design mit so einem Schritt rechnet OpenCascade (model.js).
 import * as THREE from 'three';
 import { registerKernel, unsupported } from './index.js';
 import { load, call, boolean, mesh as rmesh, kernelEpoch, isLoaded } from './rustwasm.js';
@@ -336,7 +336,7 @@ function meshProps(m) {
 export const rustKernel = {
   id: 'rust',
   name: 'Rust-Kern (truck)',
-  info: 'Experimentell: B-rep-Kern in Rust (WebAssembly). Grundkörper, Extrusion, Rotation, Bohrung, Muster, Spiegeln, Verschieben, Skalieren, Kombinieren, STEP-Export.',
+  info: 'Experimentell: B-rep-Kern in Rust (WebAssembly). Grundkörper, Extrusion, Rotation, Bohrung, Muster, Spiegeln, Verschieben, Skalieren, Kombinieren, STEP-Export. Designs mit anderen Schritten rechnet OpenCascade.',
   native: false,
   ready: false,
   async load() {

@@ -1575,3 +1575,16 @@ body.tb-moving, body.tb-moving * { cursor: grabbing !important; user-select: non
 .sp-show { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 #homeBtn.on { background: var(--top-hover); }
 @media (max-width: 720px) { #startPage { grid-template-columns: 1fr; overflow: auto; } .sp-left { border-inline-end: 0; border-bottom: 1px solid var(--line); } }
+
+/* window "Messen": what the clicked elements are and what they say about each other */
+.measurepanel { width: 300px; user-select: text; }
+.measurepanel .ms-block { margin: 6px 0 2px; padding-top: 6px; border-top: 1px solid var(--line); }
+.measurepanel .ms-title { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.measurepanel .ms-dot { width: 9px; height: 9px; border-radius: 50%; background: #ff7a00; flex: none; }
+.measurepanel .ms-dot2 { background: #1f9d55; }
+.measurepanel .ms-row { display: grid; grid-template-columns: 118px 1fr; gap: 6px; margin: 2px 0; }
+.measurepanel .ms-row span { color: var(--muted); }
+.measurepanel .ms-row b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.measurepanel .ms-res .ms-row b { color: var(--accent); }
+.measurepanel .look-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.measurepanel .hint { margin: 6px 0; }

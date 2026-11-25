@@ -1480,6 +1480,17 @@ const rememberRef = (key, sig) => { if (refSigs.size > 20000) refSigs.clear(); r
 const v3 = q => [q.x, q.y, q.z];
 const unit = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+// smallest distance of two shapes (faces, edges, corners) and the two nearest points: { d, p, q } or null
+export function shapeDistance(s1, s2) {
+  const oc = R.getOC(), d = new oc.BRepExtrema_DistShapeShape();
+  try {
+    d.LoadS1(s1.wrapped); d.LoadS2(s2.wrapped); d.Perform();
+    if (!d.IsDone() || d.NbSolution() < 1) return null;
+    const p = d.PointOnShape1(1), q = d.PointOnShape2(1), out = { d: d.Value(), p: [p.X(), p.Y(), p.Z()], q: [q.X(), q.Y(), q.Z()] };
+    p.delete(); q.delete();
+    return out;
+  } catch { return null; } finally { d.delete(); }
+}
 // distance from a point to a shape and the nearest point on it
 function closestOn(shape, p) {
   const oc = R.getOC(), d = new oc.BRepExtrema_DistShapeShape(), vx = R.makeVertex(p);
@@ -2346,16 +2357,31 @@ const paintPause = () => new Promise(res => {
   setTimeout(go, 40);
 });
 
-function* regenSteps(project, upTo = null) {
-  const K = activeKernel();
+// Steps that need no kernel: sketches, construction geometry, meshes (handled in main.js)
+const kernelFailed = new Set(); // timeline prefixes whose last step another kernel could not build
+const NO_KERNEL = new Set(['sketch', 'plane', 'axis', 'point', 'meshimport', 'meshop', 'canvas', 'decal', 'pointcloud', 'curve3d']);
+
+function* regenSteps(project, upTo = null, forced = null) {
+  const K = forced || activeKernel();
   const ctx = { bodies: [], sketches: {}, tools: {}, threads: [], faceExtrude: {}, notes: {}, features: project.features };
   let errors = {};
   let patches = {};
   const list = upTo == null ? project.features : project.features.slice(0, upTo);
+  // Another kernel builds a design only when it can build every step of it; otherwise OpenCascade builds the
+  // whole design (bodies are not handed from kernel to kernel: that would cost accuracy).
+  if (K !== occKernel) {
+    const no = list.find(f => !f.suppressed && !NO_KERNEL.has(f.type) && K.supports(f) !== true);
+    if (no) { const r = yield* regenSteps(project, upTo, occKernel); return { ...r, byOcc: no.name || FEATURE_TYPES[no.type] || no.type }; }
+  }
   // keys of every timeline prefix
   const keys = [];
   let key = K.id;
   for (const f of list) { key += '' + featureKey(f); keys.push(key); }
+  // (a step this kernel failed at before: not tried again as long as nothing before it changes)
+  if (K !== occKernel) {
+    const at = keys.findIndex(k => kernelFailed.has(k));
+    if (at >= 0) { const r = yield* regenSteps(project, upTo, occKernel); return { ...r, byOcc: list[at].name || FEATURE_TYPES[list[at].type] || list[at].type }; }
+  }
   // resume after the last cached prefix
   let start = 0;
   for (let i = list.length - 1; i >= 0; i--) {
@@ -2402,8 +2428,6 @@ function* regenSteps(project, upTo = null) {
       }
       if ((f.type === 'axis' && f.kind === 'cyl') || (f.type === 'plane' && f.kind === 'tangent')) { followCylinder(f, ctx.bodies); break run; }
       if (f.type === 'plane' || f.type === 'axis' || f.type === 'point' || f.type === 'meshimport' || f.type === 'meshop' || f.type === 'canvas' || f.type === 'decal' || f.type === 'pointcloud' || f.type === 'curve3d') break run; // construction geometry / meshes (handled in main.js)
-      const ok = K.supports(f);
-      if (ok !== true) { errors[f.id] = ok; break run; }
       yield { i, n: list.length, name: f.name || FEATURE_TYPES[f.type] || f.type, type: f.type };
       cacheStats.ran++;
       const t0 = performance.now();
@@ -2411,6 +2435,8 @@ function* regenSteps(project, upTo = null) {
       try {
         K.runFeature(f, ctx);
       } catch (err) {
+        // another kernel failed at a step it should be able to build: OpenCascade builds this design
+        if (K !== occKernel) { kernelFailed.add(keys[i]); if (kernelFailed.size > 2000) kernelFailed.clear(); const r = yield* regenSteps(project, upTo, occKernel); return { ...r, byOcc: f.name || FEATURE_TYPES[f.type] || f.type }; }
         errors[f.id] = kernelError(f, err);
       }
       const dt = performance.now() - t0;
@@ -2431,7 +2457,7 @@ function* regenSteps(project, upTo = null) {
   if (ctx.bodies.length) yield { i: list.length, n: list.length, name: 'Darstellung', type: 'mesh' };
   for (const [i, b] of ctx.bodies.entries()) {
     try {
-      bodies.push({ id: b.id, name: `Körper${i + 1}`, shape: b.shape, surface: !hasSolid(b.shape), ...meshBody(b.shape, K) });
+      bodies.push({ id: b.id, name: `Körper${i + 1}`, shape: b.shape, surface: !hasSolid(b.shape), ...meshBody(b.shape, kernelOf(b.shape)) });
     } catch (err) {
       errors[b.id] = 'Vernetzung fehlgeschlagen: ' + (err.message || err);
     }

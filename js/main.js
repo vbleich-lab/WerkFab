@@ -17,7 +17,9 @@ import { inspectionItems, inspectionCsv, GENERAL_CLASSES } from './inspect.js';
 import { meshMass, stlBinary, urdfNames, buildUrdf, buildSdf, sdfConfig, buildMjcf, convexHull, URDF_CHAIN } from './urdf.js';
 import { setActiveKernel, activeKernelId, getKernel } from './kern/index.js';
 import './kern/rust.js';
-import { THREAD_SIZES, meshBody, exportGeometry, setViewTessellation, viewTessellation } from './model.js';
+import * as MS from './measure.js';
+import { findHoles } from './holefind.js';
+import { THREAD_SIZES, shapeDistance, meshBody, exportGeometry, setViewTessellation, viewTessellation } from './model.js';
 import { dropMissingFileSnaps, sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, interferenceAsync, boxPairs, contactAsync, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache, dropWaitingSnaps, profileItems } from './model.js';
 import { Sketcher } from './sketcher.js';
 import { buildHeightmap, cornerOf } from './heightmap.js';
@@ -1689,13 +1691,7 @@ function rebuildScene() {
     l.renderOrder = 4;
     vp.paths.add(l);
   }
-  if (measure.pts.length) {
-    const g = new THREE.BufferGeometry().setFromPoints(measure.pts);
-    const l = new THREE.Line(g, matMeasure);
-    l.renderOrder = 9;
-    const dots = new THREE.Points(g.clone(), new THREE.PointsMaterial({ color: 0xff7a00, size: 8, sizeAttenuation: false, depthTest: false, transparent: true }));
-    vp.paths.add(l, dots);
-  }
+  drawMeasure();
   {
     const pv = !cam && display !== 'wire' ? pickPreview() : null;
     if (pv) {
@@ -4081,7 +4077,7 @@ function buildProps() {
         h('span', null, 'Abmessungen'), h('b', null, `${f2(s.x)} × ${f2(s.y)} × ${f2(s.z)} mm`),
         h('span', null, 'Körper'), h('b', null, m.bodies.length),
         h('span', null, 'Berechnung'), h('b', null, `${Math.round(m.ms || 0)} ms` + (m.featureCount ? ` · ${m.featureCount - (m.resumedAt || 0)} von ${m.featureCount} Features neu` : '')),
-        h('span', null, 'Geometriekern'), h('b', null, getKernel(activeKernelId())?.name || '')));
+        h('span', null, 'Geometriekern'), h('b', m.byOcc ? { title: `Der gewählte Kern kann „${m.byOcc}“ nicht rechnen – dieses Design rechnet OpenCascade.` } : null, (getKernel(m.kernel || activeKernelId())?.name || '') + (m.byOcc ? ` (wegen „${m.byOcc}“)` : ''))));
     }
     return;
   }
@@ -10683,14 +10679,214 @@ function togglePick(mode, id, key = null) {
   renderAll();
 }
 
-const measure = { pts: [] };
+// ---------- measuring: click elements of the model ----------
+// A click picks what is under the mouse – a corner, an edge, a face; a bore is recognised as a whole – and the
+// window "Messen" says what it is (diameter, depth, length, area …). A second element adds what the two have to
+// say about each other: smallest distance, centre distance, distance of parallel faces, angle. A third click
+// starts over.
+const measure = { a: null, b: null, res: null, panel: null };
+function measureReset() { measure.a = measure.b = measure.res = null; drawMeasurePanel(); }
 function toggleMeasure() {
   const on = state.pick?.mode !== 'measure';
   state.pick = on ? { mode: 'measure' } : null;
-  measure.pts = [];
-  showBanner(on ? 'Messen: zwei Punkte auf dem Modell anklicken.' : null);
+  measure.a = measure.b = measure.res = null;
+  showBanner(null);
+  if (on) openMeasurePanel(); else closeMeasurePanel();
   renderToolbar();
   rebuildScene();
+}
+function closeMeasurePanel() { measure.panel?.remove(); measure.panel = null; }
+function openMeasurePanel() {
+  closeMeasurePanel();
+  const p = h('div', { class: 'lookpanel measurepanel' });
+  measure.panel = p;
+  $('#viewportWrap').append(p);
+  drawMeasurePanel();
+  const w = $('#viewportWrap').getBoundingClientRect();
+  p.style.left = Math.max(8, w.width - p.offsetWidth - 14) + 'px';
+  p.style.top = '150px';
+  dragInView(p, p);
+}
+function drawMeasurePanel() {
+  const p = measure.panel;
+  if (!p) return;
+  const rowsOf = rows => rows.map(([k, v]) => h('div', { class: 'ms-row' }, h('span', null, k), h('b', null, v)));
+  const block = (n, ent) => h('div', { class: 'ms-block' }, h('div', { class: 'ms-title' }, h('i', { class: 'ms-dot ms-dot' + n }), h('b', null, ent.title)), ...rowsOf(ent.rows));
+  const newBtn = h('button', { onclick: () => { measureReset(); rebuildScene(); } }, 'Neue Messung');
+  p.replaceChildren(
+    h('div', { class: 'look-head' }, h('b', null, 'Messen'), h('button', { class: 'look-x', title: 'Schließen', onclick: toggleMeasure }, '×')),
+    ...(measure.a ? [block(1, measure.a)] : [h('p', { class: 'hint' }, 'Eine Ecke, Kante, Fläche oder Bohrung anklicken. Ein zweites Element zeigt Abstand und Winkel zwischen beiden.')]),
+    ...(measure.b ? [block(2, measure.b)] : []),
+    ...(measure.res?.rows.length ? [h('div', { class: 'ms-block ms-res' }, h('div', { class: 'ms-title' }, h('b', null, 'Zwischen beiden')), ...rowsOf(measure.res.rows))] : []),
+    ...(measure.a ? [h('div', { class: 'look-foot' }, h('span', { class: 'hint' }, measure.b ? '' : 'Zweites Element anklicken'), h('span', { style: 'flex:1' }), newBtn)] : []));
+}
+const msArea = a => (inchUnits() ? `${f2(a / INCH ** 2)} in²` : `${f2(a)} mm²`);
+const msXYZ = p => `X ${lenOut(p[0])} · Y ${lenOut(p[1])} · Z ${lenOut(p[2])}`;
+const msAngle = d => `${+d.toFixed(3)}°`;
+const msDelta = (p, q) => `${lenOut(Math.abs(q[0] - p[0]))} · ${lenOut(Math.abs(q[1] - p[1]))} · ${lenOut(Math.abs(q[2] - p[2]))}`;
+function measurePoint(p, bi) {
+  let shapes = null;
+  try { shapes = [getKernelR().makeVertex(p)]; } catch { /* no kernel shape */ }
+  return { title: 'Punkt', rows: [['Lage', msXYZ(p)]], geo: { kind: 'point', p }, shapes, at: p, hi: { point: p }, bi };
+}
+function measureEdge(body, bi, ei) {
+  const pos = body.edges.attributes.position.array, pts = [];
+  body.segEdge.forEach((e, k) => { if (e !== ei) return; if (!pts.length) pts.push([pos[k * 6], pos[k * 6 + 1], pos[k * 6 + 2]]); pts.push([pos[k * 6 + 3], pos[k * 6 + 4], pos[k * 6 + 5]]); });
+  const e3 = body.shape?.edges?.[ei], occ = !!e3?.wrapped;
+  let exact = pts, length = null, closed = null;
+  if (occ) {
+    // points and length from the kernel (the drawn edge is a polyline of single-precision points)
+    try {
+      const N = e3.geomType === 'LINE' ? 1 : 24;
+      exact = Array.from({ length: N + 1 }, (_, i) => { const q = e3.pointAt(i / N); return [q.x, q.y, q.z]; });
+      length = e3.length;
+      closed = MS.dist(exact[0], exact[N]) < 1e-7;
+    } catch { exact = pts; length = null; closed = null; }
+  }
+  if (exact.length < 2) return null;
+  const type = occ && ['LINE', 'CIRCLE'].includes(e3.geomType) ? e3.geomType : occ ? 'OTHER' : '';
+  const d = MS.describeCurve(exact, { type, length, closed });
+  const ends = [exact[0], exact[exact.length - 1]];
+  const base = { geo: d.geo, shapes: occ ? [e3] : null, at: exact[Math.floor(exact.length / 2)], hi: { edge: [bi, ei] }, bi, ends: d.sub === 'circle' ? [] : ends };
+  if (d.sub === 'line') return { ...base, title: 'Gerade Kante', rows: [['Länge', fmtL(d.length)], ['ΔX · ΔY · ΔZ', msDelta(ends[0], ends[1])]] };
+  if (d.sub === 'circle') return { ...base, title: 'Kreis', rows: [['Durchmesser', '⌀ ' + fmtL(2 * d.geo.r)], ['Radius', 'R ' + fmtL(d.geo.r)], ['Umfang', fmtL(d.length)], ['Mittelpunkt', msXYZ(d.geo.p)]] };
+  if (d.sub === 'arc') return { ...base, title: 'Kreisbogen', rows: [['Radius', 'R ' + fmtL(d.geo.r)], ['Bogenlänge', fmtL(d.length)], ['Winkel', msAngle(d.angle)], ['Mittelpunkt', msXYZ(d.geo.p)]] };
+  return { ...base, title: 'Kurve', rows: [['Länge', fmtL(d.length)]] };
+}
+// the bores of a body (recognised once per state of the model)
+let msHoles = { key: null, map: new Map() };
+function bodyHoles(body) {
+  const m = getModel();
+  if (msHoles.key !== m.key) msHoles = { key: m.key, map: new Map() };
+  if (!msHoles.map.has(body.id)) {
+    let data = { cyls: [], caps: [] }, holes = [];
+    try { data = holeFaceData(body); holes = findHoles(data.cyls, data.caps).map(x => ({ ...x, cylFaces: x.faces.filter(i => body.shape.faces[i]?.geomType === 'CYLINDRE') })); } catch (err) { console.warn(err); }
+    msHoles.map.set(body.id, { holes, cyls: data.cyls });
+  }
+  return msHoles.map.get(body.id);
+}
+function meshFaceArea(body, fid) {
+  const idx = body.geometry.index.array, pos = body.geometry.attributes.position;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  let A = 0;
+  for (let t = 0; t < body.faceOf.length; t++) {
+    if (body.faceOf[t] !== fid) continue;
+    a.fromBufferAttribute(pos, idx[t * 3]); b.fromBufferAttribute(pos, idx[t * 3 + 1]); c.fromBufferAttribute(pos, idx[t * 3 + 2]);
+    A += b.sub(a).cross(c.sub(a)).length() / 2;
+  }
+  return A;
+}
+function measureFace(body, bi, fid, hitPoint) {
+  const fc = body.shape?.faces?.[fid], occ = !!fc?.wrapped, at = hitPoint.toArray();
+  let area = NaN;
+  try { area = occ ? getKernelR().measureArea(fc) : meshFaceArea(body, fid); } catch { area = meshFaceArea(body, fid); }
+  const base = { geo: null, shapes: occ ? [fc] : null, at, hi: { faces: [bi, [fid]] }, bi };
+  const gt = fc?.geomType;
+  if (occ && gt === 'CYLINDRE') {
+    const found = bodyHoles(body);
+    // a bore: all its faces together (a drilled hole is two half cylinders, a counterbore has two diameters)
+    const hole = found.holes.find(x => x.cylFaces.includes(fid));
+    if (hole) {
+      const rows = [['Durchmesser', '⌀ ' + fmtL(hole.dia)], ['Tiefe', hole.through ? `durchgehend (${fmtL(hole.depth)})` : fmtL(hole.depth) + (hole.tip ? ' + Bohrspitze' : '')]];
+      if (hole.kind === 'cbore') rows.push(['Senkung', `⌀ ${fmtL(hole.cbDia)} × ${fmtL(hole.cbDepth)}`]);
+      rows.push(['Mitte der Öffnung', msXYZ(hole.entry)]);
+      return { ...base, title: hole.kind === 'cbore' ? 'Bohrung mit Senkung' : hole.through ? 'Durchgangsbohrung' : 'Sackbohrung', rows,
+        geo: { kind: 'axis', p: hole.entry, d: MS.unit(hole.dir), r: hole.dia / 2 }, shapes: hole.cylFaces.map(i => body.shape.faces[i]), hi: { faces: [bi, hole.cylFaces] } };
+    }
+    const me = found.cyls.find(c => c.id === fid);
+    if (me) {
+      const dir = MS.unit(me.dir), ts = me.pts.map(q => MS.dot(MS.sub(q, me.loc), dir)), t0 = Math.min(...ts), t1 = Math.max(...ts);
+      // the other pieces of the same cylinder (a kernel splits a full cylinder into halves)
+      const same = found.cyls.filter(c => c.concave === me.concave && Math.abs(c.r - me.r) < 1e-6 && Math.abs(Math.abs(MS.dot(MS.unit(c.dir), dir)) - 1) < 1e-6
+        && (() => { const w = MS.sub(c.loc, me.loc); return MS.len(MS.sub(w, MS.mul(dir, MS.dot(w, dir)))) < 1e-6; })());
+      const full = area > 0.95 * 2 * Math.PI * me.r * (t1 - t0) || same.length > 1;
+      return { ...base, geo: { kind: 'axis', p: MS.add(me.loc, MS.mul(dir, (t0 + t1) / 2)), d: dir, r: me.r },
+        title: me.concave ? (full ? 'Zylinder innen' : 'Rundung innen') : full ? 'Zylinder' : 'Rundung außen',
+        rows: [...(full ? [['Durchmesser', '⌀ ' + fmtL(2 * me.r)]] : []), ['Radius', 'R ' + fmtL(me.r)], ['Länge', fmtL(t1 - t0)], ['Fläche', msArea(area)]],
+        ...(full ? { shapes: same.map(c => body.shape.faces[c.id]), hi: { faces: [bi, same.map(c => c.id)] } } : {}) };
+    }
+  }
+  if (gt === 'PLANE') {
+    let n = null, per = 0;
+    try { const q = fc.normalAt(hitPoint); n = MS.unit([q.x, q.y, q.z]); } catch { n = null; }
+    if (!n) { const q = faceNormal(body, fid); n = q ? MS.unit(q.toArray()) : null; }
+    try { for (const w of fc.wires) for (const e of w.edges) per += e.length; } catch { per = 0; }
+    return { ...base, geo: n ? { kind: 'plane', p: at, d: n } : null, title: 'Ebene Fläche', rows: [['Fläche', msArea(area)], ...(per > 0 ? [['Umfang', fmtL(per)]] : [])] };
+  }
+  if (occ && gt === 'SPHERE') {
+    try {
+      const sp = new (OC.getOC().BRepAdaptor_Surface)(fc.wrapped, true).Sphere(), L = sp.Location(), c = [L.X(), L.Y(), L.Z()], r = sp.Radius();
+      return { ...base, geo: { kind: 'point', p: c }, title: 'Kugelfläche', rows: [['Durchmesser', '⌀ ' + fmtL(2 * r)], ['Radius', 'R ' + fmtL(r)], ['Mittelpunkt', msXYZ(c)], ['Fläche', msArea(area)]] };
+    } catch { /* below */ }
+  }
+  const names = { CONE: 'Kegelfläche', TORUS: 'Torusfläche', SPHERE: 'Kugelfläche', CYLINDRE: 'Zylinderfläche' };
+  return { ...base, title: names[gt] || 'Freiformfläche', rows: [['Fläche', msArea(area)]] };
+}
+function measurePick(e) {
+  const m = getModel();
+  const mh = vp.raycast(e, vp.model.children.filter(o => o.isMesh && o.userData.body != null && o.visible))[0];
+  const objs = edgePickObjects();
+  const eh = objs.length ? vp.raycast(e, objs, 6)[0] : null;
+  if (eh && (!mh || eh.distance <= mh.distance + vp.worldPerPixel() * 6)) {
+    const bi = eh.object.userData.body, body = m.bodies[bi], ed = body && measureEdge(body, bi, body.segEdge[Math.floor(eh.index / 2)]);
+    if (ed) {
+      // a corner: the end of the edge right under the mouse
+      const hp = eh.point.toArray(), end = [...ed.ends].sort((p, q) => MS.dist(p, hp) - MS.dist(q, hp))[0];
+      if (end && MS.dist(end, hp) < vp.worldPerPixel() * 9) return measurePoint(end, bi);
+      return ed;
+    }
+  }
+  if (mh) { const bi = mh.object.userData.body, body = m.bodies[bi]; return measureFace(body, bi, body.faceOf[mh.faceIndex], mh.point); }
+  return null;
+}
+function measureBetween(a, b) {
+  const rows = [], lines = [];
+  let near = null;
+  if (a.shapes && b.shapes) {
+    for (const s1 of a.shapes) for (const s2 of b.shapes) { const r = shapeDistance(s1, s2); if (r && (!near || r.d < near.d)) near = r; }
+  }
+  const rel = MS.relate(a.geo, b.geo);
+  if (rel.centre) { rows.push([rel.centre.axes ? 'Mittenabstand (Achsen)' : 'Mittenabstand', fmtL(rel.centre.d)], ['ΔX · ΔY · ΔZ der Mitten', msDelta(rel.centre.p, rel.centre.q)]); lines.push([rel.centre.p, rel.centre.q]); }
+  if (rel.planes != null) rows.push(['Abstand der Flächen', fmtL(rel.planes)]);
+  if (rel.lines != null) rows.push(['Abstand der Kanten', fmtL(rel.lines)]);
+  if (rel.toPlane != null) rows.push(['Mitte zur Fläche', fmtL(rel.toPlane)]);
+  if (near) {
+    rows.push(['Kleinster Abstand', fmtL(near.d)]);
+    if (near.d > 1e-9) { rows.push(['ΔX · ΔY · ΔZ', msDelta(near.p, near.q)]); if (!lines.length) lines.push([near.p, near.q]); }
+  } else if (!rel.centre) { rows.push(['Abstand der Klickpunkte', fmtL(MS.dist(a.at, b.at))], ['ΔX · ΔY · ΔZ', msDelta(a.at, b.at)]); lines.push([a.at, b.at]); }
+  if (rel.angle != null) rows.push(['Winkel', rel.parallel ? 'parallel (0°)' : msAngle(rel.angle)]);
+  return { rows, lines };
+}
+function measureClick(e) {
+  const ent = measurePick(e);
+  if (!ent) return;
+  if (!measure.a || measure.b) { measure.a = ent; measure.b = null; measure.res = null; }
+  else { measure.b = ent; try { measure.res = measureBetween(measure.a, ent); } catch (err) { console.warn(err); measure.res = { rows: [], lines: [] }; } }
+  if (!measure.panel) openMeasurePanel(); else drawMeasurePanel();
+  rebuildScene();
+}
+const msFaceMat = color => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+const matMeasureA = msFaceMat(0xff7a00), matMeasureB = msFaceMat(0x1f9d55);
+const matMeasureEA = new THREE.MeshBasicMaterial({ color: 0xff7a00, depthTest: false, transparent: true });
+const matMeasureEB = new THREE.MeshBasicMaterial({ color: 0x1f9d55, depthTest: false, transparent: true });
+function drawMeasure() {
+  if (state.pick?.mode !== 'measure') { if (measure.panel) closeMeasurePanel(); return; }
+  const m = getModel(), dots = [];
+  for (const [ent, mf, me] of [[measure.a, matMeasureA, matMeasureEA], [measure.b, matMeasureB, matMeasureEB]]) {
+    if (!ent) continue;
+    const body = m.bodies[ent.bi];
+    if (ent.hi.faces && body) for (const fid of ent.hi.faces[1]) vp.paths.add(faceMesh(body, fid, mf));
+    if (ent.hi.edge && body) vp.paths.add(edgeMesh(body, ent.hi.edge[1], me));
+    if (ent.hi.point) dots.push(new THREE.Vector3(...ent.hi.point));
+    if (ent.geo && (ent.geo.kind === 'circle' || ent.geo.kind === 'axis')) dots.push(new THREE.Vector3(...ent.geo.p));
+  }
+  for (const [p, q] of measure.res?.lines || []) {
+    const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...p), new THREE.Vector3(...q)]), matMeasure);
+    l.renderOrder = 13;
+    vp.paths.add(l);
+    dots.push(new THREE.Vector3(...p), new THREE.Vector3(...q));
+  }
+  if (dots.length) vp.paths.add(new THREE.Points(new THREE.BufferGeometry().setFromPoints(dots), new THREE.PointsMaterial({ color: 0xff7a00, size: 8, sizeAttenuation: false, depthTest: false, transparent: true })));
 }
 
 // ---- sketch areas ("Profile"): clicked for an extrusion or a rotation, like the profiles of the usual CAD programs ----
@@ -10875,16 +11071,7 @@ function viewportClick(e) {
     return editOp(op.id, o => { o.geomSource = 'model'; toggle(o.faces ||= []); });
   }
   if (state.pick?.mode === 'measure') {
-    const hit = vp.raycast(e, meshes)[0];
-    if (!hit) return;
-    if (measure.pts.length >= 2) measure.pts = [];
-    measure.pts.push(hit.point.clone());
-    if (measure.pts.length === 2) {
-      const [p, q] = measure.pts;
-      const d = q.clone().sub(p);
-      showBanner(`Abstand ${fmtL(d.length())} · ΔX ${lenOut(d.x)} · ΔY ${lenOut(d.y)} · ΔZ ${lenOut(d.z)}`);
-    } else showBanner(`Punkt 1: ${lenOut(hit.point.x)}, ${lenOut(hit.point.y)}, ${lenOut(hit.point.z)} – zweiten Punkt anklicken`);
-    rebuildScene();
+    measureClick(e);
     return;
   }
   // no command waits for a pick: the selection filter decides what a click selects
@@ -14579,7 +14766,7 @@ function closeModes() {
   if (state.sketchId) { sketcher.stop(); state.sketchId = null; }
   state.pick = null;
   state.rollback = null;
-  measure.pts = [];
+  measureReset();
   showBanner(null);
   if (sim.open) openSim();
 }
@@ -14786,10 +14973,10 @@ window.addEventListener('keydown', e => {
       status(''); renderDrawing();
     }
     // an open command window without a pick: Esc is Abbrechen as well (a new feature goes, changes are taken back)
-    else if (dialogTarget()?.kind === 'feature' && (!state.pick || (state.pick.mode !== 'measure' && state.pick.id === dialogTarget().id))) { measure.pts = []; dialogCancel(); }
+    else if (dialogTarget()?.kind === 'feature' && (!state.pick || (state.pick.mode !== 'measure' && state.pick.id === dialogTarget().id))) { measureReset(); dialogCancel(); }
     // an operation that was just added: Esc takes it away again (an existing one only loses its pick)
-    else if (dlg.fresh && dialogTarget()?.kind === 'op' && (!state.pick || state.pick.id === dialogTarget().id)) { measure.pts = []; dialogCancel(); }
-    else if (state.pick) { state.pick = null; measure.pts = []; showBanner(null); renderAll(); }
+    else if (dlg.fresh && dialogTarget()?.kind === 'op' && (!state.pick || state.pick.id === dialogTarget().id)) { measureReset(); dialogCancel(); }
+    else if (state.pick) { state.pick = null; measureReset(); showBanner(null); renderAll(); }
     else if (state.preRegions || state.preEdges || preFaceList().length) { state.preRegions = null; state.preEdges = null; state.preFaces = null; status(''); rebuildScene(); }
     else if (state.sketchId) {
       // "Esc zweimal": a single Esc too many must not close a sketch
@@ -15098,7 +15285,7 @@ const PREF_TREE = [
         ['shellThickness', 'Wandstärke der Schale', 'Vorgabe für neue Schalen', 'num', { unit: 'mm', min: 0.01 }],
       ]],
       ['Geometriekern', [
-        ['kernel', 'Geometriekern', 'OpenCascade: alle Funktionen. Rust-Kern (truck, experimentell): Grundkörper, Extrusion, Rotation, Bohrung, Muster, Spiegeln, Verschieben, Skalieren, Kombinieren und STEP-Export – andere Features werden als „noch nicht unterstützt“ markiert.', [['occ', 'OpenCascade (alle Funktionen)'], ['rust', 'Rust-Kern (experimentell)']]],
+        ['kernel', 'Geometriekern', 'OpenCascade: rechnet alle Schritte. Rust-Kern (truck, experimentell): rechnet Designs aus Grundkörpern, Extrusion, Rotation, Bohrung, Muster, Spiegeln, Verschieben, Skalieren und Kombinieren selbst. Enthält ein Design einen anderen Schritt (z. B. Verrundung, Fase, Kegelsenkung) oder scheitert der Rust-Kern an einem Schritt, rechnet OpenCascade dieses Design von selbst – es funktioniert also mit beiden Einstellungen alles. Welcher Kern gerechnet hat, steht rechts unter MODELL.', [['occ', 'OpenCascade'], ['rust', 'Rust-Kern (experimentell, sonst OpenCascade)']]],
       ]],
     ] },
     { id: 'print', label: '3D-Druck', groups: [

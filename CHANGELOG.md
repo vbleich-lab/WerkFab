@@ -1,5 +1,10 @@
 # Änderungen
 
+## v1.0.0-rc.42 – 2026-11-25
+
+- **Messen durch Anklicken von Elementen:** Statt zweier Punkte wird angeklickt, was gemessen werden soll – eine Ecke, eine Kante, eine Fläche oder eine Bohrung. Das Fenster „Messen“ zeigt, was es ist: bei einer Bohrung Durchmesser, Tiefe (oder „durchgehend“), Senkung und die Mitte der Öffnung – die Bohrung wird als Ganzes erkannt, gleich welche ihrer Flächen angeklickt wird; bei einem Kreis Durchmesser und Mittelpunkt, bei einem Bogen Radius, Winkel und Bogenlänge, bei einer Kante die Länge, bei einer Fläche Flächeninhalt und Umfang. Ein zweites Element zeigt, was zwischen beiden gilt: Mittenabstand zweier Bohrungen (quer zu den Achsen, mit ΔX, ΔY, ΔZ), Abstand paralleler Flächen oder Kanten, Mitte zur Fläche, kleinster Abstand und Winkel. Ein dritter Klick beginnt eine neue Messung. Die gewählten Elemente sind im Modell eingefärbt.
+- **Rust-Kern: jedes Design lässt sich rechnen:** Mit der Einstellung „Rust-Kern“ (Voreinstellungen → Konstruktion → Geometriekern) blieb ein Schritt, den dieser Kern nicht kann, bisher mit „noch nicht unterstützt“ stehen. Jetzt rechnet der Rust-Kern die Designs, die er ganz rechnen kann (Grundkörper, Extrusion, Rotation, Bohrung, Muster, Spiegeln, Verschieben, Skalieren, Kombinieren); enthält ein Design einen anderen Schritt (z. B. Verrundung, Fase, Kegelsenkung) oder scheitert der Rust-Kern an einem Schritt, rechnet OpenCascade dieses Design von selbst. Welcher Kern gerechnet hat, steht rechts unter MODELL. Der Rust-Kern bleibt experimentell und ist deutlich langsamer.
+
 ## v1.0.0-rc.41 – 2026-11-25
 
 - **Linux-Pakete wieder dabei:** Bei v1.0.0-rc.40 brach der Bau von AppImage und tar.gz ab (die Liste der Dateitypen hatte für den AppImage-Bau die falsche Form), die Veröffentlichung hatte deshalb keine Linux-Dateien. Inhaltlich gleich mit rc.40.

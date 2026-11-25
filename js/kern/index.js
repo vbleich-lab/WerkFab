@@ -3,7 +3,8 @@
 // Jeder Kern ist ein Objekt mit:
 //   id, name, info                  Kennung, Anzeigename, Kurzbeschreibung
 //   load()                          lädt den Kern (async), danach ready = true
-//   supports(feature)               true oder ein Text, warum das Feature (noch) nicht geht
+//   supports(feature)               true oder ein Text, warum das Feature (noch) nicht geht – ein Design mit so einem
+//                                   Schritt (oder einem, an dem der Kern scheitert) rechnet OpenCascade
 //   runFeature(feature, ctx)        führt ein Feature aus; ctx = { bodies, sketches, tools, threads, faceExtrude }
 //                                   bodies: [{ id, name, shape }] – shape ist ein Körper dieses Kerns
 //   mesh(shape)                     { vertices, normals, triangles, faceGroups, lines, edgeGroups }
