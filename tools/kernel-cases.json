@@ -1083,5 +1083,263 @@
     "op": "new"
    }
   ]
+ },
+ {
+  "name": "Platte, eine Kante gefast",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "ch1",
+    "type": "chamfer",
+    "name": "Fase1",
+    "distance": 2,
+    "edges": [
+     [
+      50,
+      0,
+      20
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Platte, alle Kanten gefast",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "ch1",
+    "type": "chamfer",
+    "name": "Fase1",
+    "distance": 2,
+    "all": true
+   }
+  ]
+ },
+ {
+  "name": "Platte, vier senkrechte Kanten verrundet",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "fi1",
+    "type": "fillet",
+    "name": "Verrundung1",
+    "radius": 5,
+    "edges": [
+     [
+      0,
+      0,
+      10
+     ],
+     [
+      100,
+      0,
+      10
+     ],
+     [
+      100,
+      60,
+      10
+     ],
+     [
+      0,
+      60,
+      10
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Platte, obere Kanten verrundet (Ecke: OCC)",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "fi1",
+    "type": "fillet",
+    "name": "Verrundung1",
+    "radius": 3,
+    "edges": [
+     [
+      50,
+      0,
+      20
+     ],
+     [
+      0,
+      30,
+      20
+     ]
+    ]
+   }
+  ]
  }
 ]

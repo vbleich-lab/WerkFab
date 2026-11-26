@@ -30,6 +30,15 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
   // a closed corner stays open next to a partial flange
   const mixed = flatPattern(poly, { ...f, corner: 'closed', flanges: [{ edge: 0, on: true, h: 15, angle: 90, offB: 10 }, { edge: 1, on: true, h: 15, angle: 90 }] });
   ok('Teillasche neben geschlossener Ecke: Ecke bleibt offen', near(mixed.table[0].length, 100 - 4 - 10) && near(mixed.table[1].length, 60 - 8) && !mixed.overlap, `Biegelänge ${mixed.table[0].length}`);
+  // flanges on the side edges of a flange: developed sideways from its straight part
+  {
+    const sd = flatPattern(poly, { ...f, flanges: [{ edge: 0, on: true, h: 15, angle: 90, offA: 20, offB: 30, sideB: { h: 10, angle: 90 }, sideA: { h: 6, angle: -45 } }] });
+    const baA = bendAllowance(45, 2, 2, 0.4), xs2 = sd.outline.flat().filter(p => p[1] < -ba - 1).map(p => p[0]), rows = sd.table.filter(q => q.side);
+    ok('Seitenlaschen an einer Lasche: Zuschnitt wächst seitlich, Biegungen in der Tabelle', near(Math.max(...xs2), 70 + ba + 10, 0.01) && near(Math.min(...xs2), 20 - baA - 6, 0.01) && near(sd.area, part.area + 15 * (ba + 10) + 15 * (baA + 6), 0.05) && rows.length === 2 && rows.every(q => near(q.length, 15)) && !sd.overlap && sd.bends.length === part.bends.length + 4,
+      `X ${Math.min(...xs2).toFixed(2)} … ${Math.max(...xs2).toFixed(2)}, ${sd.area.toFixed(2)} mm², ${rows.map(q => q.side + ' ' + q.angle + '°').join(', ')}`);
+    const cl = flatPattern(poly, { ...f, corner: 'closed', flanges: [{ edge: 0, on: true, h: 15, angle: 90, sideB: { h: 10, angle: 90 } }, { edge: 1, on: true, h: 15, angle: 90 }] });
+    ok('Seitenlasche an einer geschlossenen Ecke: entfällt', !cl.table.some(q => q.side));
+  }
   // checks
   const txt = c => c.map(x => x.text).join(' | ');
   const c0 = sheetChecks(poly, [], { ...f, flanges: [{ edge: 0, on: true, h: 15, angle: 90 }] }, full);

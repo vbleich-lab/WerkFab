@@ -1,0 +1,23 @@
+{
+ "Abwicklung{0} · t = {1} {2}": "Flat pattern{0} · t = {1} {2}",
+ "Projektionsmethode 1 (ISO-E) · Maße in Zoll · Allgemeintoleranz ISO 2768-{0}": "First-angle projection (ISO-E) · dimensions in inches · general tolerance ISO 2768-{0}",
+ "Seitenlasche am Anfang": "Side flange at the start",
+ "Seitenlasche am Ende": "Side flange at the end",
+ "Länge der Lasche an der Seitenkante dieser Lasche (0 = keine)": "Length of the flange on the side edge of this flange (0 = none)",
+ "Biegewinkel ° (+ zur Seite hin, zu der diese Lasche gebogen ist, − von ihr weg)": "Bend angle ° (+ towards the side this flange is bent to, − away from it)",
+ "Diese Messung bleibt in der Ansicht stehen, während die nächste gemessen wird": "This measurement stays in the view while the next one is taken",
+ "Merken": "Keep",
+ "Messung": "Measurement",
+ "Gemerkt": "Kept",
+ "Alle entfernen": "Remove all",
+ "Alle Messungen als Text in die Zwischenablage": "Copy all measurements to the clipboard as text",
+ "Ecke des Netzes": "Corner of the mesh",
+ "Schnittfläche": "Cut face",
+ "Punkt auf der Schnittkante": "Point on the cut edge",
+ "Klicken: um X {0} / Y {1} {2} verschieben · Esc beendet": "Click: move by X {0} / Y {1} {2} · Esc ends",
+ "Klicken: Versatz {0} auf dieser Seite": "Click: offset {0} on this side",
+ "Länge {0}": "Length {0}",
+ "Halbachse {0}": "Semi-axis {0}",
+ "Halbachse 2: {0}": "Semi-axis 2: {0}",
+ "Sehne {0}": "Chord {0}"
+}

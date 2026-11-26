@@ -18,6 +18,7 @@ import { meshMass, stlBinary, urdfNames, buildUrdf, buildSdf, sdfConfig, buildMj
 import { setActiveKernel, activeKernelId, getKernel } from './kern/index.js';
 import './kern/rust.js';
 import * as MS from './measure.js';
+import { meshTopo, meshElement } from './meshmeasure.js';
 import { findHoles } from './holefind.js';
 import { THREAD_SIZES, shapeDistance, meshBody, exportGeometry, setViewTessellation, viewTessellation } from './model.js';
 import { dropMissingFileSnaps, sheetBase, regenerate, regenerateAsync, estimateRegen, featureKey, sketchVisual, edgeMidpoint, edgeRefMatches, exportSTEP, bodyProps, interference, interferenceAsync, boxPairs, contactAsync, FEATURE_TYPES, OPS, SOLID_SOURCES, cylinderInfo, cylinderFaces, projectGeometry, clearTimelineCache, dropWaitingSnaps, profileItems } from './model.js';
@@ -29,7 +30,7 @@ import { allMachines, findMachine, copyMachine, newMachine, machineChecks, KIN_T
 import { StockSim, tiltedEdgeZ, defaultFluteLen, defaultHolderDia, defaultStickout } from './sim.js';
 import { exampleProject, exampleTurning, exampleMilling, exampleDesign } from './example.js';
 import { describeEntity, entityPolys, translateEntity, rotateEntity, scaleEntity, mirrorEntity as mirrorAbout, loopsAt, sameCell, cellShapes, allCells } from './profiles.js';
-import { meshInertia, rotateInertia, zipStore } from './mesh.js';
+import { meshInertia, rotateInertia, zipStore, findCylinders } from './mesh.js';
 import { applyCorners, cornerPlan, curveCorner, filletCurves, chamferCurves, unbridge, bridgeRadius, meetLines } from './sketchcorner.js';
 import { offsetEntities } from './sketchoffset.js';
 import { parseDXF, writeDXF } from './dxf.js';
@@ -93,6 +94,20 @@ const inchUnits = () => getSettings().units === 'in';
 const lenUnit = () => (inchUnits() ? 'in' : 'mm');
 const lenOut = mm => (inchUnits() ? +(mm / INCH).toFixed(4) : +(+mm).toFixed(PREC));
 const fmtL = mm => `${lenOut(mm)} ${lenUnit()}`;
+// A text field written for millimetres, shown and typed in the unit of the settings: its value is turned into
+// that unit, and what is typed is turned back into millimetres before the field's own handler reads it.
+function lenField(input) {
+  const v = parseFloat(String(input.value).replace(',', '.'));
+  if (inchUnits() && Number.isFinite(v) && String(input.value).trim() !== '') input.value = String(lenOut(v));
+  if (input.title) input.title = input.title.replace(/\bin mm\b/, 'in ' + lenUnit()).replace(/ mm\b/, ' ' + lenUnit());
+  input.addEventListener('change', () => {
+    const [t, k] = lenIn(String(input.value).trim().replace(',', '.')), x = parseFloat(t);
+    if (t !== '' && Number.isFinite(x) && k !== 1) input.value = String(+(x * k).toFixed(4));
+    else if (t !== String(input.value).trim()) input.value = t;
+  }, true);
+  return input;
+}
+const lenFieldIf = (isLen, input) => (isLen ? lenField(input) : input);
 // typed text of a length → [text without its unit, factor to mm]
 function lenIn(text) {
   const s = String(text).trim();
@@ -105,8 +120,9 @@ function lenIn(text) {
 function num(value, set, opt = {}) {
   const isExpr = typeof value === 'string' && value.startsWith('=');
   // a length in inches: only the plain number is converted – an expression with parameters stays in mm
-  const isLen = opt.unit === 'mm', inch = isLen && inchUnits();
-  if (inch) opt = { ...opt, unit: 'in', min: opt.min != null ? opt.min / INCH : opt.min, step: opt.step || 0.1 };
+  // (a feed – mm/min, mm/U – is a length per something and goes with it)
+  const isLen = opt.unit === 'mm' || /^mm\//.test(opt.unit || ''), inch = isLen && inchUnits();
+  if (inch) opt = { ...opt, unit: 'in' + opt.unit.slice(2), min: opt.min != null ? opt.min / INCH : opt.min, step: opt.step || 0.1 };
   const shown = value == null ? '' : isExpr ? value.slice(1) : inch && typeof value === 'number' ? +(value / INCH).toFixed(4) : value;
   const i = h('input', { type: 'text', inputmode: 'decimal', value: shown, placeholder: opt.ph ?? '', class: isExpr ? 'expr' : null, title: isExpr ? 'Ausdruck mit Parametern' : null, disabled: !!opt.disabled });
   i.addEventListener('change', () => {
@@ -446,6 +462,11 @@ const sketcher = new Sketcher(vp, {
   text: id => sketchTextDialog(id),
   cmd: c => ({ extrude: () => { finishSketch(); createFeature('extrude'); }, offset: sketchOffset, move: () => sketchMoveTool('xmove'), fillet: sketchFillet, measure: toggleMeasure })[c]?.(),
   evalNum: str => { const v = /^[-+]?[0-9.]+$/.test(str) ? +str : evalExpr(str, paramScope(state.project)); return Number.isFinite(v) ? v : NaN; },
+  // lengths while drawing: shown and typed in the unit of the settings (a typed "12mm" or "0.5in" says its own)
+  len: {
+    unit: () => lenUnit(), out: mm => lenOut(mm),
+    in: text => { const [s, k] = lenIn(text), plain = /^[-+]?[0-9.]+$/.test(s), v = plain ? +s : evalExpr(s, paramScope(state.project)); return Number.isFinite(v) ? v * (plain || k !== (inchUnits() ? INCH : 1) ? k : 1) : NaN; },
+  },
   tip: (text, e) => {
     if (!text || !e) { tipEl.hidden = true; return; }
     const r = $('#viewportWrap').getBoundingClientRect();
@@ -1555,7 +1576,7 @@ function updateFaceHover(e) {
     const edgeOk = mode === 'opbound' || (mode === 'camfaces' && EDGE_OPS.includes(camOp(state.pick.id)?.type) && !isHoleOp(camOp(state.pick.id)));
     const faceOnly = ['faces', 'camfaces', 'plane', 'setupBodies', 'fixtures'].includes(mode) && !edgeOk;
     if (!faceOnly) {
-      const setupPicking = SETUP_PICKS.includes(mode) || mode === 'edges' || edgeOk;
+      const setupPicking = SETUP_PICKS.includes(mode) || mode === 'edges' || mode === 'measure' || edgeOk;
       const lines = setupPicking ? edgePickObjects() : vp.model.children.filter(o => o.userData.edges);
       const eh = lines.length ? vp.raycast(e, lines, 5)[0] : null;
       if (eh && (!meshHit || eh.distance <= meshHit.distance + vp.worldPerPixel() * 6)) {
@@ -1565,11 +1586,16 @@ function updateFaceHover(e) {
     }
     if (ei == null && meshHit && mode !== 'edges') { bi = meshHit.object.userData.body; fid = getModel().bodies[bi].faceOf[meshHit.faceIndex]; }
   }
+  // measuring: a bore lights up as a whole (as it is measured)
+  let fids = null;
+  if (mode === 'measure' && ei == null && bi != null) { try { fids = measureHoverFaces(getModel().bodies[bi], fid); } catch { fids = null; } }
+  if (fids) fid = Math.min(...fids);
   const key = ei != null ? `e${ebi}:${ei}` : bi != null ? `f${bi}:${fid}` : null;
   if (key === hoverKey) return;
   vp.clear(hoverGroup);
   hoverKey = key;
   const m = getModel();
+  if (fids) { for (const f of fids) hoverGroup.add(placeLike(faceMesh(m.bodies[bi], f, matFaceHover), bi)); return; }
   // pre-highlight = only a colour change: thin edge line, tinted face without outline
   if (ei != null) hoverGroup.add(placeLike(edgeLine(m.bodies[ebi], ei), ebi));
   else if (bi != null) hoverGroup.add(placeLike(faceMesh(m.bodies[bi], fid, matFaceHover), bi));
@@ -5282,9 +5308,15 @@ function formDialog(title, fields, okLabel = 'OK') {
     const rows = fields.filter(f => f.label != null).map(f => {
       if (f.options) return row(f.label, sel(f.options, f.value, v => (vals[f.key] = v)));
       if (f.check) return row(f.label, chk(f.value, v => (vals[f.key] = v)));
-      const i = h('input', { type: 'text', value: f.value ?? '' });
-      i.addEventListener('change', () => { const n = +String(i.value).replace(',', '.'); vals[f.key] = f.text ? i.value : Number.isFinite(n) ? n : f.value; });
-      return row(f.label, f.unit ? h('div', { class: 'unit' }, i, h('span', null, f.unit)) : i);
+      // a length: shown and typed in the unit of the settings, handed on in millimetres
+      const isLen = f.unit === 'mm' && !f.text, shown = isLen && Number.isFinite(+f.value) && f.value !== '' && f.value != null ? lenOut(+f.value) : f.value ?? '';
+      const i = h('input', { type: 'text', value: shown });
+      i.addEventListener('change', () => {
+        if (f.text) { vals[f.key] = i.value; return; }
+        const [txt, k] = isLen ? lenIn(String(i.value).replace(',', '.')) : [String(i.value).replace(',', '.'), 1], n = +txt * k;
+        vals[f.key] = Number.isFinite(n) && txt !== '' ? +n.toFixed(6) : f.value;
+      });
+      return row(f.label, f.unit ? h('div', { class: 'unit' }, i, h('span', null, isLen ? lenUnit() : f.unit)) : i);
     });
     back.append(h('div', { class: 'modal', style: 'height:auto;width:min(440px,calc(100vw - 32px))' },
       h('div', { class: 'modal-head' }, title.toUpperCase(), h('button', { onclick: () => done(null) }, '✕')),
@@ -6096,11 +6128,14 @@ const testApi = {
   pick: () => state.pick && { ...state.pick },
   // measuring: what is chosen and what is shown, and the edges of a body (to click them in a test)
   measureState() {
-    const e = x => x && { title: x.title, rows: x.rows, geo: x.geo && x.geo.kind, hi: x.hi, bi: x.bi };
-    return { a: e(measure.a), b: e(measure.b), rows: measure.res?.rows || [], dims: (measure.res?.dims || []).map(d => ({ ...d })), links: measure.res?.links || [],
+    const e = x => x && { title: x.title, rows: x.rows, geo: x.geo && x.geo.kind, g: x.geo, hi: { ...x.hi, ...(x.hi.mtris ? { mtris: x.hi.mtris[1].length } : {}), ...(x.hi.segs ? { segs: x.hi.segs.length } : {}) }, bi: x.bi };
+    return { kept: measure.kept.length, a: e(measure.a), b: e(measure.b), rows: measure.res?.rows || [], dims: (measure.res?.dims || []).map(d => ({ ...d })), links: measure.res?.links || [],
       notes: [...document.querySelectorAll('.ms-call')].map(c => [...c.querySelectorAll('.ms-call-row')].map(r => r.textContent)) };
   },
   bodies: () => getModel().bodies.map(b => b.id),
+  meshes: () => getMeshes().bodies.map(b => b.id),
+  volume: id => { const b = getModel().bodies.find(x => x.id === id); try { return b && b.shape ? getKernelR().measureVolume(b.shape) : null; } catch (e) { return String(e.message || e); } },
+  fit: () => fitView(),
   bodyEdges(bi = 0) {
     const body = getModel().bodies[bi], n = body ? Math.max(-1, ...body.segEdge) + 1 : 0, out = [];
     for (let ei = 0; ei < n; ei++) { const m = measureEdge(body, bi, ei); if (m) out.push({ ei, title: m.title, at: m.at, ends: m.ends, geo: m.geo }); }
@@ -6109,6 +6144,8 @@ const testApi = {
   assembly: () => JSON.parse(JSON.stringify(state.project.assembly || null)),
   status: () => document.querySelector('#status')?.textContent || '',
   run: name => ({ joint: addJoint, jointOrigin: addJointOrigin, bodyToMesh })[name]?.(),
+  editSketch: id => editSketch(id),
+  sketchTool: tool => sketcher.setTool(tool),
   hideBody(id) { state.hiddenBodies.add(id); rebuildScene(); },
 };
 function initAgent() {
@@ -6897,7 +6934,7 @@ function propsSheet(b, f, ed) {
       const setFl = fn => ed(x => { x.flanges ||= []; let q = x.flanges.find(z => z.edge === k); if (!q) x.flanges.push(q = { edge: k, on: false, h: 15, angle: 90 }); fn(q); });
       const h1 = h('input', { type: 'text', value: fl.h, title: 'Laschenlänge (gerader Teil) mm', onchange: ev => setFl(q => (q.h = parseFloat(ev.target.value.replace(',', '.')) || q.h)) });
       const a1 = h('input', { type: 'text', value: fl.angle, title: 'Biegewinkel °', onchange: ev => setFl(q => (q.angle = parseFloat(ev.target.value.replace(',', '.')) || q.angle)) });
-      b.append(h('div', { class: 'flange-row' }, chk(fl.on, v => setFl(q => (q.on = v))), h('span', null, arc ? (arc.full ? `Kante ${k + 1} (Kreis R${f2(arc.R)}, ${f2(arc.L)} mm)` : `Kante ${k + 1} (Bogen R${f2(arc.R)}, ${f2(arc.L)} mm)`) : `Kante ${k + 1} (${f2(e.L)} mm)`), h1, h('small', null, 'mm'), a1, h('small', null, '°')));
+      b.append(h('div', { class: 'flange-row' }, chk(fl.on, v => setFl(q => (q.on = v))), h('span', null, arc ? (arc.full ? `Kante ${k + 1} (Kreis R${f2(arc.R)}, ${f2(arc.L)} mm)` : `Kante ${k + 1} (Bogen R${f2(arc.R)}, ${f2(arc.L)} mm)`) : `Kante ${k + 1} (${f2(e.L)} mm)`), lenField(h1), h('small', null, lenUnit()), a1, h('small', null, '°')));
       if (!fl.on) return;
       // flange on flange: further bends on the free edge of this flange (+ = same way round, − = the other way)
       const numIn = (val, title, fn) => h('input', { type: 'text', value: val, title, onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); if (Number.isFinite(v) && v !== 0) setFl(q => fn(q, v)); } });
@@ -6906,14 +6943,23 @@ function propsSheet(b, f, ed) {
       const setR = (o, v) => { if (v == null) delete o.r; else o.r = v; };
       (fl.next || []).forEach((nx, j) => b.append(h('div', { class: 'flange-row flange-sub flange-next' },
         h('span', null, Math.abs(+nx.angle) > 179 ? `↳ Saum ${j + 2}` : `↳ Lasche ${j + 2}`),
-        numIn(nx.h, 'Laschenlänge (gerader Teil) mm', (q, v) => (q.next[j].h = Math.max(0, v))), h('small', null, 'mm'),
+        lenField(numIn(nx.h, 'Laschenlänge (gerader Teil) mm', (q, v) => (q.next[j].h = Math.max(0, v)))), h('small', null, lenUnit()),
         numIn(nx.angle, 'Biegewinkel ° (+ gleiche Richtung wie die erste Biegung, − Gegenrichtung)', (q, v) => (q.next[j].angle = Math.max(-180, Math.min(180, v)))), h('small', null, '°'),
         radIn(nx.r, (q, v) => setR(q.next[j], v)),
         btn('✕', () => setFl(q => q.next.splice(j, 1))))));
       // partial flange: distance from the start and from the end of the edge (0 = up to the corner / the relief)
       const offIn = (key, title) => h('input', { type: 'text', value: +fl[key] || 0, title, onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); setFl(q => (q[key] = Number.isFinite(v) && v > 0 ? v : 0)); } });
-      b.append(h('div', { class: 'flange-row flange-sub' }, h('span', null, 'Abstand Anfang / Ende'), offIn('offA', 'Abstand der Lasche vom Kantenanfang in mm (0 = bis zur Ecke)'), h('small', null, 'mm'), offIn('offB', 'Abstand der Lasche vom Kantenende in mm (0 = bis zur Ecke)'), h('small', null, 'mm')));
-      b.append(h('div', { class: 'flange-row flange-sub' }, h('span', null, 'Biegeradius'), radIn(fl.r, (q, v) => setR(q, v)), h('small', null, 'mm')));
+      b.append(h('div', { class: 'flange-row flange-sub' }, h('span', null, 'Abstand Anfang / Ende'), lenField(offIn('offA', 'Abstand der Lasche vom Kantenanfang in mm (0 = bis zur Ecke)')), h('small', null, lenUnit()), lenField(offIn('offB', 'Abstand der Lasche vom Kantenende in mm (0 = bis zur Ecke)')), h('small', null, lenUnit())));
+      // flanges on the two side edges of this flange (straight edges only)
+      if (!arc) {
+        const sideIn = (key, sub, title, len) => { const q = fl[key] || {}; return lenFieldIf(len, h('input', { type: 'text', value: sub === 'h' ? +q.h || 0 : q.angle ?? 90, title, onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); setFl(x => { x[key] ||= { h: 0, angle: 90 }; if (sub === 'h') x[key].h = Number.isFinite(v) && v > 0 ? v : 0; else if (Number.isFinite(v) && v !== 0) x[key].angle = Math.max(-180, Math.min(180, v)); if (!(x[key].h > 0) && sub === 'h') delete x[key]; }); } })); };
+        for (const [key, name] of [['sideA', 'Seitenlasche am Anfang'], ['sideB', 'Seitenlasche am Ende']]) {
+          b.append(h('div', { class: 'flange-row flange-sub' }, h('span', null, name),
+            sideIn(key, 'h', 'Länge der Lasche an der Seitenkante dieser Lasche (0 = keine)', true), h('small', null, lenUnit()),
+            sideIn(key, 'angle', 'Biegewinkel ° (+ zur Seite hin, zu der diese Lasche gebogen ist, − von ihr weg)', false), h('small', null, '°')));
+        }
+      }
+      b.append(h('div', { class: 'flange-row flange-sub' }, h('span', null, 'Biegeradius'), lenField(radIn(fl.r, (q, v) => setR(q, v))), h('small', null, lenUnit())));
       // a hem: the edge folded back on itself (open: the gap of one thickness; closed: pressed flat)
       const tt = +f.thickness || 1, hem = (r, sg) => setFl(q => { q.next ||= []; q.next.push({ h: f2(Math.max(4 * tt, 5)), angle: 180 * sg, r }); });
       b.append(h('div', { class: 'btns flange-holebtns' }, btn('+ Lasche an Lasche', () => setFl(q => { q.next ||= []; q.next.push({ h: 10, angle: 90 }); })),
@@ -6926,7 +6972,7 @@ function propsSheet(b, f, ed) {
         const tin = (key, title, min) => h('input', { type: 'text', value: +fl.tabs[key] || 0, title, onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); if (Number.isFinite(v) && v >= min) setFl(q => (q.tabs[key] = key === 'n' ? Math.round(v) : v)); } });
         b.append(h('div', { class: 'flange-row flange-sub flange-next' }, h('span', null, '↳ Zungen'),
           tin('n', 'Anzahl der Zungen, gleichmäßig über die Lasche verteilt', 1), h('small', null, '×'),
-          tin('w', 'Breite einer Zunge entlang der Kante in mm', 0.1), h('small', null, 'mm'),
+          lenField(tin('w', 'Breite einer Zunge entlang der Kante in mm', 0.1)), h('small', null, lenUnit()),
           tin('len', 'Länge der Zunge über das Laschenende hinaus in mm (üblich: Dicke des Gegenstücks)', 0.1),
           btn('✕', () => setFl(q => { delete q.tabs; }))));
       }
@@ -6970,9 +7016,9 @@ function propsSheet(b, f, ed) {
         b.append(h('div', { class: 'flange-row form-row' }, h('span', null, `Linie ${i + 1} (${f2(Math.hypot(ln.b[0] - ln.a[0], ln.b[1] - ln.a[1]))} mm)`),
           sel([['', '–'], ['bend', 'Biegung'], ['bead', 'Sicke'], ['louver', 'Kieme']], q.kind || '', v => setLn(z => (z.kind = v))),
           ...(q.kind === 'bend' ? [inp('angle', 'Biegewinkel ° (+ hoch, − runter)', 90), h('small', null, '°'),
-            h('input', { type: 'text', value: q.r ?? '', placeholder: 'R', title: 'Biegeradius innen dieser Biegung in mm (leer = wie beim Blech eingestellt)', onchange: ev => { const tx = ev.target.value.trim().replace(',', '.'), v = parseFloat(tx); setLn(z => { if (tx !== '' && Number.isFinite(v) && v >= 0) z.r = v; else delete z.r; }); } }), h('small', null, 'mm')]
-            : q.kind === 'bead' ? [inp('w', 'Breite der Sicke mm', 8), h('small', null, 'mm'), inp('h', 'Höhe der Sicke mm (+ nach oben, − nach unten)', 2), h('small', null, 'mm')]
-              : q.kind === 'louver' ? [inp('w', 'Tiefe der Kieme mm (+ links der Linie, − rechts)', 8), h('small', null, 'mm'), inp('h', 'Höhe der Kieme am Schlitz mm (+ nach oben, − nach unten)', 2), h('small', null, 'mm')] : [])));
+            lenField(h('input', { type: 'text', value: q.r ?? '', placeholder: 'R', title: 'Biegeradius innen dieser Biegung in mm (leer = wie beim Blech eingestellt)', onchange: ev => { const tx = ev.target.value.trim().replace(',', '.'), v = parseFloat(tx); setLn(z => { if (tx !== '' && Number.isFinite(v) && v >= 0) z.r = v; else delete z.r; }); } })), h('small', null, lenUnit())]
+            : q.kind === 'bead' ? [lenField(inp('w', 'Breite der Sicke mm', 8)), h('small', null, lenUnit()), lenField(inp('h', 'Höhe der Sicke mm (+ nach oben, − nach unten)', 2)), h('small', null, lenUnit())]
+              : q.kind === 'louver' ? [lenField(inp('w', 'Tiefe der Kieme mm (+ links der Linie, − rechts)', 8)), h('small', null, lenUnit()), lenField(inp('h', 'Höhe der Kieme am Schlitz mm (+ nach oben, − nach unten)', 2)), h('small', null, lenUnit())] : [])));
       });
       b.append(h('p', { class: 'hint' }, 'Gerade Linien der Skizze, die zu keinem Profil gehören (auch Hilfslinien). Biegung: die Linie ist die Mitte der Biegezone, die Skizze dort der Zuschnitt – das größte Stück der Platte bleibt liegen, alles jenseits der Linie schwenkt mit seinen Laschen mit. Die Linie gilt über die ganze Platte. Sicke: eine Rippe entlang der Linie, im Querschnitt und an den Enden rund; das Blech behält seine Dicke.'),
         h('p', { class: 'hint' }, 'Kieme: die Linie ist ein Schlitz, das Blech daneben wird zu einer Haube aufgestellt, die an beiden Enden des Schlitzes in die Platte ausläuft (Lüftungsschlitz). Im Zuschnitt ist der Schlitz ein Schnitt.'));
@@ -6988,7 +7034,7 @@ function propsSheet(b, f, ed) {
         const setC = fn => ed(x => { x.collars ||= []; let z = x.collars.find(y => y.id === id); if (!z) x.collars.push(z = { id, on: false, h: 4 }); fn(z); });
         b.append(h('div', { class: 'flange-row form-row' }, h('span', null, !ci ? `Kontur ${j + 1}` : cp.has(j) ? `Bohrung ${j + 1} (Ø ${f2(2 * ci.R)} mm) – Vorbohrung Ø ${f2(2 * cp.get(j).flat)}` : `Bohrung ${j + 1} (Ø ${f2(2 * ci.R)} mm)`),
           sel([['', 'Ausschnitt'], ...(ci ? [['collar', 'Durchzug']] : []), ['emboss', 'Prägung'], ...(ci ? [['dimple', 'Senkprägung']] : [])], kind, v => setC(z => { z.on = !!v; z.kind = v || z.kind; if (v === 'dimple' && Math.abs(+z.h) >= 2 * (+f.thickness || 1)) z.h = -(+f.thickness || 1); })),
-          ...(kind ? [h('input', { type: 'text', value: q.h, title: 'Höhe über der Platte mm (+ nach oben, − nach unten)', onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); if (Number.isFinite(v) && v !== 0) setC(z => (z.h = v)); else ev.target.value = q.h; } }), h('small', null, 'mm')] : []),
+          ...(kind ? [lenField(h('input', { type: 'text', value: q.h, title: 'Höhe über der Platte mm (+ nach oben, − nach unten)', onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); if (Number.isFinite(v) && v !== 0) setC(z => (z.h = v)); else ev.target.value = q.h; } })), h('small', null, lenUnit())] : []),
           ...(kind === 'emboss' ? [h('input', { type: 'text', value: q.wall ?? 0, title: 'Wandschräge ° (0 = senkrecht, bis 60: die Wand neigt sich nach innen)', onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); if (Number.isFinite(v) && v >= 0 && v <= 60) setC(z => (z.wall = v)); else ev.target.value = q.wall ?? 0; } }), h('small', null, '°')] : [])));
       });
       b.append(h('p', { class: 'hint' }, 'Durchzug: der Rand einer runden Bohrung wird zu einem Kragen hochgezogen, etwa als Gewindedurchzug. Der Bohrungsdurchmesser der Skizze ist der fertige Innendurchmesser; im Zuschnitt wird die kleinere Vorbohrung geschnitten.'),
@@ -7009,7 +7055,7 @@ function propsSheet(b, f, ed) {
         btn(state.flatView === f.id ? 'Gefalteten Zustand zeigen' : 'Abwicklung anzeigen', () => toggleFlatView(f), state.flatView === f.id ? 'on' : 'primary')),
       fp.table.length ? h('table', { class: 'mtable bend-table' },
         h('tr', null, ...['Biegung', 'Kante', 'Winkel', 'Radius', 'Zugabe', 'Länge', 'Presskraft'].map(x => h('th', null, x))),
-        ...fp.table.map((b, i) => h('tr', null, h('td', null, `B${i + 1}`), h('td', null, b.line != null ? `L${b.line + 1}` : b.level ? `${b.edge + 1}.${b.level + 1}` : String(b.edge + 1)),
+        ...fp.table.map((b, i) => h('tr', null, h('td', null, `B${i + 1}`), h('td', null, b.line != null ? `L${b.line + 1}` : b.side ? `${b.edge + 1}${b.side}` : b.level ? `${b.edge + 1}.${b.level + 1}` : String(b.edge + 1)),
           h('td', null, b.level ? `${f2(Math.abs(b.angle))}° ${b.angle > 0 ? 'gleichsinnig' : 'gegensinnig'}` : `${f2(Math.abs(b.angle))}° ${b.angle > 0 ? 'hoch' : 'runter'}`),
           h('td', null, `R${f2(b.radius)}`), h('td', null, f2(b.allowance)), h('td', null, f2(b.length)), h('td', null, `${f2(pressForce(+f.thickness, b.length, srm).kN)} kN`)))) : null,
       fp.table.length ? h('p', { class: 'hint' }, `Presskraft: Richtwert für freies Biegen im Gesenk V = ${f2(pressForce(+f.thickness, 1, srm).V)} mm mit Zugfestigkeit ${srm} N/mm² (${smat.label}); kürzester Schenkel dafür etwa ${f2(pressForce(+f.thickness, 1, srm).minFlange)} mm. Größte Biegung: ${f2(Math.max(...fp.table.map(q => pressForce(+f.thickness, q.length, srm).kN)))} kN.`) : null,
@@ -7026,7 +7072,7 @@ function propsSheet(b, f, ed) {
 function bendTableCSV(f, fp, srm) {
   const k = sheetK(f), n = x => String(+(+x).toFixed(3)).replace('.', ',');
   const rows = [['Biegung', 'Kante', 'Winkel (°)', 'Richtung', 'Radius innen (mm)', 'K-Faktor', 'Biegezugabe (mm)', 'Biegelänge (mm)', 'Presskraft (kN)']];
-  fp.table.forEach((b, i) => rows.push([`B${i + 1}`, b.line != null ? `L${b.line + 1}` : b.level ? `${b.edge + 1}.${b.level + 1}` : String(b.edge + 1), n(Math.abs(b.angle)),
+  fp.table.forEach((b, i) => rows.push([`B${i + 1}`, b.line != null ? `L${b.line + 1}` : b.side ? `${b.edge + 1}${b.side}` : b.level ? `${b.edge + 1}.${b.level + 1}` : String(b.edge + 1), n(Math.abs(b.angle)),
     b.level ? (b.angle > 0 ? 'gleichsinnig' : 'gegensinnig') : b.angle > 0 ? 'hoch' : 'runter', n(b.radius), n(k), n(b.allowance), n(b.length), n(pressForce(+f.thickness, b.length, srm).kN)]));
   rows.push([], ['Blechdicke (mm)', n(f.thickness)], ['Berechnung', f.bendCalc === 'din6935' ? 'DIN 6935' : 'K-Faktor'], ['Zuschnitt (mm)', `${n(fp.size[0])} x ${n(fp.size[1])}`]);
   return '\ufeff' + rows.map(r => r.map(c => /[;"\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c).join(';')).join('\r\n') + '\r\n';
@@ -10697,12 +10743,24 @@ function togglePick(mode, id, key = null) {
 // window "Messen" says what it is (diameter, depth, length, area …). A second element adds what the two have to
 // say about each other: smallest distance, centre distance, distance of parallel faces, angle. A third click
 // starts over.
-const measure = { a: null, b: null, res: null, panel: null };
+// "Merken" keeps a measurement on screen while the next one is taken (measure.kept).
+const measure = { a: null, b: null, res: null, panel: null, kept: [] };
 function measureReset() { measure.a = measure.b = measure.res = null; drawMeasurePanel(); }
+// a measurement in words: one line for each element and for what lies between them
+function measureText(ms) {
+  const line = (title, rows) => `${tr(title)}: ${rows.map(([k, v]) => `${tr(k)} ${v}`).join('; ')}`;
+  return [line(ms.a.title, ms.a.rows), ...(ms.b ? [line(ms.b.title, ms.b.rows)] : []), ...(ms.res?.rows.length ? [line('Zwischen beiden', ms.res.rows)] : [])].join('\n');
+}
+// the one value a kept measurement is listed with
+function measureBrief(ms) {
+  const d = ms.res?.dims[0], [k, v] = d ? [d.label, d.value] : ms.res?.rows[0] || ms.a.rows[0] || ['', ''];
+  return { name: ms.b ? `${tr(ms.a.title)} – ${tr(ms.b.title)}` : tr(ms.a.title), value: `${tr(k)} ${v}` };
+}
 function toggleMeasure() {
   const on = state.pick?.mode !== 'measure';
   state.pick = on ? { mode: 'measure' } : null;
   measure.a = measure.b = measure.res = null;
+  measure.kept = [];
   showBanner(null);
   if (on) openMeasurePanel(); else closeMeasurePanel();
   renderToolbar();
@@ -10715,10 +10773,23 @@ function openMeasurePanel() {
   measure.panel = p;
   $('#viewportWrap').append(p);
   drawMeasurePanel();
-  const w = $('#viewportWrap').getBoundingClientRect();
-  p.style.left = Math.max(8, w.width - p.offsetWidth - 14) + 'px';
   p.style.top = '150px';
-  dragInView(p, p);
+  placeMeasurePanel();
+  dragInView(p, p, () => { p.dataset.moved = '1'; });
+}
+// at the right border of the view – or left of a window that stands there (the dialog of a feature); once the
+// user has moved it, it stays where it was put
+function placeMeasurePanel() {
+  const p = measure.panel;
+  if (!p || p.dataset.moved) return;
+  const w = $('#viewportWrap').getBoundingClientRect(), top = w.top + p.offsetTop, bottom = top + p.offsetHeight;
+  let left = w.width - p.offsetWidth - 14;
+  for (const win of document.querySelectorAll('.fwin')) {
+    const r = win.getBoundingClientRect();
+    if (!r.width || r.bottom < top || r.top > bottom || r.right < w.left + left || r.left > w.left + left + p.offsetWidth) continue;
+    left = Math.min(left, r.left - w.left - p.offsetWidth - 10);
+  }
+  p.style.left = Math.max(8, left) + 'px';
 }
 function drawMeasurePanel() {
   const p = measure.panel;
@@ -10726,12 +10797,19 @@ function drawMeasurePanel() {
   const rowsOf = rows => rows.map(([k, v]) => h('div', { class: 'ms-row' }, h('span', null, k), h('b', null, v)));
   const block = (n, ent) => h('div', { class: 'ms-block' }, h('div', { class: 'ms-title' }, h('i', { class: 'ms-dot ms-dot' + n }), h('b', null, ent.title)), ...rowsOf(ent.rows));
   const newBtn = h('button', { onclick: () => { measureReset(); rebuildScene(); } }, 'Neue Messung');
+  const keepBtn = h('button', { title: 'Diese Messung bleibt in der Ansicht stehen, während die nächste gemessen wird', onclick: () => { measure.kept.push({ a: measure.a, b: measure.b, res: measure.res }); measureReset(); rebuildScene(); } }, 'Merken');
+  const all = [...measure.kept, ...(measure.a ? [measure] : [])];
+  const copy = () => navigator.clipboard.writeText(all.map((ms, i) => (all.length > 1 ? `${tr('Messung')} ${i + 1}\n` : '') + measureText(ms)).join('\n\n')).then(() => status('In die Zwischenablage kopiert'), () => status('Kopieren nicht möglich'));
+  const kept = measure.kept.length ? [h('div', { class: 'ms-block ms-kept' }, h('div', { class: 'ms-title' }, h('b', null, 'Gemerkt'), h('span', { style: 'flex:1' }), h('button', { class: 'ms-mini', onclick: () => { measure.kept = []; drawMeasurePanel(); rebuildScene(); } }, 'Alle entfernen')),
+    ...measure.kept.map((ms, i) => { const b = measureBrief(ms); return h('div', { class: 'ms-keep' }, h('span', { class: 'ms-keep-n' }, String(i + 1)), h('span', { class: 'ms-keep-t', title: measureText(ms) }, b.name), h('b', null, b.value), h('button', { class: 'ms-mini', title: 'Entfernen', onclick: () => { measure.kept.splice(i, 1); drawMeasurePanel(); rebuildScene(); } }, '×')); }))] : [];
   p.replaceChildren(
     h('div', { class: 'look-head' }, h('b', null, 'Messen'), h('button', { class: 'look-x', title: 'Schließen', onclick: toggleMeasure }, '×')),
     ...(measure.a ? [block(1, measure.a)] : [h('p', { class: 'hint' }, 'Eine Ecke, Kante, Fläche oder Bohrung anklicken. Ein zweites Element zeigt Abstand und Winkel zwischen beiden.')]),
     ...(measure.b ? [block(2, measure.b)] : []),
     ...(measure.res?.rows.length ? [h('div', { class: 'ms-block ms-res' }, h('div', { class: 'ms-title' }, h('b', null, 'Zwischen beiden')), ...rowsOf(measure.res.rows))] : []),
-    ...(measure.a ? [h('div', { class: 'look-foot' }, h('span', { class: 'hint' }, measure.b ? '' : 'Zweites Element anklicken'), h('span', { style: 'flex:1' }), newBtn)] : []));
+    ...kept,
+    ...(all.length ? [h('div', { class: 'look-foot' }, h('span', { class: 'hint' }, measure.a && !measure.b ? 'Zweites Element anklicken' : ''), h('span', { style: 'flex:1' }), h('button', { onclick: copy, title: 'Alle Messungen als Text in die Zwischenablage' }, 'Kopieren'), ...(measure.a ? [keepBtn, newBtn] : []))] : []));
+  placeMeasurePanel();
 }
 const msArea = a => (inchUnits() ? `${f2(a / INCH ** 2)} in²` : `${f2(a)} mm²`);
 // A body the assembly has moved (placement, joint, exploded view) is measured where it stands: msPose is its
@@ -10792,6 +10870,12 @@ function bodyHoles(body) {
     msHoles.map.set(body.id, { holes, cyls: data.cyls });
   }
   return msHoles.map.get(body.id);
+}
+// the faces that light up together under the mouse while measuring: all cylinder faces of a bore (null: just the face)
+function measureHoverFaces(body, fid) {
+  if (!body || msFaces(body)[fid]?.geomType !== 'CYLINDRE') return null;
+  const hole = bodyHoles(body).holes.find(x => x.cylFaces.includes(fid));
+  return hole && hole.cylFaces.length > 1 ? hole.cylFaces : null;
 }
 function meshFaceArea(body, fid) {
   const idx = body.geometry.index.array, pos = body.geometry.attributes.position;
@@ -10874,25 +10958,111 @@ function msPlaced(ent, M) {
   try { shapes = ent.shapes && ent.shapes.map(sh => transformShape(sh, M)); } catch { shapes = null; }
   return { ...ent, geo, shapes, at: P(ent.at), ...(ent.anchor ? { anchor: P(ent.anchor) } : {}), ...(ent.ends ? { ends: ent.ends.map(P) } : {}), pose: M };
 }
+// A mesh body has no faces and edges of its own: they are read from its triangles (js/meshmeasure.js) – flat
+// faces, straight edges, corners, and the cylinders and circles of its round faces.
+const msMeshCyls = new WeakMap();
+function measureMesh(hit) {
+  const mb = getMeshes().bodies.find(b => b.id === hit.object.userData.meshBody), p = hit.point.toArray();
+  const free = () => ({ ...measurePoint(p, null), title: 'Punkt auf dem Netz' });
+  if (!mb || hit.faceIndex == null || mb.mesh.idx.length > 6e6) return free();
+  let cyls = msMeshCyls.get(mb.mesh);
+  if (!cyls) { try { cyls = mb.mesh.idx.length <= 9e5 ? findCylinders(mb.mesh) : []; } catch (err) { console.warn(err); cyls = []; } msMeshCyls.set(mb.mesh, cyls); }
+  let el = null;
+  try { el = meshElement(mb.mesh, meshTopo(mb.mesh, cyls), hit.faceIndex, p, vp.worldPerPixel()); } catch (err) { console.warn(err); }
+  if (!el) return free();
+  const base = { shapes: null, at: p, bi: null };
+  if (el.type === 'point') return { ...measurePoint(el.p, null), title: 'Ecke des Netzes' };
+  if (el.type === 'line') {
+    let shapes = null;
+    try { shapes = [getKernelR().makeLine(el.ends[0], el.ends[1])]; } catch { shapes = null; }
+    const mid = MS.mul(MS.add(el.ends[0], el.ends[1]), 0.5);
+    return { ...base, shapes, at: mid, ends: el.ends, geo: { kind: 'line', p: mid, d: MS.unit(MS.sub(el.ends[1], el.ends[0])) }, hi: { segs: [el.ends] }, title: 'Gerade Kante', rows: [['Länge', fmtL(el.length)], ['ΔX · ΔY · ΔZ', msDelta(el.ends[0], el.ends[1])]] };
+  }
+  if (el.type === 'circle') {
+    // (drawn as the circle it stands for: the mesh has only its chords)
+    const u = MS.unit(MS.cross(el.d, Math.abs(el.d[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0])), w = MS.cross(el.d, u), segs = [];
+    const pt = i => MS.add(el.c, MS.add(MS.mul(u, el.r * Math.cos((i * Math.PI) / 36)), MS.mul(w, el.r * Math.sin((i * Math.PI) / 36))));
+    if (el.full) for (let i = 0; i < 72; i++) segs.push([pt(i), pt(i + 1)]);
+    return { ...base, ends: [], geo: { kind: 'circle', p: el.c, d: el.d, r: el.r }, hi: { segs }, note: 2, title: el.full ? 'Kreis' : 'Kreisbogen',
+      rows: el.full ? [['Durchmesser', '⌀ ' + fmtL(2 * el.r)], ['Mittelpunkt', msXYZ(el.c)], ['Radius', 'R ' + fmtL(el.r)], ['Umfang', fmtL(2 * Math.PI * el.r)]] : [['Radius', 'R ' + fmtL(el.r)], ['Mittelpunkt', msXYZ(el.c)]] };
+  }
+  const hi = { mtris: [mb.id, el.tris] };
+  if (el.type === 'cyl') {
+    return { ...base, hi, geo: { kind: 'axis', p: el.c, d: el.d, r: el.r }, title: el.hole ? (el.full ? 'Zylinder innen' : 'Rundung innen') : el.full ? 'Zylinder' : 'Rundung außen',
+      rows: [...(el.full ? [['Durchmesser', '⌀ ' + fmtL(2 * el.r)]] : []), ['Radius', 'R ' + fmtL(el.r)], ['Länge', fmtL(el.h)]] };
+  }
+  return { ...base, hi, anchor: el.c, geo: { kind: 'plane', p, d: el.n, c: el.c }, title: 'Ebene Fläche', rows: [['Fläche', msArea(el.area)], ['Umfang', fmtL(el.perimeter)]] };
+}
+// ---- measuring in the section view: the cut face and its outline ----
+function sectionPlane() {
+  const sct = state.section;
+  if (!sct) return null;
+  const n = new THREE.Vector3(...{ x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] }[sct.axis]).multiplyScalar(sct.flip ? 1 : -1);
+  return new THREE.Plane(n, sct.flip ? -sct.offset : sct.offset);
+}
+// where the section plane cuts the bodies: pieces [{ a, b, bi, fid }] (a, b: THREE.Vector3)
+let msSect = { key: null, segs: [] };
+function sectionSegs(cut) {
+  const m = getModel(), meshes = vp.model.children.filter(o => o.isMesh && o.userData.body != null && o.visible);
+  const key = [m.key, JSON.stringify(state.section), ...meshes.map(o => o.userData.body + (o.matrixAutoUpdate ? '' : ':' + o.matrix.elements.map(v => v.toFixed(5)).join(',')))].join('|');
+  if (msSect.key === key) return msSect.segs;
+  const segs = [], A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
+  for (const o of meshes) {
+    const bi = o.userData.body, body = m.bodies[bi], idx = o.geometry.index.array, pos = o.geometry.attributes.position, M = o.matrixAutoUpdate ? null : o.matrix;
+    for (let t = 0; t < idx.length / 3; t++) {
+      A.fromBufferAttribute(pos, idx[t * 3]); B.fromBufferAttribute(pos, idx[t * 3 + 1]); C.fromBufferAttribute(pos, idx[t * 3 + 2]);
+      if (M) { A.applyMatrix4(M); B.applyMatrix4(M); C.applyMatrix4(M); }
+      const d = [cut.distanceToPoint(A), cut.distanceToPoint(B), cut.distanceToPoint(C)], P = [A, B, C], pts = [];
+      if ((d[0] > 0 && d[1] > 0 && d[2] > 0) || (d[0] < 0 && d[1] < 0 && d[2] < 0)) continue;
+      for (let k = 0; k < 3; k++) { const j = (k + 1) % 3; if ((d[k] < 0) !== (d[j] < 0)) pts.push(P[k].clone().lerp(P[j], d[k] / (d[k] - d[j]))); }
+      if (pts.length === 2 && pts[0].distanceToSquared(pts[1]) > 1e-16) segs.push({ a: pts[0], b: pts[1], bi, fid: body?.faceOf[t] });
+    }
+  }
+  msSect = { key, segs };
+  return segs;
+}
+// The click lies on the cut face when the ray has gone into a body an odd number of times before it reaches the
+// section plane (and the plane is seen from the side that is cut away). Near the outline of the cut the point
+// snaps onto it – two such points give a wall thickness.
+function measureSection(cut, solids) {
+  const ray = vp.raycaster.ray, P = ray.intersectPlane(cut, new THREE.Vector3());
+  if (!P || cut.distanceToPoint(ray.origin) >= 0) return null;
+  const dP = P.distanceTo(ray.origin), count = new Map();
+  for (const x of solids) if (x.distance < dP - 1e-6) count.set(x.object.userData.body, (count.get(x.object.userData.body) || 0) + 1);
+  if (![...count.values()].some(n => n % 2)) return null;
+  const px = vp.worldPerPixel(), tmp = new THREE.Vector3(), line = new THREE.Line3();
+  let best = null;
+  const segs = sectionSegs(cut);
+  for (const sg of segs) {
+    line.set(sg.a, sg.b).closestPointToPoint(P, true, tmp);
+    const d = tmp.distanceTo(P);
+    if (d < px * 9 && (!best || d < best.d)) best = { d, p: tmp.clone(), sg };
+  }
+  const n = cut.normal.toArray();
+  if (!best) return { title: 'Schnittfläche', rows: [['Lage', msXYZ(P.toArray())]], geo: { kind: 'plane', p: P.toArray(), d: n }, shapes: null, at: P.toArray(), hi: {}, bi: null };
+  // a corner of the outline: where the pieces of two faces meet, right under the mouse
+  let p = best.p;
+  for (const end of [best.sg.a, best.sg.b]) {
+    if (end.distanceTo(P) > px * 9) continue;
+    if (segs.some(q => q !== best.sg && (q.fid !== best.sg.fid || q.bi !== best.sg.bi) && (q.a.distanceToSquared(end) < 1e-10 || q.b.distanceToSquared(end) < 1e-10))) { p = end.clone(); break; }
+  }
+  return { ...measurePoint(p.toArray(), null), title: 'Punkt auf der Schnittkante' };
+}
 function measurePick(e) {
   const m = getModel();
   // the matrix of a body the assembly has moved (null: it stands where it was built)
   const poseOf = bi => { const bm = vp.model.children.find(o => o.isMesh && o.userData.body === bi); return bm && !bm.matrixAutoUpdate ? bm.matrix.clone() : null; };
   const local = (v, M) => (M ? v.clone().applyMatrix4(M.clone().invert()) : v);
-  const mh = vp.raycast(e, vp.model.children.filter(o => o.isMesh && o.userData.body != null && o.visible))[0];
+  // section view: what the section has cut away is not there – neither to be seen nor to be clicked
+  const cut = sectionPlane(), seen = hits => (cut ? hits.filter(x => cut.distanceToPoint(x.point) >= -1e-6) : hits);
+  const solids = vp.raycast(e, vp.model.children.filter(o => o.isMesh && o.userData.body != null && o.visible));
+  const mh = seen(solids)[0];
   const objs = edgePickObjects();
-  const eh = objs.length ? vp.raycast(e, objs, 6)[0] : null;
+  const eh = objs.length ? seen(vp.raycast(e, objs, 6))[0] : null;
   // a mesh body (STL, 3MF …) in front of everything else: the point under the mouse, or the corner of its triangle
-  const nh = vp.raycast(e, vp.meshes.children.filter(o => o.isMesh && o.visible))[0];
-  if (nh && (!mh || nh.distance < mh.distance) && (!eh || nh.distance < eh.distance - vp.worldPerPixel() * 6)) {
-    let p = nh.point.toArray();
-    const pos = nh.object.geometry.attributes.position;
-    if (nh.face && pos) for (const i of [nh.face.a, nh.face.b, nh.face.c]) {
-      const v = new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(nh.object.matrixWorld).toArray();
-      if (MS.dist(v, nh.point.toArray()) < vp.worldPerPixel() * 9) { p = v; break; }
-    }
-    return { ...measurePoint(p, null), title: 'Punkt auf dem Netz' };
-  }
+  const nh = seen(vp.raycast(e, vp.meshes.children.filter(o => o.isMesh && o.visible)))[0];
+  if (cut) { const sc = measureSection(cut, solids); if (sc) return sc; }
+  if (nh && (!mh || nh.distance < mh.distance) && (!eh || nh.distance < eh.distance - vp.worldPerPixel() * 6)) return measureMesh(nh);
   try {
     if (eh && (!mh || eh.distance <= mh.distance + vp.worldPerPixel() * 6)) {
       const bi = eh.object.userData.body, body = m.bodies[bi], M = msPose = poseOf(bi), ed = body && measureEdge(body, bi, body.segEdge[Math.floor(eh.index / 2)]);
@@ -10926,7 +11096,7 @@ function measureBetween(a, b) {
     if (near.d > 1e-9) { rows.push(['ΔX · ΔY · ΔZ', msDelta(near.p, near.q)]); if (!dims.length) dims.push({ kind: 'min', label: 'Kleinster Abstand', value: fmtL(near.d), p: near.p, q: near.q }); }
   } else if (!rel.centre) {
     rows.push(['Abstand der Klickpunkte', fmtL(MS.dist(a.at, b.at))], ['ΔX · ΔY · ΔZ', msDelta(a.at, b.at)]);
-    if (!dims.length) dims.push({ kind: 'min', label: 'Abstand der Klickpunkte', value: fmtL(MS.dist(a.at, b.at)), p: a.at, q: b.at });
+    if (!dims.some(d => MS.dist(d.p, d.q) > 1e-9)) dims.push({ kind: 'min', label: 'Abstand der Klickpunkte', value: fmtL(MS.dist(a.at, b.at)), p: a.at, q: b.at });
   }
   const notes = [];
   if (rel.angle != null) {
@@ -10986,28 +11156,47 @@ function msCallout(at, rows, k, cls = '') {
   place();
   return o;
 }
+// some triangles of a mesh body as a mesh of their own (shares the body's points)
+function meshTrisMesh(id, tris, mat) {
+  const mb = getMeshes().bodies.find(b => b.id === id);
+  if (!mb) return null;
+  const I = mb.mesh.idx, idx = new Uint32Array(tris.length * 3);
+  tris.forEach((t, i) => { idx[i * 3] = I[t * 3]; idx[i * 3 + 1] = I[t * 3 + 1]; idx[i * 3 + 2] = I[t * 3 + 2]; });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', mb.geometry.attributes.position);
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  const o = new THREE.Mesh(g, mat);
+  o.renderOrder = 6;
+  return o;
+}
 function drawMeasure() {
   if (state.pick?.mode !== 'measure') { if (measure.panel) closeMeasurePanel(); return; }
   const m = getModel(), V = p => new THREE.Vector3(...p);
   let k = 0;
-  for (const ent of [measure.a, measure.b]) {
+  const sets = [...measure.kept, measure];
+  for (const [si, ms] of sets.entries()) for (const ent of [ms.a, ms.b]) {
     if (!ent) continue;
     const body = m.bodies[ent.bi];
     const posed = o => { if (ent.pose) { o.matrixAutoUpdate = false; o.matrix.copy(ent.pose); } return o; };
-    if (ent.hi.faces && body) for (const fid of ent.hi.faces[1]) vp.paths.add(posed(faceMesh(body, fid, matMeasureFace)));
+    const cur = ms === measure;
+    if (cur && ent.hi.faces && body) for (const fid of ent.hi.faces[1]) vp.paths.add(posed(faceMesh(body, fid, matMeasureFace)));
+    if (cur && ent.hi.mtris) { const o = meshTrisMesh(ent.hi.mtris[0], ent.hi.mtris[1], matMeasureFace); if (o) vp.paths.add(o); }
+    for (const [p, q] of ent.hi.segs || []) { const t = pxTube(V(p), V(q), matMeasureEdge); if (t) vp.paths.add(t); }
     if (ent.hi.edge && body) vp.paths.add(posed(edgeMesh(body, ent.hi.edge[1], matMeasureEdge)));
     // what the element is, right at the element (the first rows; the window has all of them)
     const at = ent.anchor || (ent.geo && (ent.geo.kind === 'circle' || ent.geo.kind === 'axis' || ent.geo.kind === 'point') ? ent.geo.p : ent.at);
-    if (!measure.res || !(measure.res.dims.length + measure.res.notes.length)) vp.paths.add(msCallout(at, ent.rows.slice(0, ent.note || 4), k));
+    if (!ms.res || !(ms.res.dims.length + ms.res.notes.length)) vp.paths.add(msCallout(at, ent.rows.slice(0, ent.note || 4), k + si));
     k++;
   }
-  (measure.res?.dims || []).forEach((d, i) => {
-    const t = pxTube(V(d.p), V(d.q), msDimMats[d.kind], 1.4);
-    if (t) vp.paths.add(t);
-    vp.paths.add(msCallout(MS.mul(MS.add(d.p, d.q), 0.5), [[d.label, d.value]], i, 'ms-' + d.kind));
-  });
-  (measure.res?.notes || []).forEach((n, i) => vp.paths.add(msCallout(n.at, n.rows, i + 2, 'ms-min')));
-  for (const [p, q] of measure.res?.links || []) { const t = pxTube(V(p), V(q), matMeasureLink, 1.4); if (t) vp.paths.add(t); }
+  for (const [si, ms] of sets.entries()) {
+    (ms.res?.dims || []).forEach((d, i) => {
+      const t = pxTube(V(d.p), V(d.q), msDimMats[d.kind], 1.4);
+      if (t) vp.paths.add(t);
+      vp.paths.add(msCallout(MS.mul(MS.add(d.p, d.q), 0.5), [[d.label, d.value]], i + si, 'ms-' + d.kind));
+    });
+    (ms.res?.notes || []).forEach((n, i) => vp.paths.add(msCallout(n.at, n.rows, i + 2 + si, 'ms-min')));
+    for (const [p, q] of ms.res?.links || []) { const t = pxTube(V(p), V(q), matMeasureLink, 1.4); if (t) vp.paths.add(t); }
+  }
 }
 
 // ---- sketch areas ("Profile"): clicked for an extrusion or a rotation, like the profiles of the usual CAD programs ----
@@ -13804,7 +13993,7 @@ function renderDrawing(rebuild = false) {
     return { ...b, shape: transformShape(b.shape, M), geometry: b.geometry.clone().applyMatrix4(M), edges: b.edges.clone().applyMatrix4(M) };
   });
   // view positions are not part of the drawing itself (moving a view needs no new computation)
-  const key = model.key + JSON.stringify({ ...d, offsets: undefined }) + JSON.stringify(asm || null);
+  const key = model.key + JSON.stringify({ ...d, offsets: undefined }) + JSON.stringify(asm || null) + (inchUnits() ? 'in' : '');
   if (rebuild || !drawingCache || drawingCache.key !== key) {
     const mat = MATERIALS[bodyMeta(bodies[0]?.id).material || 'alu'];
     let mass = '';
@@ -13830,7 +14019,7 @@ function renderDrawing(rebuild = false) {
       }
       parts = [...by.values()];
     }
-    drawingCache = { key, sectionY: section?.y, sectionXv: sectionX?.x, sectionStepX: section?.stepX, sectionY2: section?.y2, ...makeDrawing(bodies, { ...d, flat, section, sectionX, details: drawingDetails(d), parts, axes: d.centerLines === false ? [] : drawingAxes(bodies), threads: getModel().threads || [], userDims: d.userDims || [], detail: null, title: { name: p.name, material: mat.label, mass, ...d.title } }) };
+    drawingCache = { key, sectionY: section?.y, sectionXv: sectionX?.x, sectionStepX: section?.stepX, sectionY2: section?.y2, ...makeDrawing(bodies, { ...d, inch: inchUnits(), flat, section, sectionX, details: drawingDetails(d), parts, axes: d.centerLines === false ? [] : drawingAxes(bodies), threads: getModel().threads || [], userDims: d.userDims || [], detail: null, title: { name: p.name, material: mat.label, mass, ...d.title } }) };
   }
   const placed = placedDrawingSvg(drawingCache.svg, d.offsets);
   root.replaceChildren();

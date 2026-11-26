@@ -132,6 +132,10 @@ function circles(bodies) {
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
 const f2 = v => String(+(+v).toFixed(2)).replace('.', ',');
+// lengths written on the sheet: millimetres, or inches when the drawing is made with opts.inch (the sheet itself,
+// its scale and the model stay in millimetres)
+let INCH_OUT = false;
+const fl = v => (INCH_OUT ? String(+(+v / 25.4).toFixed(3)).replace('.', ',') : f2(v));
 
 /**
  * Builds the drawing. opts: { sheet: 'A3', scale: 'auto'|number, views: {front, top, left, iso},
@@ -139,6 +143,7 @@ const f2 = v => String(+(+v).toFixed(2)).replace('.', ',');
  * Returns { svg, scale, warnings }.
  */
 export function makeDrawing(bodies, opts) {
+  INCH_OUT = !!opts.inch;
   const [SW, SH] = SHEETS[opts.sheet] || SHEETS.A3;
   const prep = prepare(bodies);
   const box = new THREE.Box3();
@@ -305,8 +310,8 @@ export function makeDrawing(bodies, opts) {
       const parts = radii.map((rr, i) => {
         const zs = hole.rs.get(rr.toFixed(3));
         const depth = Math.max(...zs) - Math.min(...zs);
-        if (th && Math.abs(rr - th.r) < 0.05) return `${String(th.name).replace('.', ',')}${th.L > 1e-3 ? ` ↧${f2(th.L)}` : ''}`;
-        return i === 0 ? `Ø${f2(2 * rr)}` : `⌴ Ø${f2(2 * rr)}${depth > 1e-3 ? ` ↧${f2(depth)}` : ''}`;
+        if (th && Math.abs(rr - th.r) < 0.05) return `${String(th.name).replace('.', ',')}${th.L > 1e-3 ? ` ↧${fl(th.L)}` : ''}`;
+        return i === 0 ? `Ø${fl(2 * rr)}` : `⌴ Ø${fl(2 * rr)}${depth > 1e-3 ? ` ↧${fl(depth)}` : ''}`;
       });
       if (th) hole.thread = th;
       const key = parts.join('|');
@@ -412,7 +417,7 @@ export function makeDrawing(bodies, opts) {
       const x0 = pl.x, x1 = pl.x + e.w * scale, y = pl.y - y0off;
       line([x0, pl.y - 1], [x0, y - 2], 'ext'); line([x1, pl.y - 1], [x1, y - 2], 'ext');
       line([x0, y], [x1, y], 'dim arrow2');
-      text((x0 + x1) / 2, y - 1.5, f2(e.w), 'dtx');
+      text((x0 + x1) / 2, y - 1.5, fl(e.w), 'dtx');
     };
     const vdim = (k, xoff) => {
       cur = k;
@@ -420,7 +425,7 @@ export function makeDrawing(bodies, opts) {
       const y0 = pl.y, y1 = pl.y + e.h * scale, x = pl.x - xoff;
       line([pl.x - 1, y0], [x - 2, y0], 'ext'); line([pl.x - 1, y1], [x - 2, y1], 'ext');
       line([x, y0], [x, y1], 'dim arrow2');
-      text(x - 1.5, (y0 + y1) / 2, f2(e.h), 'dtx', 'middle', -90);
+      text(x - 1.5, (y0 + y1) / 2, fl(e.h), 'dtx', 'middle', -90);
     };
     if (place.front) { hdim('front', 8); vdim('front', 8); }
     if (place.top) vdim('top', 8);
@@ -544,7 +549,7 @@ export function makeDrawing(bodies, opts) {
       line([c[0] + ux * rr, c[1] + uy * rr], outer, 'dim');
       const right = ux >= 0, tl = [outer[0] + (right ? 10 : -10), outer[1]];
       line(outer, tl, 'dim');
-      const lab = `${dm.kind === 'dia' ? 'Ø' : 'R'}${f2(dm.kind === 'dia' ? 2 * dm.r : dm.r)}${dm.kind === 'dia' ? sfxOf(2 * dm.r) : sfx}`;
+      const lab = `${dm.kind === 'dia' ? 'Ø' : 'R'}${fl(dm.kind === 'dia' ? 2 * dm.r : dm.r)}${dm.kind === 'dia' ? sfxOf(2 * dm.r) : sfx}`;
       line(tl, [outer[0] + (right ? 1 : -1) * Math.max(10, lab.length * 1.9), outer[1]], 'dim');
       text(outer[0] + (right ? 1 : -1), outer[1] - 1.2, lab, 'dtx', right ? 'start' : 'end');
       return;
@@ -557,13 +562,13 @@ export function makeDrawing(bodies, opts) {
       const y = off < 0 ? Math.max(a[1], b[1]) - off : Math.min(a[1], b[1]) - off, sg = off < 0 ? -1 : 1;
       line([a[0], a[1] - sg], [a[0], y - 2 * sg], 'ext'); line([b[0], b[1] - sg], [b[0], y - 2 * sg], 'ext');
       line([a[0], y], [b[0], y], 'dim arrow2');
-      text((a[0] + b[0]) / 2, y - 1.5, f2(len) + sfxOf(len), 'dtx');
+      text((a[0] + b[0]) / 2, y - 1.5, fl(len) + sfxOf(len), 'dtx');
     } else if (dm.kind === 'v') {
       // a negative distance puts the dimension line left of the points
       const x = off < 0 ? Math.min(a[0], b[0]) + off : Math.max(a[0], b[0]) + off, sg = off < 0 ? -1 : 1;
       line([a[0] + sg, a[1]], [x + 2 * sg, a[1]], 'ext'); line([b[0] + sg, b[1]], [x + 2 * sg, b[1]], 'ext');
       line([x, a[1]], [x, b[1]], 'dim arrow2');
-      text(x - 1.5, (a[1] + b[1]) / 2, f2(len) + sfxOf(len), 'dtx', 'middle', -90);
+      text(x - 1.5, (a[1] + b[1]) / 2, fl(len) + sfxOf(len), 'dtx', 'middle', -90);
     } else {
       const dx = b[0] - a[0], dy = b[1] - a[1], L0 = Math.hypot(dx, dy) || 1;
       let nx = -dy / L0, ny = dx / L0;
@@ -573,7 +578,7 @@ export function makeDrawing(bodies, opts) {
       line(A2, B2, 'dim arrow2');
       let ang = (Math.atan2(dy, dx) * 180) / Math.PI;
       if (ang > 90) ang -= 180; if (ang < -90) ang += 180;
-      text((A2[0] + B2[0]) / 2 + nx * 1.5, (A2[1] + B2[1]) / 2 + ny * 1.5, f2(len) + sfxOf(len), 'dtx', 'middle', ang);
+      text((A2[0] + B2[0]) / 2 + nx * 1.5, (A2[1] + B2[1]) / 2 + ny * 1.5, fl(len) + sfxOf(len), 'dtx', 'middle', ang);
     }
     };
   // inspection plan: a numbered balloon behind the text of each dimension / tolerance frame
@@ -677,18 +682,18 @@ export function makeDrawing(bodies, opts) {
       text((a[0] + c[0]) / 2, (a[1] + c[1]) / 2 - 1, `B${i + 1}`, 'gm');
     });
     // overall size: width below, height on the left
-    const fmt = v => String(Math.round(v * 100) / 100).replace('.', ',');
+    const fmt = v => String(Math.round(v * 100) / 100).replace('.', ','), fmtA = fmt, fmtL = v => (INCH_OUT ? fl(v) : fmt(v));
     const yb = py + bh * fs2 + 7, xl = px - 7;
     line([px, py + bh * fs2 + 1], [px, yb + 1.5], 'ext'); line([px + bw * fs2, py + bh * fs2 + 1], [px + bw * fs2, yb + 1.5], 'ext');
     line([px, yb], [px + bw * fs2, yb], 'dim arrow2');
-    text(px + (bw * fs2) / 2, yb - 1, fmt(bw), 'dtx');
+    text(px + (bw * fs2) / 2, yb - 1, fmtL(bw), 'dtx');
     line([px - 1, py], [xl - 1.5, py], 'ext'); line([px - 1, py + bh * fs2], [xl - 1.5, py + bh * fs2], 'ext');
     line([xl, py], [xl, py + bh * fs2], 'dim arrow2');
-    text(xl - 1, py + (bh * fs2) / 2, fmt(bh), 'dtx', 'middle', -90);
-    text(px + (bw * fs2) / 2, yb + 6, `Abwicklung${fs2 !== scale ? ` (${scaleLabel(fs2)})` : ''} · t = ${fmt(F.thickness)} mm`, 'lbl');
+    text(xl - 1, py + (bh * fs2) / 2, fmtL(bh), 'dtx', 'middle', -90);
+    text(px + (bw * fs2) / 2, yb + 6, `Abwicklung${fs2 !== scale ? ` (${scaleLabel(fs2)})` : ''} · t = ${fmtL(F.thickness)} ${INCH_OUT ? 'in' : 'mm'}`, 'lbl');
     // (one text per direction, so every one is a whole sentence for the translations)
     (F.table || []).forEach((b, i) => {
-      const n = i + 1, a = fmt(Math.abs(b.angle)), rr = fmt(b.radius), len = fmt(b.length);
+      const n = i + 1, a = fmtA(Math.abs(b.angle)), rr = fmtL(b.radius), len = fmtL(b.length);
       const s = b.level ? (b.angle > 0 ? `B${n}: ${a}° gleichsinnig · R${rr} · Biegelänge ${len}` : `B${n}: ${a}° gegensinnig · R${rr} · Biegelänge ${len}`) : b.angle > 0 ? `B${n}: ${a}° hoch · R${rr} · Biegelänge ${len}` : `B${n}: ${a}° runter · R${rr} · Biegelänge ${len}`;
       text(px, yb + 11 + i * 4, s, 'gm', 'start');
     });
@@ -705,16 +710,16 @@ export function makeDrawing(bodies, opts) {
         seenR.add(key);
         const Y = py + (y1 - p[1]) * fs2, X = px + bw * fs2;
         line([X + 1, Y], [X + 6, Y], 'ext');
-        text(X + 7, Y + 1.2, fmt(v), 'gm', 'start');
-        ordR = Math.max(ordR, 7 + fmt(v).length * 1.8);
+        text(X + 7, Y + 1.2, fmtL(v), 'gm', 'start');
+        ordR = Math.max(ordR, 7 + fmtL(v).length * 1.8);
       } else if (Math.abs(p[0] - q[0]) < 1e-6) {
         const v = p[0] - x0, key = v.toFixed(2);
         if (seenT.has(key)) continue;
         seenT.add(key);
         const X = px + (p[0] - x0) * fs2;
         line([X, py - 1], [X, py - 6], 'ext');
-        text(X + 1, py - 7, fmt(v), 'gm', 'start', -90);
-        ordT = Math.max(ordT, 7 + fmt(v).length * 1.8);
+        text(X + 1, py - 7, fmtL(v), 'gm', 'start', -90);
+        ordT = Math.max(ordT, 7 + fmtL(v).length * 1.8);
       }
     }
     flatInfo = { x: px - 14, y: py - 6 - ordT, w: bw * fs2 + 22 + ordR, h: bh * fs2 + below + 8 + ordT };
@@ -750,7 +755,7 @@ export function makeDrawing(bodies, opts) {
   cell(tx + 95, ty + 16, 30, 16, 'Datum', new Date().toLocaleDateString('de-DE'));
   cell(tx + 125, ty + 16, 35, 16, 'Gezeichnet', t.author);
   cell(tx + 160, ty + 16, 20, 16, 'Blatt', '1/1');
-  text(tx + tbW - 2, ty - 2 - (opts.parts?.length ? (opts.parts.length + 1) * 6 : 0), `Projektionsmethode 1 (ISO-E) · Maße in mm · Allgemeintoleranz ISO 2768-${['f', 'm', 'c', 'v'].includes(opts.generalTol) ? opts.generalTol : 'm'}`, 'tbl', 'end');
+  text(tx + tbW - 2, ty - 2 - (opts.parts?.length ? (opts.parts.length + 1) * 6 : 0), opts.inch ? `Projektionsmethode 1 (ISO-E) · Maße in Zoll · Allgemeintoleranz ISO 2768-${['f', 'm', 'c', 'v'].includes(opts.generalTol) ? opts.generalTol : 'm'}` : `Projektionsmethode 1 (ISO-E) · Maße in mm · Allgemeintoleranz ISO 2768-${['f', 'm', 'c', 'v'].includes(opts.generalTol) ? opts.generalTol : 'm'}`, 'tbl', 'end');
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SW}mm" height="${SH}mm" viewBox="0 0 ${SW} ${SH}">
 <defs><marker id="ar" viewBox="0 0 10 4" refX="10" refY="2" markerUnits="userSpaceOnUse" markerWidth="2.5" markerHeight="1" orient="auto-start-reverse"><path d="M0,0 L10,2 L0,4 z" fill="#000"/></marker>

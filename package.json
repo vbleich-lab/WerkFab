@@ -1,7 +1,7 @@
 {
   "name": "werkfab",
   "productName": "WerkFab",
-  "version": "1.0.0-rc.43",
+  "version": "1.0.0-rc.44",
   "description": "WerkFab CAD/CAM – design and CNC machining, offline",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -40,7 +40,7 @@
     "dist:mac": "electron-builder --mac --publish never",
     "smoke": "node tools/smoke-app.mjs",
     "test:update": "node tools/test-update.mjs",
-    "test:measure": "node tools/test-measure.mjs"
+    "test:measure": "node tools/test-measure.mjs && node tools/test-meshmeasure.mjs"
   },
   "devDependencies": {
     "@electron/packager": "18.3.6",

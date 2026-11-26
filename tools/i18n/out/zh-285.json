@@ -1,0 +1,23 @@
+{
+ "Abwicklung{0} · t = {1} {2}": "展开图{0} · t = {1} {2}",
+ "Projektionsmethode 1 (ISO-E) · Maße in Zoll · Allgemeintoleranz ISO 2768-{0}": "第一角投影 (ISO-E) · 尺寸单位为英寸 · 一般公差 ISO 2768-{0}",
+ "Seitenlasche am Anfang": "起点处的侧边折边",
+ "Seitenlasche am Ende": "终点处的侧边折边",
+ "Länge der Lasche an der Seitenkante dieser Lasche (0 = keine)": "此折边侧边上的折边长度（0 = 无）",
+ "Biegewinkel ° (+ zur Seite hin, zu der diese Lasche gebogen ist, − von ihr weg)": "折弯角度 °（+ 朝此折边折弯的一侧，− 远离该侧）",
+ "Diese Messung bleibt in der Ansicht stehen, während die nächste gemessen wird": "测量下一个时，此测量保留在视图中",
+ "Merken": "保留",
+ "Messung": "测量",
+ "Gemerkt": "已保留",
+ "Alle entfernen": "全部移除",
+ "Alle Messungen als Text in die Zwischenablage": "将所有测量以文本形式复制到剪贴板",
+ "Ecke des Netzes": "网格的角点",
+ "Schnittfläche": "剖切面",
+ "Punkt auf der Schnittkante": "剖切边上的点",
+ "Klicken: um X {0} / Y {1} {2} verschieben · Esc beendet": "单击：移动 X {0} / Y {1} {2} · Esc 结束",
+ "Klicken: Versatz {0} auf dieser Seite": "单击：在此侧偏移 {0}",
+ "Länge {0}": "长度 {0}",
+ "Halbachse {0}": "半轴 {0}",
+ "Halbachse 2: {0}": "半轴 2：{0}",
+ "Sehne {0}": "弦 {0}"
+}

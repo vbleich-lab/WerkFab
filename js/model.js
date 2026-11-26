@@ -1169,6 +1169,13 @@ const near = (p, r, tol) => Math.hypot(p.x - r[0], p.y - r[1], p.z - r[2]) < tol
 
 // Picked edges are stored by their midpoint; match exactly first, then the nearest one.
 function edgeMatcher(shape, refs) {
+  // (a point away from the body names none of its edges: on a design with many bodies most bodies are done with
+  // here, without a look at their edges – a thread or a lettering has thousands)
+  try {
+    const bb = shape.boundingBox.bounds, T = 1.5 + (0.02 * Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2])) / 48 || 1.5;
+    if (bb && bb[0].every(Number.isFinite) && bb[1].every(Number.isFinite)) refs = refs.filter(r => [0, 1, 2].every(k => r[k] >= bb[0][k] - T && r[k] <= bb[1][k] + T));
+  } catch { /* no box: all edges are looked at */ }
+  if (!refs.length) return { count: 0, fn: () => false };
   const mids = shape.edges.map(e => e.pointAt(0.5));
   const chosen = new Set();
   for (const r of refs) {
@@ -2162,7 +2169,8 @@ export function meshBody(shape, K = activeKernel()) {
 // many kernel operations consume their input shapes.
 const SNAP_MAX = 400;
 const snapCache = new Map(); // key → snapshot (Map keeps insertion order: oldest first)
-let cacheStats = { hits: 0, skipped: 0, ran: 0 };
+// (msRun / msSnap / msMesh: where the time of recomputing went – the steps, their snapshots, the triangles)
+let cacheStats = { hits: 0, skipped: 0, ran: 0, msRun: 0, msSnap: 0, msMesh: 0, slow: [] };
 export const timelineCacheStats = () => ({ ...cacheStats, entries: snapCache.size });
 // the full kernel has loaded: only the snapshots taken while a step waited for it are stale (that step and
 // everything after it); the steps before it are kept
@@ -2441,6 +2449,7 @@ function* regenSteps(project, upTo = null, forced = null) {
       }
       const dt = performance.now() - t0;
       featTime.set(keys[i], dt);
+      cacheStats.msRun += dt; if (dt > 300) { cacheStats.slow.push([f.name || f.type, Math.round(dt)]); if (cacheStats.slow.length > 40) cacheStats.slow.shift(); }
       featTime.set('type:' + f.type, Math.max(dt, (featTime.get('type:' + f.type) || 0) * 0.5));
     }
     // remember derived values of this feature, then snapshot
@@ -2449,12 +2458,15 @@ function* regenSteps(project, upTo = null, forced = null) {
     if (Object.keys(pv).length && (f.planeRef || f.kind === 'cyl' || f.kind === 'tangent' || f.type === 'emboss')) patches[f.id] = JSON.parse(JSON.stringify(pv));
     if (f.type === 'sketch' && !f.suppressed && f.entities?.some(e => e.proj)) patches[f.id] = { ...(patches[f.id] || {}), entities: JSON.parse(JSON.stringify(f.entities)) };
     if (!snapCache.has(keys[i])) {
+      const ts = performance.now();
       snapCache.set(keys[i], takeSnap(ctx, errors, patches));
+      cacheStats.msSnap += performance.now() - ts;
       while (snapCache.size > SNAP_MAX) { const [k0, s0] = snapCache.entries().next().value; snapCache.delete(k0); dropSnap(s0); }
     }
   }
   const bodies = [];
   if (ctx.bodies.length) yield { i: list.length, n: list.length, name: 'Darstellung', type: 'mesh' };
+  const tm = performance.now();
   for (const [i, b] of ctx.bodies.entries()) {
     try {
       bodies.push({ id: b.id, name: `Körper${i + 1}`, shape: b.shape, surface: !hasSolid(b.shape), ...meshBody(b.shape, kernelOf(b.shape)) });
@@ -2462,6 +2474,7 @@ function* regenSteps(project, upTo = null, forced = null) {
       errors[b.id] = 'Vernetzung fehlgeschlagen: ' + (err.message || err);
     }
   }
+  cacheStats.msMesh += performance.now() - tm;
   return { bodies, errors, notes: ctx.notes, threads: ctx.threads, faceExtrude: ctx.faceExtrude || {}, kernel: K.id, resumedAt: start, featureCount: list.length };
 }
 

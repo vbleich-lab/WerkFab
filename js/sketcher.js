@@ -300,9 +300,9 @@ export class Sketcher {
     if (this.tool === 'xmove' || this.tool === 'xrot') {
       this.cur = this.snap(p);
       this.drawPreview();
-      const q = this.xbase && this.xformValue(this.cur), c = v => String(+(+v).toFixed(2)).replace('.', ',');
+      const q = this.xbase && this.xformValue(this.cur), c = v => String(+(+v).toFixed(2)).replace('.', ','), cl = v => (this.hooks.len ? String(this.lenOut(v)) : c(v));
       this.hooks.tip(this.tool === 'xmove'
-        ? (q ? `Klicken: um X ${c(q.dx)} / Y ${c(q.dy)} mm verschieben · Esc beendet` : 'Ausgangspunkt anklicken · Esc beendet')
+        ? (q ? `Klicken: um X ${cl(q.dx)} / Y ${cl(q.dy)} ${this.lenUnit()} verschieben · Esc beendet` : 'Ausgangspunkt anklicken · Esc beendet')
         : (q ? `Klicken: um ${c(q.ang)}° drehen · Esc beendet` : 'Drehpunkt anklicken · Esc beendet'), e);
       return;
     }
@@ -318,7 +318,7 @@ export class Sketcher {
       this.cur = p;
       const hit = offsetHit(this.entities, p, this.vp.worldPerPixel() * 60);
       this.drawPreview();
-      this.hooks.tip(hit ? `Klicken: Versatz ${this.offsetVal} mm auf dieser Seite` : 'Mit der Maus neben eine Kontur fahren (die Seite bestimmt die Richtung) · Esc beendet', e);
+      this.hooks.tip(hit ? `Klicken: Versatz ${this.fmtLen(this.offsetVal)} auf dieser Seite` : 'Mit der Maus neben eine Kontur fahren (die Seite bestimmt die Richtung) · Esc beendet', e);
       return;
     }
     if (this.tool === 'fillet' || this.tool === 'chamfer') {
@@ -459,6 +459,18 @@ export class Sketcher {
     return [out, out[0] !== pt[0] || out[1] !== pt[1]];
   }
 
+  // lengths as the user reads and types them (hooks.len: { unit(), out(mm), in(text) → mm }; without it millimetres)
+  lenUnit() { return this.hooks.len ? this.hooks.len.unit() : 'mm'; }
+  lenOut(v) { return this.hooks.len ? this.hooks.len.out(v) : r2(v); }
+  fmtLen(v) { return `${this.lenOut(v)} ${this.lenUnit()}`; }
+  parseLen(t) {
+    if (!this.hooks.len) return this.parseNum(t);
+    const str = String(t).trim().replace(',', '.');
+    if (!str) return null;
+    const v = this.hooks.len.in(str);
+    return Number.isFinite(v) ? v : null;
+  }
+
   closeInputs() {
     if (this.inp) this.inp.el.remove();
     this.inp = null;
@@ -468,7 +480,7 @@ export class Sketcher {
     const fields = this.active ? this.inputFields() : null;
     if (!fields) { this.closeInputs(); return; }
     const host = this.vp.el;
-    if (!this.inp || this.inp.tool !== this.tool || this.inp.n !== fields.length) {
+    if (!this.inp || this.inp.tool !== this.tool || this.inp.n !== fields.length || this.inp.unit !== this.lenUnit()) {
       this.closeInputs();
       if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
       const el = document.createElement('div');
@@ -476,11 +488,11 @@ export class Sketcher {
       const boxes = fields.map((f, i) => {
         const box = document.createElement('label');
         box.className = 'sk-in ' + f.side;
-        box.innerHTML = `${f.pre ? `<b>${f.pre}</b>` : ''}<input type="text" spellcheck="false"><i>${f.unit || 'mm'}</i>`;
-        const input = box.querySelector('input');
+        box.innerHTML = `${f.pre ? `<b>${f.pre}</b>` : ''}<input type="text" spellcheck="false"><i>${f.unit || this.lenUnit()}</i>`;
+        const input = box.querySelector('input'), parse = v => (f.unit ? this.parseNum(v) : this.parseLen(v));
         input.addEventListener('pointerdown', ev => ev.stopPropagation());
         input.addEventListener('input', () => {
-          const v = this.parseNum(input.value);
+          const v = parse(input.value);
           if (v == null) delete this.locks[f.key]; else this.locks[f.key] = v;
           box.classList.toggle('locked', v != null);
           this.reapply();
@@ -489,7 +501,7 @@ export class Sketcher {
           ev.stopPropagation();
           if (ev.key === 'Tab') {
             ev.preventDefault();
-            const v = this.parseNum(input.value);
+            const v = parse(input.value);
             if (v != null) { this.locks[f.key] = v; box.classList.add('locked'); }
             const bs = this.inp.boxes;
             const next = bs[(i + (ev.shiftKey ? -1 : 1) + bs.length) % bs.length];
@@ -498,7 +510,7 @@ export class Sketcher {
             this.reapply();
           } else if (ev.key === 'Enter') {
             ev.preventDefault();
-            const v = this.parseNum(input.value);
+            const v = parse(input.value);
             if (v != null) this.locks[f.key] = v;
             this.reapply();
             input.blur();
@@ -514,11 +526,11 @@ export class Sketcher {
         return { box, input, key: f.key };
       });
       host.append(el);
-      this.inp = { el, boxes, tool: this.tool, n: fields.length };
+      this.inp = { el, boxes, tool: this.tool, n: fields.length, unit: this.lenUnit() };
     }
     fields.forEach((f, i) => {
       const { box, input } = this.inp.boxes[i];
-      if (document.activeElement !== input && this.locks[f.key] == null) input.value = r2(f.val);
+      if (document.activeElement !== input && this.locks[f.key] == null) input.value = f.unit ? r2(f.val) : this.lenOut(f.val);
       const sp = this.vp.screenPos(toWorld(this.basis, f.at[0], f.at[1]));
       box.style.left = sp.x + 'px';
       box.style.top = sp.y + 'px';
@@ -551,27 +563,27 @@ export class Sketcher {
   tipText() {
     const [x, y] = this.cur;
     const a = this.pts[0];
-    if (this.tool === 'rect' && a) return `${r2(Math.abs(x - a[0]))} × ${r2(Math.abs(y - a[1]))} mm`;
+    if (this.tool === 'rect' && a) return `${this.lenOut(Math.abs(x - a[0]))} × ${this.fmtLen(Math.abs(y - a[1]))}`;
     if ((this.tool === 'circle' || this.tool === 'ngon') && a) {
       const r = Math.hypot(x - a[0], y - a[1]);
-      return this.tool === 'circle' ? `Ø ${r2(2 * r)} mm` : `R ${r2(r)} mm`;
+      return this.tool === 'circle' ? `Ø ${this.fmtLen(2 * r)}` : `R ${this.fmtLen(r)}`;
     }
     if (this.tool === 'slot' && a) {
-      if (this.pts.length === 1) return `Länge ${r2(Math.hypot(x - a[0], y - a[1]))} mm`;
-      return `Breite ${r2(2 * this.slotHalfWidth())} mm`;
+      if (this.pts.length === 1) return `Länge ${this.fmtLen(Math.hypot(x - a[0], y - a[1]))}`;
+      return `Breite ${this.fmtLen(2 * this.slotHalfWidth())}`;
     }
     if (this.tool === 'ellipse' && a) {
-      if (this.pts.length === 1) return `Halbachse ${r2(Math.hypot(x - a[0], y - a[1]))} mm`;
-      return `Halbachse 2: ${r2(this.ellipseMinor())} mm`;
+      if (this.pts.length === 1) return `Halbachse ${this.fmtLen(Math.hypot(x - a[0], y - a[1]))}`;
+      return `Halbachse 2: ${this.fmtLen(this.ellipseMinor())}`;
     }
-    if (this.tool === 'arc' && a) return this.pts.length === 1 ? `Sehne ${r2(Math.hypot(x - a[0], y - a[1]))} mm` : 'Punkt auf dem Bogen';
+    if (this.tool === 'arc' && a) return this.pts.length === 1 ? `Sehne ${this.fmtLen(Math.hypot(x - a[0], y - a[1]))}` : 'Punkt auf dem Bogen';
     if (this.tool === 'line' && this.pts.length) {
       const b = this.pts[this.pts.length - 1];
       const len = Math.hypot(x - b[0], y - b[1]);
       const ang = (Math.atan2(y - b[1], x - b[0]) * 180) / Math.PI;
-      return `${r2(len)} mm  ∠ ${r2(ang)}°`;
+      return `${this.fmtLen(len)}  ∠ ${r2(ang)}°`;
     }
-    return `${r2(x)}, ${r2(y)}`;
+    return `${this.lenOut(x)}, ${this.lenOut(y)}`;
   }
 
   slotHalfWidth() {

@@ -262,6 +262,24 @@ export function chainAt(t, r, k, chain, level, d) {
   }
   return null;
 }
+// Side flanges: fl.sideA / fl.sideB = { h, angle, r? } – a flange on the side edge of the (first) flange, at the
+// start (A) or the end (B) of the plate's edge; it is as long as the straight part of the flange and bends
+// about the side edge (+ = towards the side the flange was bent to, − = away from it). Only on a straight
+// edge, and only where the flange ends freely there (no closed corner, no flange running on round a corner).
+// → [{ side: 'A' | 'B', h, angle, rb (inner radius), ba (allowance), s (where along the edge), x (+1 / −1: the
+//      way out along the edge), h0 (length = straight part of the flange) }]
+export function sideFlanges(fl, ed, en, gA, gB, t, r, k, jn = null) {
+  const out = [], h0 = flangeChain(fl)[0].h;
+  if (!(h0 > 0.1)) return out;
+  for (const side of ['A', 'B']) {
+    const q = side === 'A' ? fl.sideA : fl.sideB, h = +q?.h || 0, angle = +q?.angle || 90;
+    if (!(h > 0) || Math.abs(angle) < 1 || Math.abs(angle) > 180) continue;
+    if (side === 'A' ? en.a || jn?.a : en.b || jn?.b) continue;
+    const rb = bendR({ angle, ...(q.r != null && q.r !== '' && +q.r >= 0 ? { r: +q.r } : {}) }, r);
+    out.push({ side, h, angle, rb, ba: bendAllowance(Math.abs(angle), rb, t, k), s: side === 'A' ? gA : ed.L - gB, x: side === 'A' ? -1 : 1, h0 });
+  }
+  return out;
+}
 // Tabs for a tab-and-slot joint: fl.tabs = { n, w, len } – n tongues of the width w on the free end of the flange,
 // spread evenly along it, standing out by len (the thickness of the part they are put through). gA / gB: how far the
 // flange ends before the two ends of its edge. Returns their middles along the edge – nothing where they do not fit.
@@ -599,6 +617,20 @@ export function sheetSolid(R, poly, z0, f, holes = []) {
       for (const s of tp.at) {
         const o = [ed.a[0] + ed.e[0] * (s + tp.w / 2), ed.a[1] + ed.e[1] * (s + tp.w / 2), z0];
         solid = solid.fuse(polyDrawing(R, sq).sketchOnPlane(new R.Plane(o, [ed.n[0], ed.n[1], 0], [-ed.e[0], -ed.e[1], 0])).extrude(tp.w));
+      }
+    }
+    // side flanges: the section of one bend and its flange, in the plane across the side edge of the flange,
+    // pushed along the straight part of the flange
+    {
+      const ch0 = flangeChain(fl), at = chainAt(t, r, k, ch0, 0, 0);
+      for (const sf of at ? sideFlanges(fl, ed, en, ...flangeGaps(fl, en, gap, 0, joins.get(fl.edge)), t, r, k, joins.get(fl.edge)) : []) {
+        const D3 = [ed.n[0] * at.dir[0], ed.n[1] * at.dir[0], at.dir[1]], N3 = [ed.n[0] * at.nrm[0], ed.n[1] * at.nrm[0], at.nrm[1]], X3 = [ed.e[0] * sf.x, ed.e[1] * sf.x, 0];
+        const Nn = [X3[1] * N3[2] - X3[2] * N3[1], X3[2] * N3[0] - X3[0] * N3[2], X3[0] * N3[1] - X3[1] * N3[0]], fwd = Nn[0] * D3[0] + Nn[1] * D3[1] + Nn[2] * D3[2] > 0;
+        // (the bottom face of the flange at its side edge, where its straight part begins – or ends, so the push runs along it)
+        const u0 = at.pos[0] - at.nrm[0] * t / 2, v0 = at.pos[1] - at.nrm[1] * t / 2, dd = fwd ? 0 : sf.h0;
+        const O = [ed.a[0] + ed.e[0] * sf.s + ed.n[0] * u0 + D3[0] * dd, ed.a[1] + ed.e[1] * sf.s + ed.n[1] * u0 + D3[1] * dd, z0 + v0 + D3[2] * dd];
+        const sec2 = chainSection(t, r, [{ angle: sf.angle, h: sf.h, r: sf.rb }]);
+        solid = solid.fuse(sectionDrawing(R, sec2).sketchOnPlane(new R.Plane(O, X3, Nn)).extrude(sf.h0));
       }
     }
     shape = shape.fuse(solid);
@@ -1127,6 +1159,14 @@ export function flatPattern(poly, f, holes = []) {
       : [[P0[0] - ed.n[0] * 0.01, P0[1] - ed.n[1] * 0.01], [P0[0] + ed.n[0] * d, P0[1] + ed.n[1] * d]];
     const sa = side(en.a, A), sb = side(en.b, B);
     rects.push(ensureCCW([...sa.slice().reverse(), ...sb]));
+    // side flanges: developed sideways from the straight part of the first flange
+    for (const sf of sideFlanges(fl, ed, en, gA, gB, t, r, k, joins.get(fl.edge))) {
+      const d0 = firstBA[fl.edge], P = (x, dd) => [ed.a[0] + ed.e[0] * (sf.s + sf.x * x) + ed.n[0] * dd, ed.a[1] + ed.e[1] * (sf.s + sf.x * x) + ed.n[1] * dd];
+      rects.push(ensureCCW([P(-0.01, d0), P(sf.ba + sf.h, d0), P(sf.ba + sf.h, d0 + sf.h0), P(-0.01, d0 + sf.h0)]));
+      lapOk += sf.h0 * 0.02;
+      bends.push([P(0, d0), P(0, d0 + sf.h0)], [P(sf.ba, d0), P(sf.ba, d0 + sf.h0)]);
+      table.push({ edge: fl.edge, level: 0, side: sf.side, angle: sf.angle, radius: sf.rb, allowance: sf.ba, length: sf.h0, flange: sf.h, centre: [P(sf.ba / 2, d0), P(sf.ba / 2, d0 + sf.h0)] });
+    }
     const tp = tabPlan(fl, ed, gA, gB);
     if (tp) for (const s of tp.at) {
       rects.push(ensureCCW([[-tp.w / 2, d - 0.01], [tp.w / 2, d - 0.01], [tp.w / 2, d + tp.len], [-tp.w / 2, d + tp.len]].map(([x, y]) => [ed.a[0] + ed.e[0] * (s + x) + ed.n[0] * y, ed.a[1] + ed.e[1] * (s + x) + ed.n[1] * y])));

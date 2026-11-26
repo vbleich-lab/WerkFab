@@ -1,6 +1,7 @@
 // WerkFab Rust-Kern (B-rep auf Basis von truck, als WebAssembly) – Anbindung an die Kern-Schnittstelle.
 // Unterstützt: Quader, Zylinder, Kugel, Torus, Extrusion und Rotation von Skizzenprofilen, Bohrung,
-// Muster, Spiegeln, Verschieben, Skalieren, Kombinieren sowie Vernetzung und STEP-Export.
+// Muster, Spiegeln, Verschieben, Skalieren, Kombinieren, Fase und Verrundung gerader Kanten zwischen ebenen
+// Flächen sowie Vernetzung und STEP-Export.
 // Alles andere meldet der Kern als „noch nicht unterstützt“ – ein Design mit so einem Schritt rechnet OpenCascade (model.js).
 import * as THREE from 'three';
 import { registerKernel, unsupported } from './index.js';
@@ -88,7 +89,7 @@ function boolOp(kind, a, b) {
 
 // ---------- sketch profiles → closed contours (lines and exact arcs, in sketch u/v) ----------
 const EXACT = new Set(['rect', 'circle', 'slot']);
-const M = p => ({ t: 'M', p }), L = p => ({ t: 'L', p }), A = (m, p) => ({ t: 'A', m, p });
+const M = p => ({ t: 'M', p }), L = p => ({ t: 'L', p }), A = (m, p) => ({ t: 'A', m, p }), L_ = L, A_ = A;
 
 function circleLoop(cx, cy, r) {
   return [M([cx + r, cy]), A([cx, cy + r], [cx - r, cy]), A([cx, cy - r], [cx + r, cy])];
@@ -127,12 +128,15 @@ export function regionLoops(sk, ids) {
 }
 
 // ---------- features ----------
-const SUPPORTED = new Set(['box', 'cylinder', 'sphere', 'torus', 'extrude', 'revolve', 'hole', 'pattern', 'mirror', 'move', 'scale', 'combine']);
+const SUPPORTED = new Set(['box', 'cylinder', 'sphere', 'torus', 'extrude', 'revolve', 'hole', 'pattern', 'mirror', 'move', 'scale', 'combine', 'fillet', 'chamfer']);
 
 function supports(f) {
   if (f.type === 'extrude' && f.source === 'faces') return unsupported(NAME, 'Extrusion von Körperflächen');
   if (f.type === 'hole' && f.kind === 'csink') return unsupported(NAME, 'Kegelsenkung');
   if (f.type === 'hole' && f.tip && !f.through) return unsupported(NAME, 'Bohrspitze (Kegel)');
+  if (f.type === 'fillet' && f.variable) return unsupported(NAME, 'Verrundung mit veränderlichem Radius');
+  if (f.type === 'chamfer' && (f.chamferKind || 'equal') !== 'equal') return unsupported(NAME, 'Fase mit zwei Abständen oder Winkel');
+  if ((f.type === 'fillet' || f.type === 'chamfer') && (f.faces || []).length) return unsupported(NAME, 'Fase/Verrundung über gewählte Flächen');
   if (SUPPORTED.has(f.type)) return true;
   return unsupported(NAME, FEATURE_TYPES[f.type] || f.type);
 }
@@ -205,6 +209,140 @@ function holeTool(sk, f, bodies) {
     out = out ? boolOp('or', out, t) : t;
   }
   return out;
+}
+
+// ---------- chamfer and fillet: straight edges between two flat faces ----------
+// truck has neither. Along a straight convex edge both are a cut with a profile pushed along the edge: the
+// triangle of the chamfer, or the corner outside the arc of the fillet. The profile reaches out of the body
+// on every other side, so only the new face cuts through material. Everything else (round edges, edges in a
+// corner that opens inwards, fillets meeting in one corner) is refused – then OpenCascade builds the design.
+const V3 = {
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], mul: (a, k) => [a[0] * k, a[1] * k, a[2] * k],
+  dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+  len: a => Math.hypot(a[0], a[1], a[2]), unit: a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+};
+// is the point inside the body? (rays against its triangles; two directions must agree, else the third decides)
+function insideMesh(m, p) {
+  const P = m.vertices, T = m.triangles;
+  const hits = d => {
+    let n = 0;
+    for (let i = 0; i < T.length; i += 3) {
+      const a = [P[T[i] * 3], P[T[i] * 3 + 1], P[T[i] * 3 + 2]], e1 = V3.sub([P[T[i + 1] * 3], P[T[i + 1] * 3 + 1], P[T[i + 1] * 3 + 2]], a), e2 = V3.sub([P[T[i + 2] * 3], P[T[i + 2] * 3 + 1], P[T[i + 2] * 3 + 2]], a);
+      const h = V3.cross(d, e2), det = V3.dot(e1, h);
+      if (Math.abs(det) < 1e-12) continue;
+      const sv = V3.sub(p, a), u = V3.dot(sv, h) / det;
+      if (u < 0 || u > 1) continue;
+      const q = V3.cross(sv, e1), v = V3.dot(d, q) / det;
+      if (v < 0 || u + v > 1) continue;
+      if (V3.dot(e2, q) / det > 1e-9) n++;
+    }
+    return n % 2 === 1;
+  };
+  const a = hits(V3.unit([0.5377, 0.3181, 0.7807])), b = hits(V3.unit([-0.2113, 0.8911, 0.4016]));
+  return a === b ? a : hits(V3.unit([0.7071, -0.6124, 0.3536]));
+}
+// the straight edges of a body with the two flat faces at each: [{ i, a, b, mid, ok, why, m1, m2, n1, n2 }]
+function edgeFrames(shape) {
+  const info = shape.info, m = rmesh(shape.h, 0.04), P = m.vertices, T = m.triangles, out = [];
+  const vtx = i => [P[i * 3], P[i * 3 + 1], P[i * 3 + 2]];
+  m.edgeGroups.forEach((eg, i) => {
+    const e = info.edges[i], pt = k => [m.lines[k * 3], m.lines[k * 3 + 1], m.lines[k * 3 + 2]];
+    const a = pt(eg.start), b = pt(eg.start + eg.count - 1), fr = { i, a, b, mid: e.mid, ok: false, why: 'Kante ist nicht gerade' };
+    out.push(fr);
+    if (e.t !== 'LINE' || e.closed) return;
+    const t = V3.unit(V3.sub(b, a)), L = V3.len(V3.sub(b, a)), tol = 1e-4 * Math.max(1, L);
+    const onEdge = q => { const w = V3.sub(q, a), sv = V3.dot(w, t); return sv > -tol && sv < L + tol && V3.len(V3.sub(w, V3.mul(t, sv))) < tol; };
+    const sides = [];
+    m.faceGroups.forEach((fg, fi) => {
+      for (let k = fg.start; k < fg.start + fg.count; k += 3) {
+        const q = [vtx(T[k]), vtx(T[k + 1]), vtx(T[k + 2])], on = q.map(onEdge);
+        if (on.filter(Boolean).length !== 2) continue;
+        const third = q[on.indexOf(false)], w = V3.sub(third, a), across = V3.sub(w, V3.mul(t, V3.dot(w, t)));
+        sides.push({ fi, face: info.faces[fi], m: V3.unit(across) });
+        return;
+      }
+    });
+    if (sides.length !== 2) { fr.why = 'Kante liegt nicht zwischen zwei Flächen'; return; }
+    if (sides.some(sd => sd.face.t !== 'PLANE')) { fr.why = 'Kante liegt an einer gekrümmten Fläche'; return; }
+    const [s1, s2] = sides, n1 = V3.unit(s1.face.n), n2 = V3.unit(s2.face.n);
+    // (the faces run away from each other's outside: the edge sticks out)
+    if (!(V3.dot(s1.m, n2) < -1e-6 && V3.dot(s2.m, n1) < -1e-6)) { fr.why = 'Kante liegt in einer Innenecke'; return; }
+    // exact from the two planes (the points of the mesh are single precision): the edge is their line of
+    // intersection, the directions across it lie in the faces
+    const tx = V3.unit(V3.cross(n1, n2)), te = V3.dot(tx, t) < 0 ? V3.mul(tx, -1) : tx;
+    const inFace = (n, mm) => { const d = V3.unit(V3.cross(te, n)); return V3.dot(d, mm) < 0 ? V3.mul(d, -1) : d; };
+    const onLine = p => { let q = p; for (let k = 0; k < 6; k++) { q = V3.sub(q, V3.mul(n1, V3.dot(V3.sub(q, s1.face.o), n1))); q = V3.sub(q, V3.mul(n2, V3.dot(V3.sub(q, s2.face.o), n2))); } return q; };
+    const snap = p => p.map(v => (Math.abs(v - Math.round(v * 1e4) / 1e4) < 2e-5 * Math.max(1, Math.abs(v)) ? Math.round(v * 1e4) / 1e4 : v));
+    Object.assign(fr, { ok: true, why: '', a: onLine(snap(a)), b: onLine(snap(b)), m1: inFace(n1, s1.m), m2: inFace(n2, s2.m), n1, n2, mesh: m });
+  });
+  return out;
+}
+// the profile that is cut away along one edge
+function edgeCutter(fr, kind, size) {
+  const { a, b, m1, m2, n1, n2 } = fr, t = V3.unit(V3.sub(b, a)), L = V3.len(V3.sub(b, a)), w = V3.cross(t, m1);
+  const uv = p => [V3.dot(p, m1), V3.dot(p, w)], a2 = (p, q) => [p[0] + q[0], p[1] + q[1]], s2 = (p, k) => [p[0] * k, p[1] * k], u2 = p => s2(p, 1 / (Math.hypot(p[0], p[1]) || 1));
+  const M1 = [1, 0], M2 = uv(m2), N1 = uv(n1), N2 = uv(n2), out = u2(a2(N1, N2));
+  // how far the profile reaches out of the body (found by trial: with less, truck fails on the third fillet of a plate)
+  const over = kind === 'chamfer' ? 0.02 : 1;
+  const phi = Math.acos(Math.max(-1, Math.min(1, M1[0] * M2[0] + M1[1] * M2[1])));
+  let outer, reach;
+  const air = []; // points of the profile that must lie outside the body
+  if (kind === 'chamfer') {
+    const A = s2(M1, size), B = s2(M2, size), ab = u2([A[0] - B[0], A[1] - B[1]]);
+    reach = size;
+    air.push(s2(out, size * 1.9));
+    outer = [M(a2(A, s2(ab, over))), L_(a2(B, s2(ab, -over))), L_(s2(out, size * 2)), L_(a2(A, s2(ab, over)))];
+  } else {
+    const tl = size / Math.tan(phi / 2), bis = u2(a2(M1, M2)), O = s2(bis, size / Math.sin(phi / 2)), A = s2(M1, tl), B = s2(M2, tl), mid = a2(O, s2(bis, -size));
+    reach = tl;
+    const first = a2(A, s2(N1, over));
+    outer = [M(first), L_(A), A_(mid, B), L_(a2(B, s2(N2, over))), L_(s2(out, Math.max(size, tl) * 3)), L_(first)];
+    air.push(a2(A, s2(N1, over * 0.9)), a2(B, s2(N2, over * 0.9)), s2(out, Math.max(size, tl) * 2.9));
+  }
+  // the ends: a hair beyond the edge where the body ends there – not where it goes on (a wall): there the cut stops at the wall
+  const probe = k => V3.add(V3.add(k < 0 ? a : b, V3.mul(t, k * 0.01)), V3.mul(V3.add(m1, m2), Math.min(size, reach) * 0.2));
+  const e0 = insideMesh(fr.mesh, probe(-1)) ? 0 : over, e1 = insideMesh(fr.mesh, probe(1)) ? 0 : over;
+  // the part of the profile that reaches out must reach into air – not into a rib or wall standing next to the edge
+  const at = (q, sv) => V3.add(V3.add(a, V3.mul(t, sv)), V3.add(V3.mul(m1, q[0]), V3.mul(w, q[1])));
+  const clear = [-e0, 0.02 * L, 0.5 * L, 0.98 * L, L + e1].every(sv => air.every(q => !insideMesh(fr.mesh, at(q, sv))));
+  return { reach, clear, inner: [e0 === 0, e1 === 0], tool: () => shapeOf(call({ op: 'extrude', plane: { o: a, x: m1, n: t }, regions: [{ outer, holes: [] }], from: -e0, len: L + e0 + e1 })) };
+}
+function edgeBreak(bodies, f) {
+  const kind = f.type, size = kind === 'fillet' ? +f.radius : +f.distance;
+  if (!(size > 0)) fail('Größe fehlt');
+  let n = 0;
+  for (const b of bodies) {
+    const frames = edgeFrames(b.shape);
+    let chosen;
+    if (f.all) chosen = frames;
+    else {
+      chosen = [];
+      for (const r of f.edges || []) {
+        let best = null, bd = 1.0;
+        for (const fr of frames) { const d = V3.len(V3.sub(fr.mid, r)); if (d < bd) { bd = d; best = fr; } }
+        if (best && !chosen.includes(best)) chosen.push(best);
+      }
+    }
+    if (!chosen.length) continue;
+    const bad = chosen.find(fr => !fr.ok);
+    if (bad) fail(`${kind === 'fillet' ? 'Verrundung' : 'Fase'}: ${bad.why} – das rechnet nur der OCC-Kern`);
+    const cutters = chosen.map(fr => ({ fr, ...edgeCutter(fr, kind, size) }));
+    for (const c of cutters) if (c.reach > V3.len(V3.sub(c.fr.b, c.fr.a)) * 50 || !(c.reach > 0)) fail('Größe passt nicht zur Kante');
+    if (cutters.some(c => !c.clear)) fail('Fase/Verrundung: neben der Kante steht Material – das rechnet nur der OCC-Kern');
+    // where an edge runs into material (the rim of a pocket in its corner) and the next chosen edge starts there,
+    // the two cuts would have to be mitred into each other
+    cutters.forEach((c, i) => [c.fr.a, c.fr.b].forEach((p, k) => {
+      if (c.inner[k] && cutters.some((q, j) => j !== i && [q.fr.a, q.fr.b].some(x => V3.len(V3.sub(x, p)) < 1e-4))) fail('Fase/Verrundung: Kanten, die sich in einer Innenecke treffen, rechnet nur der OCC-Kern');
+    }));
+    // edges that meet in a corner need the corner patch OpenCascade makes there (also between chamfers)
+    {
+      const ends = chosen.flatMap(fr => [fr.a, fr.b]);
+      for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) if (Math.floor(i / 2) !== Math.floor(j / 2) && V3.len(V3.sub(ends[i], ends[j])) < 1e-4) fail('Fase/Verrundung: Kanten, die sich in einer Ecke treffen, rechnet nur der OCC-Kern');
+    }
+    for (const c of cutters) { b.shape = boolOp('cut', b.shape, c.tool()); if (!b.shape) fail('Fase/Verrundung fehlgeschlagen'); }
+    n += chosen.length;
+  }
+  if (!n) fail('Keine Kanten gewählt (oder nicht mehr gefunden)');
 }
 
 function primitiveTool(f) {
@@ -306,6 +444,7 @@ function runFeature(f, ctx) {
     else b.shape = s;
     return;
   }
+  if (f.type === 'fillet' || f.type === 'chamfer') return edgeBreak(bodies, f);
   if (f.type === 'combine') {
     const t = bodies.find(x => x.id === f.body), tl = bodies.find(x => x.id === f.tool);
     if (!t || !tl || t === tl) fail('Zielkörper und Werkzeugkörper wählen');
@@ -336,7 +475,7 @@ function meshProps(m) {
 export const rustKernel = {
   id: 'rust',
   name: 'Rust-Kern (truck)',
-  info: 'Experimentell: B-rep-Kern in Rust (WebAssembly). Grundkörper, Extrusion, Rotation, Bohrung, Muster, Spiegeln, Verschieben, Skalieren, Kombinieren, STEP-Export. Designs mit anderen Schritten rechnet OpenCascade.',
+  info: 'Experimentell: B-rep-Kern in Rust (WebAssembly). Grundkörper, Extrusion, Rotation, Bohrung, Muster, Spiegeln, Verschieben, Skalieren, Kombinieren, Fase und Verrundung gerader Kanten, STEP-Export. Designs mit anderen Schritten rechnet OpenCascade.',
   native: false,
   ready: false,
   async load() {

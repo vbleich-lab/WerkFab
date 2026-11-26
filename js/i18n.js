@@ -125,6 +125,11 @@ export function t(s) {
     const lines = core.split('\n').map(l => { const c = l.trim(), x = one(c); return x == null ? l : l.replace(c, () => x); }).join('\n');
     if (lines !== core) r = lines;
   }
+  // lengths in inches ("Länge 0.5 in"): the dictionaries have the text with mm
+  if (r == null && /\d in(?![\p{L}\d])/u.test(core)) {
+    const mm = core.replace(/(\d) in(?![\p{L}\d])/gu, '$1 mm'), x = one(mm);
+    if (x != null) r = x.replace(/(\d) mm(?![\p{L}\d])/gu, '$1 in');
+  }
   out = r == null ? null : s.replace(core, () => r);
   if (cache.size > 20000) cache.clear();
   cache.set(s, out);

@@ -1588,6 +1588,13 @@ body.tb-moving, body.tb-moving * { cursor: grabbing !important; user-select: non
 .measurepanel .ms-res .ms-row b { color: var(--accent); }
 .measurepanel .look-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .measurepanel .hint { margin: 6px 0; }
+.measurepanel .ms-keep { display: grid; grid-template-columns: 16px 1fr 20px; gap: 0 6px; align-items: center; margin: 4px 0; }
+.measurepanel .ms-keep b { grid-column: 2; grid-row: 2; }
+.measurepanel .ms-keep .ms-mini { grid-column: 3; grid-row: 1 / span 2; }
+.measurepanel .ms-keep-n { color: var(--muted); font-variant-numeric: tabular-nums; }
+.measurepanel .ms-keep-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.measurepanel .ms-keep b { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.measurepanel .ms-mini { padding: 0 6px; min-height: 20px; line-height: 18px; font-size: 12px; }
 
 /* measuring: notes in the view (a table at the end of a thin line to the element or the dimension) */
 .ms-anchor { position: relative; width: 0; height: 0; pointer-events: none; }
