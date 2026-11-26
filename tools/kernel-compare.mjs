@@ -50,7 +50,7 @@ try {
         const t0 = performance.now();
         const r = M.regenerate(P.resolveProject(JSON.parse(JSON.stringify(project))));
         const vols = r.bodies.map(b => { try { return M.bodyProps(b).volume; } catch { return NaN; } });
-        return { ms: Math.round(performance.now() - t0), bodies: r.bodies.length, vols, errors: Object.values(r.errors).map(String), kernel: r.kernel, byOcc: r.byOcc || '', kinds: r.bodies.map(b => (b.shape.wrapped ? 'occ' : b.shape.kernel)) };
+        return { ms: Math.round(performance.now() - t0), bodies: r.bodies.length, vols, errors: Object.values(r.errors).map(String), kernel: r.kernel, byOcc: (r.byOcc || '') + (r.byOccWhy ? ': ' + r.byOccWhy : ''), kinds: r.bodies.map(b => (b.shape.wrapped ? 'occ' : b.shape.kernel)) };
       },
       fromSteps(steps) { const p = base(); p.features = steps; return p; },
     };

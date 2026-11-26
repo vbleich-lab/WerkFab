@@ -1168,6 +1168,14 @@ function primitiveTool(f) {
 const near = (p, r, tol) => Math.hypot(p.x - r[0], p.y - r[1], p.z - r[2]) < tol;
 
 // Picked edges are stored by their midpoint; match exactly first, then the nearest one.
+// The middles of all edges of a shape, in the order of shape.edges – asked for by every step with picked edges,
+// and a point on an edge costs a call into the kernel: kept per shape (a changed body is a new shape).
+const midCache = new WeakMap();
+function edgeMids(shape, edges = null) {
+  let m = midCache.get(shape);
+  if (!m) { m = (edges || shape.edges).map(e => { const q = e.pointAt(0.5); return [q.x, q.y, q.z]; }); midCache.set(shape, m); }
+  return m;
+}
 function edgeMatcher(shape, refs) {
   // (a point away from the body names none of its edges: on a design with many bodies most bodies are done with
   // here, without a look at their edges – a thread or a lettering has thousands)
@@ -1176,16 +1184,26 @@ function edgeMatcher(shape, refs) {
     if (bb && bb[0].every(Number.isFinite) && bb[1].every(Number.isFinite)) refs = refs.filter(r => [0, 1, 2].every(k => r[k] >= bb[0][k] - T && r[k] <= bb[1][k] + T));
   } catch { /* no box: all edges are looked at */ }
   if (!refs.length) return { count: 0, fn: () => false };
-  const mids = shape.edges.map(e => e.pointAt(0.5));
+  let edges = null;
+  const mids = edgeMids(shape), keyOf = m => `${m[0].toFixed(4)},${m[1].toFixed(4)},${m[2].toFixed(4)}`;
   const chosen = new Set();
+  // (for the search along the edges below: the box of every edge, made once – an edge whose box the point is not
+  // in is not walked along. A body of many edges with a point in its box but on none of its edges took seconds.)
+  let boxes = null;
+  const edgeBox = i => {
+    boxes ||= (edges ||= shape.edges).map(e => { try { const q = e.boundingBox.bounds; return q[0].every(Number.isFinite) && q[1].every(Number.isFinite) ? q : null; } catch { return null; } });
+    return boxes[i];
+  };
   for (const r of refs) {
     let bi = -1, bd = 1.0;
-    mids.forEach((m, i) => { const d = Math.hypot(m.x - r[0], m.y - r[1], m.z - r[2]); if (d < bd) { bd = d; bi = i; } });
-    if (bi >= 0) { chosen.add(`${mids[bi].x.toFixed(4)},${mids[bi].y.toFixed(4)},${mids[bi].z.toFixed(4)}`); continue; }
+    mids.forEach((m, i) => { const d = Math.hypot(m[0] - r[0], m[1] - r[1], m[2] - r[2]); if (d < bd) { bd = d; bi = i; } });
+    if (bi >= 0) { chosen.add(keyOf(mids[bi])); continue; }
     // no middle there: the point may still lie on an edge (a full circle starts where its kernel put the seam –
     // the middle another program gives for it is somewhere else on the same circle)
     let ei = -1, ed = Infinity;
-    shape.edges.forEach((e, i) => {
+    (edges ||= shape.edges).forEach((e, i) => {
+      const q0 = edgeBox(i);
+      if (q0) { const tl = 0.06 + 0.02 * Math.hypot(q0[1][0] - q0[0][0], q0[1][1] - q0[0][1], q0[1][2] - q0[0][2]); if (![0, 1, 2].every(k => r[k] >= q0[0][k] - tl && r[k] <= q0[1][k] + tl)) return; }
       let last = null, dmin = Infinity, seg = 0;
       for (let k = 0; k <= 48; k++) {
         let q;
@@ -1201,9 +1219,26 @@ function edgeMatcher(shape, refs) {
       // the 48 chords of a curve lie inside it by a sliver: allow that much
       if (dmin <= 0.05 + 0.02 * seg && dmin < ed) { ed = dmin; ei = i; }
     });
-    if (ei >= 0) chosen.add(`${mids[ei].x.toFixed(4)},${mids[ei].y.toFixed(4)},${mids[ei].z.toFixed(4)}`);
+    if (ei >= 0) chosen.add(keyOf(mids[ei]));
   }
-  const fn = e => { const m = e.pointAt(0.5); return chosen.has(`${m.x.toFixed(4)},${m.y.toFixed(4)},${m.z.toFixed(4)}`); };
+  // "is this edge chosen" is asked for every edge of the body (by fillet and chamfer): answered by the identity of
+  // the edge (its hash, then isSame) instead of a point on it – by its middle only where that gives nothing
+  let picked = null;
+  const byMid = e => { const m = e.pointAt(0.5); return chosen.has(keyOf([m.x, m.y, m.z])); };
+  const fn = e => {
+    if (picked === null) {
+      try {
+        const es = edges || shape.edges, map = new Map();
+        mids.forEach((m, i) => { if (!chosen.has(keyOf(m))) return; const h = es[i].hashCode; if (!map.has(h)) map.set(h, []); map.get(h).push(es[i]); });
+        picked = map;
+      } catch { picked = false; }
+    }
+    if (!picked) return byMid(e);
+    let h;
+    try { h = e.hashCode; } catch { return byMid(e); }
+    const c = picked.get(h);
+    return !!c && c.some(q => q.isSame(e));
+  };
   return { count: chosen.size, fn };
 }
 
@@ -1584,20 +1619,29 @@ export function healRefs(f, bodies) {
     });
   }
   if (REF_EDGES.includes(f.type) && !f.all && Array.isArray(f.edges) && f.edges.length) {
+    const lists = new Map(), edgesOf = b => { let l = lists.get(b); if (!l) lists.set(b, (l = b.shape.edges)); return l; };
     edges = f.edges.map(p => {
       if (!Array.isArray(p) || p.length < 3) return p;
       const key = `${f.id}|e|${p.join(',')}`;
-      let onCurve = null;
-      for (const b of live) {
-        if (!inBox(b, p)) continue;
-        for (const e of b.shape.edges) {
-          const m = e.pointAt(0.5);
-          if (Math.hypot(m.x - p[0], m.y - p[1], m.z - p[2]) < 1) { const sg = edgeSig(e); if (sg) rememberRef(key, sg); return p; }
-          // a point anywhere on the edge (e.g. on a circle) stands for the edge
-          if (!onCurve) { const h = closestOn(e, p); if (h && h.d < 0.05) onCurve = v3(m).map(x => +x.toFixed(6)); }
+      const near = live.filter(b => inBox(b, p));
+      // the edge whose middle the point is at (the middles are kept per shape: a lettering has thousands of edges)
+      for (const b of near) {
+        const mids = edgeMids(b.shape), i = mids.findIndex(m => Math.hypot(m[0] - p[0], m[1] - p[1], m[2] - p[2]) < 1);
+        if (i < 0) continue;
+        const sg = edgeSig(edgesOf(b)[i]);
+        if (sg) rememberRef(key, sg);
+        return p;
+      }
+      // a point anywhere on the edge (e.g. on a circle) stands for the edge – only edges whose box the point is in
+      // are measured (the measuring is a projection in the kernel)
+      for (const b of near) {
+        const es = edgesOf(b), mids = edgeMids(b.shape, es);
+        for (let i = 0; i < es.length; i++) {
+          try { const q = es[i].boundingBox.bounds; if (![0, 1, 2].every(k => p[k] >= q[0][k] - 0.1 && p[k] <= q[1][k] + 0.1)) continue; } catch { /* no box: measured */ }
+          const h = closestOn(es[i], p);
+          if (h && h.d < 0.05) return mids[i].map(x => +x.toFixed(6));
         }
       }
-      if (onCurve) return onCurve;
       const sig = refSigs.get(key), q = sig && refindEdge(live, sig);
       if (q) return q;
       lost++;
@@ -2444,7 +2488,7 @@ function* regenSteps(project, upTo = null, forced = null) {
         K.runFeature(f, ctx);
       } catch (err) {
         // another kernel failed at a step it should be able to build: OpenCascade builds this design
-        if (K !== occKernel) { kernelFailed.add(keys[i]); if (kernelFailed.size > 2000) kernelFailed.clear(); const r = yield* regenSteps(project, upTo, occKernel); return { ...r, byOcc: f.name || FEATURE_TYPES[f.type] || f.type }; }
+        if (K !== occKernel) { kernelFailed.add(keys[i]); if (kernelFailed.size > 2000) kernelFailed.clear(); const r = yield* regenSteps(project, upTo, occKernel); return { ...r, byOcc: f.name || FEATURE_TYPES[f.type] || f.type, byOccWhy: String(err.message || err) }; }
         errors[f.id] = kernelError(f, err);
       }
       const dt = performance.now() - t0;

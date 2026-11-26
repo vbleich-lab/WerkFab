@@ -694,7 +694,7 @@ export function makeDrawing(bodies, opts) {
     // (one text per direction, so every one is a whole sentence for the translations)
     (F.table || []).forEach((b, i) => {
       const n = i + 1, a = fmtA(Math.abs(b.angle)), rr = fmtL(b.radius), len = fmtL(b.length);
-      const s = b.level ? (b.angle > 0 ? `B${n}: ${a}° gleichsinnig · R${rr} · Biegelänge ${len}` : `B${n}: ${a}° gegensinnig · R${rr} · Biegelänge ${len}`) : b.angle > 0 ? `B${n}: ${a}° hoch · R${rr} · Biegelänge ${len}` : `B${n}: ${a}° runter · R${rr} · Biegelänge ${len}`;
+      const s = b.level ? ((b.same ?? b.angle > 0) ? `B${n}: ${a}° gleichsinnig · R${rr} · Biegelänge ${len}` : `B${n}: ${a}° gegensinnig · R${rr} · Biegelänge ${len}`) : (b.up ?? b.angle > 0) ? `B${n}: ${a}° hoch · R${rr} · Biegelänge ${len}` : `B${n}: ${a}° runter · R${rr} · Biegelänge ${len}`;
       text(px, yb + 11 + i * 4, s, 'gm', 'start');
     });
     // where the bends are: ordinate dimensions of the bend lines from the lower left corner of the blank

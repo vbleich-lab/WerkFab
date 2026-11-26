@@ -128,11 +128,24 @@ export function parseDXF(text) {
 
 const r6 = v => +(+v).toFixed(6);
 
+// colours of the layers a flat pattern is written on (AutoCAD colour index): what is cut stays white/black, bends
+// up red, bends down blue – as laser and press brake programs sort by layer or by colour
+export const DXF_LAYERS = { 0: 7, BIEGUNG: 8, BIEGUNG_AUF: 1, BIEGUNG_AB: 5, BIEGETEXT: 2, UMFORMUNG: 3, TAFEL: 8 };
 export function writeDXF(entities) {
-  const out = ['0', 'SECTION', '2', 'HEADER', '9', '$INSUNITS', '70', '4', '0', 'ENDSEC', '0', 'SECTION', '2', 'ENTITIES'];
+  const out = ['0', 'SECTION', '2', 'HEADER', '9', '$INSUNITS', '70', '4', '0', 'ENDSEC'];
+  // the layers in use, each with its colour (only when there is more than layer 0: plain files stay as they were)
+  const layers = [...new Set(entities.map(e => e.layer || '0'))];
+  if (layers.some(l => l !== '0')) {
+    out.push('0', 'SECTION', '2', 'TABLES', '0', 'TABLE', '2', 'LAYER', '70', String(layers.length));
+    for (const l of layers) out.push('0', 'LAYER', '2', l, '70', '0', '62', String(DXF_LAYERS[l] ?? 7), '6', 'CONTINUOUS');
+    out.push('0', 'ENDTAB', '0', 'ENDSEC');
+  }
+  out.push('0', 'SECTION', '2', 'ENTITIES');
   for (const e of entities) {
     // e.layer: the layer of the entity (bend lines of a flat pattern go to a layer of their own)
     const ly = e.layer || '0';
+    // a note: { type: 'label', x, y, text, size, rot (degrees) } – plain ASCII, as old readers want it
+    if (e.type === 'label') { out.push('0', 'TEXT', '8', ly, '10', r6(e.x), '20', r6(e.y), '30', '0', '40', r6(e.size || 2.5), '1', String(e.text).replace(/°/g, '%%d').replace(/[^\x20-\x7e]/g, '?'), '50', r6(e.rot || 0)); continue; }
     if (e.type === 'circle') { out.push('0', 'CIRCLE', '8', ly, '10', r6(e.cx), '20', r6(e.cy), '30', '0', '40', r6(e.r)); continue; }
     for (const o of entityOutlines(e)) {
       if (o.pts.length < 2) continue;

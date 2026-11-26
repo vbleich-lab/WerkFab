@@ -62,3 +62,19 @@ ok('Rechteck mit Eckenradius: der Radius wächst mit', offsetEntities({ id: 'r',
   ok('Spiegeln: zweimal gespiegelt ergibt das Original (Langloch mit Drehlage)', Math.abs(twice.cx - 3) < 1e-3 && Math.abs(twice.cy - 2) < 1e-3 && Math.abs((((twice.rot - 30) % 360) + 360) % 360) < 1e-3, J(twice));
   ok('Spiegeln: Text wird nicht gespiegelt', mirrorEntity({ id: 't', type: 'text', x: 0, y: 0, text: 'a' }, A, B) === null);
 }
+
+// a contour made of several elements (lines end to end, drawn in any direction) is found as one
+{
+  const { chainOf } = await import('../js/sketchoffset.js'), near = (a, b, t = 1e-6) => Math.abs(a - b) <= t;
+  const line = (id, a, b) => ({ id, type: 'poly', pts: [a, b], closed: false });
+  const sq = [line('a', [0, 0], [10, 0]), line('b', [10, 10], [10, 0]), line('c', [10, 10], [0, 10]), line('d', [0, 0], [0, 10]), { id: 'k', type: 'circle', cx: 30, cy: 0, r: 3 }, line('x', [50, 0], [60, 0]), line('y', [60, 0], [60, 5])];
+  const ch = chainOf(sq, 'c');
+  ok('Kontur aus vier einzelnen Linien: geschlossen, alle vier Teile', ch && ch.closed && ch.ids.length === 4 && ch.pts.length === 4 && near(area(ch.pts), 100), ch && J(ch.ids));
+  const grown = ch && offsetEntities({ type: 'poly', pts: ch.pts, closed: true }, 1, newId);
+  ok('… ihr Versatz ist ein Umriss', grown && grown.length === 1 && grown[0].closed && near(area(grown[0].pts), 144, 0.01), grown && String(area(grown[0].pts)));
+  const op = chainOf(sq, 'y');
+  ok('Offener Zug aus zwei Linien', op && !op.closed && J(op.ids) === J(['x', 'y']) && op.pts.length === 3, op && J(op.pts));
+  ok('Kreis und einzelne Linie: keine Kette', chainOf(sq, 'k') === null && chainOf([sq[0]], 'a') === null);
+  const fork = [line('a', [0, 0], [10, 0]), line('b', [10, 0], [20, 0]), line('c', [10, 0], [10, 10])];
+  ok('Verzweigung: die Kontur endet dort', chainOf(fork, 'a') === null);
+}

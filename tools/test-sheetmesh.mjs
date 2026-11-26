@@ -3,7 +3,8 @@
 import './lib/node-env.mjs';
 const THREE = await import('three');
 const M = await import('../js/mesh.js');
-const { flatPattern, sheetChecks, bendAllowance, SHEET_RULES } = await import('../js/sheetmetal.js');
+const { flatPattern, flatBendMarks, sheetChecks, bendAllowance, SHEET_RULES } = await import('../js/sheetmetal.js');
+const { parseDXF } = await import('../js/dxf.js');
 const { writeDXF } = await import('../js/dxf.js');
 
 const ok = (n, c, x = '') => { console.log((c ? 'OK   ' : 'FEHL ') + n + '  ' + x); if (!c) process.exitCode = 1; };
@@ -57,6 +58,21 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
   const dxf = writeDXF([{ id: 'o', type: 'poly', closed: true, pts: poly }, { id: 'b', type: 'poly', closed: false, pts: [[0, -3], [100, -3]], layer: 'BIEGUNG' }]).split('\n');
   const layers = dxf.filter((l, i) => dxf[i - 1] === '8');
   ok('DXF: Biegelinien auf eigener Ebene', layers.includes('BIEGUNG') && layers.includes('0'), [...new Set(layers)].join(', '));
+  // every bend with its middle line on the layer of its direction, and a note; the file still reads back
+  {
+    const fp = flatPattern(poly, { ...f, flanges: [{ edge: 0, on: true, h: 15, angle: 90, next: [{ h: 8, angle: -90 }], sideB: { h: 6, angle: 90 } }, { edge: 2, on: true, h: 12, angle: -60, next: [{ h: 5, angle: -30 }], sideA: { h: 6, angle: 90 } }] });
+    const marks = flatBendMarks(fp), lines = marks.filter(q => q.type === 'poly'), notes = marks.filter(q => q.type === 'label');
+    const dir = fp.table.map(q => (q.up ? 'auf' : 'ab') + (q.level ? (q.same ? '=' : '≠') : '')).join(' ');
+    ok('Biegerichtung je Biegung (Lasche an Lasche, Seitenlasche folgt ihrer Lasche)', dir === 'auf ab≠ auf ab ab= ab', dir);
+    ok('DXF: Mittellinie je Biegung nach Richtung getrennt, mit Text', lines.length === fp.table.length && notes.length === fp.table.length && lines.filter(q => q.layer === 'BIEGUNG_AUF').length === 2 && lines.filter(q => q.layer === 'BIEGUNG_AB').length === 4 && notes[0].text === 'B1 +90° R2' && notes[3].text === 'B4 -60° R2', notes.map(q => q.text).join(' | '));
+    const txt = writeDXF([...fp.outline.map((pts, i) => ({ id: 'o' + i, type: 'poly', closed: true, pts })), ...marks]), L = txt.split(String.fromCharCode(10));
+    const tab = L.indexOf('TABLES'), ent = L.indexOf('ENTITIES'), col = n => { const i = L.findIndex((l, k) => k > tab && k < ent && l === n && L[k - 1] === '2'); return i < 0 ? null : L[i + 4]; };
+    ok('DXF: Ebenentabelle mit Farben (auf rot, ab blau), Winkelzeichen als %%d', tab > 0 && ent > tab && col('BIEGUNG_AUF') === '1' && col('BIEGUNG_AB') === '5' && L.includes('B1 +90%%d R2'), `${col('BIEGUNG_AUF')} / ${col('BIEGUNG_AB')}`);
+    const back = parseDXF(txt);
+    ok('DXF mit Ebenentabelle wird wieder gelesen', back.polys.length === fp.outline.length + lines.length, `${back.polys.length} Konturen, übersprungen ${JSON.stringify(back.skipped)}`);
+    const plain = writeDXF([{ id: 'o', type: 'poly', closed: true, pts: poly }]);
+    ok('DXF ohne eigene Ebenen bleibt ohne Tabelle', !plain.includes('TABLES'));
+  }
 }
 
 // ---- meshes ----

@@ -1,5 +1,15 @@
 # Änderungen
 
+## v1.0.0-rc.45 – 2026-11-26
+
+- **Skizze, Versatz: ganze Konturen, beide Seiten, mit der Maus:** Eine Kontur aus mehreren Stücken (Linien und Bögen, die aneinanderhängen, oder ein importierter Umriss) wird als Ganzes versetzt. „Nach beiden Seiten“ legt die Kopie auf beide Seiten der Kontur. Mit „Mit der Maus zeigen“ folgt der Abstand der Maus (in Schritten von 0,1 mm, mit Alt frei); die Vorschau zeigt das Ergebnis, ein Klick übernimmt den Abstand.
+- **Blech: DXF der Abwicklung mit Biegerichtung:** Im DXF liegt jetzt die Mittellinie jeder Biegung auf einer eigenen Ebene – BIEGUNG_AUF (rot) für Biegungen nach oben, BIEGUNG_AB (blau) für Biegungen nach unten – und Nummer, Winkel und Radius stehen als Text daneben (Ebene BIEGETEXT). Die Ebenen haben Farben. Anfang und Ende jeder Biegezone liegen wie bisher auf BIEGUNG, der Umriss auf Ebene 0.
+- **Blech: Richtung in der Biegetabelle:** Bei Laschen, die nach unten gebogen sind, stand bei der zweiten Biegung und bei Seitenlaschen teils die falsche Richtung in der Biegetabelle, in der CSV-Datei und in der Zeichnung. Jetzt stimmt sie.
+- **Rotation: Hinweis statt leerem Feature:** Wer bei der Rotation „Bereiche anklicken“ wählte und ohne gewähltes Profil auf OK ging, bekam ein leeres Feature. Jetzt kommt wie bei der Extrusion der Hinweis, zuerst ein Profil anzuklicken.
+- **Fertigung: 2D-Kontur an der unteren Außenkante:** Wurde für eine 2D-Kontur die untere Außenkante des Teils angeklickt, meldete die Bearbeitung „Werkzeug zu groß für die Kontur“ – die Kontur wurde von der Seitenwand statt von der Bodenfläche genommen. Jetzt entsteht die Bahn.
+- **Große Designs rechnen noch einmal schneller:** Das Aufzählen der Kanten und Flächen eines Körpers brauchte bei Körpern mit sehr vielen Kanten (Schrift, Gewinde) über eine Sekunde je Aufruf, jetzt Millisekunden. Das Konstruktionstestteil rechnet in rund der halben Zeit; auch das Anwählen von Kanten und Flächen an solchen Körpern reagiert schneller.
+- **Rust-Kern: Blech und Bohrbilder:** Der Rust-Kern (Voreinstellungen → Konstruktion → Geometriekern) rechnet jetzt auch Blechteile mit Laschen und Bohrungen mit Bohrbild. Extrusionen mit Schrägungswinkel, Gewindebohrungen und einzeln angeklickte Skizzenbereiche rechnet weiter OpenCascade für das ganze Design. Der Rust-Kern bleibt experimentell.
+
 ## v1.0.0-rc.44 – 2026-11-26
 
 - **Messen auf Netzkörpern, ganz:** Auf einem Netzkörper (STL, 3MF, OBJ, PLY) werden jetzt Elemente erkannt wie am Volumenkörper: ebene Flächen (Flächeninhalt, Umfang), gerade Kanten (Länge), Bohrungen und Zylinder (Durchmesser, Tiefe), Kreise am Rand einer Bohrung und Ecken. Damit gehen auch dort Mittenabstand, Abstand Fläche–Fläche und Winkel.

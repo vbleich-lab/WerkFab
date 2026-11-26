@@ -1206,11 +1206,19 @@ var downcastTo = (shape, entity) => definitions().downcast[entity](shape);
 function* iterTopo(shape, topo) {
 	const explorer = new (getOC()).TopExp_Explorer(shape, asTopo(topo), asTopo("shape"));
 	try {
-		const seen = [];
+		// WerkFab: every sub-shape is met once per shape that uses it (an edge twice, for its two faces). The ones seen
+		// are kept by their hash, so a new one is compared with a few and not with all – with all of them a body of
+		// 2500 edges took 1,4 s to list, every time.
+		const hasher = getOC().ReplicadShapeHasher, seen = new Map();
 		while (explorer.More()) {
 			const item = explorer.Current();
-			if (!seen.some((s) => s.IsSame(item))) {
-				seen.push(item);
+			const key = hasher ? hasher.HashCode(item, HASH_CODE_MAX) : 0;
+			const bucket = seen.get(key);
+			if (!bucket) {
+				seen.set(key, [item]);
+				yield downcastTo(item, topo);
+			} else if (!bucket.some((s) => s.IsSame(item))) {
+				bucket.push(item);
 				yield downcastTo(item, topo);
 			}
 			explorer.Next();

@@ -1,5 +1,5 @@
 // WerkFab Rust-Kern (B-rep auf Basis von truck, als WebAssembly) – Anbindung an die Kern-Schnittstelle.
-// Unterstützt: Quader, Zylinder, Kugel, Torus, Extrusion und Rotation von Skizzenprofilen, Bohrung,
+// Unterstützt: Quader, Zylinder, Kugel, Torus, Extrusion und Rotation von Skizzenprofilen, Bohrung, Blech (Laschen),
 // Muster, Spiegeln, Verschieben, Skalieren, Kombinieren, Fase und Verrundung gerader Kanten zwischen ebenen
 // Flächen sowie Vernetzung und STEP-Export.
 // Alles andere meldet der Kern als „noch nicht unterstützt“ – ein Design mit so einem Schritt rechnet OpenCascade (model.js).
@@ -8,7 +8,8 @@ import { registerKernel, unsupported } from './index.js';
 import { load, call, boolean, mesh as rmesh, kernelEpoch, isLoaded } from './rustwasm.js';
 import { buildRegions } from '../profiles.js';
 import { basis, sketchPlane, toWorld, axisRef } from '../plane.js';
-import { profileItems, FEATURE_TYPES, patternAxis, pathPlacements } from '../model.js';
+import { profileItems, FEATURE_TYPES, patternAxis, pathPlacements, sheetBase, holeCentres, tappedHole } from '../model.js';
+import { sheetSolid } from '../sheetmetal.js';
 
 const WASM_URL = new URL('../../vendor/werkfab-kernel/werkfab_kernel.wasm', import.meta.url).href;
 const NAME = 'Rust-Kern';
@@ -52,6 +53,9 @@ export class RShape {
     })));
   }
   clone() { return new RShape(this._call({ op: 'clone', h: this.h })); }
+  fuse(o) { return boolOp('or', this, o) || fail('Vereinigung ist leer'); }
+  cut(o) { return boolOp('cut', this, o) || fail('Nach dem Ausschneiden bleibt nichts übrig'); }
+  intersect(o) { return boolOp('and', this, o) || fail('Schnittmenge ist leer'); }
   transform(m) { return new RShape(this._call({ op: 'transform', h: this.h, m: Array.from(m.elements) })); }
   translate(x, y, z) {
     const v = Array.isArray(x) ? x : [x, y, z];
@@ -119,19 +123,63 @@ function polyLoop(poly) {
   while (p.length > 2 && Math.hypot(p[0][0] - p[p.length - 1][0], p[0][1] - p[p.length - 1][1]) < 1e-6) p.pop();
   return [M(p[0]), ...p.slice(1).map(L), L(p[0])];
 }
+const itemLoop = it => (EXACT.has(it.e.type) && it.id === it.e.id && entityLoop(it.e)) || polyLoop(it.poly);
 export function regionLoops(sk, ids) {
   const items = profileItems(sk, ids);
   const { regions } = buildRegions(items);
   const byId = Object.fromEntries(items.map(i => [i.id, i]));
-  const loopOf = id => { const it = byId[id]; return (EXACT.has(it.e.type) && it.id === it.e.id && entityLoop(it.e)) || polyLoop(it.poly); };
+  const loopOf = id => itemLoop(byId[id]);
   return regions.map(r => ({ outer: loopOf(r.id), holes: r.holeIds.map(loopOf) }));
 }
 
+// ---------- the drawing calls of replicad that shared feature code uses, on this kernel ----------
+// Sheet metal is written once against these calls (sheetmetal.js gets its library handed in): a drawing of lines
+// and three-point arcs, put on a plane, pushed or turned into a solid. What is not here (draft, sweep …) throws –
+// then OpenCascade builds the design.
+class RPlane { constructor(o, x, n) { this.o = [...o]; this.x = V3u(x); this.n = V3u(n); } }
+const V3u = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+const NAMED = { XY: [[1, 0, 0], [0, 0, 1]], XZ: [[1, 0, 0], [0, -1, 0]], YZ: [[0, 1, 0], [1, 0, 0]] };
+class RDrawing {
+  constructor(start) { this.segs = [M([+start[0], +start[1]])]; }
+  get last() { return this.segs[this.segs.length - 1].p; }
+  lineTo(p) { if (Math.hypot(p[0] - this.last[0], p[1] - this.last[1]) > 1e-9) this.segs.push(L([+p[0], +p[1]])); return this; }
+  threePointsArcTo(end, mid) { this.segs.push(A([+mid[0], +mid[1]], [+end[0], +end[1]])); return this; }
+  close() { const a = this.segs[0].p; if (Math.hypot(a[0] - this.last[0], a[1] - this.last[1]) > 1e-9) this.segs.push(L([a[0], a[1]])); else this.last[0] = a[0], this.last[1] = a[1]; return this; }
+  translate(dx, dy) {
+    const [x, y] = Array.isArray(dx) ? dx : [dx, dy], d = new RDrawing([0, 0]);
+    d.segs = this.segs.map(q => ({ ...q, p: [q.p[0] + x, q.p[1] + y], ...(q.m ? { m: [q.m[0] + x, q.m[1] + y] } : {}) }));
+    return d;
+  }
+  sketchOnPlane(pl = 'XY', off = 0) {
+    if (typeof pl === 'string') { const q = NAMED[pl] || fail('Ebene unbekannt'); pl = new RPlane(q[1].map(v => v * (+off || 0)), q[0], q[1]); }
+    if (this.segs.length < 3) fail('Kontur ist zu klein');
+    const plane = { o: pl.o, x: pl.x, n: pl.n }, regions = [{ outer: this.segs, holes: [] }];
+    return {
+      extrude: len => shapeOf(call({ op: 'extrude', plane, regions, from: 0, len: +len })),
+      revolve: (axis = [0, 0, 1], { origin = [0, 0, 0], angle = 360 } = {}) => shapeOf(call({ op: 'revolve', plane, regions, axisO: [...origin], axisD: V3u(axis), angle: +angle })),
+    };
+  }
+}
+const rustR = {
+  compact: true,
+  Plane: RPlane,
+  draw: p => new RDrawing(p || [0, 0]),
+  drawCircle: r => { const d = new RDrawing([0, 0]); d.segs = circleLoop(0, 0, +r); return d; },
+  makeCylinder(r, h, loc = [0, 0, 0], dir = [0, 0, 1]) {
+    const n = V3u(dir), x = V3u(Math.abs(n[2]) < 0.9 ? [-n[1], n[0], 0] : [1, 0, 0]);
+    return shapeOf(call({ op: 'extrude', plane: { o: [...loc], x, n }, regions: [{ outer: circleLoop(0, 0, +r), holes: [] }], from: 0, len: +h }));
+  },
+  measureVolume: sh => call({ op: 'volume', h: sh.h }),
+};
+
 // ---------- features ----------
-const SUPPORTED = new Set(['box', 'cylinder', 'sphere', 'torus', 'extrude', 'revolve', 'hole', 'pattern', 'mirror', 'move', 'scale', 'combine', 'fillet', 'chamfer']);
+const SUPPORTED = new Set(['box', 'cylinder', 'sphere', 'torus', 'extrude', 'revolve', 'hole', 'pattern', 'mirror', 'move', 'scale', 'combine', 'fillet', 'chamfer', 'sheet']);
 
 function supports(f) {
   if (f.type === 'extrude' && f.source === 'faces') return unsupported(NAME, 'Extrusion von Körperflächen');
+  if (f.type === 'extrude' && +f.taper) return unsupported(NAME, 'Extrusion mit Schrägungswinkel');
+  if ((f.type === 'revolve' || f.type === 'extrude') && Array.isArray(f.regions) && f.regions.length) return unsupported(NAME, 'Einzeln angeklickte Skizzenbereiche');
+  if (f.type === 'hole' && tappedHole(f)) return unsupported(NAME, 'Gewindebohrung');
   if (f.type === 'hole' && f.kind === 'csink') return unsupported(NAME, 'Kegelsenkung');
   if (f.type === 'hole' && f.tip && !f.through) return unsupported(NAME, 'Bohrspitze (Kegel)');
   if (f.type === 'fillet' && f.variable) return unsupported(NAME, 'Verrundung mit veränderlichem Radius');
@@ -142,7 +190,6 @@ function supports(f) {
 }
 
 function extrudeTool(sk, f, plain) {
-  if (Array.isArray(f.regions) && f.regions.length) fail('Einzeln angeklickte Skizzenbereiche rechnet nur der OCC-Kern');
   const regions = regionLoops(sk, f.profiles);
   if (!regions.length) fail('Kein geschlossenes Profil');
   const d = +f.distance;
@@ -181,7 +228,8 @@ function revolveTool(sk, f, features = []) {
 function holeTool(sk, f, bodies) {
   const b = basis(sk);
   // centres: circles and sketch points
-  const circles = sk.entities.filter(e => (e.type === 'circle' || e.type === 'point') && (!Array.isArray(f.points) || f.points.includes(e.id))).map(e => (e.type === 'point' ? { cx: +e.x, cy: +e.y } : e));
+  // (with the hole pattern of the feature – "Bohrbild")
+  const circles = holeCentres(sk, f).map(([cx, cy]) => ({ cx, cy }));
   if (!circles.length) fail('Keine Kreise oder Punkte als Bohrungsmittelpunkte in der Skizze');
   if (!(f.dia > 0)) fail('Durchmesser fehlt');
   const into = b.n.clone().negate();
@@ -397,12 +445,26 @@ const mirrorOrigin = (f, off) => ({ XY: [0, 0, off], XZ: [0, off, 0], YZ: [off, 
 
 function runFeature(f, ctx) {
   const { bodies, sketches, tools } = ctx;
+  if (f.type === 'sheet') {
+    const sk = sketches[f.sketch];
+    if (!sk) fail('Skizze fehlt');
+    const { poly, holes, z0, f: rf } = sheetBase(sk, f, id => sketches[id]);
+    const tool = sheetSolid(rustR, poly, z0, rf, holes);
+    tools[f.id] = { tool, op: f.op || 'new', target: f.target };
+    applyOp(bodies, tool, f.op || 'new', f.id, f.target);
+    return;
+  }
   if (['box', 'cylinder', 'sphere', 'torus', 'extrude', 'revolve', 'hole'].includes(f.type)) {
     let tool;
     const op = f.type === 'hole' ? 'cut' : f.op;
     if (f.type === 'extrude' || f.type === 'revolve' || f.type === 'hole') {
       const sk = sketches[f.sketch];
       if (!sk) fail('Skizze fehlt');
+      // the profiles are picked by clicking areas of the sketch: none picked yet → nothing to make (no error)
+      if (f.type !== 'hole' && f.profiles === 'pick' && !(Array.isArray(f.regions) && f.regions.length)) {
+        if (ctx.notes) ctx.notes[f.id] = 'Noch kein Profil gewählt – Bereiche der Skizze anklicken.';
+        return;
+      }
       tool = f.type === 'extrude' ? extrudeTool(sk, f, op === 'new' || op === 'intersect' || !bodies.length) : f.type === 'revolve' ? revolveTool(sk, f, ctx.features) : holeTool(sk, f, bodies);
     } else tool = primitiveTool(f);
     tools[f.id] = { tool, op, target: f.target };
@@ -475,7 +537,7 @@ function meshProps(m) {
 export const rustKernel = {
   id: 'rust',
   name: 'Rust-Kern (truck)',
-  info: 'Experimentell: B-rep-Kern in Rust (WebAssembly). Grundkörper, Extrusion, Rotation, Bohrung, Muster, Spiegeln, Verschieben, Skalieren, Kombinieren, Fase und Verrundung gerader Kanten, STEP-Export. Designs mit anderen Schritten rechnet OpenCascade.',
+  info: 'Experimentell: B-rep-Kern in Rust (WebAssembly). Grundkörper, Extrusion, Rotation, Bohrung mit Bohrbild, Muster, Spiegeln, Verschieben, Skalieren, Kombinieren, Fase und Verrundung gerader Kanten, Blech mit Laschen, STEP-Export. Designs mit anderen Schritten rechnet OpenCascade.',
   native: false,
   ready: false,
   async load() {

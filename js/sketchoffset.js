@@ -102,3 +102,38 @@ export function offsetEntities(e, dist, newId) {
   }
   return offsetCurves(e, dist).map(c => ({ id: newId(), type: 'poly', closed: c.closed, pts: c.pts.map(q => [r4(q[0]), r4(q[1])]) }));
 }
+
+// ---------- contours made of several elements ----------
+// A contour drawn piece by piece (lines and arcs that meet end to end, an imported outline) is offset as one: the
+// open curves that hang together with the element `id`, in order. → { ids, pts, closed } – null for an element that is
+// closed in itself or stands alone.
+export function chainOf(entities, id, tol = 1e-3) {
+  const open = [];
+  for (const e of entities) {
+    if (e.type === 'text' || e.cons) continue;
+    const os = entityOutlines(e);
+    if (os.length === 1 && !os[0].closed && os[0].pts.length >= 2) open.push({ id: e.id, pts: os[0].pts });
+  }
+  const start = open.find(o => o.id === id);
+  if (!start) return null;
+  const same = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) <= tol, used = new Set([id]);
+  let pts = start.pts.slice();
+  const ids = [id];
+  // grow at the end, then at the start (a fork is not followed: where three curves meet the contour ends)
+  const grow = atEnd => {
+    for (;;) {
+      const p = atEnd ? pts[pts.length - 1] : pts[0];
+      if (pts.length > 2 && same(pts[0], pts[pts.length - 1])) return;
+      const next = open.filter(o => !used.has(o.id) && (same(o.pts[0], p) || same(o.pts[o.pts.length - 1], p)));
+      if (next.length !== 1) return;
+      const o = next[0], fwd = same(o.pts[0], p) === atEnd ? o.pts : o.pts.slice().reverse();
+      used.add(o.id);
+      if (atEnd) { pts = pts.concat(fwd.slice(1)); ids.push(o.id); } else { pts = fwd.slice(0, -1).concat(pts); ids.unshift(o.id); }
+    }
+  };
+  grow(true); grow(false);
+  if (ids.length < 2) return null;
+  const closed = same(pts[0], pts[pts.length - 1]);
+  if (closed) pts.pop();
+  return { ids, pts, closed };
+}

@@ -1341,5 +1341,708 @@
     ]
    }
   ]
+ },
+ {
+  "name": "Blech: Platte ohne Laschen",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 50,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "sh1",
+    "type": "sheet",
+    "name": "Blech",
+    "sketch": "sk1",
+    "thickness": 2,
+    "radius": 2,
+    "kfactor": 0.44,
+    "flanges": [],
+    "op": "new"
+   }
+  ]
+ },
+ {
+  "name": "Blech: zwei Laschen",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 50,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "sh1",
+    "type": "sheet",
+    "name": "Blech",
+    "sketch": "sk1",
+    "thickness": 2,
+    "radius": 2,
+    "kfactor": 0.44,
+    "flanges": [
+     {
+      "edge": 0,
+      "on": true,
+      "h": 20,
+      "angle": 90
+     },
+     {
+      "edge": 2,
+      "on": true,
+      "h": 20,
+      "angle": 90
+     }
+    ],
+    "op": "new"
+   }
+  ]
+ },
+ {
+  "name": "Blech: Lasche an Lasche, Z-Stufe",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 50,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "sh1",
+    "type": "sheet",
+    "name": "Blech",
+    "sketch": "sk1",
+    "thickness": 2,
+    "radius": 2,
+    "kfactor": 0.44,
+    "flanges": [
+     {
+      "edge": 0,
+      "on": true,
+      "h": 15,
+      "angle": 90,
+      "next": [
+       {
+        "h": 10,
+        "angle": -90
+       }
+      ]
+     },
+     {
+      "edge": 1,
+      "on": true,
+      "h": 12,
+      "angle": 60
+     }
+    ],
+    "op": "new"
+   }
+  ]
+ },
+ {
+  "name": "Blech: geschlossene Ecke",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 50,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "sh1",
+    "type": "sheet",
+    "name": "Blech",
+    "sketch": "sk1",
+    "thickness": 2,
+    "radius": 2,
+    "kfactor": 0.44,
+    "flanges": [
+     {
+      "edge": 0,
+      "on": true,
+      "h": 15,
+      "angle": 90
+     },
+     {
+      "edge": 1,
+      "on": true,
+      "h": 15,
+      "angle": 90
+     }
+    ],
+    "op": "new",
+    "corner": "closed"
+   }
+  ]
+ },
+ {
+  "name": "Blech: Seitenlaschen",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 50,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "sh1",
+    "type": "sheet",
+    "name": "Blech",
+    "sketch": "sk1",
+    "thickness": 2,
+    "radius": 2,
+    "kfactor": 0.44,
+    "flanges": [
+     {
+      "edge": 0,
+      "on": true,
+      "h": 20,
+      "angle": 90,
+      "sideA": {
+       "h": 10,
+       "angle": 90
+      },
+      "sideB": {
+       "h": 10,
+       "angle": -90
+      }
+     }
+    ],
+    "op": "new"
+   }
+  ]
+ },
+ {
+  "name": "Blech: Ausschnitt und Laschen-Loch",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "Skizze1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 50,
+      "r": 0
+     },
+     {
+      "id": "e2",
+      "type": "circle",
+      "cx": 40,
+      "cy": 25,
+      "r": 8
+     }
+    ]
+   },
+   {
+    "id": "sh1",
+    "type": "sheet",
+    "name": "Blech",
+    "sketch": "sk1",
+    "thickness": 2,
+    "radius": 2,
+    "kfactor": 0.44,
+    "flanges": [
+     {
+      "edge": 0,
+      "on": true,
+      "h": 20,
+      "angle": 90,
+      "holes": [
+       {
+        "lv": 0,
+        "kind": "circle",
+        "s": 40,
+        "d": 10,
+        "dia": 6
+       }
+      ]
+     }
+    ],
+    "op": "new"
+   }
+  ]
+ },
+ {
+  "name": "Angeklickter Bereich: Linse zweier Kreise als Tasche (OCC)",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "sk1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "sk2",
+    "type": "sketch",
+    "name": "sk2",
+    "plane": {
+     "o": [
+      0,
+      0,
+      20
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "c1",
+      "type": "circle",
+      "cx": 40,
+      "cy": 30,
+      "r": 15
+     },
+     {
+      "id": "c2",
+      "type": "circle",
+      "cx": 60,
+      "cy": 30,
+      "r": 15
+     },
+     {
+      "id": "r1",
+      "type": "rect",
+      "x": 10,
+      "y": 10,
+      "w": 12,
+      "h": 12,
+      "r": 0
+     },
+     {
+      "id": "c3",
+      "type": "circle",
+      "cx": 16,
+      "cy": 16,
+      "r": 3
+     }
+    ]
+   },
+   {
+    "id": "ex2",
+    "type": "extrude",
+    "name": "Tasche",
+    "sketch": "sk2",
+    "profiles": "pick",
+    "regions": [
+     [
+      "c1",
+      "c2"
+     ]
+    ],
+    "distance": -5,
+    "extent": "one",
+    "op": "cut"
+   }
+  ]
+ },
+ {
+  "name": "Extrusion mit Schrägungswinkel (OCC)",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "sk1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 40,
+      "h": 30,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Keil",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "taper": -5,
+    "extent": "one",
+    "op": "new"
+   }
+  ]
+ },
+ {
+  "name": "Bohrbild (4 × 2) in der Platte",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "sk1",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "e1",
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 60,
+      "r": 0
+     }
+    ]
+   },
+   {
+    "id": "ex1",
+    "type": "extrude",
+    "name": "Platte",
+    "sketch": "sk1",
+    "profiles": "all",
+    "distance": 20,
+    "extent": "one",
+    "op": "new"
+   },
+   {
+    "id": "sk2",
+    "type": "sketch",
+    "name": "sk2",
+    "plane": {
+     "o": [
+      0,
+      0,
+      20
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "p1",
+      "type": "circle",
+      "cx": 15,
+      "cy": 15,
+      "r": 2
+     }
+    ]
+   },
+   {
+    "id": "h1",
+    "type": "hole",
+    "name": "Bohrung",
+    "sketch": "sk2",
+    "dia": 6,
+    "through": true,
+    "depth": 10,
+    "kind": "simple",
+    "patKind": "linear",
+    "patN1": 4,
+    "patN2": 2,
+    "patDx": 20,
+    "patDy": 30
+   }
+  ]
+ },
+ {
+  "name": "Angeklickte Bereiche: Rotation von Rechteck ohne Kreis und Linse (OCC)",
+  "steps": [
+   {
+    "id": "sk1",
+    "type": "sketch",
+    "name": "s",
+    "plane": {
+     "o": [
+      0,
+      0,
+      0
+     ],
+     "x": [
+      1,
+      0,
+      0
+     ],
+     "n": [
+      0,
+      0,
+      1
+     ]
+    },
+    "entities": [
+     {
+      "id": "r1",
+      "type": "rect",
+      "x": 10,
+      "y": 0,
+      "w": 20,
+      "h": 20,
+      "r": 0
+     },
+     {
+      "id": "c1",
+      "type": "circle",
+      "cx": 30,
+      "cy": 10,
+      "r": 6
+     }
+    ]
+   },
+   {
+    "id": "rv",
+    "type": "revolve",
+    "name": "R",
+    "sketch": "sk1",
+    "profiles": "pick",
+    "regions": [
+     [
+      "r1"
+     ],
+     [
+      "r1",
+      "c1"
+     ]
+    ],
+    "axis": "y",
+    "angle": 360,
+    "op": "new"
+   }
+  ]
  }
 ]

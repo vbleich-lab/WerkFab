@@ -97,11 +97,23 @@ export function mesh(h, tol = 0.02) {
 // boolean operation: exact first; on failure (coincident faces) the kernel's fallback variants,
 // each in its own call so an internal error in one variant does not stop the next. → handle or null
 export const VARIANTS = 4;
+// After those: the same with a finer and a coarser tolerance of the operation, and a union the other way round
+// (which of the two bodies is cut by which decides whether touching faces can be resolved).
+const TRIES = [
+  ...Array.from({ length: VARIANTS + 1 }, (_, variant) => ({ variant })),
+  { variant: 0, tol: 0.01 }, { variant: 1, tol: 0.01 }, { variant: 0, swap: true }, { variant: 1, swap: true },
+];
+export const boolStats = { calls: 0, tries: 0, by: {} };
 export function boolean(kind, a, b) {
   let first = null;
-  for (let variant = 0; variant <= VARIANTS; variant++) {
+  boolStats.calls++;
+  for (const [i, t] of TRIES.entries()) {
+    if (t.swap && kind !== 'or') continue;
     try {
-      return call({ op: 'bool', kind, a, b, variant });
+      boolStats.tries++;
+      const r = call({ op: 'bool', kind, a: t.swap ? b : a, b: t.swap ? a : b, variant: t.variant, ...(t.tol ? { tol: t.tol } : {}) });
+      if (i) boolStats.by[i] = (boolStats.by[i] || 0) + 1;
+      return r;
     } catch (err) {
       first ||= err;
       if (!inst) break;

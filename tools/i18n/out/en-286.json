@@ -1,0 +1,12 @@
+{
+ "Abwicklung als DXF speichern (Biegelinien auf eigenen Ebenen, nach oben und nach unten getrennt)": "Save the flat pattern as DXF (bend lines on layers of their own, up and down separately)",
+ "Rotation: zuerst ein Profil anklicken – oder „Ganze Skizze“ wählen.": "Revolve: click a profile first – or choose “Whole sketch”.",
+ "Gestrichelt in der Skizze: Biegelinien (Anfang und Ende jeder Biegezone). Im DXF liegt der Umriss auf Ebene 0, die Biegezonen auf BIEGUNG, die Mittellinie jeder Biegung auf BIEGUNG_AUF (rot) oder BIEGUNG_AB (blau) und Nummer, Winkel und Radius dazu auf BIEGETEXT.": "Dashed in the sketch: bend lines (start and end of every bend zone). In the DXF the outline is on layer 0, the bend zones on BIEGUNG, the centre line of every bend on BIEGUNG_AUF (red, up) or BIEGUNG_AB (blue, down), and its number, angle and radius on BIEGETEXT.",
+ "nach beiden Seiten": "to both sides",
+ "auf dieser Seite": "on this side",
+ "Klicken: Versatz {0} {1} · Esc beendet": "Click: offset {0} {1} · Esc ends",
+ "Nach beiden Seiten": "To both sides",
+ "Der Abstand folgt der Maus: so weit sie von der Kontur weg ist, auf der Seite, auf der sie steht. Ein Klick übernimmt ihn.": "The distance follows the mouse: as far as it is away from the contour, on the side it is on. A click takes it over.",
+ "Mit der Maus zeigen": "Show with the mouse",
+ "Versatz: mit der Maus den Abstand zeigen (Vorschau) und klicken. Esc beendet.": "Offset: show the distance with the mouse (preview) and click. Esc ends."
+}

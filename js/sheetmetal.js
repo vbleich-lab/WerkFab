@@ -514,7 +514,8 @@ export function sheetSolid(R, poly, z0, f, holes = []) {
     const w = [-end.m[1], end.m[0]], o = [end.V[0] - end.m[0] * end.g / 2, end.V[1] - end.m[1] * end.g / 2];
     const quad = [[o[0] - w[0] * BIG, o[1] - w[1] * BIG], [o[0] + w[0] * BIG, o[1] + w[1] * BIG],
       [o[0] + w[0] * BIG + end.m[0] * BIG, o[1] + w[1] * BIG + end.m[1] * BIG], [o[0] - w[0] * BIG + end.m[0] * BIG, o[1] - w[1] * BIG + end.m[1] * BIG]];
-    const ZB = Math.max(BIG, 1000);
+    // (R.compact: a kernel that fails on very long tools gets one just large enough)
+    const ZB = R.compact ? BIG : Math.max(BIG, 1000);
     return solid.cut(polyDrawing(R, ensureCCW(quad)).sketchOnPlane('XY', z0 - ZB).extrude(2 * ZB));
   };
   // (every arc of the sketch is a true arc: round corners and holes are cylinder faces, so holes are found as holes)
@@ -579,7 +580,7 @@ export function sheetSolid(R, poly, z0, f, holes = []) {
     const origin = [ed.b[0] - ed.e[0] * gB, ed.b[1] - ed.e[1] * gB, z0];
     const pl = new R.Plane(origin, [ed.n[0], ed.n[1], 0], [-ed.e[0], -ed.e[1], 0]);
     let solid = sectionDrawing(R, sec).sketchOnPlane(pl).extrude(len);
-    for (const end of [en.a, en.b]) if (end) solid = mitreCut(solid, end, 10 * (over + ed.L));
+    for (const end of [en.a, en.b]) if (end) solid = mitreCut(solid, end, (R.compact ? 2 : 10) * (over + ed.L));
     // corner relief in the folded part: the flat relief mapped back onto the first bend. The bend zone is cut in
     // slices of developed length; each slice loses the stretch along the edge that lies inside the relief there.
     for (const rl of reliefs) {
@@ -1107,7 +1108,7 @@ export function flatPattern(poly, f, holes = []) {
       let d = 0;
       chain.forEach((b, level) => {
         const rb = bendR(b, r), ba = bendAllowance(Math.abs(b.angle), rb, t, k);
-        table.push({ edge: fl.edge, level, angle: b.angle, radius: rb, allowance: ba, length: sp.len, flange: b.h, centre: arcPts(a, sp.th0, sp.th1, rho(d + ba / 2)), curved: true });
+        table.push({ edge: fl.edge, level, angle: b.angle, up: b.angle > 0, same: b.angle > 0 === chain[0].angle > 0, radius: rb, allowance: ba, length: sp.len, flange: b.h, centre: arcPts(a, sp.th0, sp.th1, rho(d + ba / 2)), curved: true });
         bends.push(arcPts(a, sp.th0, sp.th1, rho(d)), arcPts(a, sp.th0, sp.th1, rho(d + ba)));
         d += ba + b.h;
       });
@@ -1146,7 +1147,7 @@ export function flatPattern(poly, f, holes = []) {
     chain.forEach((b, level) => {
       const rb = bendR(b, r), ba = bendAllowance(Math.abs(b.angle), rb, t, k);
       if (!level) firstBA[fl.edge] = ba;
-      table.push({ edge: fl.edge, level, angle: b.angle, radius: rb, allowance: ba, length: ed.L - gA - gB, flange: b.h, centre: off(d + ba / 2) });
+      table.push({ edge: fl.edge, level, angle: b.angle, up: b.angle > 0, same: b.angle > 0 === chain[0].angle > 0, radius: rb, allowance: ba, length: ed.L - gA - gB, flange: b.h, centre: off(d + ba / 2) });
       bends.push(off(d), off(d + ba));
       d += ba + b.h;
     });
@@ -1165,7 +1166,7 @@ export function flatPattern(poly, f, holes = []) {
       rects.push(ensureCCW([P(-0.01, d0), P(sf.ba + sf.h, d0), P(sf.ba + sf.h, d0 + sf.h0), P(-0.01, d0 + sf.h0)]));
       lapOk += sf.h0 * 0.02;
       bends.push([P(0, d0), P(0, d0 + sf.h0)], [P(sf.ba, d0), P(sf.ba, d0 + sf.h0)]);
-      table.push({ edge: fl.edge, level: 0, side: sf.side, angle: sf.angle, radius: sf.rb, allowance: sf.ba, length: sf.h0, flange: sf.h, centre: [P(sf.ba / 2, d0), P(sf.ba / 2, d0 + sf.h0)] });
+      table.push({ edge: fl.edge, level: 0, side: sf.side, angle: sf.angle, up: sf.angle > 0 === chain[0].angle > 0, radius: sf.rb, allowance: sf.ba, length: sf.h0, flange: sf.h, centre: [P(sf.ba / 2, d0), P(sf.ba / 2, d0 + sf.h0)] });
     }
     const tp = tabPlan(fl, ed, gA, gB);
     if (tp) for (const s of tp.at) {
@@ -1210,7 +1211,7 @@ export function flatPattern(poly, f, holes = []) {
       const mid = at(0);
       if (!mid.length) return;
       bends.push(...at(-q.ba / 2), ...at(q.ba / 2));
-      table.push({ edge: -1, line: i, level: 0, angle: q.angle, radius: q.r, allowance: q.ba, length: mid.reduce((a, sg) => a + Math.hypot(sg[1][0] - sg[0][0], sg[1][1] - sg[0][1]), 0), flange: 0, centre: [mid[0][0], mid[mid.length - 1][1]] });
+      table.push({ edge: -1, line: i, level: 0, angle: q.angle, up: q.angle > 0, radius: q.r, allowance: q.ba, length: mid.reduce((a, sg) => a + Math.hypot(sg[1][0] - sg[0][0], sg[1][1] - sg[0][1]), 0), flange: 0, centre: [mid[0][0], mid[mid.length - 1][1]] });
     });
   }
   const cuts = [...reliefs, ...holes.map((p, i) => (collars.has(i) ? circle(collars.get(i).c, collars.get(i).flat) : pressed.get(i)?.kind === 'emboss' ? [] : p)).filter(p => p.length >= 3), ...flHoles];
@@ -1795,4 +1796,23 @@ export function transitionPattern(o) {
   return { outline: [P.map(mv)], bends: bends.map(l => l.map(mv)), size: [Math.max(...xs) - x0, Math.max(...ys) - y0], area: Math.abs(area) / 2, cutLength: len,
     mid: { w: W, d: D, r }, outer: { w: W + t, d: D + t, r: r + t / 2 }, inner: { w: W - t, d: D - t, r: r - t / 2 }, ox, oy,
     seam: Math.hypot(M[0] - Q(-Math.PI / 2)[0], M[1] - Q(-Math.PI / 2)[1], h) };
+}
+
+// ---------- bend lines of a flat pattern for the DXF ----------
+// Layers: 0 = what is cut, BIEGUNG = start and end of every bend zone, BIEGUNG_AUF / BIEGUNG_AB = the middle line of
+// every bend by its direction (up = towards the top side of the plate), BIEGETEXT = number, angle and radius at it
+export function flatBendMarks(fp) {
+  const out = [];
+  (fp.table || []).forEach((b, i) => {
+    const c = b.centre;
+    if (!Array.isArray(c) || c.length < 2) return;
+    const up = b.up ?? b.angle > 0, k = Math.floor((c.length - 1) / 2), mid = c[k], nx = c[k + 1] || c[c.length - 1];
+    out.push({ id: 'm' + i, type: 'poly', closed: false, pts: c, layer: up ? 'BIEGUNG_AUF' : 'BIEGUNG_AB' });
+    // the text runs along the line, left to right, a little beside it
+    let ang = Math.atan2(nx[1] - mid[1], nx[0] - mid[0]);
+    if (Math.cos(ang) < -1e-9 || (Math.abs(Math.cos(ang)) < 1e-9 && Math.sin(ang) < 0)) ang += Math.PI;
+    const p = c.length === 2 ? [(c[0][0] + c[1][0]) / 2, (c[0][1] + c[1][1]) / 2] : mid;
+    out.push({ id: 't' + i, type: 'label', x: p[0] - Math.sin(ang) * 0.8, y: p[1] + Math.cos(ang) * 0.8, size: 2.5, rot: (ang * 180) / Math.PI, layer: 'BIEGETEXT', text: `B${i + 1} ${up ? '+' : '-'}${+Math.abs(b.angle).toFixed(2)}° R${+(+b.radius).toFixed(2)}` });
+  });
+  return out;
 }

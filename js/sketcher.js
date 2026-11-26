@@ -314,6 +314,7 @@ export class Sketcher {
         : this.tool === 'prect' ? `Klicken: Abstand der ersten Kopie (${this.patternVal.nx} × ${this.patternVal.ny}) · Esc beendet` : `Klicken: Mittelpunkt des Kreismusters (${this.patternVal.n} Stück) · Esc beendet`, e);
       return;
     }
+    if (this.tool === 'offdrag') { this.cur = p; this.hooks.offsetDrag?.(p, false, e); return; }
     if (this.tool === 'offset') {
       this.cur = p;
       const hit = offsetHit(this.entities, p, this.vp.worldPerPixel() * 60);
@@ -667,6 +668,7 @@ export class Sketcher {
       this.hooks.xform?.(this.tool, this.tool === 'prect' ? { dx: +ldx.toFixed(3), dy: +ldy.toFixed(3) } : { c: [+sp[0].toFixed(3), +sp[1].toFixed(3)] });
       return;
     }
+    if (this.tool === 'offdrag') { this.hooks.offsetDrag?.(raw, true, e); return; }
     if (this.tool === 'offset') {
       const hit = offsetHit(this.entities, raw, this.vp.worldPerPixel() * 60);
       if (!hit) { this.hooks.status?.('Keine Kontur in der Nähe – neben eine Linie, ein Rechteck oder einen Kreis klicken.'); return; }

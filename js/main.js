@@ -32,7 +32,7 @@ import { exampleProject, exampleTurning, exampleMilling, exampleDesign } from '.
 import { describeEntity, entityPolys, translateEntity, rotateEntity, scaleEntity, mirrorEntity as mirrorAbout, loopsAt, sameCell, cellShapes, allCells } from './profiles.js';
 import { meshInertia, rotateInertia, zipStore, findCylinders } from './mesh.js';
 import { applyCorners, cornerPlan, curveCorner, filletCurves, chamferCurves, unbridge, bridgeRadius, meetLines } from './sketchcorner.js';
-import { offsetEntities } from './sketchoffset.js';
+import { chainOf, offsetEntities, offsetSide } from './sketchoffset.js';
 import { parseDXF, writeDXF } from './dxf.js';
 import { inkFromRGBA, traceImage, toSketch, toSVG, toEntities, quantize, inkOfColors, simplify as simplifyLine } from './trace.js';
 import { loadFonts, FONTS } from './fonts.js';
@@ -49,7 +49,7 @@ import { parsePointCloud, cloudBounds, cloudHeights } from './pointcloud.js';
 import { GEAR_KINDS, CHAINS, gearInfo } from './gears.js';
 import { STD_FAMILIES, STD_LENGTHS, stdFamily, stdPartName, stdPartSteps, boltSizeFor, boltStack, boltHole } from './stdparts.js';
 import { unfoldFaces } from './unfold.js';
-import { flatPattern, polyEdges, polyArcs, bendAllowance, sheetK, sheetChecks, SHEET_RULES, nestParts, pressForce, SHEET_RM, holeCircle, collarPlan, cutProgram, CUT_CONTROLS, shellPattern, transitionPattern, tabSlots } from './sheetmetal.js';
+import { flatBendMarks, flatPattern, polyEdges, polyArcs, bendAllowance, sheetK, sheetChecks, SHEET_RULES, nestParts, pressForce, SHEET_RM, holeCircle, collarPlan, cutProgram, CUT_CONTROLS, shellPattern, transitionPattern, tabSlots } from './sheetmetal.js';
 import { TurnSim, TURN_OPS, turnCutShape, LatheStock } from './turning.js';
 import { CylSim, CylStock, cylPartMap } from './cylstock.js';
 import { WindowManager } from './windows.js';
@@ -457,7 +457,7 @@ const sketcher = new Sketcher(vp, {
   project: e => projectFaceAt(e),
   preview: () => rebuildScene(),
   overlay: () => refreshSketchOverlay(),
-  corner: (kind, ref) => sketchCorner(kind, [ref]), cornerLines: (kind, a, b) => sketchCornerLines(kind, a, b), offset: (id, sign) => sketchOffsetAt(id, sign), xform: (kind, data) => sketchXform(kind, data),
+  corner: (kind, ref) => sketchCorner(kind, [ref]), cornerLines: (kind, a, b) => sketchCornerLines(kind, a, b), offset: (id, sign) => sketchOffsetAt(id, sign), offsetDrag: (p, done, e) => skOffsetDrag(p, done, e), xform: (kind, data) => sketchXform(kind, data),
   addDim: d => createDim(d),
   text: id => sketchTextDialog(id),
   cmd: c => ({ extrude: () => { finishSketch(); createFeature('extrude'); }, offset: sketchOffset, move: () => sketchMoveTool('xmove'), fillet: sketchFillet, measure: toggleMeasure })[c]?.(),
@@ -1297,7 +1297,9 @@ function edgeChain(ref, up) {
         // the wire holds the clicked edge (same midpoint)
         const has = w.edges.some(ed => { const q = ed.pointAt(0.5); return Math.hypot(q.x - P.x, q.y - P.y, q.z - P.z) < 1e-3; });
         if (!has) return;
-        const score = faceNormal(body, fid).dot(up);
+        // (the face that lies flat in the setup has the outline that is milled: the top face for an upper edge, the
+        // bottom face for a lower edge – not the wall between them, whose outline is a line seen from above)
+        const dn = faceNormal(body, fid).dot(up), score = Math.abs(dn) + (dn > 0 ? 1e-3 : 0);
         if (!best || score > best.score + 1e-6) best = { bi, fid, loop: wirePoints(w), score };
       });
     }
@@ -3232,7 +3234,7 @@ function toolbarTabs() {
         tbtn('refold', 'Wieder falten', () => { const f = activeSheet(); if (f && state.flatView === f.id) toggleFlatView(f); }, '', 'Wieder falten: gefalteten Zustand zeigen'),
         tbtn('sketch', 'Flachmuster', () => { const f = activeSheet(), r = f && sheetFlat(f); if (r) flatToSketch(f, r.fp, r.base.z0); }, '', 'Flachmuster: Abwicklung als Skizze anlegen'),
         tbtn('nest', 'Schachteln', () => nestDialog(), '', 'Zuschnitte aller Blechteile auf Tafeln verteilen')),
-      tgroup('AUSGABE', tbtn('flat_dxf', 'DXF', () => { const f = activeSheet(), r = f && sheetFlat(f); if (r) download(`${safeName()}_Abwicklung.dxf`, flatDXF(r.fp), 'application/dxf'); }, '', 'Abwicklung als DXF speichern (Biegelinien auf der Ebene BIEGUNG)'),
+      tgroup('AUSGABE', tbtn('flat_dxf', 'DXF', () => { const f = activeSheet(), r = f && sheetFlat(f); if (r) download(`${safeName()}_Abwicklung.dxf`, flatDXF(r.fp), 'application/dxf'); }, '', 'Abwicklung als DXF speichern (Biegelinien auf eigenen Ebenen, nach oben und nach unten getrennt)'),
         tbtn('bendTable', 'Biegetabelle', bendTableCmd, '', 'Biegetabelle als CSV für die Abkantpresse'),
         tbtn('sheet', 'Zeichnung', openDrawing, '', 'Zeichnungsableitung – dort „Abwicklung“ einschalten')),
       tgroup('REGELN', tbtn('sheet', 'Blechregeln', sheetRulesCmd, '', 'Blechregeln: Blechdicke, Biegeradius und K-Faktor')),
@@ -3966,7 +3968,7 @@ function dialogTarget() {
 function dialogOk() {
   const t = dialogTarget();
   // an extrusion that still waits for its profile cannot be finished (OK would leave an empty feature)
-  if (t?.kind === 'feature') { const f = feature(t.id); if (f?.type === 'extrude' && f.source !== 'faces' && f.profiles === 'pick' && !(f.regions || []).length) return status('Extrusion: zuerst ein Profil anklicken – oder „Ganze Skizze“ wählen.');
+  if (t?.kind === 'feature') { const f = feature(t.id); if ((f?.type === 'extrude' || f?.type === 'revolve') && f.source !== 'faces' && f.profiles === 'pick' && !(f.regions || []).length) return status(f.type === 'revolve' ? 'Rotation: zuerst ein Profil anklicken – oder „Ganze Skizze“ wählen.' : 'Extrusion: zuerst ein Profil anklicken – oder „Ganze Skizze“ wählen.');
     if ((f?.type === 'fillet' || f?.type === 'chamfer') && !f.all && !(f.edges || []).length && !(f.faces || []).length) return status('Zuerst mindestens eine Kante anklicken.');
     if (['offsetface', 'delface', 'movefaces', 'draft', 'thicken', 'offsetsurf', 'replaceface', 'thread'].includes(f?.type) && !(f.faces || []).length) return status('Zuerst mindestens eine Fläche anklicken.'); }
   dlg = { key: null, depth: 0 };
@@ -4103,7 +4105,7 @@ function buildProps() {
         h('span', null, 'Abmessungen'), h('b', null, `${f2(s.x)} × ${f2(s.y)} × ${f2(s.z)} mm`),
         h('span', null, 'Körper'), h('b', null, m.bodies.length),
         h('span', null, 'Berechnung'), h('b', null, `${Math.round(m.ms || 0)} ms` + (m.featureCount ? ` · ${m.featureCount - (m.resumedAt || 0)} von ${m.featureCount} Features neu` : '')),
-        h('span', null, 'Geometriekern'), h('b', m.byOcc ? { title: `Der gewählte Kern kann „${m.byOcc}“ nicht rechnen – dieses Design rechnet OpenCascade.` } : null, (getKernel(m.kernel || activeKernelId())?.name || '') + (m.byOcc ? ` (wegen „${m.byOcc}“)` : ''))));
+        h('span', null, 'Geometriekern'), h('b', m.byOcc ? { title: `Der gewählte Kern kann „${m.byOcc}“ nicht rechnen – dieses Design rechnet OpenCascade.` + (m.byOccWhy ? ` (${m.byOccWhy})` : '') } : null, (getKernel(m.kernel || activeKernelId())?.name || '') + (m.byOcc ? ` (wegen „${m.byOcc}“)` : ''))));
     }
     return;
   }
@@ -6146,6 +6148,9 @@ const testApi = {
   run: name => ({ joint: addJoint, jointOrigin: addJointOrigin, bodyToMesh })[name]?.(),
   editSketch: id => editSketch(id),
   sketchTool: tool => sketcher.setTool(tool),
+  sketchSel: () => ({ sel: [...sketcher.selection], tool: sketcher.tool, additive: !!sketcher.additive, ghost: sketcher.ghost ? sketcher.ghost.length : 0, cmd: skCmd && { kind: skCmd.kind, ids: [...skCmd.ids], stage: skCmd.stage, vals: { ...skCmd.vals }, copies: skCmdCopies().map(e => [e.type, e.closed, e.r ?? (e.pts ? e.pts.length : e.w)]) } }),
+  // the offset command with the mouse at a point of the sketch (done: as a click)
+  sketchOffsetDrag: (p, done = false) => skOffsetDrag(p, done, null),
   hideBody(id) { state.hiddenBodies.add(id); rebuildScene(); },
 };
 function initAgent() {
@@ -7056,14 +7061,14 @@ function propsSheet(b, f, ed) {
       fp.table.length ? h('table', { class: 'mtable bend-table' },
         h('tr', null, ...['Biegung', 'Kante', 'Winkel', 'Radius', 'Zugabe', 'Länge', 'Presskraft'].map(x => h('th', null, x))),
         ...fp.table.map((b, i) => h('tr', null, h('td', null, `B${i + 1}`), h('td', null, b.line != null ? `L${b.line + 1}` : b.side ? `${b.edge + 1}${b.side}` : b.level ? `${b.edge + 1}.${b.level + 1}` : String(b.edge + 1)),
-          h('td', null, b.level ? `${f2(Math.abs(b.angle))}° ${b.angle > 0 ? 'gleichsinnig' : 'gegensinnig'}` : `${f2(Math.abs(b.angle))}° ${b.angle > 0 ? 'hoch' : 'runter'}`),
+          h('td', null, b.level ? `${f2(Math.abs(b.angle))}° ${(b.same ?? b.angle > 0) ? 'gleichsinnig' : 'gegensinnig'}` : `${f2(Math.abs(b.angle))}° ${(b.up ?? b.angle > 0) ? 'hoch' : 'runter'}`),
           h('td', null, `R${f2(b.radius)}`), h('td', null, f2(b.allowance)), h('td', null, f2(b.length)), h('td', null, `${f2(pressForce(+f.thickness, b.length, srm).kN)} kN`)))) : null,
       fp.table.length ? h('p', { class: 'hint' }, `Presskraft: Richtwert für freies Biegen im Gesenk V = ${f2(pressForce(+f.thickness, 1, srm).V)} mm mit Zugfestigkeit ${srm} N/mm² (${smat.label}); kürzester Schenkel dafür etwa ${f2(pressForce(+f.thickness, 1, srm).minFlange)} mm. Größte Biegung: ${f2(Math.max(...fp.table.map(q => pressForce(+f.thickness, q.length, srm).kN)))} kN.`) : null,
       h('div', { class: 'btns' },
         btn('Als Skizze', () => flatToSketch(f, fp, base.z0)),
         btn('Als DXF', () => download(`${safeName()}_Abwicklung.dxf`, flatDXF(fp), 'application/dxf')),
         ...(fp.table.length ? [btn('Biegetabelle (CSV)', () => download(`${safeName()}_Biegungen.csv`, bendTableCSV(f, fp, srm), 'text/csv'), '', 'Alle Biegungen mit Winkel, Radius, K-Faktor, Zugabe, Länge und Presskraft als Tabelle für die Abkantpresse')] : [])),
-      h('p', { class: 'hint' }, 'Gestrichelt im DXF/der Skizze: Biegelinien (Anfang und Ende jeder Biegezone). Im DXF liegen sie auf der Ebene BIEGUNG, der Umriss auf Ebene 0.'));
+      h('p', { class: 'hint' }, 'Gestrichelt in der Skizze: Biegelinien (Anfang und Ende jeder Biegezone). Im DXF liegt der Umriss auf Ebene 0, die Biegezonen auf BIEGUNG, die Mittellinie jeder Biegung auf BIEGUNG_AUF (rot) oder BIEGUNG_AB (blau) und Nummer, Winkel und Radius dazu auf BIEGETEXT.'));
   }
   b.append(opSelect(f, ed));
 }
@@ -7073,7 +7078,7 @@ function bendTableCSV(f, fp, srm) {
   const k = sheetK(f), n = x => String(+(+x).toFixed(3)).replace('.', ',');
   const rows = [['Biegung', 'Kante', 'Winkel (°)', 'Richtung', 'Radius innen (mm)', 'K-Faktor', 'Biegezugabe (mm)', 'Biegelänge (mm)', 'Presskraft (kN)']];
   fp.table.forEach((b, i) => rows.push([`B${i + 1}`, b.line != null ? `L${b.line + 1}` : b.side ? `${b.edge + 1}${b.side}` : b.level ? `${b.edge + 1}.${b.level + 1}` : String(b.edge + 1), n(Math.abs(b.angle)),
-    b.level ? (b.angle > 0 ? 'gleichsinnig' : 'gegensinnig') : b.angle > 0 ? 'hoch' : 'runter', n(b.radius), n(k), n(b.allowance), n(b.length), n(pressForce(+f.thickness, b.length, srm).kN)]));
+    b.level ? ((b.same ?? b.angle > 0) ? 'gleichsinnig' : 'gegensinnig') : (b.up ?? b.angle > 0) ? 'hoch' : 'runter', n(b.radius), n(k), n(b.allowance), n(b.length), n(pressForce(+f.thickness, b.length, srm).kN)]));
   rows.push([], ['Blechdicke (mm)', n(f.thickness)], ['Berechnung', f.bendCalc === 'din6935' ? 'DIN 6935' : 'K-Faktor'], ['Zuschnitt (mm)', `${n(fp.size[0])} x ${n(fp.size[1])}`]);
   return '\ufeff' + rows.map(r => r.map(c => /[;"\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c).join(';')).join('\r\n') + '\r\n';
 }
@@ -7132,7 +7137,7 @@ function sheetFlat(f) {
   catch (err) { status(err.message || String(err)); return null; }
 }
 // outline on layer 0, bend lines (start and end of every bend zone) on the layer BIEGUNG
-const flatDXF = fp => writeDXF([...fp.outline.map((pts, i) => ({ id: 'o' + i, type: 'poly', closed: true, pts })), ...fp.bends.map((pts, i) => ({ id: 'b' + i, type: 'poly', closed: false, pts, layer: 'BIEGUNG' })), ...(fp.forms || []).map((pts, i) => ({ id: 'f' + i, type: 'poly', closed: false, pts, layer: 'UMFORMUNG' })), ...(fp.slits || []).map((pts, i) => ({ id: 's' + i, type: 'poly', closed: false, pts }))]);
+const flatDXF = fp => writeDXF([...fp.outline.map((pts, i) => ({ id: 'o' + i, type: 'poly', closed: true, pts })), ...fp.bends.map((pts, i) => ({ id: 'b' + i, type: 'poly', closed: false, pts, layer: 'BIEGUNG' })), ...flatBendMarks(fp), ...(fp.forms || []).map((pts, i) => ({ id: 'f' + i, type: 'poly', closed: false, pts, layer: 'UMFORMUNG' })), ...(fp.slits || []).map((pts, i) => ({ id: 's' + i, type: 'poly', closed: false, pts }))]);
 
 // Nesting: the blanks of the sheet metal parts on sheets, as a sketch (optionally extruded to bodies of the sheet
 // thickness, so the 2D operations of manufacturing can cut them out) or as a DXF
@@ -16418,6 +16423,32 @@ function closeSkCmd(quiet = false) {
   if (sketcher.tool !== 'select') sketcher.setTool('select'); else sketcher.drawPreview();
   renderToolbar();
 }
+// what the offset works on: the chosen elements, a contour of several elements (lines and arcs end to end) as one outline
+function skOffsetSources() {
+  const c = skCmd, out = [], done = new Set();
+  for (const id of c.ids) {
+    const e = sketcher.entities.find(x => x.id === id);
+    if (!e || e.type === 'text' || done.has(id)) continue;
+    const ch = chainOf(sketcher.entities, id);
+    if (ch && ch.ids.every(x => c.ids.includes(x))) { ch.ids.forEach(x => done.add(x)); out.push({ type: 'poly', pts: ch.pts, closed: ch.closed }); } else out.push(e);
+  }
+  return out;
+}
+// "Mit der Maus zeigen": the distance is how far the mouse is from the nearest chosen contour, the side is the side
+// it is on; a click keeps it. Steps of 0,1 mm (0,005 in), with Alt the mouse position as it is.
+function skOffsetDrag(p, done, ev) {
+  const c = skCmd;
+  if (!c || c.kind !== 'offset') return;
+  let best = null;
+  for (const e of skOffsetSources()) { const s = offsetSide(e, p); if (Number.isFinite(s.d) && (!best || s.d < best.d)) best = s; }
+  if (best) {
+    const step = ev?.altKey ? 0.001 : inchUnits() ? 0.127 : 0.1, d = Math.max(step, Math.round(best.d / step) * step);
+    c.vals.d = +(best.sign * d).toFixed(4);
+    sketcher.hooks.tip(`Klicken: Versatz ${sketcher.fmtLen(Math.abs(c.vals.d))} ${c.vals.both ? 'nach beiden Seiten' : 'auf dieser Seite'} · Esc beendet`, ev);
+  }
+  if (done) return skCmdStage(null);
+  skCmdDraw();
+}
 function skCmdCopies() {
   const c = skCmd, v = c.vals, ents = c.ids.map(id => sketcher.entities.find(e => e.id === id)).filter(Boolean), out = [];
   if (!ents.length) return out;
@@ -16429,7 +16460,8 @@ function skCmdCopies() {
   }
   if (c.kind === 'offset') {
     if (!Number.isFinite(v.d) || !v.d) return out;
-    for (const e of ents) if (e.type !== 'text') out.push(...offsetEntities(e, v.d, () => uid('e')));
+    // (to both sides: the same distance once more the other way)
+    for (const e of skOffsetSources()) for (const d of v.both ? [v.d, -v.d] : [v.d]) out.push(...offsetEntities(e, d, () => uid('e')));
     return out;
   }
   if (c.kind === 'prect') {
@@ -16455,7 +16487,9 @@ function skCmdDraw() {
   };
   const rows = [field('objects', c.ids.length, 'Objekte')];
   if (c.kind === 'mirror') rows.push(field('axis', c.axis ? 1 : 0, 'Spiegelachse'));
-  if (c.kind === 'offset') rows.push(val('Versatzabstand', 'd', 'mm'), row('Richtung', h('button', { onclick: () => { c.vals.d = -c.vals.d; skCmdDraw(); } }, 'Umkehren')));
+  if (c.kind === 'offset') rows.push(val('Versatzabstand', 'd', 'mm'), row('Richtung', h('button', { onclick: () => { c.vals.d = -c.vals.d; skCmdDraw(); } }, 'Umkehren')),
+    row('Nach beiden Seiten', chk(c.vals.both, on => { c.vals.both = on; skCmdDraw(); })),
+    row('Abstand', h('button', { class: 'sel-field' + (c.stage === 'drag' ? ' on' : ''), title: 'Der Abstand folgt der Maus: so weit sie von der Kontur weg ist, auf der Seite, auf der sie steht. Ein Klick übernimmt ihn.', onclick: () => skCmdStage(c.stage === 'drag' ? null : 'drag') }, 'Mit der Maus zeigen')));
   if (c.kind === 'prect') rows.push(val('Anzahl X', 'nx'), val('Abstand X', 'dx', 'mm'), val('Anzahl Y', 'ny'), val('Abstand Y', 'dy', 'mm'));
   if (c.kind === 'pcirc') rows.push(field('centre', c.c ? 1 : 0, 'Mittelpunkt'), val('Anzahl', 'n'), val('Gesamtwinkel', 'ang', '°'));
   c.win.querySelector('.cmd-body').replaceChildren(...rows);
@@ -16481,6 +16515,11 @@ function skCmdStage(stage) {
     sketcher.setTool(stage === 'axis' ? 'mirror' : 'pcirc');
     sketcher.xformIds = c.ids.slice();
     status(stage === 'axis' ? 'Spiegeln: über die Spiegelachse fahren (Vorschau) und klicken. Esc beendet.' : 'Kreis-Muster: den Mittelpunkt zeigen (Vorschau) und klicken. Esc beendet.');
+  } else if (stage === 'drag') {
+    if (!c.ids.length) { c.busy = false; return skCmdStage('objects'); }
+    sketcher.selection = []; sketcher.selected = null;
+    sketcher.setTool('offdrag');
+    status('Versatz: mit der Maus den Abstand zeigen (Vorschau) und klicken. Esc beendet.');
   } else {
     sketcher.xformIds = [];
     if (sketcher.tool !== 'select') sketcher.setTool('select');
@@ -16498,8 +16537,21 @@ function skCmdSync() {
   const c = skCmd;
   if (!c || c.busy) return;
   if (!state.sketchId) return closeSkCmd(true);
-  if (c.stage === 'objects' && sketcher.tool === 'select') { c.ids = [...new Set(sketcher.selection.map(refEntity))]; if (c.ids.includes(c.axis)) c.axis = null; skCmdDraw(); }
-  else if ((c.stage === 'axis' && sketcher.tool !== 'mirror') || (c.stage === 'centre' && sketcher.tool !== 'pcirc')) { c.stage = null; sketcher.additive = false; skCmdDraw(); }
+  if (c.stage === 'objects' && sketcher.tool === 'select') {
+    let ids = [...new Set(sketcher.selection.map(refEntity))];
+    // Versatz: a click on one piece of a contour takes the whole contour (and a second click puts all of it back)
+    if (c.kind === 'offset') {
+      const chain = id => chainOf(sketcher.entities, id)?.ids || [id];
+      // (a click on another piece of an element that is chosen already takes it out as well)
+      const refs = sketcher.selection.map(refEntity), twice = ids.filter(id => refs.filter(x => x === id).length > 1);
+      const gone = [...c.ids.filter(id => !ids.includes(id)), ...twice], drop = new Set(gone.flatMap(chain));
+      ids = [...new Set(ids.filter(id => !drop.has(id)).flatMap(chain))];
+      const want = ids.map(id => sketcher.entities.find(e => e.id === id)).filter(Boolean).map(skRefOf);
+      if (drop.size || want.length !== sketcher.selection.length) { c.ids = ids; c.busy = true; sketcher.selection = want; sketcher.selected = null; sketcher.hooks.changed(); c.busy = false; return skCmdDraw(); }
+    }
+    c.ids = ids; if (c.ids.includes(c.axis)) c.axis = null; skCmdDraw();
+  }
+  else if ((c.stage === 'axis' && sketcher.tool !== 'mirror') || (c.stage === 'centre' && sketcher.tool !== 'pcirc') || (c.stage === 'drag' && sketcher.tool !== 'offdrag')) { c.stage = null; sketcher.additive = false; skCmdDraw(); }
 }
 function sketchCmd(kind) {
   closeSkCmd(true);

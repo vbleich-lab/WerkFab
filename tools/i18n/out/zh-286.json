@@ -1,0 +1,12 @@
+{
+ "Abwicklung als DXF speichern (Biegelinien auf eigenen Ebenen, nach oben und nach unten getrennt)": "将展开图保存为 DXF（折弯线在单独的图层上，向上和向下分开）",
+ "Rotation: zuerst ein Profil anklicken – oder „Ganze Skizze“ wählen.": "旋转：请先点击一个轮廓 – 或选择“整个草图”。",
+ "Gestrichelt in der Skizze: Biegelinien (Anfang und Ende jeder Biegezone). Im DXF liegt der Umriss auf Ebene 0, die Biegezonen auf BIEGUNG, die Mittellinie jeder Biegung auf BIEGUNG_AUF (rot) oder BIEGUNG_AB (blau) und Nummer, Winkel und Radius dazu auf BIEGETEXT.": "草图中的虚线：折弯线（每个折弯区的起点和终点）。在 DXF 中，轮廓位于图层 0，折弯区位于 BIEGUNG，每个折弯的中心线位于 BIEGUNG_AUF（红色，向上）或 BIEGUNG_AB（蓝色，向下），其编号、角度和半径位于 BIEGETEXT。",
+ "nach beiden Seiten": "向两侧",
+ "auf dieser Seite": "在此侧",
+ "Klicken: Versatz {0} {1} · Esc beendet": "点击：偏移 {0} {1} · Esc 结束",
+ "Nach beiden Seiten": "向两侧",
+ "Der Abstand folgt der Maus: so weit sie von der Kontur weg ist, auf der Seite, auf der sie steht. Ein Klick übernimmt ihn.": "距离跟随鼠标：鼠标离轮廓多远，就偏移多远，并在鼠标所在的一侧。点击即采用。",
+ "Mit der Maus zeigen": "用鼠标指定",
+ "Versatz: mit der Maus den Abstand zeigen (Vorschau) und klicken. Esc beendet.": "偏移：用鼠标指定距离（预览）并点击。Esc 结束。"
+}
