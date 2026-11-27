@@ -1,0 +1,16 @@
+{
+ "Noch kein Dreh-Setup: „Neues Setup“ → Operationstyp „Drehen“ wählen.": "还没有车削装夹：“新建装夹”→ 选择工序类型“车削”。",
+ "Länge der Lasche an der Seitenkante dieser Lasche (0 = keine). An einer geschlossenen Ecke schließt sie die Ecke: Sie liegt innen an der Nachbarlasche an.": "此折边侧边上的折边长度（0 = 无）。在闭合角处它将角封闭：它贴在相邻折边的内侧。",
+ "Biegelinien anzeichnen (Laser, Fräsen)": "标记折弯线（激光、铣削）",
+ "Leistung zum Anzeichnen (S-Wert, Laser)": "标记功率（S 值，激光）",
+ "Tiefe zum Anzeichnen (Fräsen)": "标记深度（铣削）",
+ "{0} als T{1} in der Werkzeugbibliothek angelegt": "{0} 已作为 T{1} 添加到刀具库",
+ "Einstich: Position Z angeben": "切槽：请输入位置 Z",
+ "Kein Einstich im Modell an dieser Stelle – Grund-Ø angeben": "模型在此处没有槽 – 请输入槽底 Ø",
+ "Gewinde: Start Z und Ende Z angeben": "螺纹：请输入起点 Z 和终点 Z",
+ "# Werkzeuge:": "# 刀具：",
+ "# Drehachsen positionieren, z. B. L A+Q120 C+Q122 R0 FMAX (Achsen der Maschine)": "# 定位旋转轴，例如 L A+Q120 C+Q122 R0 FMAX（机床的轴）",
+ "ISO 2768-{0}": "ISO 2768-{0}",
+ "ISO 2768-{0} ({1})": "ISO 2768-{0} ({1})",
+ "LinuxCNC (tool.tbl)": "LinuxCNC (tool.tbl)"
+}

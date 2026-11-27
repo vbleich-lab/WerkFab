@@ -1806,8 +1806,16 @@ export function runPost(def, project, gen, opts = {}) {
 }
 
 // Entry point used by the app: post id from project.post.flavor (or the machine).
+// The post of the design fits one kind of machine. A setup of the other kind (a turning setup in a design posted for a
+// mill, or the other way round) takes the post of the same control for its kind – no milling program for a lathe.
+const POST_PARTNER = { fanuc: 'fanuc-lathe', linuxcnc: 'linuxcnc-lathe', 'okuma-mill': 'okuma-lathe', 'fanuc-lathe': 'fanuc', 'linuxcnc-lathe': 'linuxcnc', 'okuma-lathe': 'okuma-mill' };
+export function postForKind(project, id, lathe) {
+  const def = findPost(project, id);
+  if (!!def.lathe === !!lathe) return def.id;
+  return POST_PARTNER[def.id] || (lathe ? 'fanuc-lathe' : 'fanuc');
+}
 export function postProcess(project, gen, machine = null, extra = {}) {
-  const def = findPost(project, extra.postId || project.post.flavor);
+  const def = findPost(project, extra.postId || postForKind(project, project.post.flavor, gen?.kind === 'turn'));
   const pp = project.post || {};
   // older projects kept these switches directly in project.post
   const legacy = { arcs: pp.arcs !== false, cycles: pp.cycles !== false, ...(def.builtin && def.id !== 'heidenhain' && pp.lineNumbers != null ? { lineNumbers: !!pp.lineNumbers } : {}) };

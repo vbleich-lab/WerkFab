@@ -432,10 +432,19 @@ function pipeTool(f, sketches) {
   const W = ([u, v]) => V.add(b.o, V.add(V.mul(b.x, +u), V.mul(b.y, +v)));
   const p0 = W(pathPts(e)[0]), p1 = W(pathPts(e)[1]);
   const dir = V.norm(V.sub(p1, p0));
+  // rounded corners of the path as true arcs: a bend is one torus face instead of a row of short cylinders (the
+  // inside is cut out of that – with the short pieces this took seconds)
   const spine = () => {
-    const pp = pathPts(e);
-    let d = R.draw(pp[0]);
-    for (let i = 1; i < pp.length; i++) d = d.lineTo(pp[i]);
+    let d;
+    if (hasCorners(e)) {
+      const { segs } = cornerPlan(e);
+      d = R.draw(segs[0].a);
+      for (const s of segs) d = s.k === 'A' ? d.threePointsArcTo(s.b, s.m) : d.lineTo(s.b);
+    } else {
+      const pp = pathPts(e);
+      d = R.draw(pp[0]);
+      for (let i = 1; i < pp.length; i++) d = d.lineTo(pp[i]);
+    }
     return (e.closed ? d.close() : d.done()).sketchOnPlane(rPlane(pl)).wires();
   };
   const plane = new R.Plane(p0, perp(dir), dir);
@@ -1816,11 +1825,13 @@ function runFeature(f0, ctx) {
     if (!(f.faces || []).length) fail('Flächen wählen, die versetzt werden sollen');
     const oc = R.getOC();
     let done = 0;
+    ctx.faceExtrude[f.id] = [];
     for (const p of f.faces) {
       const hit = bodies.find(b => { const bb = b.shape.boundingBox?.bounds; return bb && [0, 1, 2].every(k => p[k] >= bb[0][k] - 1e-3 && p[k] <= bb[1][k] + 1e-3) && new R.FaceFinder().containsPoint(p).find(b.shape).length; });
       if (!hit) continue;
       const fc = new R.FaceFinder().containsPoint(p).find(hit.shape)[0];
       const nv = fc.normalAt(p), n = V.norm([nv.x, nv.y, nv.z]);
+      (ctx.faceExtrude[f.id] ||= []).push({ p: [...p], n }); // where the face was (for the arrow in the view)
       if (fc.geomType === 'PLANE') {
         if (d > 0) hit.shape = hit.shape.fuse(R.basicFaceExtrusion(fc.clone(), new R.Vector(V.mul(n, d))));
         else {
@@ -2077,6 +2088,8 @@ function runFeature(f0, ctx) {
     if (!(f.thickness > 0)) fail('Wandstärke fehlt');
     const hits = bodiesWithPoints(bodies, f.faces || []);
     if (!hits.length) fail('Mindestens eine offene Fläche wählen');
+    // where the opening was and which way is out (for the arrow in the view)
+    try { const p = hits[0].own[0], fc = new R.FaceFinder().containsPoint(p).find(hits[0].b.shape)[0], nv = fc?.normalAt(p); if (nv) ctx.faceExtrude[f.id] = [{ p: [...p], n: V.norm([nv.x, nv.y, nv.z]) }]; } catch { /* no arrow */ }
     for (const { b, own } of hits) b.shape = b.shape.shell(+f.thickness, faceFilter(own));
     return;
   }

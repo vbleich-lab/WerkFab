@@ -311,6 +311,7 @@ function genTurnOp(op, t, st, prof, ctx = {}) {
       const tw = +t.width || 3;
       const w = Math.max(tw, +op.width || tw);
       const zc = +op.z;
+      if (op.z == null || op.z === '' || !Number.isFinite(zc)) throw new Error('Einstich: Position Z angeben');
       const n = Math.max(1, Math.ceil((w - tw) / (tw * 0.8)) + 1);
       if (inside) {
         // internal groove: down the bore at a safe radius, out to the groove bottom, back in
@@ -325,6 +326,9 @@ function genTurnOp(op, t, st, prof, ctx = {}) {
         break;
       }
       const target = op.dia ? +op.dia / 2 : Math.min(...Array.from({ length: 20 }, (_, i) => prof.at(zc - w / 2 + (w * i) / 19)));
+      // no groove modelled there (the contour must be higher on both sides) and no diameter given: nothing to cut, or at a
+      // shoulder the larger diameter would be cut away – say so instead
+      if (!op.dia && !(target < Math.min(prof.at(zc - w / 2 - 0.5), prof.at(zc + w / 2 + 0.5)) - 0.01)) throw new Error('Kein Einstich im Modell an dieser Stelle – Grund-Ø angeben');
       for (let k = 0; k < n; k++) {
         const z = n === 1 ? zc : zc - (w - tw) / 2 + ((w - tw) * k) / (n - 1);
         P.rapid(st.r + 1, z); P.feed(target, z, t.plunge); P.rapid(st.r + 1, z);
@@ -334,6 +338,7 @@ function genTurnOp(op, t, st, prof, ctx = {}) {
     }
     case 'tthread': {
       const p = +op.pitch || 1.5;
+      if (op.zStart == null || op.zStart === '' || op.zEnd == null || op.zEnd === '' || !Number.isFinite(+op.zStart) || !Number.isFinite(+op.zEnd)) throw new Error('Gewinde: Start Z und Ende Z angeben');
       if (inside) {
         // ISO metric internal thread: from the minor diameter D − 1.0825 P outwards to the nominal diameter
         const D = +op.majorDia || 2 * prof.atIn(+op.zStart - 0.5) + 1.0825 * p;

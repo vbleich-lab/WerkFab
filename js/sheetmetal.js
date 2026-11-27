@@ -265,7 +265,8 @@ export function chainAt(t, r, k, chain, level, d) {
 // Side flanges: fl.sideA / fl.sideB = { h, angle, r? } – a flange on the side edge of the (first) flange, at the
 // start (A) or the end (B) of the plate's edge; it is as long as the straight part of the flange and bends
 // about the side edge (+ = towards the side the flange was bent to, − = away from it). Only on a straight
-// edge, and only where the flange ends freely there (no closed corner, no flange running on round a corner).
+// edge, and only where the flange ends freely there (no mitred corner, no flange running on round a corner). At a
+// closed corner the side flange takes the place of the miter: see flangeEnds.
 // → [{ side: 'A' | 'B', h, angle, rb (inner radius), ba (allowance), s (where along the edge), x (+1 / −1: the
 //      way out along the edge), h0 (length = straight part of the flange) }]
 export function sideFlanges(fl, ed, en, gA, gB, t, r, k, jn = null) {
@@ -274,7 +275,7 @@ export function sideFlanges(fl, ed, en, gA, gB, t, r, k, jn = null) {
   for (const side of ['A', 'B']) {
     const q = side === 'A' ? fl.sideA : fl.sideB, h = +q?.h || 0, angle = +q?.angle || 90;
     if (!(h > 0) || Math.abs(angle) < 1 || Math.abs(angle) > 180) continue;
-    if (side === 'A' ? en.a || jn?.a : en.b || jn?.b) continue;
+    if (side === 'A' ? en.a || jn?.a || en.noA : en.b || jn?.b || en.noB) continue;
     const rb = bendR({ angle, ...(q.r != null && q.r !== '' && +q.r >= 0 ? { r: +q.r } : {}) }, r);
     out.push({ side, h, angle, rb, ba: bendAllowance(Math.abs(angle), rb, t, k), s: side === 'A' ? gA : ed.L - gB, x: side === 'A' ? -1 : 1, h0 });
   }
@@ -340,6 +341,18 @@ export function flangeEnds(edges, f) {
     // edge i ends where edge j starts; convex for a CCW polygon when e_i x e_j > 0
     const A = at(i, 1), B = at(j, 0), fi = fls.get(i)?.last, fj = fls.get(j)?.first, round = arcs.has(i) || arcs.has(j);
     if (!closed || !fi || !fj || i === j || +fi.offB > 0 || +fj.offA > 0 || A.e[0] * B.e[1] - A.e[1] * B.e[0] < (round ? 0.05 : 1e-6)) return null;
+    // a side flange asked for at this corner: no miter – the flange with the side flange ends short, so that its
+    // side flange lies against the inside of the neighbour (leaving the corner gap), and the neighbour runs up to
+    // the corner. For a square corner of two walls bent by 90°; the flange at the end of the edge goes first.
+    const tabOf = (q, r0) => (+q?.h > 0 && Math.abs((+q.angle || 90) - 90) < 1 ? bendR({ angle: 90, ...(q.r != null && q.r !== '' && +q.r >= 0 ? { r: +q.r } : {}) }, r0) : null);
+    if (!round) {
+      const t = +f.thickness, r0 = +f.radius, ci = flangeChain(fi)[0], cj = flangeChain(fj)[0];
+      const square = Math.abs(A.e[0] * B.e[0] + A.e[1] * B.e[1]) < 0.02 && Math.abs(ci.angle - 90) < 1 && Math.abs(cj.angle - 90) < 1;
+      const ti = tabOf(fi.sideB, r0), tj = ti == null ? tabOf(fj.sideA, r0) : null;
+      if (square && ti != null) return { tab: 'i', gap: Math.max(0.1, t + g + ti - bendR(cj, r0)) };
+      if (square && tj != null) return { tab: 'j', gap: Math.max(0.1, t + g + tj - bendR(ci, r0)) };
+      if (+fi.sideB?.h > 0 || +fj.sideA?.h > 0) return null;
+    }
     const w0 = [A.n[0] + B.n[0], A.n[1] + B.n[1]], wl = Math.hypot(...w0);
     return { V: edges[j].a, w: [w0[0] / wl, w0[1] / wl], nA: A.n, nB: B.n, eA: A.e, eB: B.e };
   };
@@ -354,7 +367,10 @@ export function flangeEnds(edges, f) {
     if (owner[i] !== i) return { a: null, b: null };
     const len = arcs.get(i)?.m || 1, prev = owner[(i - 1 + n) % n], next = owner[(i + len) % n];
     const ca = corner(prev, i), cb = corner(i, next);
-    return { a: ca && mk(ca, ca.nA, [-ca.eB[0], -ca.eB[1]]), b: cb && mk(cb, cb.nB, cb.eA) };
+    // (ga / gb: the distance from the corner where a side flange closes it – 0 for the flange that runs up to it;
+    // noA / noB: the side flange that gives way to the one of the neighbour)
+    return { a: ca && !ca.tab ? mk(ca, ca.nA, [-ca.eB[0], -ca.eB[1]]) : null, b: cb && !cb.tab ? mk(cb, cb.nB, cb.eA) : null,
+      ...(ca?.tab ? { ga: ca.tab === 'j' ? ca.gap : 0, noA: ca.tab === 'i' } : {}), ...(cb?.tab ? { gb: cb.tab === 'i' ? cb.gap : 0, noB: cb.tab === 'j' } : {}) };
   });
 }
 // where a flange on a curved edge, out by u, meets the plane of a mitred corner: the angle next to th
@@ -482,7 +498,7 @@ function plateDrawing(R, P, runs) {
 
 // distance of a flange from the two ends of its edge: a closed corner (miter), the distance the user gave
 // (partial flange: fl.offA from the start, fl.offB from the end of the edge) or the relief gap
-const flangeGaps = (fl, en, gap, closedGap, jn = null) => [jn?.a ? 0 : +fl.offA > 0 ? +fl.offA : en.a ? closedGap : gap, jn?.b ? 0 : +fl.offB > 0 ? +fl.offB : en.b ? closedGap : gap];
+const flangeGaps = (fl, en, gap, closedGap, jn = null) => [jn?.a ? 0 : +fl.offA > 0 ? +fl.offA : en.ga != null ? en.ga : en.a ? closedGap : gap, jn?.b ? 0 : +fl.offB > 0 ? +fl.offB : en.gb != null ? en.gb : en.b ? closedGap : gap];
 
 export function sheetSolid(R, poly, z0, f, holes = []) {
   const t = +f.thickness, r = +f.radius, k = sheetK(f);
@@ -694,7 +710,7 @@ export function tabSlots(poly, z0, f) {
 
 const one = x => (x && x.solids && x.solids.length === 1 ? x.solids[0] : x);
 // the corners a flange meets: none at an end where it stops short of the corner
-const endsOf = (ends, fl) => { const en = ends[fl.edge] || { a: null, b: null }; return { a: +fl.offA > 0 ? null : en.a, b: +fl.offB > 0 ? null : en.b }; };
+const endsOf = (ends, fl) => { const en = ends[fl.edge] || { a: null, b: null }; return { ...en, a: +fl.offA > 0 ? null : en.a, b: +fl.offB > 0 ? null : en.b }; };
 
 /**
  * A flange on a straight edge that runs across a bend line is cut there: one flange on each side, each ending the
@@ -1456,7 +1472,7 @@ function nestTight(parts, W, H, gap, rotate) {
       }
       const tx = gap / 2 - e + ix * cell - m.x0, ty = gap / 2 - e + iy * cell - m.y0;
       const put = l => l.map(p => { const q = turn(k, p); return [q[0] + tx, q[1] + ty]; });
-      placed.push({ id: it.p.id, sheet: si, loops: it.p.outline.map(put), open: (it.p.open || []).map(put), rot: k % 2 === 1, turn: k * 90 });
+      placed.push({ id: it.p.id, sheet: si, loops: it.p.outline.map(put), open: (it.p.open || []).map(put), marks: (it.p.marks || []).map(put), rot: k % 2 === 1, turn: k * 90 });
       area += it.area;
       done = true;
     }
@@ -1472,7 +1488,7 @@ function nestRows(parts, W, H, gap = 5, rotate = true) {
     for (const l of p.outline) for (const [x, y] of l) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
     if (!(x1 > x0)) continue;
     const area = p.outline.reduce((a, l) => a + polyArea(l), 0);
-    for (let i = 0; i < Math.max(1, Math.round(+p.qty || 1)); i++) items.push({ id: p.id, outline: p.outline, open: p.open || [], x0, y0, w: x1 - x0, h: y1 - y0, area: Math.abs(area) });
+    for (let i = 0; i < Math.max(1, Math.round(+p.qty || 1)); i++) items.push({ id: p.id, outline: p.outline, open: p.open || [], marks: p.marks || [], x0, y0, w: x1 - x0, h: y1 - y0, area: Math.abs(area) });
   }
   const left = [], placed = [];
   // lying flat (the short side up) fills rows best; a part that only fits upright stays upright
@@ -1497,7 +1513,7 @@ function nestRows(parts, W, H, gap = 5, rotate = true) {
   for (const it of todo) {
     // turned by 90° counter-clockwise: (x, y) → (-y, x); then the box's corner onto its place
     const put = l => l.map(([x, y]) => (it.rot ? [it.px + (it.y0 + it.h - y), it.py + (x - it.x0)] : [it.px + (x - it.x0), it.py + (y - it.y0)]));
-    placed.push({ id: it.id, sheet: it.sheet, loops: it.outline.map(put), open: it.open.map(put), rot: !!it.rot });
+    placed.push({ id: it.id, sheet: it.sheet, loops: it.outline.map(put), open: it.open.map(put), marks: it.marks.map(put), rot: !!it.rot });
     area += it.area;
   }
   return { sheets: sheets.length, placed, left, used: sheets.length ? area / (sheets.length * W * H) : 0 };
@@ -1521,7 +1537,8 @@ export const CUT_CONTROLS = {
  * on the waste side, holes before the outline of their part, the nearest part next; every contour starts with a
  * lead-in from the waste, in the middle of its longest straight stretch. opts: { mode: 'laser' | 'plasma' |
  * 'waterjet' | 'mill', kerf, feed, lead, pierce (s), power, thickness, name; mill: rpm, plunge, step (depth per
- * pass), safeZ, through (how far below the sheet); open: [[p, q, …]] cuts that are no outline (louvre slits: on
+ * pass), safeZ, through (how far below the sheet); marks, markPower, markFeed, markDepth: bend lines to mark first;
+ * open: [[p, q, …]] cuts that are no outline (louvre slits: on
  * the line, before the outline of their part); tabs (per outline), tabW (mm left standing; mill: tabH high, the
  * cutter adds its diameter to the gap), minTab (outlines shorter than this get none); control (CUT_CONTROLS),
  * onCode / offCode (control 'custom'); holeTabs: cut-outs with at least this perimeter get tabs too (0: none);
@@ -1654,6 +1671,27 @@ export function cutProgram(loops, opts = {}) {
     }
     return split;
   };
+  // Bend lines marked on the sheet before anything is cut loose (opts.marks: [[p, q, …]], the middle line of every
+  // bend): the laser with little power (opts.markPower), the cutter a scratch deep (opts.markDepth). Plasma and
+  // water jet cannot mark, and with own commands the power cannot be set – there the lines are left out.
+  let markLen = 0, markN = 0;
+  if (mill || (mode === 'laser' && opts.control !== 'custom')) {
+    const mOn = ctl.on(Math.max(1, Math.round(+opts.markPower || 100))), mFeed = Math.max(1, +opts.markFeed || feed), mZ = -Math.max(0.01, +opts.markDepth || 0.1);
+    const d2 = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]), left = (opts.marks || []).filter(m => m.length >= 2 && lenOf(m, false) > 1e-6).map(m => m.map(p => [p[0], p[1]]));
+    if (left.length) out.push('(Biegelinien anzeichnen)');
+    while (left.length) {
+      // the nearest end next
+      let bi = 0, bd = Infinity, rev = false;
+      left.forEach((m, i) => { const a = d2(last, m[0]), b = d2(last, m[m.length - 1]); if (a < bd) { bd = a; bi = i; rev = false; } if (b < bd) { bd = b; bi = i; rev = true; } });
+      const m = left.splice(bi, 1)[0], pts = rev ? m.reverse() : m;
+      out.push(`G0 ${xy(pts[0])}`); rapid += d2(last, pts[0]); tr(last, pts[0], 0);
+      out.push(mill ? `G1 Z${n3(mZ)} F${n3(plunge)}` : mOn);
+      for (let i = 1; i < pts.length; i++) { out.push(`G1 ${xy(pts[i])}${i > 1 ? '' : ` F${n3(mFeed)}`}`); markLen += d2(pts[i - 1], pts[i]); tr(pts[i - 1], pts[i], 4); }
+      out.push(mill ? `G0 Z${n3(safeZ)}` : offCode);
+      last = pts[pts.length - 1]; markN++;
+    }
+    if (markN) out.push('(Schneiden)');
+  }
   for (const q of order) {
     const ll = Math.hypot(q.pts[0][0] - q.lead[0], q.pts[0][1] - q.lead[1]), st = stretches(q);
     rapid += Math.hypot(q.lead[0] - last[0], q.lead[1] - last[1]);
@@ -1702,7 +1740,7 @@ export function cutProgram(loops, opts = {}) {
   if (mill) out.push('M5');
   out.push('G0 X0 Y0', 'M30');
   tr(last, [0, 0], 0);
-  return { text: out.join('\n') + '\n', length, pierces, tabs, saved, minutes: length / feed + (mill ? 0 : (pierces * pierce) / 60) + rapid / 10000, paths: order, trace };
+  return { text: out.join('\n') + '\n', length, pierces, tabs, saved, marks: markN, markLength: markLen, minutes: length / feed + markLen / Math.max(1, +opts.markFeed || feed) + (mill ? 0 : (pierces * pierce) / 60) + rapid / 10000, paths: order, trace };
 }
 
 /**

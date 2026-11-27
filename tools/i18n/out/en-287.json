@@ -1,0 +1,11 @@
+{
+ "Noch kein Dreh-Setup: „Neues Setup“ → Operationstyp „Drehen“ wählen.": "No turning setup yet: “New setup” → choose the operation type “Turning”.",
+ "Länge der Lasche an der Seitenkante dieser Lasche (0 = keine). An einer geschlossenen Ecke schließt sie die Ecke: Sie liegt innen an der Nachbarlasche an.": "Length of the flange on the side edge of this flange (0 = none). At a closed corner it closes the corner: it lies against the inside of the neighbouring flange.",
+ "Biegelinien anzeichnen (Laser, Fräsen)": "Mark bend lines (laser, milling)",
+ "Leistung zum Anzeichnen (S-Wert, Laser)": "Power for marking (S value, laser)",
+ "Tiefe zum Anzeichnen (Fräsen)": "Depth for marking (milling)",
+ "{0} als T{1} in der Werkzeugbibliothek angelegt": "{0} added to the tool library as T{1}",
+ "Einstich: Position Z angeben": "Groove: enter position Z",
+ "Kein Einstich im Modell an dieser Stelle – Grund-Ø angeben": "No groove in the model at this place – enter the bottom Ø",
+ "Gewinde: Start Z und Ende Z angeben": "Thread: enter start Z and end Z"
+}

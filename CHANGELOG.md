@@ -1,5 +1,17 @@
 # Änderungen
 
+## v1.0.0-rc.46 – 2026-11-27
+
+- **Drehen: Werkzeug wird von selbst angelegt:** In einem neuen Design brach jede Dreh-Bearbeitung ab, weil kein passendes Werkzeug in der Bibliothek war. Jetzt wird das übliche Werkzeug angelegt (Drehmeißel, Stechmeißel 3 mm, Gewindedrehmeißel 60°, Bohrstange) und in der Statuszeile genannt.
+- **Drehen: Postprozessor passt zum Setup:** Ein Dreh-Setup wurde mit dem Fräs-Postprozessor ausgegeben, nur mit einer Warnung. Jetzt nimmt ein Dreh-Setup von selbst den Dreh-Postprozessor derselben Steuerung (Fanuc, LinuxCNC, Okuma), ein Fräs-Setup den zum Fräsen – solange im NC-Fenster kein anderer gewählt ist.
+- **Drehen: Einstich und Gewinde:** Ohne Angaben entstand eine leere Bahn ohne Meldung. Einstich und Gewinde bekommen jetzt Startwerte aus dem Teil (Einstich in der Mitte, Gewinde vom Anfang des Teils); fehlt eine Angabe, sagt die Bearbeitung, welche – etwa „Kein Einstich im Modell an dieser Stelle – Grund-Ø angeben“.
+- **NC-Prüfung: Gravuren:** Gravieren, Projizieren und V-Gravur schneiden mit Absicht ins fertige Teil; die Prüfung meldete jede dieser Bahnen als „Bahn schneidet ins fertige Teil“. Jetzt darf eine Gravur so tief gehen, wie ihre Tiefe sagt – gemeldet wird nur, was tiefer schneidet.
+- **Blech: Seitenlasche an der geschlossenen Ecke:** An einer geschlossenen Ecke entfiel die Seitenlasche bisher. Jetzt schließt sie die Ecke: Die Lasche endet vor der Ecke, ihre Seitenlasche liegt innen an der Nachbarlasche an. Das gilt für rechtwinklige Ecken mit 90°-Laschen; wollen beide Laschen an derselben Ecke eine Seitenlasche, entsteht eine.
+- **Blech: Biegelinien anzeichnen:** Im Schneidprogramm (Schachteln) lassen sich die Biegelinien vor dem Schneiden anzeichnen – der Laser mit kleiner Leistung, die Fräse ritzt (Tiefe einstellbar, 0,1 mm vorgegeben). Plasma und Wasserstrahl lassen das Anzeichnen aus. Die Vorschau zeigt die Linien rot gestrichelt.
+- **Fläche versetzen und Schale: Pfeil im Modell:** Beim Versetzen einer Fläche und bei der Schale steht jetzt wie bei der Extrusion ein Pfeil mit Wertefeld an der Fläche; der Abstand bzw. die Wandstärke lässt sich daran ziehen oder eintippen.
+- **Rohr rechnet schneller:** Rundungen im Pfad eines Rohrs werden als echte Bögen gerechnet statt aus vielen kurzen Stücken – ein Rohr mit Rundungen braucht rund ein Zehntel der Zeit.
+- **Sprachen:** Alle 24 weiteren Sprachen sind auf dem Stand von Englisch und Chinesisch – je über 600 Texte kamen dazu, vor allem kurze Bezeichnungen in Fenstern und Listen, die bisher deutsch erschienen.
+
 ## v1.0.0-rc.45 – 2026-11-26
 
 - **Skizze, Versatz: ganze Konturen, beide Seiten, mit der Maus:** Eine Kontur aus mehreren Stücken (Linien und Bögen, die aneinanderhängen, oder ein importierter Umriss) wird als Ganzes versetzt. „Nach beiden Seiten“ legt die Kopie auf beide Seiten der Kontur. Mit „Mit der Maus zeigen“ folgt der Abstand der Maus (in Schritten von 0,1 mm, mit Alt frei); die Vorschau zeigt das Ergebnis, ein Klick übernimmt den Abstand.

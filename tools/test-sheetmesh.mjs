@@ -38,7 +38,11 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
     ok('Seitenlaschen an einer Lasche: Zuschnitt wächst seitlich, Biegungen in der Tabelle', near(Math.max(...xs2), 70 + ba + 10, 0.01) && near(Math.min(...xs2), 20 - baA - 6, 0.01) && near(sd.area, part.area + 15 * (ba + 10) + 15 * (baA + 6), 0.05) && rows.length === 2 && rows.every(q => near(q.length, 15)) && !sd.overlap && sd.bends.length === part.bends.length + 4,
       `X ${Math.min(...xs2).toFixed(2)} … ${Math.max(...xs2).toFixed(2)}, ${sd.area.toFixed(2)} mm², ${rows.map(q => q.side + ' ' + q.angle + '°').join(', ')}`);
     const cl = flatPattern(poly, { ...f, corner: 'closed', flanges: [{ edge: 0, on: true, h: 15, angle: 90, sideB: { h: 10, angle: 90 } }, { edge: 1, on: true, h: 15, angle: 90 }] });
-    ok('Seitenlasche an einer geschlossenen Ecke: entfällt', !cl.table.some(q => q.side));
+    // (the flange ends t + gap short of the corner, the neighbour runs up to it; the lower flange gives way when both ask)
+    const eL = Math.hypot(poly[1][0] - poly[0][0], poly[1][1] - poly[0][1]), gapC = +f.thickness + 0.2, rel = +f.radius + +f.thickness;
+    ok('Seitenlasche an einer geschlossenen Ecke: schließt die Ecke statt der Gehrung', cl.table.filter(q => q.side).length === 1 && near(cl.table[0].length, eL - rel - gapC, 0.01) && !cl.overlap, cl.table.map(q => (q.side || q.level) + ':' + (+q.length).toFixed(2)).join(' '));
+    const cl2 = flatPattern(poly, { ...f, corner: 'closed', flanges: [{ edge: 0, on: true, h: 15, angle: 90, sideB: { h: 10, angle: 90 } }, { edge: 1, on: true, h: 15, angle: 90, sideA: { h: 10, angle: 90 } }] });
+    ok('Zwei Seitenlaschen an derselben geschlossenen Ecke: eine entsteht', cl2.table.filter(q => q.side).length === 1 && cl2.table.find(q => q.side).side === 'B');
   }
   // checks
   const txt = c => c.map(x => x.text).join(' | ');
@@ -570,6 +574,17 @@ const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
   const m = cutProgram([sq], { mode: 'mill', kerf: 3, feed: 600, lead: 4, thickness: 2, step: 1, rpm: 18000 });
   const ml = m.text.trim().split('\n'), zs = ml.filter(l => /^G1 Z/.test(l)).map(l => +l.match(/Z(-?[\d.]+)/)[1]);
   ok('Schneidprogramm Fräsen: Durchgänge bis unter das Blech, Bahn um den halben Fräser außen', ml.includes('M3 S18000') && zs.join(',') === '-1,-2,-2.3' && near(Math.min(...m.paths[0].pts.map(q => q[0])), 8.5, 2e-3) && ml.filter(l => l === 'G0 Z5').length === 2 && !ml.some(l => l.startsWith('G4')), zs.join(' / '));
+  // bend lines marked before the cutting
+  {
+    const mk = cutProgram([sq], { mode: 'laser', kerf: 0.2, feed: 1200, lead: 3, pierce: 0.5, power: 800, thickness: 2, marks: [[[20, 10], [20, 40]], [[50, 40], [50, 10]]], markPower: 80 });
+    const L = mk.text.trim().split(String.fromCharCode(10)), iM = L.indexOf('(Biegelinien anzeichnen)'), iC = L.indexOf('(Schneiden)'), blk = L.slice(iM + 1, iC);
+    ok('Schneidprogramm: Biegelinien zuerst, mit kleiner Leistung, ohne Einstechzeit', iM > 0 && iC > iM && blk.filter(l => l === 'M3 S80').length === 2 && blk.filter(l => l === 'M5').length === 2 && !blk.some(l => l.startsWith('G4')) && mk.marks === 2 && near(mk.markLength, 60, 1e-6) && mk.pierces === 1 && L.slice(iC).filter(l => l === 'M3 S800').length === 1, blk.join(' | '));
+    ok('Schneidprogramm: die nähere Biegelinie zuerst, die zweite vom näheren Ende her', blk[0] === 'G0 X20 Y10' && blk.includes('G0 X50 Y40'), blk.filter(l => l.startsWith('G0')).join(' '));
+    const mm = cutProgram([sq], { mode: 'mill', kerf: 3, feed: 600, lead: 4, thickness: 2, step: 1, rpm: 18000, marks: [[[20, 10], [20, 40]]], markDepth: 0.15 });
+    ok('Schneidprogramm Fräsen: Biegelinie als Ritzlinie', mm.text.includes('G1 Z-0.15') && mm.marks === 1);
+    const pl = cutProgram([sq], { mode: 'plasma', kerf: 1, feed: 2000, thickness: 2, marks: [[[20, 10], [20, 40]]] });
+    ok('Schneidprogramm Plasma: kein Anzeichnen', pl.marks === 0 && !pl.text.includes('Biegelinien'));
+  }
   // tabs, open cuts, controls
   const big = [[0, 0], [100, 0], [100, 50], [0, 50]];
   const tb = cutProgram([big, [[20, 20], [20, 30], [30, 30], [30, 20]]], { mode: 'laser', kerf: 0, feed: 1000, lead: 2, pierce: 0.2, power: 500, thickness: 2, tabs: 4, tabW: 1 });

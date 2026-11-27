@@ -25,7 +25,7 @@ import { dropMissingFileSnaps, sheetBase, regenerate, regenerateAsync, estimateR
 import { Sketcher } from './sketcher.js';
 import { buildHeightmap, cornerOf } from './heightmap.js';
 import { generateSetup, stockTopAt, stockBotAt, opHeights, originOf, originLabel, orientationLabel, OP_TYPES, DRILL_CYCLES, ORIGINS, MULTI_OPS, AXIS_MODES, SWARF_OPS, multiAxisOn, pivotOf, TOOL_TYPES, ORIENTATIONS, RAPID_FEED, setupMatrix, sketchHorizontalIn, OPS_3D, PROBE_MODES, MANUAL_KINDS, PATTERN_KINDS, orderByTool, opCells, toolBase, STOCK_MODES, STOCK_MATERIALS, BOUNDARY_MODES, setupBodies, heightSpec, HEIGHT_KEYS, HEIGHT_FROM, applyCutData, serialNumbers, serialText, FIT_OPS, fitOffset } from './cam.js';
-import { postProcess, runPost, allPosts, findPost, copyPost, setPostLibrary, SECTIONS, VARIABLES, POST_PROPS, POST_PROP_GROUPS, postProps, propApplies, propType, COOLANT_MODES, mCodeLabel, postMCodes, postFamily } from './post.js';
+import { postProcess, runPost, allPosts, findPost, postForKind, copyPost, setPostLibrary, SECTIONS, VARIABLES, POST_PROPS, POST_PROP_GROUPS, postProps, propApplies, propType, COOLANT_MODES, mCodeLabel, postMCodes, postFamily } from './post.js';
 import { allMachines, findMachine, copyMachine, newMachine, machineChecks, KIN_TYPES, kinAngles } from './machines.js';
 import { StockSim, tiltedEdgeZ, defaultFluteLen, defaultHolderDia, defaultStickout } from './sim.js';
 import { exampleProject, exampleTurning, exampleMilling, exampleDesign } from './example.js';
@@ -2004,6 +2004,7 @@ function drawExtrudeGizmo() {
   const f = feature(t.id);
   if (f?.type === 'plane' && f.kind === 'offset' && !f.suppressed && !f.hidden) return drawPlaneGizmo(f);
   if (f?.type === 'move' && !f.suppressed) return drawMoveGizmo(f);
+  if ((f?.type === 'offsetface' || f?.type === 'shell') && !f.suppressed) return drawFaceValueGizmo(f);
   if (!f || f.type !== 'extrude' || f.suppressed) return;
   const rf = resolved().features.find(x => x.id === f.id), rsk = rf && resolved().features.find(x => x.id === rf.sketch);
   if (rf?.source === 'faces') return drawFaceExtrudeGizmo(f, rf);
@@ -2145,6 +2146,41 @@ function drawPlaneGizmo(f) {
   exGiz.handles.push({ key: 'offset', side: 1, raw: off, pos: off, dir: off >= 0 ? 1 : -1, arrow, lab, inp, fit, mini: true });
   updateExtrudeGizmo();
 }
+// "Fläche versetzen" and "Schale": an arrow on the (first) chosen face – dragged along its normal it sets the
+// distance (outwards = more material) or the wall thickness (inwards from the opening), the box takes a typed value
+function drawFaceValueGizmo(f) {
+  const rf = resolved().features.find(x => x.id === f.id), ref = (f.faces || [])[0];
+  if (!rf || !ref) return;
+  // where the face was: from the model once the step is in it, before that (preview) the face is still there
+  let info = getModel().faceExtrude?.[f.id]?.[0];
+  if (!info) { const fa = faceAt(ref), nn = fa && faceNormal(fa.body, fa.fid); if (nn) info = { p: ref, n: [nn.x, nn.y, nn.z] }; }
+  if (!info) return;
+  const shell = f.type === 'shell', key = shell ? 'thickness' : 'distance', side = shell ? -1 : 1;
+  const n = new THREE.Vector3(...info.n).normalize(), o = new THREE.Vector3(...info.p), raw = +rf[key] || 0;
+  if (!(n.lengthSq() > 0.5)) return;
+  const group = new THREE.Group();
+  vp.paths.add(group);
+  exGiz = { fid: f.id, o, n, b: null, loops3: [], loops: [], sym: false, endOnly: true, group, handles: [] };
+  const arrow = exArrowMesh();
+  arrow.matrixAutoUpdate = false;
+  group.add(arrow);
+  const inp = h('input', { type: 'text', value: String(lenOut(raw)), spellcheck: 'false', size: 1 });
+  const fit = () => { inp.style.width = Math.max(2, inp.value.length + 0.5) + 'ch'; };
+  fit();
+  inp.addEventListener('input', fit);
+  const lbox = h('div', { class: 'exg-box exg-mini', title: shell ? 'Wandstärke' : 'Abstand', onpointerdown: e => e.stopPropagation() }, inp);
+  inp.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter') { e.preventDefault(); if (setExtrudeValue(f.id, key, inp.value)) gizEnterOk(f.id); }
+    if (e.key === 'Escape') { inp.value = String(lenOut(raw)); fit(); inp.blur(); }
+  });
+  inp.addEventListener('change', () => setExtrudeValue(f.id, key, inp.value));
+  const lab = new CSS2DObject(h('div', { class: 'exg-anchor' }, lbox));
+  group.add(lab);
+  // (a wall thickness stays above 0: the arrow stops a tenth inside the opening)
+  exGiz.handles.push({ key, side, raw, pos: side * raw, dir: side * raw >= 0 ? 1 : -1, arrow, lab, inp, fit, mini: true, ...(shell ? { minVal: 0.1 } : {}) });
+  updateExtrudeGizmo();
+}
 function setExtrudeValue(fid, key, text) {
   const [t, k] = lenIn(String(text).trim().replace(',', '.'));
   if (!t) return;
@@ -2254,6 +2290,7 @@ vp.canvas.addEventListener('pointerdown', e => {
     if (s1 == null) return;
     let pos = exDrag.pos0 + (s1 - exDrag.start);
     pos = ev.shiftKey ? Math.round(pos) : Math.round(pos * 10) / 10; // 0.1 mm, Umschalt = 1 mm
+    if (hd.minVal != null && hd.side * pos < hd.minVal) pos = hd.side * hd.minVal;
     exDrag.pos = pos;
     const val = exGiz.sym ? 2 * Math.abs(pos) : hd.side * pos;
     if (hd.inp) hd.inp.value = String(lenOut(val));
@@ -3320,7 +3357,7 @@ function chooseTab(name) {
     if ((activeSetupKind() === 'turn') !== (want === 'turn')) {
       const s = state.project.cam.setups.find(x => (x.kind === 'turn') === (want === 'turn'));
       if (s) { state.camSetup = s.id; state.sel = { kind: 'setup', id: s.id }; }
-      else status(want === 'turn' ? 'Noch kein Dreh-Setup: „Neues Setup“ → Bearbeitung „Drehen“ wählen.' : 'Noch kein Fräs-Setup vorhanden.');
+      else status(want === 'turn' ? 'Noch kein Dreh-Setup: „Neues Setup“ → Operationstyp „Drehen“ wählen.' : 'Noch kein Fräs-Setup vorhanden.');
     }
   }
   uiTab[state.workspace] = name;
@@ -5973,7 +6010,7 @@ const agentApi = {
     const r = postProcess(resolved(), g, g.machine, postId ? { postId } : {}), rep = ncReport(g, r, postId, { part: part !== false }), lines = r.code.split('\n'), by = {};
     for (const is of rep.issues) (by[is.kind] ||= []).push(is.k);
     const skipped = g.ops.filter(o => o.enabled !== false && g.results.get(o.id)?.error).map(o => ({ id: o.id, name: o.name, error: g.results.get(o.id).error }));
-    return { setup: sid, post: findPost(p, postId || p.post.flavor).id, lines: r.lines, time: +(+r.time || 0).toFixed(1), clean: !rep.issues.length && !skipped.length && !(r.warnings || []).length,
+    return { setup: sid, post: findPost(p, postId || postForKind(p, p.post.flavor, g.kind === 'turn')).id, lines: r.lines, time: +(+r.time || 0).toFixed(1), clean: !rep.issues.length && !skipped.length && !(r.warnings || []).length,
       issues: Object.entries(by).map(([kind, ks]) => {
         // how many of these lines each operation wrote
         const ops = {};
@@ -6000,7 +6037,7 @@ const agentApi = {
     if (!g) throw new Error(`No setup "${sid}"`);
     if (!g.stock) throw new Error(g.error || 'The setup has no stock');
     if (postId && !allPosts(p).some(x => x.id === postId)) throw new Error(`No post processor "${postId}"`);
-    const r = postProcess(resolved(), g, g.machine, postId ? { postId } : {}), def = findPost(p, postId || p.post.flavor);
+    const r = postProcess(resolved(), g, g.machine, postId ? { postId } : {}), def = findPost(p, postId || postForKind(p, p.post.flavor, g.kind === 'turn'));
     const skipped = g.ops.filter(o => o.enabled !== false && g.results.get(o.id)?.error).map(o => ({ id: o.id, name: o.name, error: g.results.get(o.id).error }));
     return { setup: sid, post: def.id, file: ncFileName(r.code, `${safeName()}.${def.ext || 'nc'}`, def.ext), lines: r.lines, time: +(+r.time || 0).toFixed(1), warnings: r.warnings || [], skipped, notice: 'Draft: verify in the simulation and with a dry run on the machine before cutting.', code: r.code };
   },
@@ -6960,7 +6997,7 @@ function propsSheet(b, f, ed) {
         const sideIn = (key, sub, title, len) => { const q = fl[key] || {}; return lenFieldIf(len, h('input', { type: 'text', value: sub === 'h' ? +q.h || 0 : q.angle ?? 90, title, onchange: ev => { const v = parseFloat(ev.target.value.replace(',', '.')); setFl(x => { x[key] ||= { h: 0, angle: 90 }; if (sub === 'h') x[key].h = Number.isFinite(v) && v > 0 ? v : 0; else if (Number.isFinite(v) && v !== 0) x[key].angle = Math.max(-180, Math.min(180, v)); if (!(x[key].h > 0) && sub === 'h') delete x[key]; }); } })); };
         for (const [key, name] of [['sideA', 'Seitenlasche am Anfang'], ['sideB', 'Seitenlasche am Ende']]) {
           b.append(h('div', { class: 'flange-row flange-sub' }, h('span', null, name),
-            sideIn(key, 'h', 'Länge der Lasche an der Seitenkante dieser Lasche (0 = keine)', true), h('small', null, lenUnit()),
+            sideIn(key, 'h', 'Länge der Lasche an der Seitenkante dieser Lasche (0 = keine). An einer geschlossenen Ecke schließt sie die Ecke: Sie liegt innen an der Nachbarlasche an.', true), h('small', null, lenUnit()),
             sideIn(key, 'angle', 'Biegewinkel ° (+ zur Seite hin, zu der diese Lasche gebogen ist, − von ihr weg)', false), h('small', null, '°')));
         }
       }
@@ -7163,7 +7200,7 @@ async function nestDialog() {
     if (q < 1) continue;
     const r = sheetFlat(s);
     if (!r) continue;
-    parts.push({ id: s.id, outline: r.fp.outline, open: r.fp.slits || [], qty: q, bends: r.fp.bends });
+    parts.push({ id: s.id, outline: r.fp.outline, open: r.fp.slits || [], qty: q, bends: r.fp.bends, marks: (r.fp.table || []).map(b => b.centre).filter(c => Array.isArray(c) && c.length >= 2) });
     thick.push(+r.base.f.thickness || 0);
   }
   if (!parts.length) return status('Keine Teile zum Schachteln – Stückzahl eintragen.');
@@ -7187,6 +7224,9 @@ async function nestDialog() {
       { key: 'tabW', label: 'Breite der Haltestege', value: lc.tabW ?? 0.5, unit: 'mm' },
       { key: 'holeTabs', label: 'Haltestege auch in Ausschnitten ab Umfang (0 = keine)', value: lc.holeTabs ?? 0, unit: 'mm' },
       { key: 'common', label: 'Gemeinsame Schnittkanten nur einmal schneiden', check: true, value: lc.common ?? true },
+      { key: 'mark', label: 'Biegelinien anzeichnen (Laser, Fräsen)', check: true, value: lc.mark ?? false },
+      { key: 'markPower', label: 'Leistung zum Anzeichnen (S-Wert, Laser)', value: lc.markPower ?? 100 },
+      { key: 'markDepth', label: 'Tiefe zum Anzeichnen (Fräsen)', value: lc.markDepth ?? 0.1, unit: 'mm' },
       { key: 'control', label: 'Steuerung', value: lc.control ?? 'generic', options: Object.entries(CUT_CONTROLS).map(([k, c]) => [k, c.name]) },
       { key: 'onCode', label: 'Eigener Befehl „Ein“', value: lc.onCode ?? 'M3', text: true },
       { key: 'offCode', label: 'Eigener Befehl „Aus“', value: lc.offCode ?? 'M5', text: true },
@@ -7200,7 +7240,7 @@ async function nestDialog() {
     let len = 0, pier = 0, min = 0, tabN = 0;
     const progs = [];
     for (let i = 0; i < n.sheets; i++) {
-      const prog = cutProgram(n.placed.filter(p => p.sheet === i).flatMap(p => p.loops), { ...c, open: n.placed.filter(p => p.sheet === i).flatMap(p => p.open || []), thickness: Math.max(...thick) || 1, name: `${safeName()} Schachtelplan Tafel ${i + 1} von ${n.sheets}, ${f2(W)} x ${f2(H)} mm` });
+      const prog = cutProgram(n.placed.filter(p => p.sheet === i).flatMap(p => p.loops), { ...c, marks: c.mark ? n.placed.filter(p => p.sheet === i).flatMap(p => p.marks || []) : [], open: n.placed.filter(p => p.sheet === i).flatMap(p => p.open || []), thickness: Math.max(...thick) || 1, name: `${safeName()} Schachtelplan Tafel ${i + 1} von ${n.sheets}, ${f2(W)} x ${f2(H)} mm` });
       progs.push({ prog, loops: n.placed.filter(p => p.sheet === i).flatMap(p => p.loops) });
       len += prog.length; pier += prog.pierces; min += prog.minutes; tabN += prog.tabs;
     }
@@ -7242,6 +7282,7 @@ function cutPreview(progs, W, H) {
         + `<path d="${d(1)}" stroke="#1d4ed8" stroke-width="${sw * 1.4}"/>`
         + `<path d="${d(2)}" stroke="#16a34a" stroke-width="${sw * 1.4}"/>`
         + `<path d="${d(3)}" stroke="#ea580c" stroke-width="${sw * 5}"/>`
+        + `<path d="${d(4)}" stroke="#dc2626" stroke-width="${sw * 1.2}" stroke-dasharray="${sw * 6} ${sw * 3}"/>`
         + dots + nums + '</g></svg>';
       info.replaceChildren(
         h('span', null, 'Schnittlänge'), h('b', null, `${f2(prog.length / 1000)} m`),
@@ -11789,7 +11830,20 @@ function addOp(type, opt = {}) {
   }
   const turnTool = { tface: 'turn', trough: 'turn', tfinish: 'turn', tgroove: 'groove', tpart: 'groove', tthread: 'tthread', tdrill: 'drill', tbore: 'turnbore', tlive: 'drill', tslot: 'flat', tflat: 'flat', tcontour: 'flat', twrap: 'flat', tpocket: 'flat', twpocket: 'flat' }[type];
   const byKind = k => p.cam.tools.find(t => t.type === k) || (k === 'turnbore' ? null : byType(k));
-  if (turnTool && !byKind(turnTool)) return status(`Kein ${TOOL_TYPES[turnTool]} in der Werkzeugbibliothek – bitte dort anlegen.`);
+  // a design that has only been milled so far has no lathe tools: the usual one for this operation is put into the
+  // library (as the probe above), so the first turning operation does not end at the tool library
+  if (turnTool && !byKind(turnTool)) {
+    const std = {
+      turn: { name: 'Drehmeißel DCMT R0,4', type: 'turn', dia: 12, noseRadius: 0.4, insertAngle: 55, leadAngle: 93, rpm: 2000, feed: 300, plunge: 150, stepdown: 1.5, stepover: 0.5 },
+      groove: { name: 'Stechmeißel 3 mm', type: 'groove', dia: 3, width: 3, rpm: 1000, feed: 60, plunge: 60, stepdown: 1, stepover: 0.5 },
+      tthread: { name: 'Gewindedrehmeißel 60°', type: 'tthread', dia: 6, rpm: 800, feed: 1200, plunge: 1200, stepdown: 1, stepover: 0.5 },
+      turnbore: { name: 'Bohrstange Ø5 R0,2', type: 'turnbore', dia: 5, noseRadius: 0.2, insertAngle: 55, leadAngle: 93, rpm: 1800, feed: 150, plunge: 80, stepdown: 0.5, stepover: 0.5 },
+    }[turnTool];
+    if (!std) return status(`Kein ${TOOL_TYPES[turnTool]} in der Werkzeugbibliothek – bitte dort anlegen.`);
+    const n = Math.max(0, ...p.cam.tools.map(x => +x.number || 0)) + 1;
+    commit(pp => pp.cam.tools.push({ id: uid('T'), number: n, ...std }));
+    status(`${std.name} als T${n} in der Werkzeugbibliothek angelegt`);
+  }
   const tool = opt.tool || (opt.five && byType('ball')) || (turnTool ? byKind(turnTool) : { probe: byType('probe'), rotary: byType('ball'), rotaryRough: byType('flat') || byType('ball'), rotaryWrap: byType('flat') || byType('ball'), drill: byType('drill') || byType('flat'), chamfer: byType('chamfer'), parallel3d: byType('ball') || byType('flat'), contour3d: byType('flat'), thread: byType('thread'), trace: byType('chamfer') || byType('flat'), vcarve: byType('chamfer'), project3d: byType('chamfer') || byType('ball') || byType('flat'),
     steep3d: byType('ball') || byType('flat'), scallop3d: byType('ball') || byType('flat'), spiral3d: byType('ball') || byType('flat'), radial3d: byType('ball') || byType('flat'),
     ramp3d: byType('ball') || byType('flat'), pencil3d: byType('ball'), morphspiral3d: byType('ball') || byType('flat'), blend3d: byType('ball') || byType('flat'), guidemorph3d: byType('ball') || byType('flat'),
@@ -11821,6 +11875,13 @@ function addOp(type, opt = {}) {
     ...(type === 'plunge3d' ? { stepoverMm: f2(tool.dia * 0.5), rowStep: f2(tool.dia * 0.7), stockToLeave: 0.5, pullBack: 0.3, retractPolicy: 'full' } : {}),
     ...(type === 'tcontour' || type === 'twrap' || type === 'tpocket' || type === 'twpocket' ? { depth: 1, side: 'on', stepdown: null, wrapDia: null, ...(type === 'tpocket' || type === 'twpocket' ? { stepover: null, ramp: 3 } : {}), sketch: [...rp.features].reverse().find(sk => { if (sk.type !== 'sketch') return false; try { const nz = Math.abs(basis(sk).n.clone().normalize().z); return type !== 'twrap' && type !== 'twpocket' ? nz > 0.999 : nz < 0.001; } catch { return false; } })?.id || '' } : {}),
     ...(type === 'tslot' ? { depth: 2, count: 1, startAngle: 0, angles: '', zStart: null, zEnd: null, stepdown: null } : {}),
+    // groove and thread need a place along the axis: a start value from the part (middle / front end), to be set right
+    ...(type === 'tgroove' || type === 'tthread' ? (() => {
+      let lo = Infinity, hi = -Infinity;
+      for (const b of getModel().bodies) { try { const bb = b.shape.boundingBox.bounds; lo = Math.min(lo, bb[0][2]); hi = Math.max(hi, bb[1][2]); } catch { /* no box */ } }
+      if (!(hi > lo)) return {};
+      return type === 'tgroove' ? { z: f2((lo + hi) / 2), width: +tool.width || +tool.dia || 3, dia: null } : { zStart: f2(hi), zEnd: f2(hi - Math.min(10, (hi - lo) / 2)), pitch: 1.5, passes: 6 };
+    })() : {}),
     ...(type === 'tflat' ? { count: 2, startAngle: 0, angles: '', width: null, length: 10, stepdown: null, stepover: null } : {}),
     ...(type === 'tlive' ? { dir: 'axial', depth: 5, count: 4, startAngle: 0, angles: '', pitchDia: null, z: null, ...(liveHolesFromModel(tool.dia)?.set || {}) } : {}),
     ...(type === 'corner3d' ? { restDia: f2(tool.dia * 2), slope: 45, stepdown: f2(Math.max(0.1, tool.dia * 0.08)) } : {}),
@@ -18169,7 +18230,7 @@ function ncCollisions(g, pts, opt) {
   }
   // the finished part on the same grid (asked for by opt.part): per cell the lowest height of the cell and its
   // neighbours, so a cutter along a wall does not count – what goes deeper than that cuts into the part
-  let ph = null, partHit = false, partDeep = 0;
+  let ph = null, partHit = false, partDeep = 0, engr = 0; // engr: how deep the operation of this line may go into the part (an engraving)
   if (opt?.part) {
     const pb = setupBodies(getModel().bodies, g.setup || {}).filter(b => b.geometry && !fxIds.has(b.id)).map(b => ({ geometry: b.geometry.clone().applyMatrix4(g.T) }));
     if (pb.length) {
@@ -18213,7 +18274,7 @@ function ncCollisions(g, pts, opt) {
     if (chk) {
       // (a cone is checked with its own shape; the stock is still cut as before)
       const tc = cone ? z + Math.max(0, Math.sqrt(d2) - cone.tip) / cone.tan : t;
-      if (tc < ph[idx] - 0.1) { partHit = true; if (ph[idx] - tc > partDeep) partDeep = ph[idx] - tc; }
+      if (tc < ph[idx] - 0.1 - engr) { partHit = true; if (ph[idx] - tc > partDeep) partDeep = ph[idx] - tc; }
     }
     if (h[idx] > t) h[idx] = t;
   });
@@ -18228,7 +18289,7 @@ function ncCollisions(g, pts, opt) {
     const j0 = Math.max(0, Math.floor((Math.min(T[1], ey) - R - y0) / res)), j1 = Math.min(ny - 1, Math.ceil((Math.max(T[1], ey) + R - y0) / res));
     for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
       const idx = j * nx + i, zc = tiltedEdgeZ(x0 + i * res, y0 + j * res, T, ax, R, cr, L);
-      if (chk && zc < ph[idx] - 0.1) { partHit = true; if (ph[idx] - zc > partDeep) partDeep = ph[idx] - zc; }
+      if (chk && zc < ph[idx] - 0.1 - engr) { partHit = true; if (ph[idx] - zc > partDeep) partDeep = ph[idx] - zc; }
       if (h[idx] > zc) h[idx] = zc;
     }
   };
@@ -18253,6 +18314,7 @@ function ncCollisions(g, pts, opt) {
   return found;
   function step(p, k) {
     if (!p) return;
+    engr = opt?.engrave?.(k) || 0;
     // turned part (A ≠ 0°): the height field does not apply – the next 3-axis move starts afresh
     if (p.a != null && Math.abs((((p.a % 360) + 540) % 360) - 180) < 179.999) { prev = null; return; }
     const t = tools.get(+p.tool);
@@ -18655,14 +18717,24 @@ const NC_ISSUE = { tablecut: 'Werkzeug schneidet durch das Rohteil in den Maschi
 
 // The checks of the NC window for one posted program (r = result of postProcess, g = its setup): every line against
 // the stock that is left, the clamping, the machine → { issues: [{ kind, k (line index) }], info, why }
+// An engraving is not in the model: its operation may cut as deep into the part as its depth says – only what goes
+// deeper than that is reported. → line index → depth allowed (by the name of the operation that wrote the line)
+function engraveDepths(g, r) {
+  const engr = {};
+  for (const o of g.ops || []) {
+    const d = o.type === 'trace' || o.type === 'project3d' ? Math.abs(+o.depth || 0) : o.type === 'vcarve' ? Math.abs(+o.maxDepth || 0) : 0;
+    if (d > 0) engr[o.name] = Math.max(engr[o.name] || 0, d + 0.02);
+  }
+  return k => engr[r.opOf?.[k]] || 0;
+}
 function ncReport(g, r, postId, opt) {
   let issues = [], info = null, why = null, partDeep = 0, compare = null;
   if (!g?.stock) return { issues, info, why };
   if (g.kind === 'turn') return { issues: ncLatheCheck(g, parseNcLathe(r.code)), info, why };
-  const tools = state.project.cam.tools, fam = String(postId || state.project.post.flavor);
+  const tools = state.project.cam.tools, fam = String(postId || postForKind(state.project, state.project.post.flavor, g.kind === 'turn'));
   const hh = fam.startsWith('heidenhain') || /^\s*\d*\s*BEGIN PGM\b/m.test(r.code);
   const pts = parseNcPositions(r.code, hh, n => (+tools.find(t => +t.number === +n)?.dia || 0) / 2, n => pivotOf(tools.find(t => +t.number === +n)));
-  issues = ncCollisions(g, pts, opt);
+  issues = ncCollisions(g, pts, { ...opt, engrave: engraveDepths(g, r) });
   partDeep = issues.partDeep || 0;
   if (hh) issues.push(...ncHeidenhainCheck(r.code));
   try { const mc = ncMachineCheck(g, pts); issues.push(...mc.issues); info = mc.info; why = mc.why; } catch (e) { console.warn(e); }
@@ -18888,7 +18960,7 @@ function ncViewer(results) {
       const hhCode = fam.startsWith('heidenhain') || /^\s*\d*\s*BEGIN PGM\b/m.test(r.code);
       pts = parseNcPositions(r.code, hhCode, n => (+tools.find(t => +t.number === +n)?.dia || 0) / 2, n => pivotOf(tools.find(t => +t.number === +n)));
       toolOf = new Map(tools.map(t => [+t.number, t]));
-      try { issues = ncCollisions(g, pts, { part: partOn }); partDeep = issues.partDeep || 0; } catch { issues = []; }
+      try { issues = ncCollisions(g, pts, { part: partOn, engrave: engraveDepths(g, r) }); partDeep = issues.partDeep || 0; } catch { issues = []; }
       if (hhCode) try { issues.push(...ncHeidenhainCheck(r.code)); } catch (e) { console.warn(e); }
       try { const mc = ncMachineCheck(g, pts); issues.push(...mc.issues); kinInfo = mc.info; kinWhy = mc.why; } catch (e) { console.warn(e); }
       const nA = pts.filter(p => p?.a != null && Math.abs((((p.a % 360) + 540) % 360) - 180) < 179.999).length;
@@ -19077,7 +19149,7 @@ function openPostDialog(saved = null) {
   // dialog state (stored in the project when the post runs)
   const d = {
     useMachine: saved?.useMachine ?? pp.useMachine ?? true,
-    postId: saved?.postId || (pp.useMachine !== false && g0?.machine?.post) || pp.flavor,
+    postId: saved?.postId || (pp.useMachine !== false && g0?.machine?.post) || postForKind(p, pp.flavor, g0?.setup?.kind === 'turn' || g0?.kind === 'turn'),
     name: saved?.name ?? pp.programName ?? String(p.cam.setups.find(x => x.id === sid)?.programNumber || 1001),
     file: saved?.file ?? pp.fileName ?? '',
     comment: saved?.comment ?? pp.programComment ?? '',
